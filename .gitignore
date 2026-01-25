@@ -1,0 +1,22 @@
+# Binaries
+*.exe
+*.dll
+*.so
+*.dylib
+bell.exe
+
+# Database (Local data)
+*.db
+database.db
+database.db-journal
+
+# Uploads (Keep structure but ignore content)
+public/assets/audio/*
+!public/assets/audio/.gitkeep
+public/assets/photos/*
+!public/assets/photos/.gitkeep
+
+# System
+.DS_Store
+Thumbs.db
+tmp/
