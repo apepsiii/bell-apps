@@ -1672,5 +1672,10 @@ func main() {
 
 	e.GET("/api/attendance/record", app.RecordAttendanceHandler) // Public API for IoT
 
-	e.Logger.Fatal(e.Start(":8080"))
+	// Port Configuration
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	e.Logger.Fatal(e.Start(":" + port))
 }
