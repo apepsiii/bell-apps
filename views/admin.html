@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Bel Sekolah - Monolith</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .page-section { display: none; animation: fadeIn 0.3s ease-in-out; }
+        .page-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .active-nav { background-color: #eff6ff; color: #2563eb; border-right: 3px solid #2563eb; }
+        .swal2-popup { font-family: 'Inter', system-ui, sans-serif !important; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans">
+
+    <div class="flex h-screen overflow-hidden">
+        
+        <!-- SIDEBAR -->
+        <aside id="main-sidebar" class="w-64 bg-white border-r border-slate-200 flex flex-col hidden md:flex overflow-y-auto fixed md:relative h-full z-20 transition-transform duration-300">
+            <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="bg-blue-600 p-2 rounded-lg text-white">
+                        <i data-lucide="bell-ring" class="w-6 h-6"></i>
+                    </div>
+                    <h1 class="font-bold text-xl tracking-tight">SmartBell</h1>
+                </div>
+                <button class="md:hidden text-slate-500 hover:text-red-500" onclick="toggleSidebar()">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <nav class="flex-1 p-4 space-y-1">
+                <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 px-4 mt-2">Bel Sekolah</div>
+                <a href="#dashboard" id="nav-dashboard" onclick="switchPage('dashboard', this)" class="nav-item active-nav flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg hover:bg-slate-50 transition"><i data-lucide="layout-dashboard" class="w-5 h-5"></i> Dashboard</a>
+                <a href="#schedules" id="nav-schedules" onclick="switchPage('schedules', this)" class="nav-item flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-lg hover:bg-slate-50 transition"><i data-lucide="calendar-clock" class="w-5 h-5"></i> Jadwal Bel</a>
+                <a href="#audio" id="nav-audio" onclick="switchPage('audio', this)" class="nav-item flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-lg hover:bg-slate-50 transition"><i data-lucide="music" class="w-5 h-5"></i> Audio Library</a>
+                
+                <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 px-4 mt-6">Data Akademik</div>
+                <a href="#majors" id="nav-majors" onclick="switchPage('majors', this)" class="nav-item flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-lg hover:bg-slate-50 transition"><i data-lucide="book-open" class="w-5 h-5"></i> Jurusan</a>
+                <a href="#classes" id="nav-classes" onclick="switchPage('classes', this)" class="nav-item flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-lg hover:bg-slate-50 transition"><i data-lucide="users" class="w-5 h-5"></i> Kelas</a>
+                <a href="#students" id="nav-students" onclick="switchPage('students', this)" class="nav-item flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-lg hover:bg-slate-50 transition"><i data-lucide="graduation-cap" class="w-5 h-5"></i> Siswa</a>
+                <a href="#staff" id="nav-staff" onclick="switchPage('staff', this)" class="nav-item flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-lg hover:bg-slate-50 transition"><i data-lucide="briefcase" class="w-5 h-5"></i> Guru & Staff</a>
+                
+                <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 px-4 mt-6">Kesiswaan</div>
+                <a href="#attendance" id="nav-attendance" onclick="switchPage('attendance', this)" class="nav-item flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-lg hover:bg-slate-50 transition"><i data-lucide="clipboard-check" class="w-5 h-5"></i> Presensi</a>
+
+                <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 px-4 mt-6">Sistem</div>
+                <a href="#devices" id="nav-devices" onclick="switchPage('devices', this)" class="nav-item flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-lg hover:bg-slate-50 transition"><i data-lucide="tablet-smartphone" class="w-5 h-5"></i> Perangkat</a>
+            </nav>
+            <div class="p-4 border-t border-slate-100">
+                <button onclick="handleLogout()" class="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-red-600 rounded-lg hover:bg-red-50 transition"><i data-lucide="log-out" class="w-5 h-5"></i> Keluar</button>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="flex-1 flex flex-col h-screen overflow-y-auto">
+            <header class="bg-white border-b border-slate-200 p-4 flex justify-between items-center sticky top-0 z-10">
+                <div class="md:hidden">
+                    <button onclick="toggleSidebar()" class="text-slate-600 hover:text-blue-600 p-1 rounded-lg hover:bg-slate-100 transition">
+                        <i data-lucide="menu" class="w-6 h-6"></i>
+                    </button>
+                </div>
+                <div class="flex items-center gap-4 ml-auto">
+                    <div class="flex items-center gap-2 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">
+                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Sistem Online
+                    </div>
+                </div>
+            </header>
+
+            <div class="p-6 md:p-8 max-w-7xl mx-auto w-full">
+
+                <!-- 1. DASHBOARD -->
+                <section id="dashboard" class="page-section active">
+                    <div class="flex justify-between items-end mb-6">
+                        <div><h2 class="text-2xl font-bold text-slate-800">Ringkasan</h2></div>
+                        <div class="text-right"><p class="text-xl font-mono font-bold text-blue-600" id="server-clock">00:00:00</p></div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                            <p class="text-sm text-slate-500">Total Siswa</p><h3 class="text-2xl font-bold">{{.Stats.TotalStudents}}</h3>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                            <p class="text-sm text-slate-500">Total Guru/Staff</p><h3 class="text-2xl font-bold">{{.Stats.TotalStaff}}</h3>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                            <p class="text-sm text-slate-500">Jadwal Bel</p><h3 class="text-2xl font-bold">{{.Stats.TotalSchedules}}</h3>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                            <p class="text-sm text-slate-500">Bel Berikutnya</p><h3 class="text-lg font-bold truncate">{{.Stats.NextBell}}</h3>
+                        </div>
+                    </div>
+
+                    <!-- CHARTS SECTION -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                        <!-- Chart 1: Progress Kelas -->
+                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                            <h3 class="font-bold text-slate-700 mb-4 flex items-center gap-2"><i data-lucide="bar-chart-2" class="w-4 h-4"></i> Progress Presensi Mingguan (Per Kelas)</h3>
+                            <canvas id="chartWeeklyClass"></canvas>
+                        </div>
+                        
+                        <div class="space-y-6">
+                            <!-- Chart 2: Status Distribusi -->
+                            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+                                <h3 class="font-bold text-slate-700 mb-4 flex items-center gap-2"><i data-lucide="pie-chart" class="w-4 h-4"></i> Sebaran Status (Mingguan)</h3>
+                                <div class="h-48 relative flex justify-center">
+                                    <canvas id="chartStatus"></canvas>
+                                </div>
+                            </div>
+                            <!-- Chart 3: Rata-rata Jam -->
+                            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                                <h3 class="font-bold text-slate-700 mb-4 flex items-center gap-2"><i data-lucide="clock" class="w-4 h-4"></i> Tren Jam Kedatangan (Mingguan)</h3>
+                                <div class="h-48">
+                                    <canvas id="chartArrival"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. JADWAL (EXISTING) -->
+                <section id="schedules" class="page-section">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-slate-800">Manajemen Jadwal</h2>
+                        <button onclick="openModal('modal-add-schedule')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-lg shadow-blue-600/20"><i data-lucide="plus" class="w-4 h-4"></i> Tambah</button>
+                    </div>
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50 border-b text-slate-500"><tr><th class="px-6 py-4 text-xs font-bold uppercase tracking-wider">Waktu</th><th class="px-6 py-4 text-xs font-bold uppercase tracking-wider">Ket</th><th class="px-6 py-4 text-xs font-bold uppercase tracking-wider">Audio</th><th class="px-6 py-4 text-right">Aksi</th></tr></thead>
+                            <tbody class="divide-y divide-slate-100">
+                                {{range .Schedules}}
+                                <tr class="hover:bg-slate-50 transition">
+                                    <td class="px-6 py-4 font-mono font-bold text-blue-600">{{.Time}}</td>
+                                    <td class="px-6 py-4 text-sm font-medium text-slate-700">{{.Label}}</td>
+                                    <td class="px-6 py-4 text-xs text-slate-500 bg-slate-50 rounded px-2 py-1 inline-block mt-3">{{.AudioFile}}</td>
+                                    <td class="px-6 py-4 text-right space-x-2"><button onclick="editSchedule('{{.ID}}', '{{.Time}}', '{{.Label}}', '{{.AudioFile}}')" class="text-blue-600 hover:bg-blue-50 p-1 rounded"><i data-lucide="edit-2" class="w-4 h-4"></i></button><button onclick="deleteItem('schedule', {{.ID}})" class="text-red-600 hover:bg-red-50 p-1 rounded"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
+                                </tr>
+                                {{else}}
+                                <tr><td colspan="4" class="px-6 py-12 text-center text-slate-400"><i data-lucide="calendar-off" class="w-12 h-12 mx-auto mb-2 opacity-50"></i><p>Belum ada jadwal bel</p></td></tr>
+                                {{end}}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- 3. AUDIO LIBRARY (EXISTING) -->
+                <section id="audio" class="page-section">
+                    <!-- ... Kode audio sama seperti sebelumnya ... -->
+                     <h2 class="text-2xl font-bold text-slate-800 mb-6">Audio Library</h2>
+                     <form id="upload-form" action="/admin/audio/upload" method="POST" enctype="multipart/form-data">
+                        <input type="file" name="file" id="file-input" class="hidden" accept=".mp3,.wav,.ogg" onchange="uploadFile(this)">
+                        <div id="drop-zone" class="mb-8 p-8 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 text-center hover:bg-blue-50 cursor-pointer">
+                            <p class="text-sm text-slate-500">Klik atau Drag File ke Sini (MP3/WAV)</p>
+                        </div>
+                    </form>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {{range .AudioFiles}}
+                        <div class="bg-white p-4 rounded-xl border shadow-sm flex justify-between items-center">
+                            <div class="overflow-hidden"><p class="font-medium text-sm truncate w-32">{{.DisplayName}}</p></div>
+                            <div class="flex gap-2"><button onclick="renameAudio('{{.ID}}', '{{.DisplayName}}')" class="text-blue-600"><i data-lucide="edit-2" class="w-4 h-4"></i></button><button onclick="deleteItem('audio', {{.ID}})" class="text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>
+                        </div>
+                        {{end}}
+                    </div>
+                </section>
+
+                <!-- ================= NEW ACADEMIC MODULES ================= -->
+
+                <!-- 4. MAJORS (JURUSAN) -->
+                <section id="majors" class="page-section">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-slate-800">Data Jurusan</h2>
+                        <button onclick="openModal('modal-major')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i> Tambah</button>
+                    </div>
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50 border-b text-slate-500"><tr><th class="px-6 py-4 text-xs font-bold uppercase tracking-wider">Nama Jurusan</th><th class="px-6 py-4 text-right">Aksi</th></tr></thead>
+                            <tbody class="divide-y divide-slate-100">
+                                {{range .Majors}}
+                                <tr class="hover:bg-slate-50 transition">
+                                    <td class="px-6 py-4 text-sm font-medium text-slate-700">{{.Name}}</td>
+                                    <td class="px-6 py-4 text-right space-x-2"><button onclick="editMajor('{{.ID}}', '{{.Name}}')" class="text-blue-600 hover:bg-blue-50 p-1 rounded"><i data-lucide="edit-2" class="w-4 h-4"></i></button><button onclick="deleteItem('major', {{.ID}})" class="text-red-600 hover:bg-red-50 p-1 rounded"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
+                                </tr>
+                                {{else}}
+                                <tr><td colspan="2" class="px-6 py-12 text-center text-slate-400"><i data-lucide="book-open" class="w-12 h-12 mx-auto mb-2 opacity-50"></i><p>Belum ada data jurusan</p></td></tr>
+                                {{end}}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- 5. CLASSES (KELAS) -->
+                <section id="classes" class="page-section">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-slate-800">Data Kelas</h2>
+                        <button onclick="openModal('modal-class')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i> Tambah</button>
+                    </div>
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50 border-b text-slate-500"><tr><th class="px-6 py-4 text-xs font-bold uppercase tracking-wider">Nama Kelas</th><th class="px-6 py-4 text-xs font-bold uppercase tracking-wider">Jurusan</th><th class="px-6 py-4 text-right">Aksi</th></tr></thead>
+                            <tbody class="divide-y divide-slate-100">
+                                {{range .Classes}}
+                                <tr class="hover:bg-slate-50 transition">
+                                    <td class="px-6 py-4 text-sm font-medium text-slate-700">{{.Name}}</td>
+                                    <td class="px-6 py-4 text-sm text-slate-500"><span class="bg-slate-100 text-slate-600 px-2 py-1 rounded text-xs">{{.MajorName}}</span></td>
+                                    <td class="px-6 py-4 text-right space-x-2"><button onclick="editClass('{{.ID}}', '{{.Name}}', '{{.MajorID}}', '{{.WAGroupID}}')" class="text-blue-600 hover:bg-blue-50 p-1 rounded"><i data-lucide="edit-2" class="w-4 h-4"></i></button><button onclick="deleteItem('class', {{.ID}})" class="text-red-600 hover:bg-red-50 p-1 rounded"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>
+                                </tr>
+                                {{else}}
+                                <tr><td colspan="3" class="px-6 py-12 text-center text-slate-400"><i data-lucide="users" class="w-12 h-12 mx-auto mb-2 opacity-50"></i><p>Belum ada data kelas</p></td></tr>
+                                {{end}}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- 6. STUDENTS (SISWA) -->
+                <section id="students" class="page-section">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-slate-800">Data Siswa</h2>
+                        <div class="flex gap-2">
+                             <button onclick="openModal('modal-import-student')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2"><i data-lucide="upload" class="w-4 h-4"></i> Import CSV</button>
+                             <button onclick="openModal('modal-student')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i> Tambah</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Search & Filter -->
+                    <div class="flex gap-4 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <div class="relative flex-1">
+                            <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-slate-400"></i>
+                            <input type="text" id="search-student" onkeyup="filterStudents()" placeholder="Cari nama, NIS, atau RFID..." class="w-full pl-9 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div class="w-1/4">
+                            <select id="filter-class" onchange="filterStudents()" class="w-full px-4 py-2 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                                <option value="">Semua Kelas</option>
+                                {{range .Classes}}
+                                <option value="{{.Name}}">{{.Name}}</option>
+                                {{end}}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <table class="w-full text-left" id="student-table">
+                            <thead class="bg-slate-50 border-b text-slate-500"><tr><th class="px-6 py-4 text-xs font-bold uppercase tracking-wider">Foto</th><th class="px-6 py-4 text-xs font-bold uppercase tracking-wider">NIS</th><th class="px-6 py-4 text-xs font-bold uppercase tracking-wider">Nama</th><th class="px-6 py-4 text-xs font-bold uppercase tracking-wider">Kelas</th><th class="px-6 py-4 text-xs font-bold uppercase tracking-wider">RFID UID</th><th class="px-6 py-4 text-right">Aksi</th></tr></thead>
+                            <tbody class="divide-y divide-slate-100">
+                                {{range .Students}}
+                                <tr class="student-row hover:bg-slate-50 transition">
+                                    <td class="px-6 py-4">
+                                        {{if .Photo}}<img src="/assets/photos/{{.Photo}}" class="w-10 h-10 rounded-full object-cover border border-slate-200">{{else}}<div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400"><i data-lucide="user" class="w-5 h-5"></i></div>{{end}}
+                                    </td>
+                                    <td class="px-6 py-4 text-sm font-mono text-slate-600">{{.NIS}}</td>
+                                    <td class="px-6 py-4 text-sm font-medium student-name text-slate-800">{{.Name}}<br><span class="text-xs text-slate-400 font-normal">Ortu: {{.ParentPhone}}</span></td>
+                                    <td class="px-6 py-4 text-sm text-slate-500 student-class"><span class="bg-blue-50 text-blue-600 px-2 py-1 rounded text-xs font-medium">{{.ClassName}}</span></td>
+                                    <td class="px-6 py-4 text-xs font-mono bg-slate-50 text-slate-500 rounded">{{.RFID}}</td>
+                                    <td class="px-6 py-4 text-right space-x-2">
+                                        <a href="/admin/student/{{.ID}}" class="inline-block text-purple-600 hover:bg-purple-50 p-2 rounded transition" title="Lihat Profil & Kalender"><i data-lucide="calendar" class="w-4 h-4"></i></a>
+                                        <button onclick="editStudent('{{.ID}}', '{{.RFID}}', '{{.NIS}}', '{{.Name}}', '{{.ParentPhone}}', '{{.ClassID}}', '{{.Photo}}')" class="text-blue-600 hover:bg-blue-50 p-2 rounded transition"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
+                                        <button onclick="deleteItem('student', {{.ID}})" class="text-red-600 hover:bg-red-50 p-2 rounded transition"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                    </td>
+                                </tr>
+                                {{else}}
+                                <tr><td colspan="6" class="px-6 py-12 text-center text-slate-400"><i data-lucide="graduation-cap" class="w-12 h-12 mx-auto mb-2 opacity-50"></i><p>Belum ada data siswa</p></td></tr>
+                                {{end}}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- 7. STAFF (GURU) -->
+                <section id="staff" class="page-section">
+                    <!-- ... content ... -->
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-slate-800">Guru & Staff</h2>
+                        <div class="flex gap-2">
+                             <button onclick="openModal('modal-import-staff')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2"><i data-lucide="upload" class="w-4 h-4"></i> Import CSV</button>
+                             <button onclick="openModal('modal-staff')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i> Tambah</button>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50 border-b text-slate-500"><tr><th class="px-6 py-4 text-xs font-bold uppercase tracking-wider">NIP</th><th class="px-6 py-4 text-xs font-bold uppercase tracking-wider">Nama</th><th class="px-6 py-4 text-xs font-bold uppercase tracking-wider">Role</th><th class="px-6 py-4 text-xs font-bold uppercase tracking-wider">RFID UID</th><th class="px-6 py-4 text-right">Aksi</th></tr></thead>
+                            <tbody class="divide-y divide-slate-100">
+                                {{range .StaffList}}
+                                <tr class="hover:bg-slate-50 transition">
+                                    <td class="px-6 py-4 text-sm font-mono text-slate-600">{{.NIP}}</td>
+                                    <td class="px-6 py-4 text-sm font-medium text-slate-800">{{.Name}}<br><span class="text-xs text-slate-400 font-normal">{{.Phone}}</span></td>
+                                    <td class="px-6 py-4 text-sm"><span class="px-2 py-1 bg-purple-50 text-purple-600 rounded text-xs font-medium">{{.Role}}</span></td>
+                                    <td class="px-6 py-4 text-xs font-mono bg-slate-50 text-slate-500 rounded">{{.RFID}}</td>
+                                    <td class="px-6 py-4 text-right space-x-2">
+                                        <a href="/admin/staff/{{.ID}}" class="inline-block text-purple-600 hover:bg-purple-50 p-2 rounded transition" title="Lihat Profil & Kalender"><i data-lucide="calendar" class="w-4 h-4"></i></a>
+                                        <button onclick="editStaff('{{.ID}}', '{{.RFID}}', '{{.NIP}}', '{{.Name}}', '{{.Phone}}', '{{.Role}}')" class="text-blue-600 hover:bg-blue-50 p-2 rounded transition"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
+                                        <button onclick="deleteItem('staff', {{.ID}})" class="text-red-600 hover:bg-red-50 p-2 rounded transition"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                    </td>
+                                </tr>
+                                {{else}}
+                                <tr><td colspan="5" class="px-6 py-12 text-center text-slate-400"><i data-lucide="briefcase" class="w-12 h-12 mx-auto mb-2 opacity-50"></i><p>Belum ada data staff</p></td></tr>
+                                {{end}}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- 8. ATTENDANCE (PRESENSI) -->
+                <section id="attendance" class="page-section">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-slate-800">Kontrol Presensi Siswa</h2>
+                        <div class="flex gap-2">
+                             <a href="/scan" target="_blank" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2"><i data-lucide="scan-line" class="w-4 h-4"></i> Buka Terminal Scan</a>
+                             <button onclick="openModal('modal-att-settings')" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2"><i data-lucide="settings" class="w-4 h-4"></i> Pengaturan Jam</button>
+                        </div>
+                    </div>
+
+                    <!-- Statistics Cards / Tabs -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <!-- Card: Sudah Datang -->
+                        <div class="bg-green-50 p-6 rounded-xl border border-green-200 relative overflow-hidden">
+                            <div class="flex justify-between items-start z-10 relative">
+                                <div>
+                                    <p class="text-sm font-bold text-green-700 uppercase tracking-wide">Sudah Presensi</p>
+                                    <h3 class="text-3xl font-black text-green-800 mt-2">{{len .PresentStudents}} <span class="text-sm font-medium text-green-600">Siswa</span></h3>
+                                </div>
+                                <div class="bg-green-200/50 p-3 rounded-full"><i data-lucide="user-check" class="w-8 h-8 text-green-600"></i></div>
+                            </div>
+                        </div>
+
+                        <!-- Card: Belum Datang -->
+                        <div class="bg-red-50 p-6 rounded-xl border border-red-200 relative overflow-hidden">
+                             <div class="flex justify-between items-start z-10 relative">
+                                <div>
+                                    <p class="text-sm font-bold text-red-700 uppercase tracking-wide">Belum Datang</p>
+                                    <h3 class="text-3xl font-black text-red-800 mt-2">{{len .AbsentStudents}} <span class="text-sm font-medium text-red-600">Siswa</span></h3>
+                                </div>
+                                <div class="bg-red-200/50 p-3 rounded-full"><i data-lucide="user-x" class="w-8 h-8 text-red-600"></i></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Layout 2 Kolom -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        
+                        <!-- Kolom Kiri: BELUM DATANG (Actionable) -->
+                        <div class="bg-white rounded-xl border border-red-100 shadow-sm flex flex-col h-[500px]">
+                            <div class="p-4 border-b border-red-100 bg-red-50/30 flex justify-between items-center">
+                                <h3 class="font-bold text-red-800 flex items-center gap-2"><i data-lucide="alert-circle" class="w-4 h-4"></i> Daftar Belum Hadir</h3>
+                                <input type="text" placeholder="Cari nama..." class="text-xs border rounded px-2 py-1" onkeyup="filterTable(this, 'table-absent')">
+                            </div>
+                            <div class="overflow-y-auto flex-1">
+                                <table class="w-full text-left" id="table-absent">
+                                    <thead class="bg-slate-50 border-b sticky top-0"><tr><th class="px-4 py-2 text-xs">Nama</th><th class="px-4 py-2 text-xs">Kelas</th><th class="px-4 py-2 text-xs text-right">Aksi</th></tr></thead>
+                                    <tbody class="divide-y divide-slate-100">
+                                        {{range .AbsentStudents}}
+                                        <tr>
+                                            <td class="px-4 py-3 text-sm font-medium">{{.Name}}</td>
+                                            <td class="px-4 py-3 text-xs text-slate-500">{{.ClassName}}</td>
+                                            <td class="px-4 py-3 text-right">
+                                                <button onclick="manualAttendance('{{.ID}}', '{{.Name}}')" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 rounded shadow-sm">Proses</button>
+                                            </td>
+                                        </tr>
+                                        {{end}}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Kolom Kanan: SUDAH DATANG (Read Only) -->
+                         <div class="bg-white rounded-xl border border-green-100 shadow-sm flex flex-col h-[500px]">
+                            <div class="p-4 border-b border-green-100 bg-green-50/30 flex justify-between items-center">
+                                <h3 class="font-bold text-green-800 flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4"></i> Riwayat Masuk Hari Ini</h3>
+                                <input type="text" placeholder="Cari..." class="text-xs border rounded px-2 py-1" onkeyup="filterTable(this, 'table-present')">
+                            </div>
+                            <div class="overflow-y-auto flex-1">
+                                <table class="w-full text-left" id="table-present">
+                                    <thead class="bg-slate-50 border-b sticky top-0"><tr><th class="px-4 py-2 text-xs">Waktu</th><th class="px-4 py-2 text-xs">Nama</th><th class="px-4 py-2 text-xs">Status</th></tr></thead>
+                                    <tbody class="divide-y divide-slate-100">
+                                        {{range .PresentStudents}}
+                                        <tr>
+                                            <td class="px-4 py-3 text-xs font-mono text-slate-500">{{.Time}}</td>
+                                            <td class="px-4 py-3 text-sm font-medium flex items-center gap-3">
+                                                {{if .Photo}}<img src="/assets/photos/{{.Photo}}" class="w-8 h-8 rounded-full object-cover border border-slate-200">{{else}}<div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-400 text-xs"><i data-lucide="user"></i></div>{{end}}
+                                                <div>
+                                                    {{.Name}}
+                                                    {{if eq .Method "MANUAL"}}<span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-yellow-100 text-yellow-800"><i data-lucide="keyboard" class="w-3 h-3 mr-1"></i>Manual</span>{{end}}
+                                                    <br><span class="text-[10px] text-slate-400">{{.ClassName}}</span>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-3 text-xs">
+                                                {{if eq .Status "Datang"}}<span class="text-green-600 bg-green-50 px-2 py-1 rounded font-bold">Hadir</span>
+                                                {{else if eq .Status "Terlambat"}}<span class="text-orange-600 bg-orange-50 px-2 py-1 rounded font-bold">Terlambat</span>
+                                                {{else if eq .Status "Sakit"}}<span class="text-blue-600 bg-blue-50 px-2 py-1 rounded font-bold">Sakit</span>
+                                                {{else if eq .Status "Izin"}}<span class="text-purple-600 bg-purple-50 px-2 py-1 rounded font-bold">Izin</span>
+                                                {{else}}<span class="text-slate-600 bg-slate-100 px-2 py-1 rounded">{{.Status}}</span>{{end}}
+                                            </td>
+                                        </tr>
+                                        {{end}}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+
+                <!-- DEVICES (EXISTING) -->
+                <section id="devices" class="page-section">
+                    <!-- ... Perangkat code ... -->
+                     <div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold text-slate-800">Perangkat</h2><button onclick="openModal('modal-device')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i> Tambah</button></div>
+                     <div class="bg-white rounded-xl border shadow-sm overflow-hidden"><table class="w-full text-left"><thead class="bg-slate-50 border-b"><tr><th class="px-6 py-4 text-xs font-semibold uppercase">Nama</th><th class="px-6 py-4 text-xs font-semibold uppercase">IP</th><th class="px-6 py-4 text-xs font-semibold uppercase">Status</th><th class="px-6 py-4 text-right">Aksi</th></tr></thead><tbody class="divide-y divide-slate-100">{{range .Devices}}<tr><td class="px-6 py-4">{{.Name}}</td><td class="px-6 py-4 font-mono text-sm">{{.IPAddress}}</td><td class="px-6 py-4">{{if eq .Status "online"}}<span class="text-green-600 text-xs font-bold">Online</span>{{else}}<span class="text-slate-400 text-xs">Offline</span>{{end}}</td><td class="px-6 py-4 text-right"><button onclick="deleteItem('device', {{.ID}})" class="text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td></tr>{{end}}</tbody></table></div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- === MODALS === -->
+
+    <!-- Modal Schedule -->
+    <div id="modal-add-schedule" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+            <h3 class="font-bold text-lg mb-4">Form Jadwal</h3>
+            <form id="schedule-form" action="/admin/schedule/add" method="POST" onsubmit="handleFormSubmit(event)" class="space-y-4">
+                <div><label class="text-sm font-medium">Waktu</label><input type="time" name="time" id="sched-time" required class="w-full border rounded p-2"></div>
+                <div><label class="text-sm font-medium">Keterangan</label><input type="text" name="label" id="sched-label" required class="w-full border rounded p-2"></div>
+                <div><label class="text-sm font-medium">Audio</label><select name="audio_file" id="sched-audio" class="w-full border rounded p-2">{{range .AudioFiles}}<option value="{{.FileName}}">{{.DisplayName}}</option>{{end}}</select></div>
+                <div class="flex justify-end gap-2"><button type="button" onclick="closeModal('modal-add-schedule')" class="text-slate-500">Batal</button><button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Simpan</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Major -->
+    <div id="modal-major" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+            <h3 class="font-bold text-lg mb-4">Form Jurusan</h3>
+            <form id="major-form" action="/admin/major/add" method="POST" onsubmit="handleFormSubmit(event)" class="space-y-4">
+                <div><label class="text-sm font-medium">Nama Jurusan</label><input type="text" name="name" id="maj-name" required placeholder="Contoh: Teknik Komputer Jaringan" class="w-full border rounded p-2"></div>
+                <div class="flex justify-end gap-2"><button type="button" onclick="closeModal('modal-major')" class="text-slate-500">Batal</button><button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Simpan</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Class -->
+    <div id="modal-class" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+            <h3 class="font-bold text-lg mb-4">Form Kelas</h3>
+            <form id="class-form" action="/admin/class/add" method="POST" onsubmit="handleFormSubmit(event)" class="space-y-4">
+                <div><label class="text-sm font-medium">Nama Kelas</label><input type="text" name="name" id="cls-name" required placeholder="Contoh: XII TKJ 1" class="w-full border rounded p-2"></div>
+                <div><label class="text-sm font-medium">Jurusan</label><select name="major_id" id="cls-major" class="w-full border rounded p-2">{{range .Majors}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select></div>
+                <div><label class="text-sm font-medium">ID Grup WhatsApp (Opsional)</label><input type="text" name="wa_group_id" id="cls-wa" placeholder="Contoh: 1203630234@g.us" class="w-full border rounded p-2 text-xs font-mono"></div>
+                <div class="flex justify-end gap-2"><button type="button" onclick="closeModal('modal-class')" class="text-slate-500">Batal</button><button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Simpan</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Student -->
+    <div id="modal-student" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+            <h3 class="font-bold text-lg mb-4">Form Siswa</h3>
+            <form id="student-form" action="/admin/student/add" method="POST" enctype="multipart/form-data" onsubmit="handleFormSubmit(event)" class="space-y-4">
+                <div><label class="text-sm font-medium">RFID UID (Tap Kartu)</label><input type="text" name="rfid_uid" id="stu-rfid" required placeholder="Tempel Kartu..." class="w-full border rounded p-2 bg-yellow-50 focus:bg-white"></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="text-sm font-medium">NIS</label><input type="text" name="nis" id="stu-nis" required class="w-full border rounded p-2"></div>
+                    <div><label class="text-sm font-medium">Kelas</label><select name="class_id" id="stu-class" class="w-full border rounded p-2">{{range .Classes}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select></div>
+                </div>
+                <div><label class="text-sm font-medium">Nama Lengkap</label><input type="text" name="name" id="stu-name" required class="w-full border rounded p-2"></div>
+                <div><label class="text-sm font-medium">No. HP Ortu</label><input type="text" name="parent_phone" id="stu-phone" required placeholder="08..." class="w-full border rounded p-2"></div>
+                <div>
+                    <label class="text-sm font-medium">Foto Siswa</label>
+                    <div id="stu-photo-preview" class="mb-2 hidden">
+                        <img src="" class="w-20 h-20 rounded-full object-cover border">
+                    </div>
+                    <input type="file" name="photo" accept="image/*" class="w-full border rounded p-2 text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                </div>
+                <div class="flex justify-end gap-2"><button type="button" onclick="closeModal('modal-student')" class="text-slate-500">Batal</button><button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Simpan</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Calendar -->
+    <div id="modal-student-calendar" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl p-6 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h3 class="font-bold text-xl text-slate-800" id="cal-student-name">Nama Siswa</h3>
+                    <p class="text-sm text-slate-500">Riwayat Kehadiran</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button onclick="changeMonth(-1)" class="p-2 hover:bg-slate-100 rounded-full"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
+                    <span id="cal-month-year" class="font-bold text-lg min-w-[150px] text-center">Januari 2026</span>
+                    <button onclick="changeMonth(1)" class="p-2 hover:bg-slate-100 rounded-full"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
+                    <button onclick="closeModal('modal-student-calendar')" class="ml-4 text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-6 h-6"></i></button>
+                </div>
+            </div>
+            
+            <!-- Calendar Grid -->
+            <div class="grid grid-cols-7 gap-px bg-slate-200 border border-slate-200 rounded-lg overflow-hidden">
+                <!-- Headers -->
+                <div class="bg-slate-50 p-2 text-center text-xs font-bold uppercase text-slate-500">Min</div>
+                <div class="bg-slate-50 p-2 text-center text-xs font-bold uppercase text-slate-500">Sen</div>
+                <div class="bg-slate-50 p-2 text-center text-xs font-bold uppercase text-slate-500">Sel</div>
+                <div class="bg-slate-50 p-2 text-center text-xs font-bold uppercase text-slate-500">Rab</div>
+                <div class="bg-slate-50 p-2 text-center text-xs font-bold uppercase text-slate-500">Kam</div>
+                <div class="bg-slate-50 p-2 text-center text-xs font-bold uppercase text-slate-500">Jum</div>
+                <div class="bg-slate-50 p-2 text-center text-xs font-bold uppercase text-slate-500">Sab</div>
+                
+                <!-- Days Container (Filled via JS) -->
+            </div>
+            <div id="calendar-days" class="grid grid-cols-7 gap-px bg-slate-200 border-x border-b border-slate-200 rounded-b-lg overflow-hidden"></div>
+            
+            <div class="mt-4 flex gap-4 text-xs text-slate-600">
+                <div class="flex items-center gap-1"><span class="w-3 h-3 bg-green-100 border border-green-300 rounded"></span> Hadir</div>
+                <div class="flex items-center gap-1"><span class="w-3 h-3 bg-orange-100 border border-orange-300 rounded"></span> Pulang</div>
+                <div class="flex items-center gap-1"><span class="w-3 h-3 bg-red-100 border border-red-300 rounded"></span> Terlambat/Alpha</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Staff -->
+    <div id="modal-staff" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+            <h3 class="font-bold text-lg mb-4">Form Guru & Staff</h3>
+            <form id="staff-form" action="/admin/staff/add" method="POST" onsubmit="handleFormSubmit(event)" class="space-y-4">
+                <div><label class="text-sm font-medium">RFID UID</label><input type="text" name="rfid_uid" id="stf-rfid" required class="w-full border rounded p-2 bg-yellow-50"></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="text-sm font-medium">NIP</label><input type="text" name="nip" id="stf-nip" class="w-full border rounded p-2"></div>
+                    <div><label class="text-sm font-medium">Role</label><select name="role" id="stf-role" class="w-full border rounded p-2"><option>Guru</option><option>Staff</option><option>Admin</option></select></div>
+                </div>
+                <div><label class="text-sm font-medium">Nama Lengkap</label><input type="text" name="name" id="stf-name" required class="w-full border rounded p-2"></div>
+                <div><label class="text-sm font-medium">No. HP</label><input type="text" name="phone" id="stf-phone" required class="w-full border rounded p-2"></div>
+                <div class="flex justify-end gap-2"><button type="button" onclick="closeModal('modal-staff')" class="text-slate-500">Batal</button><button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Simpan</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Attendance Settings -->
+    <div id="modal-att-settings" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+            <h3 class="font-bold text-lg mb-4">Pengaturan Sistem Presensi</h3>
+            <form id="att-settings-form" action="/admin/attendance/settings" method="POST" onsubmit="handleFormSubmit(event)" class="space-y-6">
+                
+                <!-- Time Settings -->
+                <div>
+                    <h4 class="font-bold text-xs uppercase text-slate-500 mb-2 border-b pb-1">Waktu Absensi</h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="text-sm font-medium text-blue-600">Mulai Datang</label><input type="time" name="arrival_start" value="{{index .AttendanceSettings "arrival_start"}}" required class="w-full border rounded p-2"></div>
+                        <div><label class="text-sm font-medium text-blue-600">Batas Datang</label><input type="time" name="arrival_end" value="{{index .AttendanceSettings "arrival_end"}}" required class="w-full border rounded p-2"></div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mt-2">
+                        <div><label class="text-sm font-medium text-orange-600">Mulai Pulang</label><input type="time" name="departure_start" value="{{index .AttendanceSettings "departure_start"}}" required class="w-full border rounded p-2"></div>
+                        <div><label class="text-sm font-medium text-orange-600">Batas Pulang</label><input type="time" name="departure_end" value="{{index .AttendanceSettings "departure_end"}}" required class="w-full border rounded p-2"></div>
+                    </div>
+                </div>
+
+                <!-- WA Gateway Settings -->
+                <div>
+                    <h4 class="font-bold text-xs uppercase text-slate-500 mb-2 border-b pb-1">Integrasi WhatsApp (OneSender)</h4>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-sm font-medium">API Base URL</label>
+                            <input type="text" name="onesender_api_url" value="{{index .AttendanceSettings "onesender_api_url"}}" placeholder="https://onesender.my.id/api/v1/messages" class="w-full border rounded p-2 text-sm font-mono">
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium">API Token</label>
+                            <input type="password" name="onesender_api_token" value="{{index .AttendanceSettings "onesender_api_token"}}" placeholder="Bearer Token..." class="w-full border rounded p-2 text-sm font-mono">
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium">Template Pesan WhatsApp</label>
+                            
+                            <!-- Tabs -->
+                            <div class="flex gap-2 mb-2 border-b overflow-x-auto">
+                                <button type="button" onclick="openTab('tab-in')" class="tab-btn px-3 py-2 text-xs font-bold text-blue-600 border-b-2 border-blue-600 whitespace-nowrap">Siswa Hadir</button>
+                                <button type="button" onclick="openTab('tab-late')" class="tab-btn px-3 py-2 text-xs font-bold text-slate-500 hover:text-blue-600 whitespace-nowrap">Terlambat</button>
+                                <button type="button" onclick="openTab('tab-out')" class="tab-btn px-3 py-2 text-xs font-bold text-slate-500 hover:text-blue-600 whitespace-nowrap">Pulang</button>
+                                <button type="button" onclick="openTab('tab-staff-in')" class="tab-btn px-3 py-2 text-xs font-bold text-slate-500 hover:text-blue-600 whitespace-nowrap">Staff Masuk</button>
+                                <button type="button" onclick="openTab('tab-staff-out')" class="tab-btn px-3 py-2 text-xs font-bold text-slate-500 hover:text-blue-600 whitespace-nowrap">Staff Pulang</button>
+                            </div>
+
+                            <!-- Content -->
+                            <div id="tab-in" class="tab-content">
+                                <textarea name="wa_template_in" rows="3" class="w-full border rounded p-2 text-sm" placeholder="Template Hadir...">{{index .AttendanceSettings "wa_template_in"}}</textarea>
+                            </div>
+                            <div id="tab-late" class="tab-content hidden">
+                                <textarea name="wa_template_late" rows="3" class="w-full border rounded p-2 text-sm" placeholder="Template Terlambat...">{{index .AttendanceSettings "wa_template_late"}}</textarea>
+                            </div>
+                            <div id="tab-out" class="tab-content hidden">
+                                <textarea name="wa_template_out" rows="3" class="w-full border rounded p-2 text-sm" placeholder="Template Pulang...">{{index .AttendanceSettings "wa_template_out"}}</textarea>
+                            </div>
+                            <div id="tab-staff-in" class="tab-content hidden">
+                                <textarea name="wa_template_staff_in" rows="6" class="w-full border rounded p-2 text-sm" placeholder="Template Staff Masuk...">{{index .AttendanceSettings "wa_template_staff_in"}}</textarea>
+                                <p class="text-xs text-slate-400 mt-1">Variabel Khusus: {teacher_name}, {type}, {date}</p>
+                            </div>
+                            <div id="tab-staff-out" class="tab-content hidden">
+                                <textarea name="wa_template_staff_out" rows="6" class="w-full border rounded p-2 text-sm" placeholder="Template Staff Pulang...">{{index .AttendanceSettings "wa_template_staff_out"}}</textarea>
+                                <p class="text-xs text-slate-400 mt-1">Variabel Khusus: {teacher_name}, {type}, {date}</p>
+                            </div>
+
+                            <p class="text-xs text-slate-400 mt-1">Variabel Umum: {name}, {time}, {status}</p>
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium">Link Gambar Header</label>
+                            <input type="text" name="wa_image_link" value="{{index .AttendanceSettings "wa_image_link"}}" placeholder="https://..." class="w-full border rounded p-2 text-sm font-mono">
+                            <p class="text-xs text-slate-400">Opsional. Kosongkan jika ingin kirim text saja.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Test Connection -->
+                <div>
+                     <h4 class="font-bold text-xs uppercase text-slate-500 mb-2 border-b pb-1">Test Koneksi</h4>
+                     <div class="flex gap-2">
+                        <input type="text" id="test-wa-target" placeholder="Contoh: 62812345..." class="flex-1 border rounded p-2 text-sm font-mono">
+                        <button type="button" onclick="testWA()" class="bg-slate-700 text-white px-4 py-2 rounded text-sm hover:bg-slate-800">Kirim Test</button>
+                     </div>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2"><button type="button" onclick="closeModal('modal-att-settings')" class="text-slate-500">Batal</button><button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Simpan Konfigurasi</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Student Import -->
+    <div id="modal-import-student" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+            <h3 class="font-bold text-lg mb-4">Import Data Siswa (CSV)</h3>
+            <div class="bg-blue-50 p-4 rounded-lg mb-4 text-sm text-blue-800">
+                <p class="font-bold mb-1">Format Kolom CSV:</p>
+                <code class="bg-white px-1 rounded">NIS, Nama, Nama_Kelas, No_HP_Ortu, RFID_UID</code>
+                <p class="mt-2 text-xs">Pastikan header ada di baris pertama. Kelas bisa Nama (contoh: "X TKJ 1") atau ID.</p>
+            </div>
+            <form action="/admin/student/import" method="POST" enctype="multipart/form-data" onsubmit="handleFormSubmit(event)" class="space-y-4">
+                <div><label class="text-sm font-medium">Pilih File CSV</label><input type="file" name="file" accept=".csv" required class="w-full border rounded p-2"></div>
+                <div class="flex justify-end gap-2"><button type="button" onclick="closeModal('modal-import-student')" class="text-slate-500">Batal</button><button type="submit" class="bg-green-600 text-white px-4 py-2 rounded">Upload & Import</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Staff Import -->
+    <div id="modal-import-staff" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+            <h3 class="font-bold text-lg mb-4">Import Data Guru/Staff (CSV)</h3>
+            <div class="bg-blue-50 p-4 rounded-lg mb-4 text-sm text-blue-800">
+                <p class="font-bold mb-1">Format Kolom CSV:</p>
+                <code class="bg-white px-1 rounded">NIP, Nama, Role, No_HP, RFID_UID</code>
+                <p class="mt-2 text-xs">Role: "Guru" / "Staff"</p>
+            </div>
+            <form action="/admin/staff/import" method="POST" enctype="multipart/form-data" onsubmit="handleFormSubmit(event)" class="space-y-4">
+                <div><label class="text-sm font-medium">Pilih File CSV</label><input type="file" name="file" accept=".csv" required class="w-full border rounded p-2"></div>
+                <div class="flex justify-end gap-2"><button type="button" onclick="closeModal('modal-import-staff')" class="text-slate-500">Batal</button><button type="submit" class="bg-green-600 text-white px-4 py-2 rounded">Upload & Import</button></div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        
+        // --- CHARTS INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', function() {
+            // Data from Backend (Injected as JSON String, need to parse)
+            // Note: We use raw string injection. If Go templates escape it, we might need a different approach.
+            // Safer approach: Parse the string content.
+            
+            try {
+                const dataWeeklyClass = JSON.parse({{.ChartWeeklyClass}});
+                const dataStatus = JSON.parse({{.ChartStatus}});
+                const dataArrival = JSON.parse({{.ChartArrival}});
+
+                // 1. Weekly Class Chart (Line)
+                if(document.getElementById('chartWeeklyClass')) {
+                    new Chart(document.getElementById('chartWeeklyClass'), {
+                        type: 'line',
+                        data: dataWeeklyClass,
+                        options: {
+                            responsive: true,
+                            plugins: { legend: { position: 'bottom' } },
+                            interaction: { mode: 'index', intersect: false }
+                        }
+                    });
+                }
+
+                // 2. Status Chart (Doughnut)
+                if(document.getElementById('chartStatus')) {
+                    new Chart(document.getElementById('chartStatus'), {
+                        type: 'doughnut',
+                        data: dataStatus,
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { position: 'right' } }
+                        }
+                    });
+                }
+
+                // 3. Arrival Chart (Line with Time Format)
+                if(document.getElementById('chartArrival')) {
+                    new Chart(document.getElementById('chartArrival'), {
+                        type: 'line',
+                        data: dataArrival,
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    ticks: {
+                                        callback: function(value) {
+                                            const h = Math.floor(value / 60);
+                                            const m = Math.floor(value % 60);
+                                            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                                        }
+                                    }
+                                }
+                            },
+                            plugins: {
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            const value = context.raw;
+                                            const h = Math.floor(value / 60);
+                                            const m = Math.floor(value % 60);
+                                            return `Rata-rata: ${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')} WIB`;
+                                        }
+                                    }
+                                },
+                                legend: { display: false }
+                            }
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error("Chart Data Error:", e);
+            }
+        });
+
+        // --- Navigation ---
+        function switchPage(pageId, element) {
+            document.querySelectorAll('.page-section').forEach(sec => sec.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(nav => { nav.classList.remove('active-nav', 'text-blue-600', 'bg-blue-50'); nav.classList.add('text-slate-600'); });
+            
+            document.getElementById(pageId).classList.add('active');
+            
+            // Auto-select corresponding nav item if element is null (from URL load)
+            if(!element) {
+                element = document.getElementById('nav-' + pageId);
+            }
+            if(element) {
+                element.classList.remove('text-slate-600'); 
+                element.classList.add('active-nav');
+            }
+            
+            // Close sidebar on mobile if open
+            const sidebar = document.getElementById('main-sidebar');
+            if(!sidebar.classList.contains('hidden') && window.innerWidth < 768) {
+                sidebar.classList.add('hidden');
+            }
+        }
+
+        // --- Mobile Sidebar Toggle ---
+        function toggleSidebar() {
+            const sidebar = document.getElementById('main-sidebar');
+            sidebar.classList.toggle('hidden');
+        }
+
+        // --- Persist Page State ---
+        document.addEventListener("DOMContentLoaded", function() {
+            const hash = window.location.hash.substring(1);
+            if(hash) {
+                switchPage(hash, null);
+            }
+        });
+
+        // --- Filter Students ---
+        function filterStudents() {
+            const input = document.getElementById('search-student').value.toUpperCase();
+            const classFilter = document.getElementById('filter-class').value;
+            const rows = document.querySelectorAll('.student-row');
+
+            rows.forEach(row => {
+                const name = row.querySelector('.student-name').textContent.toUpperCase();
+                const nis = row.cells[0].textContent.toUpperCase();
+                const rfid = row.cells[3].textContent.toUpperCase();
+                const className = row.querySelector('.student-class').textContent;
+                
+                const matchesSearch = name.includes(input) || nis.includes(input) || rfid.includes(input);
+                const matchesClass = classFilter === "" || className === classFilter;
+
+                if (matchesSearch && matchesClass) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+        }
+
+        // --- Modals ---
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        function manualAttendance(id, name) {
+            document.getElementById('manual-id').value = id;
+            document.getElementById('manual-name').innerText = name;
+            openModal('modal-manual-attendance');
+        }
+
+        function filterTable(input, tableId) {
+            const filter = input.value.toUpperCase();
+            const table = document.getElementById(tableId);
+            const tr = table.getElementsByTagName("tr");
+            for (let i = 0; i < tr.length; i++) {
+                const td = tr[i].getElementsByTagName("td")[0]; // Column 0 (Nama)
+                if (td) {
+                    const txtValue = td.textContent || td.innerText;
+                    tr[i].style.display = txtValue.toUpperCase().indexOf(filter) > -1 ? "" : "none";
+                }
+            }
+        }
+
+        // --- AJAX Submit with Loading State ---
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            const form = e.target;
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            
+            // Set Loading State
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Menyimpan...`;
+            lucide.createIcons();
+
+            try {
+                const res = await fetch(form.action, { method: 'POST', body: new FormData(form) });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    // Success: Show Toast instead of huge popup
+                    const Toast = Swal.mixin({
+                        toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true,
+                        didOpen: (toast) => { toast.addEventListener('mouseenter', Swal.stopTimer); toast.addEventListener('mouseleave', Swal.resumeTimer); }
+                    });
+                    Toast.fire({ icon: 'success', title: data.message }).then(() => window.location.reload());
+                } else {
+                    Swal.fire('Gagal', data.message, 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                }
+            } catch (err) { 
+                Swal.fire('Error', 'Koneksi gagal', 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        }
+
+        // --- Delete ---
+        async function deleteItem(type, id) {
+            if((await Swal.fire({ title: 'Hapus data ini?', icon: 'warning', showCancelButton: true })).isConfirmed) {
+                await fetch(`/admin/${type}/${id}`, { method: 'DELETE' });
+                window.location.reload();
+            }
+        }
+
+        // --- Edit Helpers ---
+        function editSchedule(id, time, label, audio) {
+            document.getElementById('schedule-form').action = `/admin/schedule/update/${id}`;
+            document.getElementById('sched-time').value = time;
+            document.getElementById('sched-label').value = label;
+            document.getElementById('sched-audio').value = audio;
+            openModal('modal-add-schedule');
+        }
+        function editMajor(id, name) {
+            document.getElementById('major-form').action = `/admin/major/update/${id}`;
+            document.getElementById('maj-name').value = name;
+            openModal('modal-major');
+        }
+        function editClass(id, name, majorId, waGroup) {
+            document.getElementById('class-form').action = `/admin/class/update/${id}`;
+            document.getElementById('cls-name').value = name;
+            document.getElementById('cls-major').value = majorId;
+            document.getElementById('cls-wa').value = waGroup;
+            openModal('modal-class');
+        }
+        function editStudent(id, rfid, nis, name, phone, classId, photo) {
+            document.getElementById('student-form').action = `/admin/student/update/${id}`;
+            document.getElementById('stu-rfid').value = rfid;
+            document.getElementById('stu-nis').value = nis;
+            document.getElementById('stu-name').value = name;
+            document.getElementById('stu-phone').value = phone;
+            document.getElementById('stu-class').value = classId;
+            
+            const preview = document.getElementById('stu-photo-preview');
+            if (photo) {
+                preview.classList.remove('hidden');
+                preview.querySelector('img').src = "/assets/photos/" + photo;
+            } else {
+                preview.classList.add('hidden');
+            }
+            
+            openModal('modal-student');
+        }
+        function editStaff(id, rfid, nip, name, phone, role) {
+            document.getElementById('staff-form').action = `/admin/staff/update/${id}`;
+            document.getElementById('stf-rfid').value = rfid;
+            document.getElementById('stf-nip').value = nip;
+            document.getElementById('stf-name').value = name;
+            document.getElementById('stf-phone').value = phone;
+            document.getElementById('stf-role').value = role;
+            openModal('modal-staff');
+        }
+
+        // --- Upload/Rename (Legacy) ---
+        async function uploadFile(input) {
+            const formData = new FormData();
+            formData.append('file', input.files[0]);
+            await fetch('/admin/audio/upload', { method: 'POST', body: formData });
+            window.location.reload();
+        }
+        async function renameAudio(id, old) {
+            const { value } = await Swal.fire({ input: 'text', inputValue: old });
+            if(value) {
+                const fd = new FormData(); fd.append('display_name', value);
+                await fetch(`/admin/audio/rename/${id}`, { method: 'POST', body: fd });
+                window.location.reload();
+            }
+        }
+        
+        async function handleLogout() { await fetch('/api/logout', { method: 'POST' }); window.location.href = '/login'; }
+
+        // --- Drag & Drop ---
+        const dropZone = document.getElementById('drop-zone');
+        if(dropZone) {
+            dropZone.addEventListener('click', () => document.getElementById('file-input').click());
+            dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('bg-blue-50'); });
+            dropZone.addEventListener('drop', e => { e.preventDefault(); document.getElementById('file-input').files = e.dataTransfer.files; uploadFile(document.getElementById('file-input')); });
+        }
+    </script>
+</body>
+</html>

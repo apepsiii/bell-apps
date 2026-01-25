@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminal Absensi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .focus-ring { animation: pulse-ring 2s infinite; }
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-white h-screen overflow-hidden flex flex-col items-center justify-center relative">
+
+    <!-- Background Pattern -->
+    <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+
+    <!-- Clock -->
+    <div class="absolute top-8 right-8 text-right">
+        <div id="clock-time" class="text-4xl font-black mono tracking-wider">00:00:00</div>
+        <div id="clock-date" class="text-slate-400 font-medium text-lg">Senin, 1 Januari 2025</div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="z-10 w-full max-w-3xl text-center">
+        
+        <h1 class="text-3xl font-bold mb-2 text-slate-300">TERMINAL ABSENSI</h1>
+        <p class="text-slate-500 mb-12">Silakan tempel kartu pada Reader</p>
+
+        <!-- Input Box (Hidden but Focused) -->
+        <input type="text" id="rfid-input" class="opacity-0 absolute top-0 left-0 w-0 h-0" autocomplete="off" autofocus>
+
+        <!-- Visual Feedback Area -->
+        <div id="status-card" class="bg-slate-800 border-2 border-slate-700 rounded-3xl p-10 shadow-2xl transition-all duration-300 transform scale-100">
+            
+            <!-- Default State -->
+            <div id="state-idle">
+                <div class="w-32 h-32 bg-slate-700 rounded-full mx-auto flex items-center justify-center mb-6 focus-ring">
+                    <i data-lucide="scan-line" class="w-16 h-16 text-blue-400"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-300">Menunggu Kartu...</h2>
+                <p class="text-slate-500 mt-2">Pastikan kursor aktif</p>
+            </div>
+
+            <!-- Loading State -->
+            <div id="state-loading" class="hidden">
+                <div class="w-32 h-32 mx-auto mb-6 flex items-center justify-center">
+                    <div class="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+                <h2 class="text-2xl font-bold text-blue-400">Memproses...</h2>
+            </div>
+
+            <!-- Success State -->
+            <div id="state-success" class="hidden">
+                <div id="photo-container" class="w-32 h-32 bg-green-500/20 rounded-full mx-auto flex items-center justify-center mb-6 border-4 border-green-500 overflow-hidden">
+                    <i data-lucide="check" class="w-16 h-16 text-green-500" id="default-icon"></i>
+                    <img id="student-photo" src="" class="w-full h-full object-cover hidden">
+                </div>
+                <h2 id="success-name" class="text-4xl font-black text-white mb-2">BUDI SANTOSO</h2>
+                <div class="inline-block px-4 py-2 rounded-lg bg-green-500/20 text-green-400 font-bold text-xl uppercase tracking-wider" id="success-status">MASUK - TEPAT WAKTU</div>
+                <p class="text-slate-400 mt-6 mono" id="success-time">07:05:00</p>
+            </div>
+
+            <!-- Error State -->
+            <div id="state-error" class="hidden">
+                <div class="w-32 h-32 bg-red-500/20 rounded-full mx-auto flex items-center justify-center mb-6 border-4 border-red-500">
+                    <i data-lucide="x" class="w-16 h-16 text-red-500"></i>
+                </div>
+                <h2 id="error-title" class="text-3xl font-bold text-white mb-2">KARTU TIDAK DIKENALI</h2>
+                <p id="error-msg" class="text-red-400 text-lg">Silakan hubungi Admin</p>
+            </div>
+
+        </div>
+
+        <!-- Last Log -->
+        <div class="mt-8 opacity-50">
+            <p class="text-sm text-slate-500">Log Terakhir:</p>
+            <p id="last-log" class="text-sm font-mono text-slate-300">-</p>
+        </div>
+
+    </div>
+
+    <script>
+        lucide.createIcons();
+        
+        // --- Clock ---
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock-time').innerText = now.toLocaleTimeString('id-ID', { hour12: false });
+            document.getElementById('clock-date').innerText = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // --- RFID Handling ---
+        const input = document.getElementById('rfid-input');
+        const card = document.getElementById('status-card');
+        let typingTimer;
+
+        // Ensure focus stays on input
+        document.addEventListener('click', () => input.focus());
+        input.addEventListener('blur', () => setTimeout(() => input.focus(), 100));
+
+        // Listen for input (RFID reader acts as keyboard)
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const rfid = input.value.trim();
+                if (rfid) processRFID(rfid);
+                input.value = '';
+            }
+        });
+
+        function showState(state) {
+            ['state-idle', 'state-loading', 'state-success', 'state-error'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(state).classList.remove('hidden');
+        }
+
+        async function processRFID(uid) {
+            showState('state-loading');
+            
+            try {
+                // Gunakan endpoint yang sudah dibuat sebelumnya
+                const res = await fetch(`/api/attendance/record?rfid=${encodeURIComponent(uid)}`);
+                const data = await res.json();
+
+                if (res.ok && data.status !== 'duplicate') {
+                    // SUKSES
+                    document.getElementById('success-name').innerText = data.name;
+                    document.getElementById('success-status').innerText = `${data.message}`; // "Absen Datang Berhasil"
+                    document.getElementById('success-time').innerText = new Date().toLocaleTimeString('id-ID');
+                    
+                    // Show Photo if exists
+                    const imgEl = document.getElementById('student-photo');
+                    const iconEl = document.getElementById('default-icon');
+                    
+                    if (data.photo) {
+                        imgEl.src = "/assets/photos/" + data.photo;
+                        imgEl.classList.remove('hidden');
+                        iconEl.classList.add('hidden');
+                    } else {
+                        imgEl.classList.add('hidden');
+                        iconEl.classList.remove('hidden');
+                    }
+                    
+                    // Update Style based on status
+                    const statusEl = document.getElementById('success-status');
+                    if(data.message.includes('Terlambat')) {
+                         statusEl.className = "inline-block px-4 py-2 rounded-lg bg-orange-500/20 text-orange-400 font-bold text-xl uppercase tracking-wider";
+                    } else if (data.message.includes('Pulang')) {
+                         statusEl.className = "inline-block px-4 py-2 rounded-lg bg-blue-500/20 text-blue-400 font-bold text-xl uppercase tracking-wider";
+                    } else {
+                         statusEl.className = "inline-block px-4 py-2 rounded-lg bg-green-500/20 text-green-400 font-bold text-xl uppercase tracking-wider";
+                    }
+
+                    showState('state-success');
+                    playSound('success');
+                    
+                    // Update last log
+                    document.getElementById('last-log').innerText = `${data.time} - ${data.name} (${data.message})`;
+
+                } else if (data.status === 'duplicate') {
+                    // DUPLIKAT (Warnanya Kuning/Orange)
+                    document.getElementById('error-title').innerText = "SUDAH ABSEN!";
+                    document.getElementById('error-msg').innerText = `${data.name} sudah melakukan presensi hari ini.`;
+                    showState('state-error');
+                    playSound('error');
+                } else {
+                    // ERROR LAIN (Kartu tidak dikenal / Diluar jam)
+                    document.getElementById('error-title').innerText = "GAGAL";
+                    document.getElementById('error-msg').innerText = data.message || "Kartu tidak valid";
+                    showState('state-error');
+                    playSound('error');
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById('error-title').innerText = "ERROR SISTEM";
+                document.getElementById('error-msg').innerText = "Koneksi ke server terputus";
+                showState('state-error');
+            }
+
+            // Reset to Idle after 3 seconds
+            setTimeout(() => {
+                showState('state-idle');
+            }, 3000);
+        }
+
+        // --- Simple Audio Feedback ---
+        // Kita gunakan Web Audio API sederhana untuk bunyi 'beep'
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(type) {
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            if (type === 'success') {
+                osc.frequency.value = 1000; // High pitch
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.1);
+                
+                // Second beep
+                setTimeout(() => {
+                    const osc2 = audioCtx.createOscillator();
+                    const gain2 = audioCtx.createGain();
+                    osc2.connect(gain2);
+                    gain2.connect(audioCtx.destination);
+                    osc2.frequency.value = 1500;
+                    gain2.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    osc2.start();
+                    osc2.stop(audioCtx.currentTime + 0.1);
+                }, 150);
+            } else {
+                osc.frequency.value = 300; // Low pitch
+                osc.type = 'sawtooth';
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.5);
+            }
+        }
+    </script>
+</body>
+</html>

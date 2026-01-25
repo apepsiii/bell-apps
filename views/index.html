@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartBell Player</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap');
+        
+        body { font-family: 'Inter', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        
+        /* Animasi Berdenyut untuk Status */
+        .pulse-ring { animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.33); opacity: 1; }
+            80%, 100% { transform: scale(2); opacity: 0; }
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-white h-screen flex flex-col overflow-hidden">
+
+    <!-- OVERLAY "KLIK UNTUK MULAI" (Wajib untuk browser modern agar bisa autoplay audio) -->
+    <div id="start-overlay" class="fixed inset-0 z-50 bg-slate-900/95 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center transition-opacity duration-500">
+        <div class="bg-blue-600 p-6 rounded-full mb-6 shadow-lg shadow-blue-500/50 animate-bounce">
+            <i data-lucide="play" class="w-12 h-12 text-white fill-current"></i>
+        </div>
+        <h1 class="text-3xl font-bold mb-2">SmartBell System</h1>
+        <p class="text-slate-400 mb-8 max-w-md">Klik layar untuk mengaktifkan audio dan memulai sistem bel otomatis.</p>
+        <button onclick="startSystem()" class="bg-white text-slate-900 px-8 py-3 rounded-xl font-bold hover:scale-105 transition transform">
+            Aktifkan Sistem
+        </button>
+    </div>
+
+    <!-- MAIN INTERFACE -->
+    <div class="flex-1 flex flex-col items-center justify-center relative">
+        
+        <!-- Background Decoration -->
+        <div class="absolute inset-0 overflow-hidden opacity-20 pointer-events-none">
+            <div class="absolute -top-24 -left-24 w-96 h-96 bg-blue-600 rounded-full blur-3xl"></div>
+            <div class="absolute -bottom-24 -right-24 w-96 h-96 bg-purple-600 rounded-full blur-3xl"></div>
+        </div>
+
+        <!-- Clock Section -->
+        <div class="z-10 text-center mb-12">
+            <div class="text-sm text-blue-400 font-bold tracking-widest uppercase mb-2">Waktu Saat Ini</div>
+            <h1 id="clock" class="text-[8rem] leading-none font-mono font-bold text-white drop-shadow-2xl tabular-nums">
+                00:00:00
+            </h1>
+            <div class="mt-4 text-2xl text-slate-400 font-light" id="date">Memuat tanggal...</div>
+        </div>
+
+        <!-- Next Schedule Card -->
+        <div class="z-10 w-full max-w-2xl px-6">
+            <div class="bg-white/10 backdrop-blur-lg border border-white/10 rounded-2xl p-6 flex items-center gap-6">
+                <div class="bg-blue-600/20 p-4 rounded-xl text-blue-400">
+                    <i data-lucide="bell" class="w-8 h-8"></i>
+                </div>
+                <div class="flex-1">
+                    <p class="text-slate-400 text-sm font-medium mb-1">Jadwal Berikutnya</p>
+                    <h2 id="next-label" class="text-3xl font-bold text-white">Memuat Jadwal...</h2>
+                </div>
+                <div class="text-right">
+                    <div id="next-time" class="text-4xl font-mono font-bold text-blue-400">--:--</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STATUS BAR -->
+    <footer class="bg-slate-800/50 backdrop-blur border-t border-white/5 p-4 flex justify-between items-center text-sm">
+        <div class="flex items-center gap-3">
+            <div class="relative">
+                <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                <div class="absolute inset-0 bg-green-500 rounded-full pulse-ring"></div>
+            </div>
+            <span class="text-slate-300">Sistem Online • <span id="schedule-count">0</span> Jadwal Dimuat</span>
+        </div>
+        <div class="text-slate-500 font-mono text-xs">
+            Device ID: <span class="text-slate-300">TAB-001</span>
+        </div>
+    </footer>
+
+    <!-- Audio Element Hidden -->
+    <audio id="bell-player" preload="auto"></audio>
+
+    <script>
+        lucide.createIcons();
+
+        let schedules = [];
+        let lastPlayedMinute = "";
+        
+        // 1. Start System (User Interaction Required)
+        function startSystem() {
+            const overlay = document.getElementById('start-overlay');
+            overlay.classList.add('opacity-0');
+            setTimeout(() => overlay.remove(), 500);
+            
+            // Putar audio kosong sebentar untuk "memancing" izin browser
+            const player = document.getElementById('bell-player');
+            player.play().catch(() => {}); 
+            
+            // Mulai loop
+            fetchSchedules();
+            setInterval(updateClockAndCheckBell, 1000);
+            
+            // Sync jadwal setiap 5 menit
+            setInterval(fetchSchedules, 5 * 60 * 1000); 
+        }
+
+        // 2. Fetch Data dari Backend
+        async function fetchSchedules() {
+            try {
+                const res = await fetch('/api/sync');
+                const data = await res.json();
+                if(data) {
+                    schedules = data;
+                    document.getElementById('schedule-count').innerText = schedules.length;
+                    updateNextBellDisplay();
+                }
+            } catch (err) {
+                console.error("Gagal sync jadwal:", err);
+            }
+        }
+
+        // 3. Logic Utama (Clock & Checker)
+        function updateClockAndCheckBell() {
+            const now = new Date();
+            
+            // Update Tampilan Jam
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const currentTimeStr = `${hours}:${minutes}`;
+            
+            document.getElementById('clock').innerText = `${hours}:${minutes}:${seconds}`;
+            document.getElementById('date').innerText = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+            // Cek Jadwal Bel
+            // Kita cek hanya di detik ke-00 agar tidak berbunyi berulang-ulang dalam 1 menit
+            if (seconds === "00") {
+                const currentSchedule = schedules.find(s => s.time === currentTimeStr);
+                
+                if (currentSchedule) {
+                    playAudio(currentSchedule.audio_url);
+                    // Update tampilan next bell setelah bunyi
+                    setTimeout(updateNextBellDisplay, 60000); 
+                }
+            }
+        }
+
+        // 4. Update Tampilan "Next Bell"
+        function updateNextBellDisplay() {
+            if (schedules.length === 0) return;
+
+            const now = new Date();
+            const currentHours = now.getHours();
+            const currentMinutes = now.getMinutes();
+            const currentTimeVal = currentHours * 60 + currentMinutes;
+
+            // Cari jadwal yang menit-nya lebih besar dari sekarang
+            let next = schedules.find(s => {
+                const [h, m] = s.time.split(':').map(Number);
+                return (h * 60 + m) > currentTimeVal;
+            });
+
+            // Jika tidak ada hari ini, ambil yang pertama (untuk besok)
+            if (!next) {
+                next = schedules[0];
+                document.getElementById('next-label').innerText = `${next.label} (Besok)`;
+            } else {
+                document.getElementById('next-label').innerText = next.label;
+            }
+            
+            document.getElementById('next-time').innerText = next.time;
+        }
+
+        // 5. Fungsi Play Audio
+        function playAudio(url) {
+            const player = document.getElementById('bell-player');
+            player.src = url;
+            player.play()
+                .then(() => console.log("Bel berbunyi: " + url))
+                .catch(e => console.error("Gagal memutar audio:", e));
+        }
+    </script>
+</body>
+</html>

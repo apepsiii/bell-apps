@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - SmartBell</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .page-section { display: none; animation: fadeIn 0.3s ease-in-out; }
+        .page-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .active-nav { background-color: #eff6ff; color: #2563eb; border-right: 3px solid #2563eb; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans">
+
+    <div class="flex h-screen overflow-hidden">
+        
+        <!-- SIDEBAR -->
+        <aside class="w-64 bg-white border-r border-slate-200 flex flex-col hidden md:flex">
+            <div class="p-6 border-b border-slate-100 flex items-center gap-3">
+                <div class="bg-blue-600 p-2 rounded-lg text-white">
+                    <i data-lucide="bell-ring" class="w-6 h-6"></i>
+                </div>
+                <h1 class="font-bold text-xl tracking-tight">SmartBell</h1>
+            </div>
+
+            <nav class="flex-1 p-4 space-y-1">
+                <button onclick="switchPage('dashboard', this)" class="nav-item active-nav w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg hover:bg-slate-50 transition">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5"></i> Dashboard
+                </button>
+                <button onclick="switchPage('schedules', this)" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-lg hover:bg-slate-50 transition">
+                    <i data-lucide="calendar-clock" class="w-5 h-5"></i> Manajemen Jadwal
+                </button>
+                <!-- Modul Audio & Device disembunyikan untuk simplifikasi contoh ini -->
+            </nav>
+
+            <div class="p-4 border-t border-slate-100">
+                <button onclick="handleLogout()" class="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-red-600 rounded-lg hover:bg-red-50 transition">
+                    <i data-lucide="log-out" class="w-5 h-5"></i> Keluar
+                </button>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="flex-1 flex flex-col h-screen overflow-y-auto">
+            <header class="bg-white border-b border-slate-200 p-4 flex justify-between items-center sticky top-0 z-10">
+                <div class="md:hidden font-bold text-blue-600">SmartBell</div>
+                <div class="flex items-center gap-4 ml-auto">
+                    <div class="flex items-center gap-2 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">
+                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                        Sistem Online
+                    </div>
+                    <div class="text-sm font-medium mr-2">Halo, {{ .Username }}</div>
+                </div>
+            </header>
+
+            <div class="p-6 md:p-8 max-w-7xl mx-auto w-full">
+
+                <!-- 1. DASHBOARD MODULE -->
+                <section id="dashboard" class="page-section active">
+                    <div class="flex justify-between items-end mb-6">
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-800">Ringkasan</h2>
+                            <p class="text-slate-500">Statistik hari ini.</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm text-slate-400">Jam Server</p>
+                            <p class="text-xl font-mono font-bold text-blue-600" id="server-clock">--:--:--</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <!-- Stats Dummy -->
+                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                            <div class="bg-blue-50 p-3 rounded-lg text-blue-600"><i data-lucide="calendar" class="w-8 h-8"></i></div>
+                            <div>
+                                <p class="text-sm text-slate-500">Total Jadwal</p>
+                                <!-- Menggunakan len dari data Schedules -->
+                                <h3 class="text-xl font-bold">{{ len .Schedules }} Jam</h3>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. SCHEDULE MODULE -->
+                <section id="schedules" class="page-section">
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-800">Manajemen Jadwal</h2>
+                            <p class="text-slate-500">Daftar jam bel yang aktif.</p>
+                        </div>
+                        <button onclick="document.getElementById('modal-add-schedule').classList.remove('hidden')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition">
+                            <i data-lucide="plus" class="w-4 h-4"></i> Tambah Jam
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-slate-50 border-b border-slate-200">
+                                <tr>
+                                    <th class="px-6 py-4 text-xs font-semibold text-slate-500 uppercase">Waktu</th>
+                                    <th class="px-6 py-4 text-xs font-semibold text-slate-500 uppercase">Keterangan</th>
+                                    <th class="px-6 py-4 text-xs font-semibold text-slate-500 uppercase">Audio</th>
+                                    <th class="px-6 py-4 text-xs font-semibold text-slate-500 uppercase text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <!-- LOOPING DATA DARI GO -->
+                                {{ range .Schedules }}
+                                <tr class="hover:bg-slate-50 transition group">
+                                    <td class="px-6 py-4 font-mono font-bold text-blue-600">{{ .Time }}</td>
+                                    <td class="px-6 py-4 text-sm text-slate-700">{{ .Label }}</td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-2 text-xs bg-slate-100 px-2 py-1 rounded w-fit text-slate-600 border border-slate-200">
+                                            <i data-lucide="music" class="w-3 h-3"></i> {{ .AudioFile }}
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button onclick="deleteSchedule({{ .ID }})" class="text-slate-400 hover:text-red-600 p-1 rounded hover:bg-red-50 transition">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {{ end }}
+                                <!-- END LOOP -->
+                            </tbody>
+                        </table>
+                        
+                        <!-- Pesan jika kosong -->
+                        {{ if eq (len .Schedules) 0 }}
+                        <div class="p-8 text-center text-slate-500">Belum ada jadwal. Silakan tambah baru.</div>
+                        {{ end }}
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL ADD SCHEDULE -->
+    <div id="modal-add-schedule" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="font-bold text-lg text-slate-800">Tambah Jam Pelajaran</h3>
+                <button onclick="document.getElementById('modal-add-schedule').classList.add('hidden')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form id="addScheduleForm" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Waktu</label>
+                    <input type="time" name="time" required class="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Keterangan</label>
+                    <input type="text" name="label" placeholder="Contoh: Pulang Sekolah" required class="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Audio File</label>
+                    <select name="audio_file" class="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white">
+                        <option value="bell_masuk.mp3">bell_masuk.mp3</option>
+                        <option value="bell_istirahat.mp3">bell_istirahat.mp3</option>
+                        <option value="bell_pulang.mp3">bell_pulang.mp3</option>
+                    </select>
+                </div>
+                <div class="pt-4 flex justify-end gap-3">
+                    <button type="button" onclick="document.getElementById('modal-add-schedule').classList.add('hidden')" class="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">Batal</button>
+                    <button type="submit" class="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-lg">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // 1. JAM REALTIME
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('server-clock').innerText = now.toLocaleTimeString('id-ID', { hour12: false });
+        }, 1000);
+
+        // 2. NAVIGASI TAB
+        function switchPage(pageId, element) {
+            document.querySelectorAll('.page-section').forEach(sec => sec.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(nav => {
+                nav.classList.remove('active-nav', 'text-blue-600', 'bg-blue-50');
+                nav.classList.add('text-slate-600');
+            });
+            document.getElementById(pageId).classList.add('active');
+            element.classList.remove('text-slate-600');
+            element.classList.add('active-nav');
+        }
+
+        // 3. LOGOUT LOGIC
+        async function handleLogout() {
+            if(!confirm("Yakin ingin keluar?")) return;
+            try {
+                await fetch('/api/logout', { method: 'POST' });
+                window.location.href = '/login';
+            } catch (err) {
+                alert("Gagal logout");
+            }
+        }
+
+        // 4. ADD SCHEDULE LOGIC
+        document.getElementById('addScheduleForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            try {
+                const res = await fetch('/admin/schedule/add', {
+                    method: 'POST',
+                    body: formData // Kirim sebagai Form Data
+                });
+                if(res.ok) {
+                    window.location.reload(); // Reload untuk update tabel (Simpel SSR)
+                } else {
+                    alert("Gagal menyimpan jadwal");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Error koneksi");
+            }
+        });
+
+        // 5. DELETE SCHEDULE LOGIC
+        async function deleteSchedule(id) {
+            if(!confirm("Hapus jadwal ini?")) return;
+            try {
+                const res = await fetch('/admin/schedule/' + id, { method: 'DELETE' });
+                if(res.ok) {
+                    window.location.reload();
+                } else {
+                    alert("Gagal menghapus");
+                }
+            } catch (err) {
+                alert("Error koneksi");
+            }
+        }
+    </script>
+</body>
+</html>
