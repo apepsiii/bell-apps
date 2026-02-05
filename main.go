@@ -133,6 +133,16 @@ type SignageMedia struct {
 	IsActive bool
 }
 
+type PrayerLog struct {
+	ID         int    `json:"id"`
+	RFID       string `json:"rfid_uid"`
+	Name       string `json:"name"`
+	ClassName  string `json:"class_name"`
+	PrayerType string `json:"prayer_type"`
+	Timestamp  string `json:"timestamp"`
+	Date       string `json:"date"`
+}
+
 // Helper struct for Dashboard presentation
 type StudentStatus struct {
 	Student
@@ -268,9 +278,25 @@ func InitDB() *sql.DB {
 			role TEXT
 		);`,
 		`CREATE TABLE IF NOT EXISTS attendance_settings (
-			setting_key TEXT PRIMARY KEY,
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			setting_key TEXT UNIQUE,
 			setting_value TEXT
 		);`,
+		`CREATE TABLE IF NOT EXISTS holidays (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			date TEXT NOT NULL,
+			name TEXT NOT NULL,
+			type TEXT NOT NULL,
+			description TEXT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		);`,
+		`CREATE TABLE IF NOT EXISTS school_settings (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			setting_key TEXT UNIQUE NOT NULL,
+			setting_value TEXT NOT NULL
+		);`,
+		`CREATE TABLE IF NOT EXISTS whatsapp_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, target TEXT, message TEXT, status TEXT, response TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP);`,
+		`INSERT OR IGNORE INTO school_settings (setting_key, setting_value) VALUES ('work_days', '1,2,3,4,5');`,
 		`CREATE TABLE IF NOT EXISTS attendance_logs (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			rfid_uid TEXT,
@@ -293,6 +319,19 @@ func InitDB() *sql.DB {
 			duration INTEGER DEFAULT 10,
 			is_active BOOLEAN DEFAULT 1
 		);`,
+		`CREATE TABLE IF NOT EXISTS prayer_logs (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			rfid_uid TEXT,
+			name TEXT,
+			class_name TEXT,
+			prayer_type TEXT,
+			timestamp DATETIME,
+			date DATE
+		);`,
+		`INSERT OR IGNORE INTO attendance_settings (setting_key, setting_value) VALUES ('dzuhur_start', '11:30');`,
+		`INSERT OR IGNORE INTO attendance_settings (setting_key, setting_value) VALUES ('dzuhur_end', '13:00');`,
+		`INSERT OR IGNORE INTO attendance_settings (setting_key, setting_value) VALUES ('ashar_start', '15:00');`,
+		`INSERT OR IGNORE INTO attendance_settings (setting_key, setting_value) VALUES ('ashar_end', '16:00');`,
 	}
 
 	for _, q := range queries {
@@ -362,7 +401,7 @@ func DateToIndo(t time.Time) string {
 	return fmt.Sprintf("%s, %d %s %d", day, t.Day(), month, t.Year())
 }
 
-func SendOneSenderMessage(to, message, token, apiUrl, recipientType, imageUrl string) (string, error) {
+func (a *App) SendOneSenderMessage(to, message, token, apiUrl, recipientType, imageUrl string) (string, error) {
 	if to == "" || token == "" || apiUrl == "" {
 		return "", nil
 	}
@@ -396,6 +435,7 @@ func SendOneSenderMessage(to, message, token, apiUrl, recipientType, imageUrl st
 	req, err := http.NewRequest("POST", apiUrl, bytes.NewBuffer(jsonPayload))
 	if err != nil {
 		log.Println("WA Error (Req):", err)
+		a.DB.Exec("INSERT INTO whatsapp_logs (target, message, status, response) VALUES (?, ?, ?, ?)", to, message, "failed", err.Error())
 		return "", err
 	}
 
@@ -406,12 +446,56 @@ func SendOneSenderMessage(to, message, token, apiUrl, recipientType, imageUrl st
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Println("WA Error (Do):", err)
+		a.DB.Exec("INSERT INTO whatsapp_logs (target, message, status, response) VALUES (?, ?, ?, ?)", to, message, "failed", err.Error())
 		return "", err
 	}
 	defer resp.Body.Close()
 
 	body, _ := io.ReadAll(resp.Body)
-	return string(body), nil
+	responseStr := string(body)
+	
+	status := "success"
+	if resp.StatusCode >= 400 {
+		status = "failed"
+	}
+	
+	a.DB.Exec("INSERT INTO whatsapp_logs (target, message, status, response) VALUES (?, ?, ?, ?)", to, message, status, responseStr)
+
+	return responseStr, nil
+}
+
+// GetWhatsAppLogsHandler - Fetch logs
+func (a *App) GetWhatsAppLogsHandler(c echo.Context) error {
+	limit := c.QueryParam("limit")
+	if limit == "" {
+		limit = "100" // Default limit
+	}
+
+	rows, err := a.DB.Query("SELECT id, target, message, status, response, timestamp FROM whatsapp_logs ORDER BY id DESC LIMIT ?", limit)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+	}
+	defer rows.Close()
+
+	type Log struct {
+		ID        int    `json:"id"`
+		Target    string `json:"target"`
+		Message   string `json:"message"`
+		Status    string `json:"status"`
+		Response  string `json:"response"`
+		Timestamp string `json:"timestamp"`
+	}
+
+	var logs []Log
+	for rows.Next() {
+		var l Log
+		var resp sql.NullString
+		rows.Scan(&l.ID, &l.Target, &l.Message, &l.Status, &resp, &l.Timestamp)
+		l.Response = resp.String
+		logs = append(logs, l)
+	}
+
+	return c.JSON(http.StatusOK, logs)
 }
 
 func FormatPhone(phone string) string {
@@ -1258,11 +1342,11 @@ func (a *App) ManualAttendanceHandler(c echo.Context) error {
 
 		// 1. Send to Parent
 		if parentPhone != "" {
-			SendOneSenderMessage(parentPhone, msg, waToken, waURL, "individual", waImage)
+			a.SendOneSenderMessage(parentPhone, msg, waToken, waURL, "individual", waImage)
 		}
 		// 2. Send to Class Group
 		if classGroup != "" {
-			SendOneSenderMessage(classGroup, msg, waToken, waURL, "group", waImage)
+			a.SendOneSenderMessage(classGroup, msg, waToken, waURL, "group", waImage)
 		}
 	}()
 
@@ -1360,8 +1444,72 @@ func (a *App) GetStudentCalendarHandler(c echo.Context) error {
 		})
 	}
 
-	log.Printf("Calendar data for student %s, month %s, year %s: %+v", studentID, month, year, calendarData)
-	return c.JSON(http.StatusOK, calendarData)
+	// Calculate Stats
+	totalPresent := 0
+	totalLate := 0
+	totalSick := 0
+	totalPermission := 0
+	totalAlpha := 0
+
+	monthInt, _ := strconv.Atoi(month)
+	monthType := time.Month(monthInt)
+	yearInt, _ := strconv.Atoi(year)
+	
+	workingDays := a.GetWorkingDaysInMonth(yearInt, monthType)
+
+	for _, logs := range calendarData {
+		for _, log := range logs {
+			switch log.Status {
+			case "Datang":
+				totalPresent++
+			case "Terlambat":
+				totalLate++
+			case "Sakit":
+				totalSick++
+			case "Izin":
+				totalPermission++
+			case "Alpha":
+				totalAlpha++
+			}
+		}
+	}
+
+	attendanceRate := 0.0
+	if workingDays > 0 {
+		attendanceRate = float64(totalPresent+totalLate) / float64(workingDays) * 100
+	}
+
+	response := map[string]interface{}{
+		"calendar": calendarData,
+		"stats": map[string]interface{}{
+			"working_days":     workingDays,
+			"present":          totalPresent,
+			"late":             totalLate,
+			"sick":             totalSick,
+			"permission":       totalPermission,
+			"alpha":            totalAlpha,
+			"attendance_rate":  attendanceRate,
+		},
+		"holidays": a.GetHolidaysForMonth(year, month),
+	}
+
+	return c.JSON(http.StatusOK, response)
+}
+
+// Helper to fetch holidays for calendar
+func (a *App) GetHolidaysForMonth(year, month string) map[int]string {
+	holidays := make(map[int]string)
+	rows, err := a.DB.Query("SELECT date, name FROM holidays WHERE strftime('%Y', date) = ? AND strftime('%m', date) = ?", year, month)
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var dStr, name string
+			rows.Scan(&dStr, &name)
+			t, _ := time.Parse("2006-01-02", dStr)
+			holidays[t.Day()] = name
+		}
+	}
+	return holidays
 }
 
 func (a *App) GetStaffCalendarHandler(c echo.Context) error {
@@ -1415,7 +1563,56 @@ func (a *App) GetStaffCalendarHandler(c echo.Context) error {
 		calendarData[t.Day()] = append(calendarData[t.Day()], CalendarLog{Status: status, Time: timeOnly})
 	}
 
-	return c.JSON(http.StatusOK, calendarData)
+	// Calculate Stats
+	totalPresent := 0
+	totalLate := 0
+	totalSick := 0
+	totalPermission := 0
+	totalAlpha := 0
+
+	monthInt, _ := strconv.Atoi(month)
+	monthType := time.Month(monthInt)
+	yearInt, _ := strconv.Atoi(year)
+	
+	workingDays := a.GetWorkingDaysInMonth(yearInt, monthType)
+
+	for _, logs := range calendarData {
+		for _, log := range logs {
+			switch log.Status {
+			case "Datang":
+				totalPresent++
+			case "Terlambat":
+				totalLate++
+			case "Sakit":
+				totalSick++
+			case "Izin":
+				totalPermission++
+			case "Alpha":
+				totalAlpha++
+			}
+		}
+	}
+
+	attendanceRate := 0.0
+	if workingDays > 0 {
+		attendanceRate = float64(totalPresent+totalLate) / float64(workingDays) * 100
+	}
+
+	response := map[string]interface{}{
+		"calendar": calendarData,
+		"stats": map[string]interface{}{
+			"working_days":     workingDays,
+			"present":          totalPresent,
+			"late":             totalLate,
+			"sick":             totalSick,
+			"permission":       totalPermission,
+			"alpha":            totalAlpha,
+			"attendance_rate":  attendanceRate,
+		},
+		"holidays": a.GetHolidaysForMonth(year, month),
+	}
+
+	return c.JSON(http.StatusOK, response)
 }
 
 // --- PROFILE HANDLERS ---
@@ -1537,6 +1734,12 @@ func (a *App) UpdateAttendanceSettingsHandler(c echo.Context) error {
 	waTemplateStaffOut := c.FormValue("wa_template_staff_out")
 	waImage := c.FormValue("wa_image_link")
 
+	// Prayer Times
+	dzStart := c.FormValue("dzuhur_start")
+	dzEnd := c.FormValue("dzuhur_end")
+	asStart := c.FormValue("ashar_start")
+	asEnd := c.FormValue("ashar_end")
+
 	tx, _ := a.DB.Begin()
 	// Gunakan INSERT OR REPLACE agar jika setting belum ada (karena migrasi), akan otomatis dibuat
 	tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "arrival_start", arrivalStart)
@@ -1552,6 +1755,11 @@ func (a *App) UpdateAttendanceSettingsHandler(c echo.Context) error {
 	tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "wa_template_staff_in", waTemplateStaffIn)
 	tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "wa_template_staff_out", waTemplateStaffOut)
 	tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "wa_image_link", waImage)
+
+	tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "dzuhur_start", dzStart)
+	tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "dzuhur_end", dzEnd)
+	tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "ashar_start", asStart)
+	tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "ashar_end", asEnd)
 
 	tx.Commit()
 
@@ -1651,7 +1859,7 @@ func (a *App) TestWAHandler(c echo.Context) error {
 	}
 
 	msg := "Test Koneksi SmartBell: Berhasil terhubung!"
-	resp, err := SendOneSenderMessage(target, msg, waToken, waURL, "individual", waImage)
+	resp, err := a.SendOneSenderMessage(target, msg, waToken, waURL, "individual", waImage)
 
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Error HTTP: " + err.Error()})
@@ -1669,17 +1877,26 @@ func (a *App) RecordAttendanceHandler(c echo.Context) error {
 	}
 
 	// 1. Identify User
-	var name, userType, photo string
-	var photoNull sql.NullString
+	var name, userType, photo, identityNo, className string
+	var photoNull, classNameNull sql.NullString
 
-	err := a.DB.QueryRow("SELECT name, photo FROM students WHERE rfid_uid=?", rfid).Scan(&name, &photoNull)
+	// Try Student first
+	err := a.DB.QueryRow(`
+		SELECT s.name, s.photo, s.nis, c.name 
+		FROM students s 
+		LEFT JOIN classes c ON s.class_id = c.id 
+		WHERE s.rfid_uid=?`, rfid).Scan(&name, &photoNull, &identityNo, &classNameNull)
+	
 	if err == nil {
 		userType = "Siswa"
 		photo = photoNull.String
+		className = classNameNull.String
 	} else {
-		err = a.DB.QueryRow("SELECT name FROM staff WHERE rfid_uid=?", rfid).Scan(&name)
+		// Try Staff
+		err = a.DB.QueryRow("SELECT name, nip FROM staff WHERE rfid_uid=?", rfid).Scan(&name, &identityNo)
 		if err == nil {
 			userType = "Staff"
+			className = "" // Staff doesn't have class
 		} else {
 			return c.JSON(http.StatusNotFound, map[string]string{"message": "Kartu tidak dikenali"})
 		}
@@ -1787,11 +2004,11 @@ func (a *App) RecordAttendanceHandler(c echo.Context) error {
 
 			// 1. Send to Parent
 			if parentPhone != "" {
-				SendOneSenderMessage(parentPhone, msg, waToken, waURL, "individual", waImage)
+				a.SendOneSenderMessage(parentPhone, msg, waToken, waURL, "individual", waImage)
 			}
 			// 2. Send to Class Group
 			if classGroup != "" {
-				SendOneSenderMessage(classGroup, msg, waToken, waURL, "group", waImage)
+				a.SendOneSenderMessage(classGroup, msg, waToken, waURL, "group", waImage)
 			}
 		}()
 	} else if userType == "Staff" {
@@ -1825,19 +2042,94 @@ func (a *App) RecordAttendanceHandler(c echo.Context) error {
 			a.DB.QueryRow("SELECT phone FROM staff WHERE rfid_uid=?", rfid).Scan(&staffPhone)
 
 			if staffPhone != "" {
-				SendOneSenderMessage(staffPhone, msg, waToken, waURL, "individual", waImage)
+				a.SendOneSenderMessage(staffPhone, msg, waToken, waURL, "individual", waImage)
 			}
 		}()
 	}
 
-	return c.JSON(http.StatusOK, map[string]string{
-		"status":  "success",
-		"message": "Absen " + status + " Berhasil",
-		"name":    name,
-		"type":    userType,
-		"time":    timeStr,
-		"photo":   photo, // Return photo filename
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"status":      "success",
+		"message":     "Absen " + status + " Berhasil",
+		"name":        name,
+		"type":        userType,
+		"time":        timeStr,
+		"photo":       photo,
+		"identity_no": identityNo, // NIS or NIP
+		"class_name":  className,  // Class name for students
 	})
+}
+
+// API for Today's Statistics (for Kiosk Display)
+// Endpoint: /api/attendance/today-stats
+func (a *App) TodayStatsHandler(c echo.Context) error {
+	dateStr := time.Now().Format("2006-01-02")
+
+	// Count students
+	var totalStudents, presentStudents, lateStudents int
+	a.DB.QueryRow("SELECT COUNT(*) FROM students").Scan(&totalStudents)
+	a.DB.QueryRow("SELECT COUNT(DISTINCT rfid_uid) FROM attendance_logs WHERE date=? AND user_type='Siswa' AND status='Datang'", dateStr).Scan(&presentStudents)
+	a.DB.QueryRow("SELECT COUNT(DISTINCT rfid_uid) FROM attendance_logs WHERE date=? AND user_type='Siswa' AND status='Terlambat'", dateStr).Scan(&lateStudents)
+
+	// Count staff
+	var totalStaff, presentStaff int
+	a.DB.QueryRow("SELECT COUNT(*) FROM staff").Scan(&totalStaff)
+	a.DB.QueryRow("SELECT COUNT(DISTINCT rfid_uid) FROM attendance_logs WHERE date=? AND user_type='Staff' AND (status='Datang' OR status='Terlambat')", dateStr).Scan(&presentStaff)
+
+	// Calculate percentage
+	var attendancePercentage float64
+	if totalStudents > 0 {
+		attendancePercentage = float64(presentStudents+lateStudents) / float64(totalStudents) * 100
+	}
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"total_students":        totalStudents,
+		"present_students":      presentStudents,
+		"late_students":         lateStudents,
+		"total_staff":           totalStaff,
+		"present_staff":         presentStaff,
+		"attendance_percentage": attendancePercentage,
+		"date":                  dateStr,
+	})
+}
+
+// API for Recent Attendance Logs (for Kiosk Display)
+// Endpoint: /api/attendance/recent-logs
+func (a *App) RecentLogsHandler(c echo.Context) error {
+	limit := 5 // Last 5 logs
+
+	rows, err := a.DB.Query(`
+		SELECT al.user_name, al.user_type, al.status, al.timestamp, s.photo
+		FROM attendance_logs al
+		LEFT JOIN students s ON al.rfid_uid = s.rfid_uid
+		ORDER BY al.timestamp DESC
+		LIMIT ?`, limit)
+	
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+	defer rows.Close()
+
+	var logs []map[string]interface{}
+	for rows.Next() {
+		var name, userType, status, timestamp string
+		var photoNull sql.NullString
+		rows.Scan(&name, &userType, &status, &timestamp, &photoNull)
+		
+		// Parse timestamp to get time only
+		t, _ := time.Parse("2006-01-02 15:04:05", timestamp)
+		timeOnly := t.Format("15:04")
+		
+		logs = append(logs, map[string]interface{}{
+			"name":      name,
+			"type":      userType,
+			"status":    status,
+			"time":      timeOnly,
+			"timestamp": timestamp,
+			"photo":     photoNull.String,
+		})
+	}
+
+	return c.JSON(http.StatusOK, logs)
 }
 
 func (a *App) SyncHandler(c echo.Context) error {
@@ -1950,7 +2242,25 @@ func main() {
 	admin.GET("/report/weekly", app.WeeklyReportHandler)
 	admin.GET("/report/monthly", app.MonthlyReportHandler)
 
-	e.GET("/api/attendance/record", app.RecordAttendanceHandler) // Public API for IoT
+	e.GET("/api/attendance/record", app.RecordAttendanceHandler)    // Public API for IoT
+	e.GET("/api/attendance/today-stats", app.TodayStatsHandler)     // Public API for Kiosk Stats
+	e.GET("/api/attendance/recent-logs", app.RecentLogsHandler)     // Public API for Recent Logs
+	e.GET("/api/attendance/prayer", app.PrayerAttendanceHandler)    // Public API for Prayer Attendance (TAP)
+	e.GET("/api/attendance/prayer-logs", app.PrayerLogsListHandler) // Public API for Prayer Logs List
+	
+	// WhatsApp Logs
+	admin.GET("/wa-logs", app.GetWhatsAppLogsHandler)
+
+	// Holiday API
+	admin.GET("/holidays", app.GetHolidaysHandler)
+	admin.POST("/holidays", app.AddHolidayHandler)
+	admin.PUT("/holidays/:id", app.UpdateHolidayHandler)
+	admin.DELETE("/holidays/:id", app.DeleteHolidayHandler)
+	admin.POST("/holidays/import-national", app.ImportNationalHolidaysHandler)
+
+	// School Settings API
+	admin.GET("/settings/school", app.GetSchoolSettingsHandler)
+	admin.PUT("/settings/school", app.UpdateSchoolSettingsHandler)
 
 	// Port Configuration
 	port := os.Getenv("PORT")
@@ -1958,4 +2268,98 @@ func main() {
 		port = "8080"
 	}
 	e.Logger.Fatal(e.Start(":" + port))
+}
+func (a *App) PrayerAttendanceHandler(c echo.Context) error {
+	rfid := c.QueryParam("rfid")
+	if rfid == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "RFID kosong"})
+	}
+
+	// 1. Identify User (Students Only)
+	var name, className_res string
+	var classNameNull sql.NullString
+	err := a.DB.QueryRow(`
+		SELECT s.name, c.name 
+		FROM students s 
+		LEFT JOIN classes c ON s.class_id = c.id 
+		WHERE s.rfid_uid=?`, rfid).Scan(&name, &classNameNull)
+	
+	if err != nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"message": "Kartu tidak dikenali"})
+	}
+	className_res = classNameNull.String
+
+	// 2. Determine Prayer Type based on Time
+	now := time.Now()
+	timeStr := now.Format("15:04")
+	dateStr := now.Format("2006-01-02")
+	timestamp := now.Format("2006-01-02 15:04:05")
+
+	var dzStart, dzEnd, asStart, asEnd string
+	a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='dzuhur_start'").Scan(&dzStart)
+	a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='dzuhur_end'").Scan(&dzEnd)
+	a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='ashar_start'").Scan(&asStart)
+	a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='ashar_end'").Scan(&asEnd)
+
+	// Defaults if empty
+	if dzStart == "" { dzStart = "11:30" }
+	if dzEnd == "" { dzEnd = "13:00" }
+	if asStart == "" { asStart = "15:00" }
+	if asEnd == "" { asEnd = "16:00" }
+
+	prayerType := ""
+
+	if timeStr >= dzStart && timeStr <= dzEnd {
+		prayerType = "Dzuhur"
+	} else if timeStr >= asStart && timeStr <= asEnd {
+		prayerType = "Ashar"
+	} else {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Bukan waktu sholat"})
+	}
+
+	// 3. Check Duplicate
+	var count int
+	a.DB.QueryRow("SELECT COUNT(*) FROM prayer_logs WHERE rfid_uid=? AND date=? AND prayer_type=?", rfid, dateStr, prayerType).Scan(&count)
+	if count > 0 {
+		return c.JSON(http.StatusOK, map[string]string{"status": "duplicate", "message": "Sudah absen sholat " + prayerType, "name": name})
+	}
+
+	// 4. Record
+	_, err = a.DB.Exec("INSERT INTO prayer_logs (rfid_uid, name, class_name, prayer_type, timestamp, date) VALUES (?, ?, ?, ?, ?, ?)",
+		rfid, name, className_res, prayerType, timestamp, dateStr)
+
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{
+		"status":      "success",
+		"message":     "Absen Sholat " + prayerType + " Berhasil",
+		"name":        name,
+		"prayer_type": prayerType,
+		"time":        timeStr,
+	})
+}
+func (a *App) PrayerLogsListHandler(c echo.Context) error {
+	// Get logs for today by default, or limit
+	rows, err := a.DB.Query("SELECT id, rfid_uid, name, class_name, prayer_type, timestamp, date FROM prayer_logs ORDER BY id DESC LIMIT 100")
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+	}
+	defer rows.Close()
+
+	var logs []PrayerLog
+	for rows.Next() {
+		var l PrayerLog
+		var className sql.NullString
+		rows.Scan(&l.ID, &l.RFID, &l.Name, &className, &l.PrayerType, &l.Timestamp, &l.Date)
+		l.ClassName = className.String
+		logs = append(logs, l)
+	}
+	
+	if logs == nil {
+		logs = []PrayerLog{}
+	}
+
+	return c.JSON(http.StatusOK, logs)
 }

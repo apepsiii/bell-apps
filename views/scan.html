@@ -1,233 +1,480 @@
 <!DOCTYPE html>
 <html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Terminal Absensi</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap');
-        body { font-family: 'Inter', sans-serif; }
-        .mono { font-family: 'JetBrains Mono', monospace; }
-        .focus-ring { animation: pulse-ring 2s infinite; }
-        @keyframes pulse-ring {
-            0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
-        }
-    </style>
-</head>
-<body class="bg-slate-900 text-white h-screen overflow-hidden flex flex-col items-center justify-center relative">
 
-    <!-- Background Pattern -->
-    <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Terminal Absensi</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script src="https://unpkg.com/lucide@latest"></script>
+        <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap');
 
-    <!-- Clock -->
-    <div class="absolute top-8 right-8 text-right">
-        <div id="clock-time" class="text-4xl font-black mono tracking-wider">00:00:00</div>
-        <div id="clock-date" class="text-slate-400 font-medium text-lg">Senin, 1 Januari 2025</div>
-    </div>
-
-    <!-- Main Container -->
-    <div class="z-10 w-full max-w-3xl text-center">
-        
-        <h1 class="text-3xl font-bold mb-2 text-slate-300">TERMINAL ABSENSI</h1>
-        <p class="text-slate-500 mb-12">Silakan tempel kartu pada Reader</p>
-
-        <!-- Input Box (Hidden but Focused) -->
-        <input type="text" id="rfid-input" class="opacity-0 absolute top-0 left-0 w-0 h-0" autocomplete="off" autofocus>
-
-        <!-- Visual Feedback Area -->
-        <div id="status-card" class="bg-slate-800 border-2 border-slate-700 rounded-3xl p-10 shadow-2xl transition-all duration-300 transform scale-100">
-            
-            <!-- Default State -->
-            <div id="state-idle">
-                <div class="w-32 h-32 bg-slate-700 rounded-full mx-auto flex items-center justify-center mb-6 focus-ring">
-                    <i data-lucide="scan-line" class="w-16 h-16 text-blue-400"></i>
-                </div>
-                <h2 class="text-2xl font-bold text-slate-300">Menunggu Kartu...</h2>
-                <p class="text-slate-500 mt-2">Pastikan kursor aktif</p>
-            </div>
-
-            <!-- Loading State -->
-            <div id="state-loading" class="hidden">
-                <div class="w-32 h-32 mx-auto mb-6 flex items-center justify-center">
-                    <div class="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                </div>
-                <h2 class="text-2xl font-bold text-blue-400">Memproses...</h2>
-            </div>
-
-            <!-- Success State -->
-            <div id="state-success" class="hidden">
-                <div id="photo-container" class="w-32 h-32 bg-green-500/20 rounded-full mx-auto flex items-center justify-center mb-6 border-4 border-green-500 overflow-hidden">
-                    <i data-lucide="check" class="w-16 h-16 text-green-500" id="default-icon"></i>
-                    <img id="student-photo" src="" class="w-full h-full object-cover hidden">
-                </div>
-                <h2 id="success-name" class="text-4xl font-black text-white mb-2">BUDI SANTOSO</h2>
-                <div class="inline-block px-4 py-2 rounded-lg bg-green-500/20 text-green-400 font-bold text-xl uppercase tracking-wider" id="success-status">MASUK - TEPAT WAKTU</div>
-                <p class="text-slate-400 mt-6 mono" id="success-time">07:05:00</p>
-            </div>
-
-            <!-- Error State -->
-            <div id="state-error" class="hidden">
-                <div class="w-32 h-32 bg-red-500/20 rounded-full mx-auto flex items-center justify-center mb-6 border-4 border-red-500">
-                    <i data-lucide="x" class="w-16 h-16 text-red-500"></i>
-                </div>
-                <h2 id="error-title" class="text-3xl font-bold text-white mb-2">KARTU TIDAK DIKENALI</h2>
-                <p id="error-msg" class="text-red-400 text-lg">Silakan hubungi Admin</p>
-            </div>
-
-        </div>
-
-        <!-- Last Log -->
-        <div class="mt-8 opacity-50">
-            <p class="text-sm text-slate-500">Log Terakhir:</p>
-            <p id="last-log" class="text-sm font-mono text-slate-300">-</p>
-        </div>
-
-    </div>
-
-    <script>
-        lucide.createIcons();
-        
-        // --- Clock ---
-        function updateClock() {
-            const now = new Date();
-            document.getElementById('clock-time').innerText = now.toLocaleTimeString('id-ID', { hour12: false });
-            document.getElementById('clock-date').innerText = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-        }
-        setInterval(updateClock, 1000);
-        updateClock();
-
-        // --- RFID Handling ---
-        const input = document.getElementById('rfid-input');
-        const card = document.getElementById('status-card');
-        let typingTimer;
-
-        // Ensure focus stays on input
-        document.addEventListener('click', () => input.focus());
-        input.addEventListener('blur', () => setTimeout(() => input.focus(), 100));
-
-        // Listen for input (RFID reader acts as keyboard)
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                const rfid = input.value.trim();
-                if (rfid) processRFID(rfid);
-                input.value = '';
+            body {
+                font-family: 'Inter', sans-serif;
             }
-        });
 
-        function showState(state) {
-            ['state-idle', 'state-loading', 'state-success', 'state-error'].forEach(id => {
-                document.getElementById(id).classList.add('hidden');
+            .mono {
+                font-family: 'JetBrains Mono', monospace;
+            }
+
+            /* Glassmorphism */
+            .glass {
+                background: rgba(255, 255, 255, 0.05);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+
+            /* Animations */
+            @keyframes slideUp {
+                from {
+                    transform: translateY(30px);
+                    opacity: 0;
+                }
+
+                to {
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+            }
+
+            @keyframes scaleIn {
+                from {
+                    transform: scale(0.8);
+                    opacity: 0;
+                }
+
+                to {
+                    transform: scale(1);
+                    opacity: 1;
+                }
+            }
+
+            .animate-slideUp {
+                animation: slideUp 0.5s ease-out;
+            }
+
+            .animate-scaleIn {
+                animation: scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+
+            /* Pulse ring */
+            .pulse-ring {
+                animation: pulse 2s infinite;
+            }
+
+            @keyframes pulse {
+
+                0%,
+                100% {
+                    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+                }
+
+                50% {
+                    box-shadow: 0 0 0 20px rgba(59, 130, 246, 0);
+                }
+            }
+        </style>
+    </head>
+
+    <body class="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white h-screen overflow-hidden flex">
+
+        <!-- Statistics Sidebar -->
+        <div class="w-80 p-6 glass border-r border-white/10 flex flex-col gap-4">
+            <div class="text-center mb-4">
+                <h2 class="text-xl font-bold mb-1">Statistik Hari Ini</h2>
+                <p id="stats-date" class="text-sm text-slate-400 mono"></p>
+            </div>
+
+            <!-- Attendance Percentage Circle -->
+            <div class="glass rounded-2xl p-6 text-center">
+                <div class="relative w-32 h-32 mx-auto mb-3">
+                    <svg class="transform -rotate-90 w-32 h-32">
+                        <circle cx="64" cy="64" r="56" stroke="rgba(255,255,255,0.1)" stroke-width="8" fill="none" />
+                        <circle id="progress-circle" cx="64" cy="64" r="56" stroke="#3b82f6" stroke-width="8"
+                            fill="none" stroke-dasharray="352" stroke-dashoffset="352"
+                            class="transition-all duration-1000" />
+                    </svg>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <span id="attendance-percent" class="text-3xl font-bold">0%</span>
+                    </div>
+                </div>
+                <p class="text-sm text-slate-400">Kehadiran Siswa</p>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="glass rounded-xl p-4 text-center">
+                    <div id="present-count" class="text-3xl font-bold text-green-400">0</div>
+                    <div class="text-xs text-slate-400 mt-1">Hadir</div>
+                </div>
+                <div class="glass rounded-xl p-4 text-center">
+                    <div id="late-count" class="text-3xl font-bold text-orange-400">0</div>
+                    <div class="text-xs text-slate-400 mt-1">Terlambat</div>
+                </div>
+            </div>
+
+            <div class="glass rounded-xl p-4">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm text-slate-400">Total Siswa</span>
+                    <span id="total-students" class="font-bold">0</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-slate-400">Staff Hadir</span>
+                    <span id="staff-count" class="font-bold text-blue-400">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col">
+            <!-- Clock Header -->
+            <div class="p-6 text-right">
+                <div id="clock-time" class="text-5xl font-black mono tracking-wider">00:00:00</div>
+                <div id="clock-date" class="text-slate-400 font-medium text-lg mt-1">Senin, 1 Januari 2025</div>
+            </div>
+
+            <!-- Main Card -->
+            <div class="flex-1 flex items-center justify-center p-6">
+                <div class="w-full max-w-2xl">
+                    <h1
+                        class="text-4xl font-bold mb-2 text-center bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                        TERMINAL ABSENSI
+                    </h1>
+                    <p class="text-slate-400 mb-8 text-center">Silakan tempel kartu pada Reader</p>
+
+                    <!-- Hidden Input -->
+                    <input type="text" id="rfid-input" class="opacity-0 absolute top-0 left-0 w-0 h-0"
+                        autocomplete="off" autofocus>
+
+                    <!-- Status Card -->
+                    <div id="status-card" class="glass rounded-3xl p-12 shadow-2xl transition-all duration-300">
+
+                        <!-- Idle State -->
+                        <div id="state-idle">
+                            <div
+                                class="w-40 h-40 bg-blue-500/20 rounded-full mx-auto flex items-center justify-center mb-6 pulse-ring">
+                                <i data-lucide="scan-line" class="w-20 h-20 text-blue-400"></i>
+                            </div>
+                            <h2 class="text-3xl font-bold text-center">Menunggu Kartu...</h2>
+                            <p class="text-slate-400 mt-3 text-center">Pastikan kursor aktif</p>
+                        </div>
+
+                        <!-- Loading State -->
+                        <div id="state-loading" class="hidden">
+                            <div class="w-40 h-40 mx-auto mb-6 flex items-center justify-center">
+                                <div
+                                    class="w-20 h-20 border-4 border-blue-500 border-t-transparent rounded-full animate-spin">
+                                </div>
+                            </div>
+                            <h2 class="text-3xl font-bold text-center text-blue-400">Memproses...</h2>
+                        </div>
+
+                        <!-- Success State -->
+                        <div id="state-success" class="hidden">
+                            <div id="photo-container"
+                                class="w-40 h-40 bg-green-500/20 rounded-full mx-auto flex items-center justify-center mb-6 border-4 border-green-500 overflow-hidden">
+                                <i data-lucide="check" class="w-20 h-20 text-green-500" id="default-icon"></i>
+                                <img id="student-photo" src="" class="w-full h-full object-cover hidden">
+                            </div>
+                            <h2 id="success-name" class="text-5xl font-black text-center mb-3">NAMA SISWA</h2>
+                            <div class="flex items-center justify-center gap-4 mb-4">
+                                <span id="success-identity" class="text-lg text-slate-300 mono"></span>
+                                <span id="success-class"
+                                    class="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-lg text-sm font-medium"></span>
+                            </div>
+                            <div class="inline-block px-6 py-3 rounded-xl bg-green-500/20 text-green-400 font-bold text-2xl uppercase tracking-wider mx-auto block text-center"
+                                id="success-status">
+                                MASUK - TEPAT WAKTU
+                            </div>
+                            <p class="text-slate-400 mt-6 mono text-center text-xl" id="success-time">07:05:00</p>
+                        </div>
+
+                        <!-- Error State -->
+                        <div id="state-error" class="hidden">
+                            <div
+                                class="w-40 h-40 bg-red-500/20 rounded-full mx-auto flex items-center justify-center mb-6 border-4 border-red-500">
+                                <i data-lucide="x" class="w-20 h-20 text-red-500"></i>
+                            </div>
+                            <h2 id="error-title" class="text-4xl font-bold text-center mb-3">KARTU TIDAK DIKENALI</h2>
+                            <p id="error-msg" class="text-red-400 text-lg text-center">Silakan hubungi Admin</p>
+                        </div>
+
+                    </div>
+
+                    <!-- Recent Logs -->
+                    <div class="mt-8">
+                        <h3 class="text-lg font-bold mb-4 text-center text-slate-300">Presensi Terakhir</h3>
+                        <div id="recent-logs" class="grid grid-cols-5 gap-3">
+                            <!-- Loading state -->
+                            <div class="col-span-5 text-center text-slate-500 text-sm">Memuat...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            lucide.createIcons();
+
+            // --- Clock ---
+            function updateClock() {
+                const now = new Date();
+                document.getElementById('clock-time').innerText = now.toLocaleTimeString('id-ID', { hour12: false });
+                document.getElementById('clock-date').innerText = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+            }
+            setInterval(updateClock, 1000);
+            updateClock();
+
+            // --- Statistics ---
+            async function fetchStats() {
+                try {
+                    const res = await fetch('/api/attendance/today-stats');
+                    const data = await res.json();
+
+                    // Update stats
+                    document.getElementById('present-count').innerText = data.present_students || 0;
+                    document.getElementById('late-count').innerText = data.late_students || 0;
+                    document.getElementById('total-students').innerText = data.total_students || 0;
+                    document.getElementById('staff-count').innerText = data.present_staff || 0;
+
+                    // Update percentage circle
+                    const percent = Math.round(data.attendance_percentage || 0);
+                    document.getElementById('attendance-percent').innerText = percent + '%';
+
+                    const circle = document.getElementById('progress-circle');
+                    const circumference = 2 * Math.PI * 56;
+                    const offset = circumference - (percent / 100) * circumference;
+                    circle.style.strokeDashoffset = offset;
+
+                    // Update date
+                    const date = new Date(data.date);
+                    document.getElementById('stats-date').innerText = date.toLocaleDateString('id-ID');
+                } catch (err) {
+                    console.error('Failed to fetch stats:', err);
+                }
+            }
+
+            // Fetch stats on load and every 30 seconds
+            fetchStats();
+            setInterval(fetchStats, 30000);
+
+            // --- Recent Logs ---
+            async function fetchRecentLogs() {
+                try {
+                    const res = await fetch('/api/attendance/recent-logs');
+                    const logs = await res.json();
+
+                    const container = document.getElementById('recent-logs');
+                    container.innerHTML = ''; // Clear loading state
+
+                    if (logs && logs.length > 0) {
+                        logs.forEach(log => {
+                            const card = document.createElement('div');
+                            card.className = 'glass rounded-xl p-3 text-center transition-all hover:scale-105';
+
+                            // Status color
+                            let statusColor = 'text-green-400';
+                            if (log.status === 'Terlambat') statusColor = 'text-orange-400';
+                            else if (log.status === 'Pulang') statusColor = 'text-blue-400';
+
+                            card.innerHTML = `
+                                <div class="w-16 h-16 mx-auto mb-2 rounded-full overflow-hidden bg-slate-700 flex items-center justify-center">
+                                    ${log.photo ?
+                                    `<img src="/assets/photos/${log.photo}" class="w-full h-full object-cover">` :
+                                    `<i data-lucide="user" class="w-8 h-8 text-slate-400"></i>`
+                                }
+                                </div>
+                                <p class="text-xs font-bold text-white truncate">${log.name}</p>
+                                <p class="text-xs ${statusColor} font-medium">${log.status}</p>
+                                <p class="text-xs text-slate-400 mono">${log.time}</p>
+                            `;
+                            container.appendChild(card);
+                        });
+                        lucide.createIcons(); // Refresh icons
+                    } else {
+                        container.innerHTML = '<div class="col-span-5 text-center text-slate-500 text-sm">Belum ada data</div>';
+                    }
+                } catch (err) {
+                    console.error('Failed to fetch recent logs:', err);
+                }
+            }
+
+            // Fetch recent logs on load and after each scan
+            fetchRecentLogs();
+            setInterval(fetchRecentLogs, 10000); // Refresh every 10 seconds
+
+            // --- RFID Handling ---
+            const input = document.getElementById('rfid-input');
+            const card = document.getElementById('status-card');
+
+            // Ensure focus stays on input
+            document.addEventListener('click', () => input.focus());
+            input.addEventListener('blur', () => setTimeout(() => input.focus(), 100));
+
+            // Listen for input
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    const rfid = input.value.trim();
+                    if (rfid) processRFID(rfid);
+                    input.value = '';
+                }
             });
-            document.getElementById(state).classList.remove('hidden');
-        }
 
-        async function processRFID(uid) {
-            showState('state-loading');
-            
-            try {
-                // Gunakan endpoint yang sudah dibuat sebelumnya
-                const res = await fetch(`/api/attendance/record?rfid=${encodeURIComponent(uid)}`);
-                const data = await res.json();
+            function showState(state) {
+                ['state-idle', 'state-loading', 'state-success', 'state-error'].forEach(id => {
+                    document.getElementById(id).classList.add('hidden');
+                });
+                const el = document.getElementById(state);
+                el.classList.remove('hidden');
+                el.classList.add('animate-scaleIn');
+            }
 
-                if (res.ok && data.status !== 'duplicate') {
-                    // SUKSES
-                    document.getElementById('success-name').innerText = data.name;
-                    document.getElementById('success-status').innerText = `${data.message}`; // "Absen Datang Berhasil"
-                    document.getElementById('success-time').innerText = new Date().toLocaleTimeString('id-ID');
-                    
-                    // Show Photo if exists
-                    const imgEl = document.getElementById('student-photo');
-                    const iconEl = document.getElementById('default-icon');
-                    
-                    if (data.photo) {
-                        imgEl.src = "/assets/photos/" + data.photo;
-                        imgEl.classList.remove('hidden');
-                        iconEl.classList.add('hidden');
+            async function processRFID(uid) {
+                showState('state-loading');
+
+                try {
+                    const res = await fetch(`/api/attendance/record?rfid=${encodeURIComponent(uid)}`);
+                    const data = await res.json();
+
+                    if (res.ok && data.status !== 'duplicate') {
+                        // SUCCESS
+                        document.getElementById('success-name').innerText = data.name;
+                        document.getElementById('success-identity').innerText = data.identity_no || '';
+                        document.getElementById('success-class').innerText = data.class_name || data.type;
+                        document.getElementById('success-status').innerText = data.message;
+                        document.getElementById('success-time').innerText = new Date().toLocaleTimeString('id-ID');
+
+                        // Show Photo
+                        const imgEl = document.getElementById('student-photo');
+                        const iconEl = document.getElementById('default-icon');
+
+                        if (data.photo) {
+                            imgEl.src = "/assets/photos/" + data.photo;
+                            imgEl.classList.remove('hidden');
+                            iconEl.classList.add('hidden');
+                        } else {
+                            imgEl.classList.add('hidden');
+                            iconEl.classList.remove('hidden');
+                        }
+
+                        // Update Style based on status
+                        const statusEl = document.getElementById('success-status');
+                        if (data.message.includes('Terlambat')) {
+                            statusEl.className = "inline-block px-6 py-3 rounded-xl bg-orange-500/20 text-orange-400 font-bold text-2xl uppercase tracking-wider mx-auto block text-center";
+                            playSound('late');
+                        } else if (data.message.includes('Pulang')) {
+                            statusEl.className = "inline-block px-6 py-3 rounded-xl bg-blue-500/20 text-blue-400 font-bold text-2xl uppercase tracking-wider mx-auto block text-center";
+                            playSound('checkout');
+                        } else {
+                            statusEl.className = "inline-block px-6 py-3 rounded-xl bg-green-500/20 text-green-400 font-bold text-2xl uppercase tracking-wider mx-auto block text-center";
+                            playSound('success');
+                            // Confetti for on-time attendance
+                            const hour = new Date().getHours();
+                            if (hour < 7) {
+                                triggerConfetti();
+                            }
+                        }
+
+                        showState('state-success');
+
+                        // Update last log
+                        document.getElementById('last-log').innerText = `${data.time} - ${data.name} (${data.message})`;
+
+                        // Refresh stats and recent logs
+                        setTimeout(() => {
+                            fetchStats();
+                            fetchRecentLogs();
+                        }, 1000);
+
+                    } else if (data.status === 'duplicate') {
+                        // DUPLICATE
+                        document.getElementById('error-title').innerText = "SUDAH ABSEN!";
+                        document.getElementById('error-msg').innerText = `${data.name} sudah melakukan presensi hari ini.`;
+                        showState('state-error');
+                        playSound('error');
                     } else {
-                        imgEl.classList.add('hidden');
-                        iconEl.classList.remove('hidden');
+                        // ERROR
+                        document.getElementById('error-title').innerText = "GAGAL";
+                        document.getElementById('error-msg').innerText = data.message || "Kartu tidak valid";
+                        showState('state-error');
+                        playSound('error');
                     }
-                    
-                    // Update Style based on status
-                    const statusEl = document.getElementById('success-status');
-                    if(data.message.includes('Terlambat')) {
-                         statusEl.className = "inline-block px-4 py-2 rounded-lg bg-orange-500/20 text-orange-400 font-bold text-xl uppercase tracking-wider";
-                    } else if (data.message.includes('Pulang')) {
-                         statusEl.className = "inline-block px-4 py-2 rounded-lg bg-blue-500/20 text-blue-400 font-bold text-xl uppercase tracking-wider";
-                    } else {
-                         statusEl.className = "inline-block px-4 py-2 rounded-lg bg-green-500/20 text-green-400 font-bold text-xl uppercase tracking-wider";
-                    }
-
-                    showState('state-success');
-                    playSound('success');
-                    
-                    // Update last log
-                    document.getElementById('last-log').innerText = `${data.time} - ${data.name} (${data.message})`;
-
-                } else if (data.status === 'duplicate') {
-                    // DUPLIKAT (Warnanya Kuning/Orange)
-                    document.getElementById('error-title').innerText = "SUDAH ABSEN!";
-                    document.getElementById('error-msg').innerText = `${data.name} sudah melakukan presensi hari ini.`;
-                    showState('state-error');
-                    playSound('error');
-                } else {
-                    // ERROR LAIN (Kartu tidak dikenal / Diluar jam)
-                    document.getElementById('error-title').innerText = "GAGAL";
-                    document.getElementById('error-msg').innerText = data.message || "Kartu tidak valid";
+                } catch (err) {
+                    console.error(err);
+                    document.getElementById('error-title').innerText = "ERROR SISTEM";
+                    document.getElementById('error-msg').innerText = "Koneksi ke server terputus";
                     showState('state-error');
                     playSound('error');
                 }
-            } catch (err) {
-                console.error(err);
-                document.getElementById('error-title').innerText = "ERROR SISTEM";
-                document.getElementById('error-msg').innerText = "Koneksi ke server terputus";
-                showState('state-error');
-            }
 
-            // Reset to Idle after 3 seconds
-            setTimeout(() => {
-                showState('state-idle');
-            }, 3000);
-        }
-
-        // --- Simple Audio Feedback ---
-        // Kita gunakan Web Audio API sederhana untuk bunyi 'beep'
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        function playSound(type) {
-            const osc = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-            osc.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-
-            if (type === 'success') {
-                osc.frequency.value = 1000; // High pitch
-                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.1);
-                
-                // Second beep
+                // Reset to Idle after 4 seconds
                 setTimeout(() => {
-                    const osc2 = audioCtx.createOscillator();
-                    const gain2 = audioCtx.createGain();
-                    osc2.connect(gain2);
-                    gain2.connect(audioCtx.destination);
-                    osc2.frequency.value = 1500;
-                    gain2.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                    osc2.start();
-                    osc2.stop(audioCtx.currentTime + 0.1);
-                }, 150);
-            } else {
-                osc.frequency.value = 300; // Low pitch
-                osc.type = 'sawtooth';
+                    showState('state-idle');
+                    lucide.createIcons();
+                }, 4000);
+            }
+
+            // --- Audio Feedback ---
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+            function playSound(type) {
+                if (type === 'success') {
+                    // High pitch double beep
+                    playBeep(1000, 0.1);
+                    setTimeout(() => playBeep(1500, 0.1), 150);
+                } else if (type === 'late') {
+                    // Medium pitch single beep
+                    playBeep(800, 0.2);
+                } else if (type === 'checkout') {
+                    // Low pitch beep
+                    playBeep(600, 0.15);
+                } else {
+                    // Error buzzer
+                    playBeep(300, 0.5, 'sawtooth');
+                }
+            }
+
+            function playBeep(freq, duration, type = 'sine') {
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                osc.frequency.value = freq;
+                osc.type = type;
                 gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
                 osc.start();
-                osc.stop(audioCtx.currentTime + 0.5);
+                osc.stop(audioCtx.currentTime + duration);
             }
-        }
-    </script>
-</body>
+
+            // --- Confetti Effect ---
+            function triggerConfetti() {
+                const duration = 3000;
+                const end = Date.now() + duration;
+
+                (function frame() {
+                    confetti({
+                        particleCount: 3,
+                        angle: 60,
+                        spread: 55,
+                        origin: { x: 0 },
+                        colors: ['#3b82f6', '#8b5cf6', '#06b6d4']
+                    });
+                    confetti({
+                        particleCount: 3,
+                        angle: 120,
+                        spread: 55,
+                        origin: { x: 1 },
+                        colors: ['#3b82f6', '#8b5cf6', '#06b6d4']
+                    });
+
+                    if (Date.now() < end) {
+                        requestAnimationFrame(frame);
+                    }
+                }());
+            }
+        </script>
+    </body>
+
 </html>

@@ -100,6 +100,11 @@
                         <i data-lucide="clipboard-check" class="w-5 h-5"></i>
                         <span class="font-medium">Presensi</span>
                     </button>
+                    <button onclick="navigateMenu('prayer-logs', this)" id="nav-prayer-logs"
+                        class="nav-item w-full flex items-center gap-3 px-4 py-3 text-slate-600 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition">
+                        <i data-lucide="moon" class="w-5 h-5"></i>
+                        <span class="font-medium">Laporan Sholat</span>
+                    </button>
                     <button onclick="navigateMenu('holidays', this)" id="nav-holidays"
                         class="nav-item w-full flex items-center gap-3 px-4 py-3 text-slate-600 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition">
                         <i data-lucide="calendar-off" class="w-5 h-5"></i>
@@ -925,11 +930,11 @@
                         </div>
                     </section>
 
-                    <!-- 9. WA LOGS -->
-                    <section id="wa-logs" class="page-section">
+                    <!-- 11. PRAYER LOGS -->
+                    <section id="prayer-logs" class="page-section">
                         <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-2xl font-bold text-slate-800">Log Pengiriman WhatsApp</h2>
-                            <button onclick="loadWALogs()"
+                            <h2 class="text-2xl font-bold text-slate-800">Laporan Sholat</h2>
+                            <button onclick="loadPrayerLogs()"
                                 class="text-sm text-slate-500 hover:text-blue-600 flex items-center gap-1"><i
                                     data-lucide="refresh-cw" class="w-4 h-4"></i> Segarkan</button>
                         </div>
@@ -938,14 +943,15 @@
                                 <thead class="bg-slate-50 border-b">
                                     <tr>
                                         <th class="px-6 py-4 text-xs font-semibold uppercase">Waktu</th>
-                                        <th class="px-6 py-4 text-xs font-semibold uppercase">Tujuan</th>
-                                        <th class="px-6 py-4 text-xs font-semibold uppercase">Pesan</th>
-                                        <th class="px-6 py-4 text-xs font-semibold uppercase">Status</th>
-                                        <th class="px-6 py-4 text-xs font-semibold uppercase text-right">Response</th>
+                                        <th class="px-6 py-4 text-xs font-semibold uppercase">Nama</th>
+                                        <th class="px-6 py-4 text-xs font-semibold uppercase">Kelas</th>
+                                        <th class="px-6 py-4 text-xs font-semibold uppercase">Sholat</th>
                                     </tr>
                                 </thead>
-                                <tbody id="walogs-table-body">
-                                    <!-- JS Load -->
+                                <tbody id="prayer-logs-table-body">
+                                    <tr>
+                                        <td colspan="4" class="px-6 py-8 text-center text-slate-500">Memuat data...</td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -1264,6 +1270,27 @@
                                     type="time" name="departure_end"
                                     value="{{index .AttendanceSettings "departure_end"}}" required
                                     class="w-full border rounded p-2"></div>
+                        </div>
+                    </div>
+
+                    <!-- Prayer Time Settings -->
+                    <div>
+                        <h4 class="font-bold text-xs uppercase text-slate-500 mb-2 border-b pb-1">Waktu Sholat</h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div><label class="text-sm font-medium text-emerald-600">Mulai Dzuhur</label><input
+                                    type="time" name="dzuhur_start" value="{{index .AttendanceSettings "dzuhur_start"}}"
+                                    required class="w-full border rounded p-2"></div>
+                            <div><label class="text-sm font-medium text-emerald-600">Akhir Dzuhur</label><input
+                                    type="time" name="dzuhur_end" value="{{index .AttendanceSettings "dzuhur_end"}}"
+                                    required class="w-full border rounded p-2"></div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 mt-2">
+                            <div><label class="text-sm font-medium text-emerald-600">Mulai Ashar</label><input
+                                    type="time" name="ashar_start" value="{{index .AttendanceSettings "ashar_start"}}"
+                                    required class="w-full border rounded p-2"></div>
+                            <div><label class="text-sm font-medium text-emerald-600">Akhir Ashar</label><input
+                                    type="time" name="ashar_end" value="{{index .AttendanceSettings "ashar_end"}}"
+                                    required class="w-full border rounded p-2"></div>
                         </div>
                     </div>
 
@@ -2085,6 +2112,53 @@
                 btn.classList.add('bg-slate-100', 'text-slate-600');
             }
 
+            // Include lucide-icons mosque if not available or use generic
+            // Function to load Prayer Logs
+            async function loadPrayerLogs() {
+                const tbody = document.getElementById('prayer-logs-table-body');
+                tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-slate-500">Memuat data...</td></tr>';
+
+                try {
+                    const res = await fetch('/api/attendance/prayer-logs');
+                    if (!res.ok) throw new Error("Gagal mengambil data");
+
+                    const logs = await res.json();
+                    tbody.innerHTML = '';
+
+                    if (logs.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-slate-500">Belum ada data sholat hari ini</td></tr>';
+                        return;
+                    }
+
+                    logs.forEach(log => {
+                        const tr = document.createElement('tr');
+                        tr.className = 'hover:bg-slate-50 border-b border-slate-100 last:border-0';
+                        tr.innerHTML = `
+                            <td class="px-6 py-3 font-mono text-sm">${log.timestamp}</td>
+                            <td class="px-6 py-3 font-medium text-slate-700">${log.name}</td>
+                            <td class="px-6 py-3 text-slate-500">${log.class_name || '-'}</td>
+                            <td class="px-6 py-3">
+                                <span class="px-2 py-1 rounded text-xs font-bold ${log.prayer_type === 'Dzuhur' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}">
+                                    ${log.prayer_type}
+                                </span>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                } catch (err) {
+                    console.error(err);
+                    tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-red-500">Gagal memuat data</td></tr>';
+                }
+            }
+
+            // Hook into navigateMenu to load data when tab is opened
+            // (Removed duplicate hook definition)
+            document.addEventListener('DOMContentLoaded', () => {
+                // Re-attach or override? 
+                // Check existing navigateMenu definition in file.
+                // It is safer to just add the logic inside the existing navigateMenu if possible, or override safely.
+            });
+
             // --- HOLIDAYS (NEW) ---
             async function loadHolidays() {
                 const tbody = document.getElementById('holiday-table-body');
@@ -2302,6 +2376,59 @@
             });
 
             console.log("Script execution finished");
+
+            // Include lucide-icons mosque (moon) if not available or use generic
+            // Function to load Prayer Logs
+            async function loadPrayerLogs() {
+                const tbody = document.getElementById('prayer-logs-table-body');
+                tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-slate-500">Memuat data...</td></tr>';
+
+                try {
+                    const res = await fetch('/api/attendance/prayer-logs');
+                    if (!res.ok) throw new Error("Gagal mengambil data");
+
+                    const logs = await res.json();
+                    tbody.innerHTML = '';
+
+                    if (logs.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-slate-500">Belum ada data sholat hari ini</td></tr>';
+                        return;
+                    }
+
+                    logs.forEach(log => {
+                        const tr = document.createElement('tr');
+                        tr.className = 'hover:bg-slate-50 border-b border-slate-100 last:border-0';
+                        tr.innerHTML = `
+                            <td class="px-6 py-3 font-mono text-sm">${log.timestamp}</td>
+                            <td class="px-6 py-3 font-medium text-slate-700">${log.name}</td>
+                            <td class="px-6 py-3 text-slate-500">${log.class_name || '-'}</td>
+                            <td class="px-6 py-3">
+                                <span class="px-2 py-1 rounded text-xs font-bold ${log.prayer_type === 'Dzuhur' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}">
+                                    ${log.prayer_type}
+                                </span>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                } catch (err) {
+                    console.error(err);
+                    tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-red-500">Gagal memuat data</td></tr>';
+                }
+            }
+
+            // Hook into navigateMenu to load data when tab is opened
+            const baseNavigateMenu = window.navigateMenu;
+            window.navigateMenu = function (menuId, btn) {
+                if (typeof baseNavigateMenu === 'function') {
+                    baseNavigateMenu(menuId, btn);
+                } else {
+                    console.error("Base navigateMenu not found!");
+                }
+
+                if (menuId === 'prayer-logs') {
+                    loadPrayerLogs();
+                }
+            };
 
         </script>
     </body>

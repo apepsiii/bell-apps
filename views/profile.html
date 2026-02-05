@@ -1,191 +1,256 @@
 <!DOCTYPE html>
 <html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profil {{.Name}} - SmartBell</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-</head>
-<body class="bg-slate-50 text-slate-800 font-sans min-h-screen">
 
-    <!-- Header / Nav -->
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div class="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <a href="/admin" class="p-2 hover:bg-slate-100 rounded-full text-slate-500"><i data-lucide="arrow-left" class="w-5 h-5"></i></a>
-                <h1 class="font-bold text-lg">Detail Profil</h1>
-            </div>
-            <div class="text-sm text-slate-500 font-mono">{{.Type}}</div>
-        </div>
-    </header>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Profil {{.Name}} - SmartBell</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script src="https://unpkg.com/lucide@latest"></script>
+    </head>
 
-    <main class="max-w-5xl mx-auto px-6 py-8">
-        
-        <!-- PROFILE CARD -->
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 mb-8 flex flex-col md:flex-row gap-8 items-start">
-            <div class="w-32 h-32 bg-slate-100 rounded-full flex items-center justify-center border-4 border-slate-50 shrink-0 overflow-hidden">
-                {{if .Photo}}
-                <img src="/assets/photos/{{.Photo}}" class="w-full h-full object-cover">
-                {{else}}
-                <i data-lucide="user" class="w-12 h-12 text-slate-400"></i>
-                {{end}}
-            </div>
-            <div class="flex-1 space-y-4">
-                <div>
-                    <h2 class="text-3xl font-bold text-slate-900">{{.Name}}</h2>
-                    <p class="text-slate-500 text-lg">{{.IdentityNo}} • {{.ExtraInfo}}</p>
+    <body class="bg-slate-50 text-slate-800 font-sans min-h-screen">
+
+        <!-- Header / Nav -->
+        <header class="bg-white border-b border-slate-200 sticky top-0 z-10">
+            <div class="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <a href="/admin" class="p-2 hover:bg-slate-100 rounded-full text-slate-500"><i
+                            data-lucide="arrow-left" class="w-5 h-5"></i></a>
+                    <h1 class="font-bold text-lg">Detail Profil</h1>
                 </div>
-                <div class="flex gap-4 flex-wrap">
-                    <div class="flex items-center gap-2 text-sm bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-                        <i data-lucide="phone" class="w-4 h-4 text-blue-500"></i> {{.Phone}}
+                <div class="text-sm text-slate-500 font-mono">{{.Type}}</div>
+            </div>
+        </header>
+
+        <main class="max-w-5xl mx-auto px-6 py-8">
+
+            <!-- PROFILE CARD -->
+            <div
+                class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 mb-8 flex flex-col md:flex-row gap-8 items-start">
+                <div
+                    class="w-32 h-32 bg-slate-100 rounded-full flex items-center justify-center border-4 border-slate-50 shrink-0 overflow-hidden">
+                    {{if .Photo}}
+                    <img src="/assets/photos/{{.Photo}}" class="w-full h-full object-cover">
+                    {{else}}
+                    <i data-lucide="user" class="w-12 h-12 text-slate-400"></i>
+                    {{end}}
+                </div>
+                <div class="flex-1 space-y-4">
+                    <div>
+                        <h2 class="text-3xl font-bold text-slate-900">{{.Name}}</h2>
+                        <p class="text-slate-500 text-lg">{{.IdentityNo}} • {{.ExtraInfo}}</p>
                     </div>
-                    <div class="flex items-center gap-2 text-sm bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-                        <i data-lucide="credit-card" class="w-4 h-4 text-purple-500"></i> {{.RFID}}
+                    <div class="flex gap-4 flex-wrap">
+                        <div
+                            class="flex items-center gap-2 text-sm bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+                            <i data-lucide="phone" class="w-4 h-4 text-blue-500"></i> {{.Phone}}
+                        </div>
+                        <div
+                            class="flex items-center gap-2 text-sm bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+                            <i data-lucide="credit-card" class="w-4 h-4 text-purple-500"></i> {{.RFID}}
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- CALENDAR SECTION -->
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <!-- Toolbar -->
-            <div class="p-6 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-50/50">
-                <h3 class="font-bold text-xl flex items-center gap-2"><i data-lucide="calendar-days" class="w-5 h-5 text-blue-600"></i> Riwayat Kehadiran</h3>
-                
-                <div class="flex items-center gap-3 bg-white p-1.5 rounded-lg border border-slate-200 shadow-sm">
-                    <select id="filter-month" class="bg-transparent text-sm font-medium outline-none cursor-pointer" onchange="loadCalendar()">
-                        <option value="01">Januari</option>
-                        <option value="02">Februari</option>
-                        <option value="03">Maret</option>
-                        <option value="04">April</option>
-                        <option value="05">Mei</option>
-                        <option value="06">Juni</option>
-                        <option value="07">Juli</option>
-                        <option value="08">Agustus</option>
-                        <option value="09">September</option>
-                        <option value="10">Oktober</option>
-                        <option value="11">November</option>
-                        <option value="12">Desember</option>
-                    </select>
-                    <div class="w-px h-4 bg-slate-300"></div>
-                    <select id="filter-year" class="bg-transparent text-sm font-medium outline-none cursor-pointer" onchange="loadCalendar()">
-                        <!-- JS will populate -->
-                    </select>
+            <!-- STATS CARDS -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <p class="text-xs text-slate-500 uppercase font-bold text-center">Kehadiran (Bulan Ini)</p>
+                    <h3 class="text-2xl font-bold text-center mt-2" id="stat-rate">0%</h3>
+                    <p class="text-xs text-center text-slate-400 mt-1" id="stat-working-days">0 Hari Kerja</p>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <p class="text-xs text-slate-500 uppercase font-bold text-center">Hadir / Terlambat</p>
+                    <div class="flex justify-center gap-4 mt-2">
+                        <div class="text-center">
+                            <span class="block text-xl font-bold text-green-600" id="stat-present">0</span>
+                            <span class="text-[10px] text-slate-400">Hadir</span>
+                        </div>
+                        <div class="text-center">
+                            <span class="block text-xl font-bold text-orange-600" id="stat-late">0</span>
+                            <span class="text-[10px] text-slate-400">Telat</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <p class="text-xs text-slate-500 uppercase font-bold text-center">Izin / Sakit</p>
+                    <div class="flex justify-center gap-4 mt-2">
+                        <div class="text-center">
+                            <span class="block text-xl font-bold text-blue-600" id="stat-permission">0</span>
+                            <span class="text-[10px] text-slate-400">Izin</span>
+                        </div>
+                        <div class="text-center">
+                            <span class="block text-xl font-bold text-blue-500" id="stat-sick">0</span>
+                            <span class="text-[10px] text-slate-400">Sakit</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <p class="text-xs text-slate-500 uppercase font-bold text-center">Tanpa Keterangan</p>
+                    <h3 class="text-2xl font-bold text-center mt-2 text-red-600" id="stat-alpha">0</h3>
                 </div>
             </div>
 
-            <!-- Grid -->
-            <div class="p-6">
-                <!-- Days Header -->
-                <div class="grid grid-cols-7 mb-4">
-                    <div class="text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Min</div>
-                    <div class="text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Sen</div>
-                    <div class="text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Sel</div>
-                    <div class="text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Rab</div>
-                    <div class="text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Kam</div>
-                    <div class="text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Jum</div>
-                    <div class="text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Sab</div>
+            <!-- CALENDAR SECTION -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <!-- Toolbar -->
+                <div
+                    class="p-6 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-50/50">
+                    <h3 class="font-bold text-xl flex items-center gap-2"><i data-lucide="calendar-days"
+                            class="w-5 h-5 text-blue-600"></i> Riwayat Kehadiran</h3>
+
+                    <div class="flex items-center gap-3 bg-white p-1.5 rounded-lg border border-slate-200 shadow-sm">
+                        <select id="filter-month" class="bg-transparent text-sm font-medium outline-none cursor-pointer"
+                            onchange="loadCalendar()">
+                            <option value="01">Januari</option>
+                            <option value="02">Februari</option>
+                            <option value="03">Maret</option>
+                            <option value="04">April</option>
+                            <option value="05">Mei</option>
+                            <option value="06">Juni</option>
+                            <option value="07">Juli</option>
+                            <option value="08">Agustus</option>
+                            <option value="09">September</option>
+                            <option value="10">Oktober</option>
+                            <option value="11">November</option>
+                            <option value="12">Desember</option>
+                        </select>
+                        <div class="w-px h-4 bg-slate-300"></div>
+                        <select id="filter-year" class="bg-transparent text-sm font-medium outline-none cursor-pointer"
+                            onchange="loadCalendar()">
+                            <!-- JS will populate -->
+                        </select>
+                    </div>
                 </div>
-                
-                <!-- Calendar Content -->
-                <div id="calendar-grid" class="grid grid-cols-7 gap-3">
-                    <!-- JS Injected -->
+
+                <!-- Grid -->
+                <div class="p-6">
+                    <!-- Days Header -->
+                    <div class="grid grid-cols-7 mb-4">
+                        <div class="text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Min</div>
+                        <div class="text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Sen</div>
+                        <div class="text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Sel</div>
+                        <div class="text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Rab</div>
+                        <div class="text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Kam</div>
+                        <div class="text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Jum</div>
+                        <div class="text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Sab</div>
+                    </div>
+
+                    <!-- Calendar Content -->
+                    <div id="calendar-grid" class="grid grid-cols-7 gap-3">
+                        <!-- JS Injected -->
+                    </div>
+                </div>
+
+                <!-- Legend -->
+                <div class="bg-slate-50 px-6 py-4 border-t border-slate-100 flex gap-6 text-xs text-slate-600">
+                    <div class="flex items-center gap-2"><span
+                            class="w-3 h-3 bg-green-100 border border-green-300 rounded-full"></span> Hadir/Datang</div>
+                    <div class="flex items-center gap-2"><span
+                            class="w-3 h-3 bg-orange-100 border border-orange-300 rounded-full"></span> Pulang</div>
+                    <div class="flex items-center gap-2"><span
+                            class="w-3 h-3 bg-red-100 border border-red-300 rounded-full"></span> Terlambat</div>
+                    <div class="flex items-center gap-2"><span
+                            class="w-3 h-3 bg-blue-100 border border-blue-300 rounded-full"></span> Sakit/Izin</div>
                 </div>
             </div>
 
-            <!-- Legend -->
-            <div class="bg-slate-50 px-6 py-4 border-t border-slate-100 flex gap-6 text-xs text-slate-600">
-                <div class="flex items-center gap-2"><span class="w-3 h-3 bg-green-100 border border-green-300 rounded-full"></span> Hadir/Datang</div>
-                <div class="flex items-center gap-2"><span class="w-3 h-3 bg-orange-100 border border-orange-300 rounded-full"></span> Pulang</div>
-                <div class="flex items-center gap-2"><span class="w-3 h-3 bg-red-100 border border-red-300 rounded-full"></span> Terlambat</div>
-                <div class="flex items-center gap-2"><span class="w-3 h-3 bg-blue-100 border border-blue-300 rounded-full"></span> Sakit/Izin</div>
-            </div>
-        </div>
+        </main>
 
-    </main>
+        <script>
+            lucide.createIcons();
 
-    <script>
-        lucide.createIcons();
+            const USER_ID = "{{.ID}}";
+            const USER_TYPE = "{{.Type}}"; // "Siswa" or "Guru/Staff"
 
-        const USER_ID = "{{.ID}}";
-        const USER_TYPE = "{{.Type}}"; // "Siswa" or "Guru/Staff"
-        
-        // Init Filters
-        const now = new Date();
-        const yearSelect = document.getElementById('filter-year');
-        const currentYear = now.getFullYear();
-        for(let y = currentYear; y >= currentYear - 2; y--) {
-            yearSelect.innerHTML += `<option value="${y}">${y}</option>`;
-        }
-        
-        document.getElementById('filter-month').value = (now.getMonth() + 1).toString().padStart(2, '0');
-        
-        // Load Data
-        async function loadCalendar() {
-            const month = document.getElementById('filter-month').value;
-            const year = document.getElementById('filter-year').value;
-            const container = document.getElementById('calendar-grid');
-            
-            container.innerHTML = '<div class="col-span-7 text-center py-12 text-slate-400">Memuat data...</div>';
-
-            try {
-                // Determine Endpoint
-                const endpoint = USER_TYPE === "Siswa" ? "/admin/student/calendar" : "/admin/staff/calendar";
-                const res = await fetch(`${endpoint}?id=${USER_ID}&month=${month}&year=${year}`);
-                const data = await res.json(); // Map[Day] -> Array
-
-                renderGrid(year, month, data);
-            } catch (err) {
-                container.innerHTML = '<div class="col-span-7 text-center py-12 text-red-400">Gagal memuat data.</div>';
-                console.error(err);
+            // Init Filters
+            const now = new Date();
+            const yearSelect = document.getElementById('filter-year');
+            const currentYear = now.getFullYear();
+            for (let y = currentYear; y >= currentYear - 2; y--) {
+                yearSelect.innerHTML += `<option value="${y}">${y}</option>`;
             }
-        }
 
-        function renderGrid(year, month, logs) {
-            const container = document.getElementById('calendar-grid');
-            container.innerHTML = '';
+            document.getElementById('filter-month').value = (now.getMonth() + 1).toString().padStart(2, '0');
 
-            const firstDay = new Date(year, month - 1, 1).getDay(); // Month is 0-indexed in JS Date
-            const daysInMonth = new Date(year, month, 0).getDate();
+            // Load Data
+            async function loadCalendar() {
+                const month = document.getElementById('filter-month').value;
+                const year = document.getElementById('filter-year').value;
+                const container = document.getElementById('calendar-grid');
 
-            // Empty slots
-            for (let i = 0; i < firstDay; i++) {
-                container.innerHTML += `<div></div>`;
+                container.innerHTML = '<div class="col-span-7 text-center py-12 text-slate-400">Memuat data...</div>';
+
+                try {
+                    // Determine Endpoint
+                    const endpoint = USER_TYPE === "Siswa" ? "/admin/student/calendar" : "/admin/staff/calendar";
+                    const res = await fetch(`${endpoint}?id=${USER_ID}&month=${month}&year=${year}`);
+                    const response = await res.json();
+
+                    // Update Stats
+                    if (response.stats) {
+                        document.getElementById('stat-rate').innerText = response.stats.attendance_rate.toFixed(1) + '%';
+                        document.getElementById('stat-working-days').innerText = response.stats.working_days + ' Hari Kerja';
+                        document.getElementById('stat-present').innerText = response.stats.present;
+                        document.getElementById('stat-late').innerText = response.stats.late;
+                        document.getElementById('stat-permission').innerText = response.stats.permission;
+                        document.getElementById('stat-sick').innerText = response.stats.sick;
+                        document.getElementById('stat-alpha').innerText = response.stats.alpha;
+                    }
+
+                    renderGrid(year, month, response.calendar);
+                } catch (err) {
+                    container.innerHTML = '<div class="col-span-7 text-center py-12 text-red-400">Gagal memuat data.</div>';
+                    console.error(err);
+                }
             }
 
-            // Days
-            for (let day = 1; day <= daysInMonth; day++) {
-                let eventsHtml = '';
-                if (logs[day]) {
-                    logs[day].forEach(log => {
-                        let colorClass = 'bg-slate-100 text-slate-600 border-slate-200';
-                        let label = log.status;
-                        
-                        if(log.status === 'Datang') {
-                            colorClass = 'bg-green-50 text-green-700 border-green-200';
-                            label = 'Masuk';
-                        } else if (log.status === 'Pulang') {
-                            colorClass = 'bg-orange-50 text-orange-700 border-orange-200';
-                        } else if (log.status === 'Terlambat') {
-                            colorClass = 'bg-red-50 text-red-700 border-red-200';
-                        } else if (['Sakit', 'Izin'].includes(log.status)) {
-                            colorClass = 'bg-blue-50 text-blue-700 border-blue-200';
-                        }
+            function renderGrid(year, month, logs) {
+                const container = document.getElementById('calendar-grid');
+                container.innerHTML = '';
 
-                        eventsHtml += `
+                const firstDay = new Date(year, month - 1, 1).getDay(); // Month is 0-indexed in JS Date
+                const daysInMonth = new Date(year, month, 0).getDate();
+
+                // Empty slots
+                for (let i = 0; i < firstDay; i++) {
+                    container.innerHTML += `<div></div>`;
+                }
+
+                // Days
+                for (let day = 1; day <= daysInMonth; day++) {
+                    let eventsHtml = '';
+                    if (logs[day]) {
+                        logs[day].forEach(log => {
+                            let colorClass = 'bg-slate-100 text-slate-600 border-slate-200';
+                            let label = log.status;
+
+                            if (log.status === 'Datang') {
+                                colorClass = 'bg-green-50 text-green-700 border-green-200';
+                                label = 'Masuk';
+                            } else if (log.status === 'Pulang') {
+                                colorClass = 'bg-orange-50 text-orange-700 border-orange-200';
+                            } else if (log.status === 'Terlambat') {
+                                colorClass = 'bg-red-50 text-red-700 border-red-200';
+                            } else if (['Sakit', 'Izin'].includes(log.status)) {
+                                colorClass = 'bg-blue-50 text-blue-700 border-blue-200';
+                            }
+
+                            eventsHtml += `
                             <div class="text-[10px] px-1.5 py-0.5 rounded border ${colorClass} mb-1 flex justify-between items-center">
                                 <span class="font-medium">${label}</span>
                                 <span>${log.time}</span>
                             </div>
                         `;
-                    });
-                }
+                        });
+                    }
 
-                const isToday = (day === now.getDate() && (month - 1) === now.getMonth() && parseInt(year) === now.getFullYear());
-                const dayClass = isToday ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-300' : 'bg-white border-slate-200 hover:border-slate-300';
+                    const isToday = (day === now.getDate() && (month - 1) === now.getMonth() && parseInt(year) === now.getFullYear());
+                    const dayClass = isToday ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-300' : 'bg-white border-slate-200 hover:border-slate-300';
 
-                container.innerHTML += `
+                    container.innerHTML += `
                     <div class="min-h-[100px] border rounded-xl p-2 flex flex-col ${dayClass} transition">
                         <div class="text-right mb-1"><span class="text-xs font-bold ${isToday ? 'text-blue-600' : 'text-slate-400'}">${day}</span></div>
                         <div class="flex-1 overflow-y-auto custom-scrollbar">
@@ -193,17 +258,27 @@
                         </div>
                     </div>
                 `;
+                }
             }
-        }
 
-        // Initial Load
-        loadCalendar();
-    </script>
-    <style>
-        /* Hide scrollbar for cleaner look in small boxes */
-        .custom-scrollbar::-webkit-scrollbar { width: 2px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-    </style>
-</body>
+            // Initial Load
+            loadCalendar();
+        </script>
+        <style>
+            /* Hide scrollbar for cleaner look in small boxes */
+            .custom-scrollbar::-webkit-scrollbar {
+                width: 2px;
+            }
+
+            .custom-scrollbar::-webkit-scrollbar-track {
+                background: transparent;
+            }
+
+            .custom-scrollbar::-webkit-scrollbar-thumb {
+                background: #cbd5e1;
+                border-radius: 10px;
+            }
+        </style>
+    </body>
+
 </html>

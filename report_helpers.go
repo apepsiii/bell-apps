@@ -5,15 +5,15 @@ import (
 	"time"
 )
 
-// Helper function to calculate school days (exclude weekends)
-func calculateSchoolDays(startDate, endDate string) int {
+// Helper function to calculate school days (exclude weekends and holidays)
+func (a *App) calculateSchoolDays(startDate, endDate string) int {
 	start, _ := time.Parse("2006-01-02", startDate)
 	end, _ := time.Parse("2006-01-02", endDate)
 
 	days := 0
 	for d := start; !d.After(end); d = d.AddDate(0, 0, 1) {
-		// Exclude Saturday (6) and Sunday (0)
-		if d.Weekday() != time.Saturday && d.Weekday() != time.Sunday {
+		isWork, _ := a.IsWorkingDay(d)
+		if isWork {
 			days++
 		}
 	}
@@ -168,7 +168,7 @@ func (a *App) queryPeriodReport(startDate, endDate, reportType, classID string) 
 	defer rows.Close()
 
 	no := 1
-	totalDays := calculateSchoolDays(startDate, endDate)
+	totalDays := a.calculateSchoolDays(startDate, endDate)
 
 	for rows.Next() {
 		var record ReportRecord
