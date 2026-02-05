@@ -105,6 +105,11 @@
                         <i data-lucide="moon" class="w-5 h-5"></i>
                         <span class="font-medium">Laporan Sholat</span>
                     </button>
+                    <button onclick="navigateMenu('points', this)" id="nav-points"
+                        class="nav-item w-full flex items-center gap-3 px-4 py-3 text-slate-600 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition">
+                        <i data-lucide="star" class="w-5 h-5"></i>
+                        <span class="font-medium">Poin Siswa</span>
+                    </button>
                     <button onclick="navigateMenu('holidays', this)" id="nav-holidays"
                         class="nav-item w-full flex items-center gap-3 px-4 py-3 text-slate-600 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition">
                         <i data-lucide="calendar-off" class="w-5 h-5"></i>
@@ -1021,6 +1026,178 @@
                             </form>
                         </div>
                     </section>
+
+                    <!-- 12. POIN SISWA -->
+                    <section id="points" class="page-section">
+                        <h2 class="text-2xl font-bold text-slate-800 mb-6">Sistem Poin Siswa</h2>
+
+                        <!-- Tabs -->
+                        <div class="flex gap-4 border-b mb-6 border-slate-200">
+                            <button onclick="openPointTab('leaderboard', this)"
+                                class="point-tab-btn px-4 py-2 font-medium text-blue-600 border-b-2 border-blue-600 transition-colors">Leaderboard</button>
+                            <button onclick="openPointTab('input', this)"
+                                class="point-tab-btn px-4 py-2 font-medium text-slate-500 hover:text-blue-600 transition-colors">Input
+                                Poin</button>
+                            <button onclick="openPointTab('redeem', this)"
+                                class="point-tab-btn px-4 py-2 font-medium text-slate-500 hover:text-blue-600 transition-colors">Tukar
+                                Poin</button>
+                            <button onclick="openPointTab('master', this)"
+                                class="point-tab-btn px-4 py-2 font-medium text-slate-500 hover:text-blue-600 transition-colors">Master
+                                Data</button>
+                        </div>
+
+                        <!-- Tab: Leaderboard -->
+                        <div id="point-leaderboard" class="point-tab-content">
+                            <div class="bg-white rounded-xl border shadow-sm overflow-hidden">
+                                <table class="w-full text-left">
+                                    <thead class="bg-slate-50 border-b">
+                                        <tr>
+                                            <th class="px-6 py-4 text-xs font-semibold uppercase">Rank</th>
+                                            <th class="px-6 py-4 text-xs font-semibold uppercase">Nama</th>
+                                            <th class="px-6 py-4 text-xs font-semibold uppercase">Kelas</th>
+                                            <th class="px-6 py-4 text-xs font-semibold uppercase text-right">Total Poin
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="leaderboard-table"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Tab: Input Poin -->
+                        <div id="point-input" class="point-tab-content hidden">
+                            <div class="max-w-xl mx-auto bg-white rounded-xl border shadow-sm p-6">
+                                <h3 class="font-bold text-lg mb-4">Input Pelanggaran / Prestasi</h3>
+                                <div class="mb-4 p-3 bg-blue-50 text-blue-800 text-sm rounded">
+                                    Scan kartu siswa, lalu pilih aturan poin yang sesuai.
+                                </div>
+                                <form onsubmit="submitPointTransaction(event)" class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium mb-1">Siswa</label>
+                                        <div class="flex gap-2">
+                                            <input type="text" id="point-student-rfid" placeholder="Scan Kartu..."
+                                                class="border rounded-lg p-2.5 flex-1 bg-yellow-50 focus:bg-white transition-colors"
+                                                oninput="findStudentByRFID(this.value, 'input')" autocomplete="off"
+                                                autofocus>
+                                            <input type="text" id="point-student-id" hidden name="student_id">
+                                        </div>
+                                        <div id="point-student-preview-input"
+                                            class="text-sm font-bold mt-2 text-blue-600 min-h-[20px]"></div>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-medium mb-1">Pilih Aturan</label>
+                                        <select id="point-rule-select" name="rule_id"
+                                            class="w-full border rounded-lg p-2.5 bg-white" required>
+                                            <option value="">Loading...</option>
+                                        </select>
+                                    </div>
+
+                                    <button type="submit"
+                                        class="w-full bg-blue-600 text-white rounded-lg py-3 hover:bg-blue-700 font-medium transition-colors shadow-sm">Simpan
+                                        Poin</button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Tab: Redeem Poin -->
+                        <div id="point-redeem" class="point-tab-content hidden">
+                            <div class="max-w-xl mx-auto bg-white rounded-xl border shadow-sm p-6">
+                                <h3 class="font-bold text-lg mb-4">Penukaran Poin (Reward)</h3>
+                                <form onsubmit="submitRedeem(event)" class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium mb-1">Siswa</label>
+                                        <div class="flex gap-2">
+                                            <input type="text" id="redeem-student-rfid" placeholder="Scan Kartu..."
+                                                class="border rounded-lg p-2.5 flex-1 bg-yellow-50 focus:bg-white transition-colors"
+                                                oninput="findStudentByRFID(this.value, 'redeem')" autocomplete="off">
+                                            <input type="text" id="redeem-student-id" hidden name="student_id">
+                                        </div>
+                                        <div class="flex justify-between items-center mt-2">
+                                            <div id="point-student-preview-redeem"
+                                                class="text-sm font-bold text-blue-600 min-h-[20px]"></div>
+                                            <div id="point-student-balance" class="text-sm font-bold text-orange-600">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-medium mb-1">Pilih Hadiah</label>
+                                        <select id="point-reward-select" name="reward_id"
+                                            class="w-full border rounded-lg p-2.5 bg-white" required>
+                                            <option value="">Loading...</option>
+                                        </select>
+                                    </div>
+
+                                    <button type="submit"
+                                        class="w-full bg-emerald-600 text-white rounded-lg py-3 hover:bg-emerald-700 font-medium transition-colors shadow-sm">Tukar
+                                        Poin</button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Tab: Master Data -->
+                        <div id="point-master" class="point-tab-content hidden">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <!-- Rules -->
+                                <div>
+                                    <div class="flex justify-between items-center mb-4">
+                                        <h4 class="font-bold text-slate-700">Aturan (Prestasi/Pelanggaran)</h4>
+                                        <button onclick="openAddRuleModal()"
+                                            class="text-xs bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-200 font-medium">+
+                                            Tambah Aturan</button>
+                                    </div>
+                                    <div class="bg-white border rounded-xl shadow-sm h-96 overflow-y-auto">
+                                        <table class="w-full text-sm">
+                                            <thead class="bg-slate-50 sticky top-0">
+                                                <tr>
+                                                    <th
+                                                        class="px-4 py-2 text-left text-xs font-semibold text-slate-500 uppercase">
+                                                        Nama</th>
+                                                    <th
+                                                        class="px-4 py-2 text-right text-xs font-semibold text-slate-500 uppercase">
+                                                        Poin</th>
+                                                    <th
+                                                        class="px-4 py-2 text-center text-xs font-semibold text-slate-500 uppercase">
+                                                        Aksi</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="master-rules-table" class="divide-y"></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <!-- Rewards -->
+                                <div>
+                                    <div class="flex justify-between items-center mb-4">
+                                        <h4 class="font-bold text-slate-700">Hadiah (Rewards)</h4>
+                                        <button onclick="openAddRewardModal()"
+                                            class="text-xs bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-lg hover:bg-emerald-200 font-medium">+
+                                            Tambah Hadiah</button>
+                                    </div>
+                                    <div class="bg-white border rounded-xl shadow-sm h-96 overflow-y-auto">
+                                        <table class="w-full text-sm">
+                                            <thead class="bg-slate-50 sticky top-0">
+                                                <tr>
+                                                    <th
+                                                        class="px-4 py-2 text-left text-xs font-semibold text-slate-500 uppercase">
+                                                        Nama</th>
+                                                    <th
+                                                        class="px-4 py-2 text-right text-xs font-semibold text-slate-500 uppercase">
+                                                        Biaya</th>
+                                                    <th
+                                                        class="px-4 py-2 text-right text-xs font-semibold text-slate-500 uppercase">
+                                                        Stok</th>
+                                                    <th
+                                                        class="px-4 py-2 text-center text-xs font-semibold text-slate-500 uppercase">
+                                                        Aksi</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="master-rewards-table" class="divide-y"></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
                 </div>
             </main>
@@ -2428,9 +2605,344 @@
                 if (menuId === 'prayer-logs') {
                     loadPrayerLogs();
                 }
+                if (menuId === 'points') {
+                    // Default to leaderboard and load data
+                    openPointTab('leaderboard', document.getElementById('btn-tab-leaderboard'));
+                }
             };
 
+            // --- STUDENT POINT SYSTEM LOGIC ---
+
+            // Tab Switching for Point System
+            function openPointTab(tabName, btn) {
+                // Hide all tabs
+                ['leaderboard', 'input', 'redeem', 'master'].forEach(t => {
+                    document.getElementById('point-' + t).classList.add('hidden');
+                });
+
+                // Show specific tab
+                document.getElementById('point-' + tabName).classList.remove('hidden');
+
+                // Update Button Styles
+                document.querySelectorAll('.point-tab-btn').forEach(b => {
+                    b.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
+                    b.classList.add('text-slate-500');
+                });
+                if (btn) {
+                    btn.classList.remove('text-slate-500');
+                    btn.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
+                }
+
+                // Load Data based on tab
+                if (tabName === 'leaderboard') loadLeaderboard();
+                if (tabName === 'master') { loadPointRules(); loadPointRewards(); }
+                if (tabName === 'input') { loadPointRulesOptions(); document.getElementById('point-student-rfid').focus(); }
+                if (tabName === 'redeem') { loadPointRewardsOptions(); document.getElementById('redeem-student-rfid').focus(); }
+            }
+
+            // Load Leaderboard
+            async function loadLeaderboard() {
+                const tbody = document.getElementById('leaderboard-table');
+                tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center">Loading...</td></tr>';
+                try {
+                    const res = await fetch('/admin/points/leaderboard');
+                    const data = await res.json();
+                    tbody.innerHTML = '';
+                    if (!data || data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-slate-500">Belum ada data poin.</td></tr>';
+                        return;
+                    }
+                    data.forEach((item, index) => {
+                        let rankColor = 'text-slate-600';
+                        if (index === 0) rankColor = 'text-yellow-600 font-bold';
+                        if (index === 1) rankColor = 'text-slate-400 font-bold';
+                        if (index === 2) rankColor = 'text-orange-700 font-bold';
+
+                        tbody.innerHTML += `
+                            <tr class="hover:bg-slate-50 border-b last:border-0">
+                                <td class="px-6 py-3 font-medium ${rankColor}">#${index + 1}</td>
+                                <td class="px-6 py-3 font-medium text-slate-700">${item.name}</td>
+                                <td class="px-6 py-3 text-slate-500 text-xs">${item.class_name}</td>
+                                <td class="px-6 py-3 text-right font-bold text-blue-600">${item.points}</td>
+                            </tr>
+                        `;
+                    });
+                } catch (err) {
+                    console.error(err);
+                    tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-red-500">Gagal memuat data</td></tr>';
+                }
+            }
+
+            // Load Rules for Master Data
+            async function loadPointRules() {
+                const tbody = document.getElementById('master-rules-table');
+                try {
+                    const res = await fetch('/admin/point-rules');
+                    const data = await res.json();
+                    tbody.innerHTML = '';
+                    data.forEach(r => {
+                        const color = r.points >= 0 ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50';
+                        tbody.innerHTML += `
+                            <tr class="hover:bg-slate-50 border-b">
+                                <td class="px-4 py-2">
+                                    <div class="font-medium text-slate-700">${r.name}</div>
+                                    <div class="text-[10px] text-slate-400 uppercase">${r.category}</div>
+                                </td>
+                                <td class="px-4 py-2 text-right">
+                                    <span class="px-2 py-1 rounded text-xs font-bold ${color}">${r.points > 0 ? '+' : ''}${r.points}</span>
+                                </td>
+                                <td class="px-4 py-2 text-center">
+                                    <button onclick="deletePointRule(${r.id})" class="text-slate-400 hover:text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    lucide.createIcons();
+                } catch (e) { console.error(e); }
+            }
+
+            // Load Rewards for Master Data
+            async function loadPointRewards() {
+                const tbody = document.getElementById('master-rewards-table');
+                try {
+                    const res = await fetch('/admin/point-rewards');
+                    const data = await res.json();
+                    tbody.innerHTML = '';
+                    data.forEach(r => {
+                        tbody.innerHTML += `
+                            <tr class="hover:bg-slate-50 border-b">
+                                <td class="px-4 py-2">
+                                    <div class="font-medium text-slate-700">${r.name}</div>
+                                    <div class="text-[10px] text-slate-400 truncate w-24">${r.description}</div>
+                                </td>
+                                <td class="px-4 py-2 text-right font-mono text-xs">${r.points_cost} Pts</td>
+                                <td class="px-4 py-2 text-right font-mono text-xs">${r.stock}</td>
+                                <td class="px-4 py-2 text-center">
+                                    <button onclick="deletePointReward(${r.id})" class="text-slate-400 hover:text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    lucide.createIcons();
+                } catch (e) { console.error(e); }
+            }
+
+            // Load Options for Selects
+            async function loadPointRulesOptions() {
+                const select = document.getElementById('point-rule-select');
+                if (select.options.length > 1) return; // already loaded
+                try {
+                    const res = await fetch('/admin/point-rules');
+                    const data = await res.json();
+                    select.innerHTML = '<option value="">-- Pilih Aturan --</option>';
+                    data.forEach(r => {
+                        const icon = r.points >= 0 ? '🏆' : '⚠️';
+                        select.innerHTML += `<option value="${r.id}">${icon} ${r.name} (${r.points > 0 ? '+' : ''}${r.points})</option>`;
+                    });
+                } catch (e) { }
+            }
+
+            async function loadPointRewardsOptions() {
+                const select = document.getElementById('point-reward-select');
+                if (select.options.length > 1) return;
+                try {
+                    const res = await fetch('/admin/point-rewards');
+                    const data = await res.json();
+                    select.innerHTML = '<option value="">-- Pilih Hadiah --</option>';
+                    data.forEach(r => {
+                        let disabled = r.stock <= 0 ? 'disabled' : '';
+                        let label = r.stock <= 0 ? '(Habis)' : '';
+                        select.innerHTML += `<option value="${r.id}" ${disabled}>🎁 ${r.name} - ${r.points_cost} Pts ${label}</option>`;
+                    });
+                } catch (e) { }
+            }
+
+            // Student Lookups
+            // Debounce function needed? For now simple input event
+            let inputDebounceTimer;
+            function findStudentByRFID(rfid, context) {
+                clearTimeout(inputDebounceTimer);
+                inputDebounceTimer = setTimeout(async () => {
+                    if (rfid.length < 5) return;
+
+                    const previewEl = document.getElementById(context === 'input' ? 'point-student-preview-input' : 'point-student-preview-redeem');
+                    const idInput = document.getElementById(context === 'input' ? 'point-student-id' : 'redeem-student-id');
+
+                    previewEl.innerHTML = '<span class="text-slate-400">Mencari...</span>';
+
+                    try {
+                        const res = await fetch('/api/student/lookup?rfid=' + rfid);
+                        if (res.ok) {
+                            const s = await res.json();
+                            previewEl.innerHTML = `✅ ${s.name} (${s.class_name})`;
+                            idInput.value = s.id;
+
+                            // If redeem, load balance
+                            if (context === 'redeem') {
+                                loadStudentBalance(s.id);
+                            }
+                        } else {
+                            previewEl.innerHTML = '<span class="text-red-500">Siswa tidak ditemukan</span>';
+                            idInput.value = '';
+                        }
+                    } catch (e) {
+                        previewEl.innerHTML = '<span class="text-red-500">Error</span>';
+                    }
+
+                }, 500);
+            }
+
+            async function loadStudentBalance(studentId) {
+                const balEl = document.getElementById('point-student-balance');
+                balEl.innerHTML = '...';
+                try {
+                    const res = await fetch('/admin/points/student/' + studentId);
+                    const data = await res.json();
+                    balEl.innerHTML = `Saldo: ${data.total_points} Poin`;
+
+                    // Update validation logic for redeem form?
+                } catch (e) { balEl.innerHTML = '?'; }
+            }
+
+            // Submissions
+            async function submitAddPointRule(e) {
+                e.preventDefault();
+                await handleFormSubmit(e, '/admin/point-rules/add', () => {
+                    closeModal('modal-add-point-rule');
+                    loadPointRules();
+                });
+            }
+
+            async function submitAddPointReward(e) {
+                e.preventDefault();
+                await handleFormSubmit(e, '/admin/point-rewards/add', () => {
+                    closeModal('modal-add-point-reward');
+                    loadPointRewards();
+                });
+            }
+
+            async function deletePointRule(id) {
+                if (!confirm('Hapus aturan ini?')) return;
+                await fetch('/admin/point-rules/' + id, { method: 'DELETE' });
+                loadPointRules();
+            }
+
+            async function deletePointReward(id) {
+                if (!confirm('Hapus hadiah ini?')) return;
+                await fetch('/admin/point-rewards/' + id, { method: 'DELETE' });
+                loadPointRewards();
+            }
+
+            async function submitPointTransaction(e) {
+                e.preventDefault();
+                const form = e.target;
+                const studentId = form.student_id.value;
+                if (!studentId) { alert('Siswa belum teridentifikasi (Scan RFID)'); return; }
+
+                await handleFormSubmit(e, '/admin/points/transaction', () => {
+                    alert('Poin berhasil disimpan!');
+                    form.reset();
+                    document.getElementById('point-student-preview-input').innerHTML = '';
+                    document.getElementById('point-student-id').value = '';
+                    document.getElementById('point-student-rfid').focus();
+                });
+            }
+
+            async function submitRedeem(e) {
+                e.preventDefault();
+                const form = e.target;
+                const studentId = form.student_id.value;
+                if (!studentId) { alert('Siswa belum teridentifikasi'); return; }
+
+                await handleFormSubmit(e, '/admin/points/redeem', () => {
+                    alert('Penukaran berhasil!');
+                    form.reset();
+                    document.getElementById('point-student-preview-redeem').innerHTML = '';
+                    document.getElementById('point-student-balance').innerHTML = '';
+                    document.getElementById('redeem-student-rfid').focus();
+                    loadPointRewardsOptions();
+                });
+            }
+
+            function openAddRuleModal() {
+                document.getElementById('modal-add-point-rule').classList.remove('hidden');
+            }
+            function openAddRewardModal() {
+                document.getElementById('modal-add-point-reward').classList.remove('hidden');
+            }
+
         </script>
+        <!-- Modal Add Point Rule -->
+        <div id="modal-add-point-rule"
+            class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+                <h3 class="font-bold text-lg mb-4">Tambah Aturan Poin</h3>
+                <form onsubmit="submitAddPointRule(event)" class="space-y-4">
+                    <div>
+                        <label class="text-sm font-medium">Kategori</label>
+                        <select name="category" class="w-full border rounded p-2" required>
+                            <option value="violation">Pelanggaran (Negatif)</option>
+                            <option value="achievement">Prestasi (Positif)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-sm font-medium">Nama Aturan</label>
+                        <input type="text" name="name" required placeholder="Contoh: Terlambat, Juara Kelas"
+                            class="w-full border rounded p-2">
+                    </div>
+                    <div>
+                        <label class="text-sm font-medium">Poin</label>
+                        <input type="number" name="points" required placeholder="Contoh: -10 atau 20"
+                            class="w-full border rounded p-2">
+                        <p class="text-xs text-slate-500 mt-1">Gunakan tanda minus (-) untuk pelanggaran.</p>
+                    </div>
+                    <div>
+                        <label class="text-sm font-medium">Deskripsi</label>
+                        <textarea name="description" rows="2" class="w-full border rounded p-2"></textarea>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="closeModal('modal-add-point-rule')"
+                            class="text-slate-500">Batal</button>
+                        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Simpan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal Add Point Reward -->
+        <div id="modal-add-point-reward"
+            class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+                <h3 class="font-bold text-lg mb-4">Tambah Hadiah (Reward)</h3>
+                <form onsubmit="submitAddPointReward(event)" class="space-y-4">
+                    <div>
+                        <label class="text-sm font-medium">Nama Hadiah</label>
+                        <input type="text" name="name" required placeholder="Contoh: Voucher Kantin"
+                            class="w-full border rounded p-2">
+                    </div>
+                    <div>
+                        <label class="text-sm font-medium">Biaya Poin</label>
+                        <input type="number" name="points_cost" required placeholder="Contoh: 50" min="1"
+                            class="w-full border rounded p-2">
+                    </div>
+                    <div>
+                        <label class="text-sm font-medium">Stok Awal</label>
+                        <input type="number" name="stock" required placeholder="Contoh: 10" min="0"
+                            class="w-full border rounded p-2">
+                    </div>
+                    <div>
+                        <label class="text-sm font-medium">Deskripsi</label>
+                        <textarea name="description" rows="2" class="w-full border rounded p-2"></textarea>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="closeModal('modal-add-point-reward')"
+                            class="text-slate-500">Batal</button>
+                        <button type="submit" class="bg-emerald-600 text-white px-4 py-2 rounded">Simpan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
     </body>
 
 </html>

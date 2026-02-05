@@ -328,6 +328,31 @@ func InitDB() *sql.DB {
 			timestamp DATETIME,
 			date DATE
 		);`,
+		// Student Point System Tables
+		`CREATE TABLE IF NOT EXISTS point_rules (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			category TEXT, -- 'achievement' or 'violation'
+			name TEXT,
+			points INTEGER, -- Positive or negative
+			description TEXT
+		);`,
+		`CREATE TABLE IF NOT EXISTS point_rewards (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT,
+			points_cost INTEGER,
+			stock INTEGER,
+			description TEXT
+		);`,
+		`CREATE TABLE IF NOT EXISTS student_points (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			student_id INTEGER,
+			rule_id INTEGER, -- Nullable if manual adjustment
+			reward_id INTEGER, -- Nullable if not a redemption
+			points_change INTEGER,
+			description TEXT,
+			timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+			recorded_by TEXT
+		);`,
 		`INSERT OR IGNORE INTO attendance_settings (setting_key, setting_value) VALUES ('dzuhur_start', '11:30');`,
 		`INSERT OR IGNORE INTO attendance_settings (setting_key, setting_value) VALUES ('dzuhur_end', '13:00');`,
 		`INSERT OR IGNORE INTO attendance_settings (setting_key, setting_value) VALUES ('ashar_start', '15:00');`,
@@ -2247,6 +2272,7 @@ func main() {
 	e.GET("/api/attendance/recent-logs", app.RecentLogsHandler)     // Public API for Recent Logs
 	e.GET("/api/attendance/prayer", app.PrayerAttendanceHandler)    // Public API for Prayer Attendance (TAP)
 	e.GET("/api/attendance/prayer-logs", app.PrayerLogsListHandler) // Public API for Prayer Logs List
+	e.GET("/api/student/lookup", app.GetStudentByRFIDHandler)       // Public API for Student Lookup (Points)
 	
 	// WhatsApp Logs
 	admin.GET("/wa-logs", app.GetWhatsAppLogsHandler)
@@ -2257,6 +2283,20 @@ func main() {
 	admin.PUT("/holidays/:id", app.UpdateHolidayHandler)
 	admin.DELETE("/holidays/:id", app.DeleteHolidayHandler)
 	admin.POST("/holidays/import-national", app.ImportNationalHolidaysHandler)
+
+	// Student Point System API
+	admin.GET("/point-rules", app.GetPointRulesHandler)
+	admin.POST("/point-rules/add", app.AddPointRuleHandler)
+	admin.DELETE("/point-rules/:id", app.DeletePointRuleHandler)
+	admin.GET("/points/student/:id", app.GetStudentPointProfileHandler)
+	admin.POST("/points/transaction", app.AddPointTransactionHandler)
+	admin.GET("/points/leaderboard", app.GetLeaderboardHandler)
+
+	// Reward System API
+	admin.GET("/point-rewards", app.GetPointRewardsHandler)
+	admin.POST("/point-rewards/add", app.AddPointRewardHandler)
+	admin.DELETE("/point-rewards/:id", app.DeletePointRewardHandler)
+	admin.POST("/points/redeem", app.RedeemRewardHandler)
 
 	// School Settings API
 	admin.GET("/settings/school", app.GetSchoolSettingsHandler)
