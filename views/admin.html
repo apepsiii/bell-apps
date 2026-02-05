@@ -64,49 +64,77 @@
                 <nav class="flex-1 p-4 space-y-1">
                     <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 px-4 mt-2">Bel
                         Sekolah</div>
-                    <a href="#dashboard" id="nav-dashboard" onclick="switchPage('dashboard', this)"
-                        class="nav-item active-nav flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg hover:bg-slate-50 transition"><i
-                            data-lucide="layout-dashboard" class="w-5 h-5"></i> Dashboard</a>
-                    <a href="#schedules" id="nav-schedules" onclick="switchPage('schedules', this)"
-                        class="nav-item flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-lg hover:bg-slate-50 transition"><i
-                            data-lucide="calendar-clock" class="w-5 h-5"></i> Jadwal Bel</a>
-                    <a href="#audio" id="nav-audio" onclick="switchPage('audio', this)"
-                        class="nav-item flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-lg hover:bg-slate-50 transition"><i
-                            data-lucide="music" class="w-5 h-5"></i> Audio Library</a>
+                    <button onclick="navigateMenu('dashboard', this)" id="nav-dashboard"
+                        class="nav-item active-nav w-full flex items-center gap-3 px-4 py-3 text-slate-600 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition">
+                        <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                        <span class="font-medium">Dashboard</span>
+                    </button>
+                    <button onclick="navigateMenu('schedules', this)" id="nav-schedules"
+                        class="nav-item w-full flex items-center gap-3 px-4 py-3 text-slate-600 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition">
+                        <i data-lucide="calendar-clock" class="w-5 h-5"></i>
+                        <span class="font-medium">Jadwal Bel</span>
+                    </button>
+                    <button onclick="navigateMenu('audio', this)" id="nav-audio"
+                        class="nav-item w-full flex items-center gap-3 px-4 py-3 text-slate-600 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition">
+                        <i data-lucide="music" class="w-5 h-5"></i>
+                        <span class="font-medium">Data Audio</span>
+                    </button>
 
                     <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 px-4 mt-6">Data
                         Akademik</div>
-                    <a href="#majors" id="nav-majors" onclick="switchPage('majors', this)"
-                        class="nav-item flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-lg hover:bg-slate-50 transition"><i
-                            data-lucide="book-open" class="w-5 h-5"></i> Jurusan</a>
-                    <a href="#classes" id="nav-classes" onclick="switchPage('classes', this)"
-                        class="nav-item flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-lg hover:bg-slate-50 transition"><i
-                            data-lucide="users" class="w-5 h-5"></i> Kelas</a>
-                    <a href="#students" id="nav-students" onclick="switchPage('students', this)"
-                        class="nav-item flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-lg hover:bg-slate-50 transition"><i
-                            data-lucide="graduation-cap" class="w-5 h-5"></i> Siswa</a>
-                    <a href="#staff" id="nav-staff" onclick="switchPage('staff', this)"
-                        class="nav-item flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-lg hover:bg-slate-50 transition"><i
-                            data-lucide="briefcase" class="w-5 h-5"></i> Guru & Staff</a>
+                    <button onclick="navigateMenu('students', this)" id="nav-students"
+                        class="nav-item w-full flex items-center gap-3 px-4 py-3 text-slate-600 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition">
+                        <i data-lucide="graduation-cap" class="w-5 h-5"></i>
+                        <span class="font-medium">Data Siswa</span>
+                    </button>
+                    <button onclick="navigateMenu('staff', this)" id="nav-staff"
+                        class="nav-item w-full flex items-center gap-3 px-4 py-3 text-slate-600 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition">
+                        <i data-lucide="users" class="w-5 h-5"></i>
+                        <span class="font-medium">Guru & Staff</span>
+                    </button>
 
                     <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 px-4 mt-6">Kesiswaan
                     </div>
-                    <a href="#attendance" id="nav-attendance" onclick="switchPage('attendance', this)"
-                        class="nav-item flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-lg hover:bg-slate-50 transition"><i
-                            data-lucide="clipboard-check" class="w-5 h-5"></i> Presensi</a>
-                    <a href="#reports" id="nav-reports" onclick="switchPage('reports', this)"
-                        class="nav-item flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-lg hover:bg-slate-50 transition"><i
-                            data-lucide="file-text" class="w-5 h-5"></i> Laporan</a>
+                    <button onclick="navigateMenu('attendance', this)" id="nav-attendance"
+                        class="nav-item w-full flex items-center gap-3 px-4 py-3 text-slate-600 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition">
+                        <i data-lucide="clipboard-check" class="w-5 h-5"></i>
+                        <span class="font-medium">Presensi</span>
+                    </button>
+                    <button onclick="navigateMenu('holidays', this)" id="nav-holidays"
+                        class="nav-item w-full flex items-center gap-3 px-4 py-3 text-slate-600 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition">
+                        <i data-lucide="calendar-off" class="w-5 h-5"></i>
+                        <span class="font-medium">Hari Libur</span>
+                    </button>
+                    <button onclick="navigateMenu('reports', this)" id="nav-reports"
+                        class="nav-item w-full flex items-center gap-3 px-4 py-3 text-slate-600 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition">
+                        <i data-lucide="file-text" class="w-5 h-5"></i>
+                        <span class="font-medium">Laporan</span>
+                    </button>
+
+                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 px-4 mt-6">Pengaturan
+                    </div>
+                    <button onclick="navigateMenu('settings', this)" id="nav-settings"
+                        class="nav-item w-full flex items-center gap-3 px-4 py-3 text-slate-600 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition">
+                        <i data-lucide="settings" class="w-5 h-5"></i>
+                        <span class="font-medium">Pengaturan Sekolah</span>
+                    </button>
+                    <button onclick="navigateMenu('wa-logs', this)" id="nav-wa-logs"
+                        class="nav-item w-full flex items-center gap-3 px-4 py-3 text-slate-600 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition">
+                        <i data-lucide="message-square" class="w-5 h-5"></i>
+                        <span class="font-medium">Log WhatsApp</span>
+                    </button>
 
                     <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 px-4 mt-6">Sistem
                     </div>
-                    <a href="#devices" id="nav-devices" onclick="switchPage('devices', this)"
-                        class="nav-item flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-lg hover:bg-slate-50 transition"><i
-                            data-lucide="tablet-smartphone" class="w-5 h-5"></i> Perangkat</a>
+                    <button onclick="navigateMenu('devices', this)" id="nav-devices"
+                        class="nav-item w-full flex items-center gap-3 px-4 py-3 text-slate-600 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition">
+                        <i data-lucide="monitor-smartphone" class="w-5 h-5"></i>
+                        <span class="font-medium">Perangkat</span>
+                    </button>
                 </nav>
-                <div class="p-4 border-t border-slate-100">
+                <div class="pt-4 mt-4 border-t border-slate-200">
                     <button onclick="handleLogout()"
-                        class="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-red-600 rounded-lg hover:bg-red-50 transition"><i
+                        class="w-full flex items-center gap-3 px-4 py-3 text-red-600 rounded-xl hover:bg-red-50 transition"><i
                             data-lucide="log-out" class="w-5 h-5"></i> Keluar</button>
                 </div>
             </aside>
@@ -191,7 +219,7 @@
                         </div>
                     </section>
 
-                    <!-- 2. JADWAL (EXISTING) -->
+                    <!-- 2. JADWAL -->
                     <section id="schedules" class="page-section">
                         <div class="flex justify-between items-center mb-6">
                             <h2 class="text-2xl font-bold text-slate-800">Manajemen Jadwal</h2>
@@ -199,68 +227,107 @@
                                 class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-lg shadow-blue-600/20"><i
                                     data-lucide="plus" class="w-4 h-4"></i> Tambah</button>
                         </div>
-                        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                            <table class="w-full text-left">
-                                <thead class="bg-slate-50 border-b text-slate-500">
-                                    <tr>
-                                        <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider">Waktu</th>
-                                        <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider">Ket</th>
-                                        <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider">Audio</th>
-                                        <th class="px-6 py-4 text-right">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-slate-100">
-                                    {{range .Schedules}}
-                                    <tr class="hover:bg-slate-50 transition">
-                                        <td class="px-6 py-4 font-mono font-bold text-blue-600">{{.Time}}</td>
-                                        <td class="px-6 py-4 text-sm font-medium text-slate-700">{{.Label}}</td>
-                                        <td
-                                            class="px-6 py-4 text-xs text-slate-500 bg-slate-50 rounded px-2 py-1 inline-block mt-3">
-                                            {{.AudioFile}}</td>
-                                        <td class="px-6 py-4 text-right space-x-2"><button
-                                                onclick="editSchedule('{{.ID}}', '{{.Time}}', '{{.Label}}', '{{.AudioFile}}')"
-                                                class="text-blue-600 hover:bg-blue-50 p-1 rounded"><i
-                                                    data-lucide="edit-2" class="w-4 h-4"></i></button><button
-                                                onclick="deleteItem('schedule', {{.ID}})"
-                                                class="text-red-600 hover:bg-red-50 p-1 rounded"><i
-                                                    data-lucide="trash-2" class="w-4 h-4"></i></button></td>
-                                    </tr>
-                                    {{else}}
-                                    <tr>
-                                        <td colspan="4" class="px-6 py-12 text-center text-slate-400"><i
-                                                data-lucide="calendar-off"
-                                                class="w-12 h-12 mx-auto mb-2 opacity-50"></i>
-                                            <p>Belum ada jadwal bel</p>
-                                        </td>
-                                    </tr>
-                                    {{end}}
-                                </tbody>
-                            </table>
+
+                        <!-- Timeline Style List -->
+                        <div class="space-y-3">
+                            {{range .Schedules}}
+                            <div
+                                class="group bg-white rounded-xl border border-slate-200 hover:border-blue-300 shadow-sm p-4 flex items-center gap-4 transition-all">
+                                <!-- Time -->
+                                <div class="w-24 text-center border-r border-slate-100 pr-4">
+                                    <span class="block text-2xl font-black text-slate-800">{{.Time}}</span>
+                                    <span class="text-xs text-slate-400 font-medium uppercase">WIB</span>
+                                </div>
+
+                                <!-- Label & Audio -->
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="font-bold text-lg text-slate-700 truncate">{{.Label}}</h3>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <div
+                                            class="flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full text-xs font-mono border border-blue-100">
+                                            <i data-lucide="music" class="w-3 h-3"></i>
+                                            <span class="truncate max-w-[150px]">{{.AudioFile}}</span>
+                                        </div>
+                                        <button onclick="previewAudio(this, '/assets/audio/{{.AudioFile}}')"
+                                            class="p-1 text-slate-400 hover:text-blue-600 rounded-full hover:bg-blue-50 transition-colors"
+                                            title="Putar">
+                                            <i data-lucide="play-circle" class="w-4 h-4"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Actions -->
+                                <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button
+                                        onclick="editSchedule('{{.ID}}', '{{.Time}}', '{{.Label}}', '{{.AudioFile}}')"
+                                        class="p-2 text-slate-500 hover:text-blue-600 hover:bg-slate-50 rounded-lg transition-colors">
+                                        <i data-lucide="edit-2" class="w-4 h-4"></i>
+                                    </button>
+                                    <button onclick="deleteItem('schedule', {{.ID}})"
+                                        class="p-2 text-slate-500 hover:text-red-600 hover:bg-slate-50 rounded-lg transition-colors">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            {{else}}
+                            <div class="text-center py-12 bg-white rounded-xl border border-slate-200 border-dashed">
+                                <i data-lucide="calendar-off" class="w-12 h-12 mx-auto mb-3 text-slate-300"></i>
+                                <p class="text-slate-500">Belum ada jadwal bel</p>
+                            </div>
+                            {{end}}
                         </div>
                     </section>
 
                     <!-- 3. AUDIO LIBRARY (EXISTING) -->
+                    <!-- 3. AUDIO LIBRARY -->
                     <section id="audio" class="page-section">
-                        <!-- ... Kode audio sama seperti sebelumnya ... -->
                         <h2 class="text-2xl font-bold text-slate-800 mb-6">Audio Library</h2>
+
+                        <!-- Upload Area -->
                         <form id="upload-form" action="/admin/audio/upload" method="POST" enctype="multipart/form-data">
                             <input type="file" name="file" id="file-input" class="hidden" accept=".mp3,.wav,.ogg"
                                 onchange="uploadFile(this)">
-                            <div id="drop-zone"
-                                class="mb-8 p-8 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 text-center hover:bg-blue-50 cursor-pointer">
-                                <p class="text-sm text-slate-500">Klik atau Drag File ke Sini (MP3/WAV)</p>
+                            <div id="drop-zone" onclick="document.getElementById('file-input').click()"
+                                class="group mb-8 p-10 border-2 border-dashed border-slate-300 rounded-2xl bg-white hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer flex flex-col items-center justify-center text-center">
+                                <div
+                                    class="bg-blue-100 p-4 rounded-full text-blue-600 mb-4 group-hover:scale-110 transition-transform">
+                                    <i data-lucide="cloud-upload" class="w-8 h-8"></i>
+                                </div>
+                                <h3 class="text-lg font-bold text-slate-700">Upload Audio Baru</h3>
+                                <p class="text-slate-500 text-sm mt-1">Klik atau drag file MP3/WAV ke sini</p>
                             </div>
                         </form>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                        <!-- Audio Grid -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {{range .AudioFiles}}
-                            <div class="bg-white p-4 rounded-xl border shadow-sm flex justify-between items-center">
-                                <div class="overflow-hidden">
-                                    <p class="font-medium text-sm truncate w-32">{{.DisplayName}}</p>
+                            <div
+                                class="group bg-white p-4 rounded-xl border border-slate-200 hover:border-blue-300 shadow-sm hover:shadow-md transition-all flex items-center justify-between">
+                                <div class="flex items-center gap-4 overflow-hidden">
+                                    <!-- Play Button -->
+                                    <button onclick="previewAudio(this, '/assets/audio/{{.FileName}}')"
+                                        class="flex-shrink-0 w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-slate-600 hover:bg-blue-600 hover:text-white transition-colors">
+                                        <i data-lucide="play" class="w-5 h-5 ml-1"></i>
+                                    </button>
+
+                                    <!-- Info -->
+                                    <div class="min-w-0">
+                                        <h4 class="font-bold text-slate-800 truncate" title="{{.DisplayName}}">
+                                            {{.DisplayName}}</h4>
+                                        <p class="text-xs text-slate-400 font-mono truncate">{{.FileName}}</p>
+                                    </div>
                                 </div>
-                                <div class="flex gap-2"><button onclick="renameAudio('{{.ID}}', '{{.DisplayName}}')"
-                                        class="text-blue-600"><i data-lucide="edit-2"
-                                            class="w-4 h-4"></i></button><button onclick="deleteItem('audio', {{.ID}})"
-                                        class="text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+
+                                <!-- Actions -->
+                                <div class="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onclick="renameAudio('{{.ID}}', '{{.DisplayName}}')"
+                                        class="text-slate-400 hover:text-blue-600 p-1">
+                                        <i data-lucide="edit-2" class="w-4 h-4"></i>
+                                    </button>
+                                    <button onclick="deleteItem('audio', {{.ID}})"
+                                        class="text-slate-400 hover:text-red-600 p-1">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
                                 </div>
                             </div>
                             {{end}}
@@ -797,6 +864,158 @@
                         </div>
                     </section>
 
+                    <!-- 8. HOLIDAYS -->
+                    <section id="holidays" class="page-section">
+                        <div class="flex justify-between items-center mb-6">
+                            <div class="flex items-center gap-4">
+                                <h2 class="text-2xl font-bold text-slate-800">Hari Libur</h2>
+                                <button onclick="importNationalHolidays()"
+                                    class="text-xs bg-white border border-slate-300 hover:bg-slate-50 text-slate-600 px-3 py-1.5 rounded-lg font-medium flex items-center gap-1 shadow-sm">
+                                    <i data-lucide="download-cloud" class="w-3 h-3"></i> Import Nasional (Standar)
+                                </button>
+                            </div>
+                            <button onclick="openModal('modal-holiday')"
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2"><i
+                                    data-lucide="plus" class="w-4 h-4"></i> Tambah Libur</button>
+                        </div>
+                        <div class="bg-white rounded-xl border shadow-sm overflow-hidden">
+                            <table class="w-full text-left">
+                                <thead class="bg-slate-50 border-b">
+                                    <tr>
+                                        <th class="px-6 py-4 text-xs font-semibold uppercase">Tanggal</th>
+                                        <th class="px-6 py-4 text-xs font-semibold uppercase">Nama Hari Libur</th>
+                                        <th class="px-6 py-4 text-xs font-semibold uppercase">Tipe</th>
+                                        <th class="px-6 py-4 text-xs font-semibold uppercase text-right">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="holiday-table-body">
+                                    <tr>
+                                        <td colspan="4" class="px-6 py-8 text-center text-slate-500">Memuat data...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <!-- 9. WA LOGS -->
+                    <section id="wa-logs" class="page-section">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-bold text-slate-800">Log Pengiriman WhatsApp</h2>
+                            <button onclick="loadWALogs()"
+                                class="text-sm text-slate-500 hover:text-blue-600 flex items-center gap-1"><i
+                                    data-lucide="refresh-cw" class="w-4 h-4"></i> Segarkan</button>
+                        </div>
+                        <div class="bg-white rounded-xl border shadow-sm overflow-hidden">
+                            <table class="w-full text-left">
+                                <thead class="bg-slate-50 border-b">
+                                    <tr>
+                                        <th class="px-6 py-4 text-xs font-semibold uppercase">Waktu</th>
+                                        <th class="px-6 py-4 text-xs font-semibold uppercase">Tujuan</th>
+                                        <th class="px-6 py-4 text-xs font-semibold uppercase">Pesan</th>
+                                        <th class="px-6 py-4 text-xs font-semibold uppercase">Status</th>
+                                        <th class="px-6 py-4 text-xs font-semibold uppercase text-right">Response</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="walogs-table-body">
+                                    <tr>
+                                        <td colspan="5" class="px-6 py-8 text-center text-slate-500">Memuat log...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <!-- 9. WA LOGS -->
+                    <section id="wa-logs" class="page-section">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-bold text-slate-800">Log Pengiriman WhatsApp</h2>
+                            <button onclick="loadWALogs()"
+                                class="text-sm text-slate-500 hover:text-blue-600 flex items-center gap-1"><i
+                                    data-lucide="refresh-cw" class="w-4 h-4"></i> Segarkan</button>
+                        </div>
+                        <div class="bg-white rounded-xl border shadow-sm overflow-hidden">
+                            <table class="w-full text-left">
+                                <thead class="bg-slate-50 border-b">
+                                    <tr>
+                                        <th class="px-6 py-4 text-xs font-semibold uppercase">Waktu</th>
+                                        <th class="px-6 py-4 text-xs font-semibold uppercase">Tujuan</th>
+                                        <th class="px-6 py-4 text-xs font-semibold uppercase">Pesan</th>
+                                        <th class="px-6 py-4 text-xs font-semibold uppercase">Status</th>
+                                        <th class="px-6 py-4 text-xs font-semibold uppercase text-right">Response</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="walogs-table-body">
+                                    <!-- JS Load -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <!-- 10. SCHOOL SETTINGS -->
+                    <section id="settings" class="page-section">
+                        <h2 class="text-2xl font-bold text-slate-800 mb-6">Pengaturan Sekolah</h2>
+
+                        <div class="bg-white rounded-xl border shadow-sm p-6 mb-6">
+                            <h3 class="font-bold text-lg mb-4 text-slate-700 flex items-center gap-2">
+                                <i data-lucide="calendar-days" class="w-5 h-5 text-blue-600"></i> Hari Kerja Sekolah
+                            </h3>
+                            <p class="text-sm text-slate-500 mb-4">Pilih hari-hari di mana kegiatan belajar mengajar
+                                aktif.</p>
+
+                            <form id="school-settings-form" onsubmit="saveSchoolSettings(event)">
+                                <div class="flex flex-wrap gap-4 mb-6">
+                                    <label
+                                        class="flex items-center gap-2 border px-4 py-2 rounded-lg cursor-pointer hover:bg-slate-50">
+                                        <input type="checkbox" name="work_day" value="1"
+                                            class="w-4 h-4 text-blue-600 rounded">
+                                        <span class="text-sm font-medium">Senin</span>
+                                    </label>
+                                    <label
+                                        class="flex items-center gap-2 border px-4 py-2 rounded-lg cursor-pointer hover:bg-slate-50">
+                                        <input type="checkbox" name="work_day" value="2"
+                                            class="w-4 h-4 text-blue-600 rounded">
+                                        <span class="text-sm font-medium">Selasa</span>
+                                    </label>
+                                    <label
+                                        class="flex items-center gap-2 border px-4 py-2 rounded-lg cursor-pointer hover:bg-slate-50">
+                                        <input type="checkbox" name="work_day" value="3"
+                                            class="w-4 h-4 text-blue-600 rounded">
+                                        <span class="text-sm font-medium">Rabu</span>
+                                    </label>
+                                    <label
+                                        class="flex items-center gap-2 border px-4 py-2 rounded-lg cursor-pointer hover:bg-slate-50">
+                                        <input type="checkbox" name="work_day" value="4"
+                                            class="w-4 h-4 text-blue-600 rounded">
+                                        <span class="text-sm font-medium">Kamis</span>
+                                    </label>
+                                    <label
+                                        class="flex items-center gap-2 border px-4 py-2 rounded-lg cursor-pointer hover:bg-slate-50">
+                                        <input type="checkbox" name="work_day" value="5"
+                                            class="w-4 h-4 text-blue-600 rounded">
+                                        <span class="text-sm font-medium">Jumat</span>
+                                    </label>
+                                    <label
+                                        class="flex items-center gap-2 border px-4 py-2 rounded-lg cursor-pointer hover:bg-slate-50">
+                                        <input type="checkbox" name="work_day" value="6"
+                                            class="w-4 h-4 text-blue-600 rounded">
+                                        <span class="text-sm font-medium">Sabtu</span>
+                                    </label>
+                                    <label
+                                        class="flex items-center gap-2 border px-4 py-2 rounded-lg cursor-pointer hover:bg-slate-50">
+                                        <input type="checkbox" name="work_day" value="7"
+                                            class="w-4 h-4 text-blue-600 rounded">
+                                        <span class="text-sm font-medium">Minggu</span>
+                                    </label>
+                                </div>
+
+                                <button type="submit"
+                                    class="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition">
+                                    Simpan Pengaturan
+                                </button>
+                            </form>
+                        </div>
+                    </section>
+
                 </div>
             </main>
         </div>
@@ -980,6 +1199,43 @@
             </div>
         </div>
 
+        <!-- Modal Holiday -->
+        <div id="modal-holiday"
+            class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+                <h3 class="font-bold text-lg mb-4" id="holiday-modal-title">Tambah Hari Libur</h3>
+                <form id="holiday-form" onsubmit="saveHoliday(event)" class="space-y-4">
+                    <input type="hidden" name="id" id="hol-id">
+                    <div>
+                        <label class="text-sm font-medium">Tanggal</label>
+                        <input type="date" name="date" id="hol-date" required class="w-full border rounded p-2">
+                    </div>
+                    <div>
+                        <label class="text-sm font-medium">Nama Hari Libur</label>
+                        <input type="text" name="name" id="hol-name" required placeholder="Contoh: Tahun Baru"
+                            class="w-full border rounded p-2">
+                    </div>
+                    <div>
+                        <label class="text-sm font-medium">Tipe Libur</label>
+                        <select name="type" id="hol-type" class="w-full border rounded p-2">
+                            <option value="national">Libur Nasional</option>
+                            <option value="internal">Libur Sekolah (Internal)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-sm font-medium">Keterangan (Opsional)</label>
+                        <textarea name="description" id="hol-desc" rows="3"
+                            class="w-full border rounded p-2"></textarea>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="closeModal('modal-holiday')"
+                            class="text-slate-500">Batal</button>
+                        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Simpan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <!-- Modal Attendance Settings -->
         <div id="modal-att-settings"
             class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
@@ -1034,17 +1290,17 @@
 
                                 <!-- Tabs -->
                                 <div class="flex gap-2 mb-2 border-b overflow-x-auto">
-                                    <button type="button" onclick="openTab('tab-in')"
+                                    <button type="button" onclick="openTab('tab-in', event)"
                                         class="tab-btn px-3 py-2 text-xs font-bold text-blue-600 border-b-2 border-blue-600 whitespace-nowrap">Siswa
                                         Hadir</button>
-                                    <button type="button" onclick="openTab('tab-late')"
+                                    <button type="button" onclick="openTab('tab-late', event)"
                                         class="tab-btn px-3 py-2 text-xs font-bold text-slate-500 hover:text-blue-600 whitespace-nowrap">Terlambat</button>
-                                    <button type="button" onclick="openTab('tab-out')"
+                                    <button type="button" onclick="openTab('tab-out', event)"
                                         class="tab-btn px-3 py-2 text-xs font-bold text-slate-500 hover:text-blue-600 whitespace-nowrap">Pulang</button>
-                                    <button type="button" onclick="openTab('tab-staff-in')"
+                                    <button type="button" onclick="openTab('tab-staff-in', event)"
                                         class="tab-btn px-3 py-2 text-xs font-bold text-slate-500 hover:text-blue-600 whitespace-nowrap">Staff
                                         Masuk</button>
-                                    <button type="button" onclick="openTab('tab-staff-out')"
+                                    <button type="button" onclick="openTab('tab-staff-out', event)"
                                         class="tab-btn px-3 py-2 text-xs font-bold text-slate-500 hover:text-blue-600 whitespace-nowrap">Staff
                                         Pulang</button>
                                 </div>
@@ -1196,6 +1452,7 @@
         </div>
 
         <script>
+            console.log("Admin script starting...");
             lucide.createIcons();
 
             // --- CHARTS INITIALIZATION ---
@@ -1275,8 +1532,45 @@
             }
         });
 
+            // --- CLOCK UPDATE ---
+            function updateClock() {
+                const now = new Date();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+                const clockEl = document.getElementById('server-clock');
+                if (clockEl) {
+                    clockEl.innerText = `${hours}:${minutes}:${seconds}`;
+                }
+            }
+            setInterval(updateClock, 1000);
+            updateClock(); // Initial call
+
+            // --- Tab Switching for WA Templates ---
+            function openTab(tabId, event) {
+                // Hide all tab contents
+                document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+                // Remove active state from all buttons
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
+                    btn.classList.add('text-slate-500');
+                });
+
+                // Show selected tab
+                const selectedTab = document.getElementById(tabId);
+                if (selectedTab) {
+                    selectedTab.classList.remove('hidden');
+                }
+
+                // Highlight active button
+                if (event && event.target) {
+                    event.target.classList.remove('text-slate-500');
+                    event.target.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
+                }
+            }
+
             // --- Navigation ---
-            function switchPage(pageId, element) {
+            function navigateMenu(pageId, element) {
                 document.querySelectorAll('.page-section').forEach(sec => sec.classList.remove('active'));
                 document.querySelectorAll('.nav-item').forEach(nav => { nav.classList.remove('active-nav', 'text-blue-600', 'bg-blue-50'); nav.classList.add('text-slate-600'); });
 
@@ -1291,10 +1585,18 @@
                     element.classList.add('active-nav');
                 }
 
-                // Close sidebar on mobile if open
                 const sidebar = document.getElementById('main-sidebar');
-                if (!sidebar.classList.contains('hidden') && window.innerWidth < 768) {
+                if (sidebar && !sidebar.classList.contains('hidden') && window.innerWidth < 768) {
                     sidebar.classList.add('hidden');
+                }
+
+                // Auto-load data for specific pages
+                if (pageId === 'wa-logs') {
+                    loadWALogs();
+                } else if (pageId === 'holidays') {
+                    loadHolidays();
+                } else if (pageId === 'settings') {
+                    loadSchoolSettings();
                 }
             }
 
@@ -1308,7 +1610,7 @@
             document.addEventListener("DOMContentLoaded", function () {
                 const hash = window.location.hash.substring(1);
                 if (hash) {
-                    switchPage(hash, null);
+                    navigateMenu(hash, null);
                 }
             });
 
@@ -1593,7 +1895,7 @@
                     }
                 } catch (err) {
                     console.error(err);
-                    alert('Error koneksi');
+                    alert('Terjadi kesalahan');
                 }
             }
 
@@ -1726,6 +2028,281 @@
                 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('bg-blue-50'); });
                 dropZone.addEventListener('drop', e => { e.preventDefault(); document.getElementById('file-input').files = e.dataTransfer.files; uploadFile(document.getElementById('file-input')); });
             }
+            // --- AUDIO PREVIEW ---
+            let currentAudio = null;
+            let currentBtn = null;
+
+            function previewAudio(btn, url) {
+                // If clicking the same button that is currently playing
+                if (currentBtn === btn && currentAudio && !currentAudio.paused) {
+                    currentAudio.pause();
+                    currentAudio.currentTime = 0;
+                    resetBtn(btn);
+                    currentBtn = null;
+                    return;
+                }
+
+                // Stop any currently playing audio
+                if (currentAudio) {
+                    currentAudio.pause();
+                    currentAudio.currentTime = 0;
+                    if (currentBtn) resetBtn(currentBtn);
+                }
+
+                // Play new audio
+                currentAudio = new Audio(url);
+                currentBtn = btn;
+
+                // Update Button UI to "Stop" or "Pause" state
+                updateBtnToPlaying(btn);
+
+                currentAudio.play().catch(e => {
+                    console.error("Audio play error:", e);
+                    alert("Gagal memutar audio: " + e.message);
+                    resetBtn(btn);
+                });
+
+                // When audio ends
+                currentAudio.onended = () => {
+                    resetBtn(btn);
+                    currentBtn = null;
+                };
+            }
+
+            function updateBtnToPlaying(btn) {
+                // Change icon to Stop/Pause
+                const icon = btn.querySelector('svg'); // Lucide renders as SVG
+                if (icon) {
+                    // Simple hack to change icon visuals or class
+                    btn.classList.add('bg-blue-600', 'text-white');
+                    btn.classList.remove('bg-slate-100', 'text-slate-600');
+                }
+            }
+
+            function resetBtn(btn) {
+                if (!btn) return;
+                btn.classList.remove('bg-blue-600', 'text-white');
+                btn.classList.add('bg-slate-100', 'text-slate-600');
+            }
+
+            // --- HOLIDAYS (NEW) ---
+            async function loadHolidays() {
+                const tbody = document.getElementById('holiday-table-body');
+                tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-slate-500">Memuat data...</td></tr>';
+
+                try {
+                    const res = await fetch('/admin/holidays');
+                    const holidays = await res.json();
+
+                    tbody.innerHTML = '';
+                    if (!holidays || holidays.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-slate-500">Belum ada hari libur</td></tr>';
+                        return;
+                    }
+
+                    holidays.forEach(h => {
+                        let typeBadge = h.type === 'national'
+                            ? '<span class="px-2 py-1 bg-red-100 text-red-600 rounded text-xs font-bold">Nasional</span>'
+                            : '<span class="px-2 py-1 bg-blue-100 text-blue-600 rounded text-xs font-bold">Intern Sekolah</span>';
+
+                        tbody.innerHTML += `
+                            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                                <td class="px-6 py-4 font-mono font-bold text-slate-700">${h.date}</td>
+                                <td class="px-6 py-4 font-medium text-slate-800">${h.name}</td>
+                                <td class="px-6 py-4">${typeBadge}</td>
+                                <td class="px-6 py-4 text-right">
+                                    <button onclick="deleteHoliday(${h.id})" class="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    lucide.createIcons();
+                } catch (err) {
+                    console.error(err);
+                    tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-red-500">Gagal memuat data</td></tr>';
+                }
+            }
+
+            async function saveHoliday(e) {
+                e.preventDefault();
+                const form = e.target;
+                const fd = new FormData(form);
+                const data = Object.fromEntries(fd.entries());
+
+                // If ID is empty, remove it so backend treats as create
+                if (!data.id) delete data.id;
+
+                try {
+                    const res = await fetch('/admin/holidays', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+
+                    if (res.ok) {
+                        closeModal('modal-holiday');
+                        form.reset();
+                        loadHolidays();
+                        Swal.fire({ icon: 'success', title: 'Berhasil', text: 'Hari libur tersimpan', timer: 1500, showConfirmButton: false });
+                    } else {
+                        throw new Error("Gagal menyimpan");
+                    }
+                } catch (err) {
+                    Swal.fire('Error', 'Gagal menyimpan hari libur', 'error');
+                }
+            }
+
+            async function deleteHoliday(id) {
+                if ((await Swal.fire({ title: 'Hapus hari libur ini?', icon: 'warning', showCancelButton: true })).isConfirmed) {
+                    await fetch(`/admin/holidays/${id}`, { method: 'DELETE' });
+                    loadHolidays();
+                }
+            }
+
+            async function importNationalHolidays() {
+                if ((await Swal.fire({
+                    title: 'Import Libur Nasional?',
+                    text: 'Ini akan menambahkan hari libur nasional Indonesia tahun ini ke database.',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, Import'
+                })).isConfirmed) {
+
+                    Swal.fire({ title: 'Mengimport data...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+                    try {
+                        const res = await fetch('/admin/holidays/import-national', { method: 'POST' });
+                        const data = await res.json();
+
+                        if (res.ok) {
+                            loadHolidays();
+                            Swal.fire('Berhasil', data.message, 'success');
+                        } else {
+                            throw new Error(data.error || "Gagal import");
+                        }
+                    } catch (err) {
+                        Swal.fire('Error', 'Gagal mengimport hari libur: ' + err.message, 'error');
+                    }
+                }
+            }
+
+            // --- SCHOOL SETTINGS (NEW) ---
+            async function saveSchoolSettings(e) {
+                e.preventDefault();
+                const form = e.target;
+                const workDays = [];
+                form.querySelectorAll('input[name="work_day"]:checked').forEach(cb => workDays.push(parseInt(cb.value)));
+
+                try {
+                    const res = await fetch('/admin/settings/school', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ work_days: workDays.join(',') })
+                    });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        Swal.fire({ icon: 'success', title: 'Berhasil', text: data.message, timer: 1500, showConfirmButton: false });
+                    } else {
+                        throw new Error("Gagal menyimpan");
+                    }
+                } catch (err) {
+                    Swal.fire('Error', 'Gagal menyimpan pengaturan sekolah', 'error');
+                }
+            }
+
+            async function loadSchoolSettings() {
+                try {
+                    const res = await fetch('/admin/settings/school');
+                    if (!res.ok) return;
+                    const data = await res.json();
+
+                    // Reset checkboxes
+                    document.querySelectorAll('input[name="work_day"]').forEach(cb => cb.checked = false);
+
+                    // Check enabled days
+                    // Check enabled days
+                    let days = [];
+                    if (data.work_days) {
+                        if (Array.isArray(data.work_days)) {
+                            days = data.work_days;
+                        } else if (typeof data.work_days === 'string') {
+                            days = data.work_days.split(',');
+                        }
+                    }
+
+                    days.forEach(day => {
+                        const cb = document.querySelector(`input[name="work_day"][value="${day}"]`);
+                        if (cb) cb.checked = true;
+                    });
+                } catch (err) {
+                    console.error("Error loading school settings:", err);
+                }
+            }
+
+            // --- WA LOGS ---
+            async function loadWALogs() {
+                const tbody = document.getElementById('walogs-table-body');
+                tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-slate-500">Memuat log...</td></tr>';
+
+                try {
+                    const res = await fetch('/admin/wa-logs?limit=100');
+                    const logs = await res.json();
+
+                    tbody.innerHTML = '';
+                    if (!logs || logs.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-slate-500">Belum ada log pengiriman.</td></tr>';
+                        return;
+                    }
+
+                    logs.forEach(log => {
+                        let statusColor = 'bg-slate-100 text-slate-600';
+                        if (log.status === 'success') statusColor = 'bg-green-100 text-green-700';
+                        else if (log.status === 'failed') statusColor = 'bg-red-100 text-red-700';
+
+                        // Truncate message
+                        let msgPreview = log.message.length > 50 ? log.message.substring(0, 50) + '...' : log.message;
+
+                        // Escape quotes for onclick
+                        const safeResponse = log.response ? log.response.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, ' ') : '';
+
+                        tbody.innerHTML += `
+                            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                                <td class="px-6 py-4 text-xs font-mono text-slate-500">${log.timestamp}</td>
+                                <td class="px-6 py-4 font-bold text-slate-700">${log.target}</td>
+                                <td class="px-6 py-4 text-sm text-slate-600" title="${log.message}">${msgPreview}</td>
+                                <td class="px-6 py-4"><span class="px-2 py-1 rounded text-xs font-bold ${statusColor}">${log.status}</span></td>
+                                <td class="px-6 py-4 text-right">
+                                    <button onclick="Swal.fire({ title: 'Response API', text: '${safeResponse}', width: '600px' })" class="text-blue-600 hover:bg-blue-50 p-1 rounded text-xs">Detail</button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                } catch (err) {
+                    console.error(err);
+                    tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-red-500">Gagal memuat log.</td></tr>';
+                }
+            }
+
+            // --- Explicit Event Listeners ---
+            document.addEventListener('DOMContentLoaded', () => {
+                console.log("DOM Loaded - Attaching listeners");
+
+                const holidayForm = document.getElementById('holiday-form');
+                if (holidayForm) {
+                    holidayForm.addEventListener('submit', saveHoliday);
+                    console.log("Holiday form listener attached");
+                } else {
+                    console.error("Holiday form not found!");
+                }
+
+                // Ensure other forms also have listeners if needed
+            });
+
+            console.log("Script execution finished");
+
         </script>
     </body>
 
