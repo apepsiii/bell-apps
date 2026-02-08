@@ -286,3 +286,28 @@ func (a *App) ImportNationalHolidaysHandler(c echo.Context) error {
 		"added":   addedCount,
 	})
 }
+
+// Helper: Get Holidays for Month
+func (a *App) GetHolidaysForMonth(year, month string) []Holiday {
+	// Query holidays table
+	// SQLite strftime('%m', date)
+	query := `SELECT id, date, name, type FROM holidays 
+	          WHERE strftime('%Y', date) = ? AND strftime('%m', date) = ?`
+	
+	rows, err := a.DB.Query(query, year, month)
+	if err != nil {
+		return []Holiday{}
+	}
+	defer rows.Close()
+
+	var holidays []Holiday
+	for rows.Next() {
+		var h Holiday
+		var desc sql.NullString
+		if err := rows.Scan(&h.ID, &h.Date, &h.Name, &h.Type, &desc); err == nil {
+			h.Description = desc.String
+			holidays = append(holidays, h)
+		}
+	}
+	return holidays
+}

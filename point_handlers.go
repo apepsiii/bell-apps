@@ -102,6 +102,7 @@ func (a *App) GetStudentPointProfileHandler(c echo.Context) error {
 
 	// Get Student Info
 	var profile StudentPointProfile
+	var className sql.NullString
 	err := a.DB.QueryRow(`
 		SELECT s.id, s.name, c.name, COALESCE(SUM(sp.points_change), 0) as total
 		FROM students s
@@ -109,7 +110,8 @@ func (a *App) GetStudentPointProfileHandler(c echo.Context) error {
 		LEFT JOIN student_points sp ON s.id = sp.student_id
 		WHERE s.id = ?
 		GROUP BY s.id
-	`, studentID).Scan(&profile.StudentID, &profile.Name, &profile.ClassName, &profile.TotalPoints)
+	`, studentID).Scan(&profile.StudentID, &profile.Name, &className, &profile.TotalPoints)
+	profile.ClassName = className.String
 
 	if err != nil {
 		return c.JSON(http.StatusNotFound, map[string]string{"message": "Siswa tidak ditemukan"})
@@ -126,11 +128,13 @@ func (a *App) GetStudentPointProfileHandler(c echo.Context) error {
 		defer rows.Close()
 		for rows.Next() { // FIX: Use rows.Next() instead of checking err
 			var l StudentPointLog
-			// Handle nullable fields
 			var ruleID, rewardID sql.NullInt64
+			var recordedBy sql.NullString
 			
-			rows.Scan(&l.ID, &l.StudentID, &ruleID, &rewardID, &l.PointsChange, &l.Description, &l.Timestamp, &l.RecordedBy)
+			rows.Scan(&l.ID, &l.StudentID, &ruleID, &rewardID, &l.PointsChange, &l.Description, &l.Timestamp, &recordedBy)
 			
+			l.RecordedBy = recordedBy.String
+
 			if ruleID.Valid {
 				val := int(ruleID.Int64)
 				l.RuleID = &val
@@ -206,7 +210,9 @@ func (a *App) GetLeaderboardHandler(c echo.Context) error {
 	var items []LeaderboardItem
 	for rows.Next() {
 		var i LeaderboardItem
-		rows.Scan(&i.ID, &i.Name, &i.ClassName, &i.Points)
+		var className sql.NullString
+		rows.Scan(&i.ID, &i.Name, &className, &i.Points)
+		i.ClassName = className.String
 		items = append(items, i)
 	}
 
@@ -335,11 +341,13 @@ func (a *App) GetStudentByRFIDHandler(c echo.Context) error {
 		ClassName string `json:"class_name"`
 	}
 
+	var className sql.NullString
 	err := a.DB.QueryRow(`
 		SELECT s.id, s.name, c.name 
 		FROM students s 
 		LEFT JOIN classes c ON s.class_id = c.id 
-		WHERE s.rfid_uid = ?`, rfid).Scan(&student.ID, &student.Name, &student.ClassName)
+		WHERE s.rfid_uid = ?`, rfid).Scan(&student.ID, &student.Name, &className)
+	student.ClassName = className.String
 	
 	if err != nil {
 		return c.JSON(http.StatusNotFound, map[string]string{"message": "Siswa tidak ditemukan"})

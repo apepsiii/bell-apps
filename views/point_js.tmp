@@ -1,0 +1,229 @@
+            // --- POINT SYSTEM LOGIC ---
+
+            // Tab Switching
+            function openPointTab(tabName, btn) {
+                // Hide all tabs
+                ['leaderboard', 'input', 'redeem', 'master'].forEach(t => {
+                    document.getElementById('point-' + t).classList.add('hidden');
+                });
+
+                // Show selected
+                document.getElementById('point-' + tabName).classList.remove('hidden');
+
+                // Update buttons
+                document.querySelectorAll('.point-tab-btn').forEach(b => {
+                    b.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
+                    b.classList.add('text-slate-500');
+                });
+                btn.classList.remove('text-slate-500');
+                btn.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
+
+                if (tabName === 'leaderboard') loadLeaderboard();
+                if (tabName === 'master') { loadPointRules(); loadPointRewards(); }
+            }
+
+            // --- MASTER DATA ---
+
+            async function loadPointRules() {
+                try {
+                    const res = await fetch('/admin/point-rules');
+                    const data = await res.json();
+                    const tbody = document.getElementById('master-rules-table');
+                    
+                    if (!data || data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-slate-500">Belum ada aturan</td></tr>';
+                        return;
+                    }
+
+                    tbody.innerHTML = data.map(r => `
+                        <tr class="group hover:bg-slate-50 transition-colors">
+                            <td class="px-4 py-3 font-medium text-slate-700">${r.name}</td>
+                            <td class="px-4 py-3 text-right font-bold ${r.points < 0 ? 'text-red-600' : 'text-green-600'}">
+                                ${r.points > 0 ? '+' : ''}${r.points}
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                <button onclick="deletePointRule(${r.id})" class="text-slate-400 hover:text-red-600 transition-colors">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                    lucide.createIcons();
+                } catch (err) {
+                    console.error(err);
+                }
+            }
+
+            async function loadPointRewards() {
+                try {
+                    const res = await fetch('/admin/point-rewards');
+                    const data = await res.json();
+                    const tbody = document.getElementById('master-rewards-table');
+
+                    if (!data || data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-slate-500">Belum ada hadiah</td></tr>';
+                        return;
+                    }
+
+                    tbody.innerHTML = data.map(r => `
+                        <tr class="group hover:bg-slate-50 transition-colors">
+                            <td class="px-4 py-3 font-medium text-slate-700">${r.name}</td>
+                            <td class="px-4 py-3 text-right font-bold text-orange-600">${r.points_cost} Poin</td>
+                            <td class="px-4 py-3 text-right text-slate-600">${r.stock}</td>
+                            <td class="px-4 py-3 text-center">
+                                <button onclick="deletePointReward(${r.id})" class="text-slate-400 hover:text-red-600 transition-colors">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                    lucide.createIcons();
+                } catch (err) {
+                    console.error(err);
+                }
+            }
+
+            function openAddRuleModal() {
+                openModal('modal-add-point-rule');
+            }
+
+            function openAddRewardModal() {
+                openModal('modal-add-point-reward');
+            }
+
+            async function submitAddPointRule(e) {
+                e.preventDefault();
+                await handleFormSubmit(e);
+                closeModal('modal-add-point-rule');
+                loadPointRules();
+                // Also update dropdowns if needed
+            }
+
+            async function submitAddPointReward(e) {
+                e.preventDefault();
+                await handleFormSubmit(e);
+                closeModal('modal-add-point-reward');
+                loadPointRewards();
+            }
+
+            async function deletePointRule(id) {
+                if (!confirm('Hapus aturan ini?')) return;
+                await fetch('/admin/point-rules/' + id, { method: 'DELETE' });
+                loadPointRules();
+            }
+
+            async function deletePointReward(id) {
+                if (!confirm('Hapus hadiah ini?')) return;
+                await fetch('/admin/point-rewards/' + id, { method: 'DELETE' });
+                loadPointRewards();
+            }
+
+            // --- INPUT & REDEEM ---
+
+            async function findStudentByRFID(rfid, mode) {
+                if (rfid.length < 5) return;
+                
+                const previewEl = document.getElementById(`point-student-preview-${mode}`);
+                const idInput = document.getElementById(mode === 'input' ? 'point-student-id' : 'redeem-student-id');
+                const ruleSelect = document.getElementById('point-rule-select');
+                const rewardSelect = document.getElementById('point-reward-select');
+
+                previewEl.innerText = 'Mencari...';
+
+                try {
+                    const res = await fetch(`/admin/point-student-lookup?rfid=${rfid}`);
+                    if (!res.ok) throw new Error('Siswa tidak ditemukan');
+                    
+                    const data = await res.json();
+                    previewEl.innerHTML = `<span class="text-green-600">✅ ${data.name} (${data.class_name})</span>`;
+                    idInput.value = data.id;
+
+                    // Load options if not loaded
+                    if (mode === 'input' && ruleSelect.options.length <= 1) loadRuleOptions();
+                    if (mode === 'redeem') {
+                        loadStudentBalance(data.id);
+                        if (rewardSelect.options.length <= 1) loadRewardOptions();
+                    }
+
+                } catch (err) {
+                    previewEl.innerHTML = `<span class="text-red-600">❌ Siswa tidak ditemukan</span>`;
+                    idInput.value = '';
+                }
+            }
+
+            async function loadStudentBalance(id) {
+                // Fetch profile to get balance
+                try {
+                    const res = await fetch(`/admin/points/student/${id}`);
+                    const data = await res.json();
+                    document.getElementById('point-student-balance').innerText = `Saldo: ${data.total_points} Poin`;
+                } catch (err) {
+                    console.error(err);
+                }
+            }
+
+            async function loadRuleOptions() {
+                const select = document.getElementById('point-rule-select');
+                const res = await fetch('/admin/point-rules');
+                const data = await res.json();
+                
+                select.innerHTML = '<option value="">Pilih Aturan...</option>' + 
+                    data.map(r => `<option value="${r.id}">${r.name} (${r.points > 0 ? '+' : ''}${r.points})</option>`).join('');
+            }
+
+            async function loadRewardOptions() {
+                const select = document.getElementById('point-reward-select');
+                const res = await fetch('/admin/point-rewards');
+                const data = await res.json();
+                
+                select.innerHTML = '<option value="">Pilih Hadiah...</option>' + 
+                    data.map(r => `<option value="${r.id}" ${r.stock <= 0 ? 'disabled' : ''}>${r.name} (${r.points_cost} Poin) - Stok: ${r.stock}</option>`).join('');
+            }
+
+            async function submitPointTransaction(e) {
+                e.preventDefault();
+                await handleFormSubmit(e);
+                // Clear inputs
+                document.getElementById('point-student-rfid').value = '';
+                document.getElementById('point-student-preview-input').innerText = '';
+                document.getElementById('point-rule-select').value = '';
+                document.getElementById('point-student-rfid').focus();
+            }
+
+            async function submitRedeem(e) {
+                e.preventDefault();
+                await handleFormSubmit(e);
+                // Refresh balance
+                const sid = document.getElementById('redeem-student-id').value;
+                if (sid) loadStudentBalance(sid);
+                loadPointRewards(); // Update stock
+            }
+
+            // --- LEADERBOARD ---
+
+            async function loadLeaderboard() {
+                const tbody = document.getElementById('leaderboard-table');
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8">Memuat leaderboard...</td></tr>';
+                
+                try {
+                    const res = await fetch('/admin/points/leaderboard');
+                    const data = await res.json();
+                    
+                    if (!data || data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-slate-500">Belum ada data poin</td></tr>';
+                        return;
+                    }
+
+                    tbody.innerHTML = data.map((s, idx) => `
+                        <tr class="hover:bg-slate-50 border-b last:border-0 transition-colors">
+                            <td class="px-6 py-4 font-bold text-slate-500">#${idx + 1}</td>
+                            <td class="px-6 py-4 font-medium text-slate-800">${s.name}</td>
+                            <td class="px-6 py-4 text-slate-600">${s.class_name || '-'}</td>
+                            <td class="px-6 py-4 text-right font-bold text-blue-600">${s.points} Poin</td>
+                        </tr>
+                    `).join('');
+                } catch (err) {
+                    console.error(err);
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-red-500">Gagal memuat leaderboard</td></tr>';
+                }
+            }

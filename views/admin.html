@@ -346,56 +346,97 @@
                     <!-- 3. AUDIO LIBRARY (EXISTING) -->
                     <!-- 3. AUDIO LIBRARY -->
                     <section id="audio" class="page-section">
-                        <h2 class="text-2xl font-bold text-slate-800 mb-6">Audio Library</h2>
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-bold text-slate-800">Audio Library</h2>
+                            <button onclick="document.getElementById('file-input').click()"
+                                class="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-full text-sm font-bold flex items-center gap-2 shadow-lg shadow-green-600/20 hover:scale-105 transition-transform active:scale-95">
+                                <i data-lucide="plus" class="w-4 h-4"></i> Upload Audio
+                            </button>
+                        </div>
 
-                        <!-- Upload Area -->
-                        <form id="upload-form" action="/admin/audio/upload" method="POST" enctype="multipart/form-data">
-                            <input type="file" name="file" id="file-input" class="hidden" accept=".mp3,.wav,.ogg"
-                                onchange="uploadFile(this)">
-                            <div id="drop-zone" onclick="document.getElementById('file-input').click()"
-                                class="group mb-8 p-10 border-2 border-dashed border-slate-300 rounded-2xl bg-white hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer flex flex-col items-center justify-center text-center">
-                                <div
-                                    class="bg-blue-100 p-4 rounded-full text-blue-600 mb-4 group-hover:scale-110 transition-transform">
-                                    <i data-lucide="cloud-upload" class="w-8 h-8"></i>
-                                </div>
-                                <h3 class="text-lg font-bold text-slate-700">Upload Audio Baru</h3>
-                                <p class="text-slate-500 text-sm mt-1">Klik atau drag file MP3/WAV ke sini</p>
+                        <!-- Hidden Input -->
+                        <input type="file" name="file" id="file-input" class="hidden" accept=".mp3,.wav,.ogg"
+                            onchange="uploadFile(this)">
+
+                        <!-- Progress Bar (Hidden by default) -->
+                        <div id="upload-progress-container"
+                            class="hidden mb-6 bg-white p-4 rounded-xl border border-slate-200 shadow-sm animate-fade-in-down">
+                            <div class="flex justify-between text-sm font-medium text-slate-700 mb-2">
+                                <span class="flex items-center gap-2"><i data-lucide="loader-2"
+                                        class="w-4 h-4 animate-spin text-green-600"></i> Mengupload...</span>
+                                <span id="upload-percentage">0%</span>
                             </div>
-                        </form>
-
-                        <!-- Audio Grid -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {{range .AudioFiles}}
-                            <div
-                                class="group bg-white p-4 rounded-xl border border-slate-200 hover:border-blue-300 shadow-sm hover:shadow-md transition-all flex items-center justify-between">
-                                <div class="flex items-center gap-4 overflow-hidden">
-                                    <!-- Play Button -->
-                                    <button onclick="previewAudio(this, '/assets/audio/{{.FileName}}')"
-                                        class="flex-shrink-0 w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-slate-600 hover:bg-blue-600 hover:text-white transition-colors">
-                                        <i data-lucide="play" class="w-5 h-5 ml-1"></i>
-                                    </button>
-
-                                    <!-- Info -->
-                                    <div class="min-w-0">
-                                        <h4 class="font-bold text-slate-800 truncate" title="{{.DisplayName}}">
-                                            {{.DisplayName}}</h4>
-                                        <p class="text-xs text-slate-400 font-mono truncate">{{.FileName}}</p>
-                                    </div>
-                                </div>
-
-                                <!-- Actions -->
-                                <div class="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button onclick="renameAudio('{{.ID}}', '{{.DisplayName}}')"
-                                        class="text-slate-400 hover:text-blue-600 p-1">
-                                        <i data-lucide="edit-2" class="w-4 h-4"></i>
-                                    </button>
-                                    <button onclick="deleteItem('audio', {{.ID}})"
-                                        class="text-slate-400 hover:text-red-600 p-1">
-                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                    </button>
-                                </div>
+                            <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                                <div id="upload-progress-bar"
+                                    class="bg-green-600 h-full rounded-full transition-all duration-300"
+                                    style="width: 0%"></div>
                             </div>
-                            {{end}}
+                        </div>
+
+                        <!-- Playlist Table -->
+                        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                            <table class="w-full text-left">
+                                <thead class="bg-slate-50 border-b border-slate-200">
+                                    <tr>
+                                        <th
+                                            class="w-16 px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                            #</th>
+                                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                            Judul
+                                        </th>
+                                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                            File
+                                        </th>
+                                        <th
+                                            class="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                            Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    {{range $index, $element := .AudioFiles}}
+                                    <tr class="group hover:bg-slate-50/80 transition-colors">
+                                        <td class="px-6 py-4 text-center">
+                                            <button onclick="previewAudio(this, '/assets/audio/{{.FileName}}')"
+                                                class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 group-hover:text-green-600 group-hover:bg-green-50 transition-all mx-auto">
+                                                <i data-lucide="play" class="w-4 h-4 ml-0.5"></i>
+                                            </button>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div class="font-bold text-slate-700">{{.DisplayName}}</div>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div
+                                                class="text-xs text-slate-400 font-mono bg-slate-100 px-2 py-1 rounded w-fit">
+                                                {{.FileName}}</div>
+                                        </td>
+                                        <td
+                                            class="px-6 py-4 text-right flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onclick="renameAudio('{{.ID}}', '{{.DisplayName}}')"
+                                                class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                title="Edit Nama">
+                                                <i data-lucide="edit-2" class="w-4 h-4"></i>
+                                            </button>
+                                            <button onclick="deleteItem('audio', {{.ID}})"
+                                                class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                title="Hapus">
+                                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {{else}}
+                                    <tr>
+                                        <td colspan="4" class="px-6 py-16 text-center text-slate-400">
+                                            <div
+                                                class="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                                                <i data-lucide="music" class="w-8 h-8 opacity-50"></i>
+                                            </div>
+                                            <p class="font-medium">Belum ada audio di library</p>
+                                            <p class="text-sm mt-1">Upload audio untuk mulai membuat jadwal</p>
+                                        </td>
+                                    </tr>
+                                    {{end}}
+                                </tbody>
+                            </table>
                         </div>
                     </section>
 
@@ -491,11 +532,21 @@
                     <!-- 6. STUDENTS (SISWA) -->
                     <section id="students" class="page-section">
                         <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-2xl font-bold text-slate-800">Data Siswa</h2>
+                            <div class="flex items-center gap-4">
+                                <h2 class="text-2xl font-bold text-slate-800">Data Siswa</h2>
+                                <button id="btn-delete-selected" onclick="deleteSelectedStudents()"
+                                    class="hidden bg-red-100 hover:bg-red-200 text-red-600 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-all">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i> Hapus (<span
+                                        id="selected-count">0</span>)
+                                </button>
+                            </div>
                             <div class="flex gap-2">
                                 <button onclick="openModal('modal-import-student')"
                                     class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2"><i
                                         data-lucide="upload" class="w-4 h-4"></i> Import CSV</button>
+                                <button onclick="openModal('modal-promote-student')"
+                                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2"><i
+                                        data-lucide="trending-up" class="w-4 h-4"></i> Naik Kelas</button>
                                 <button onclick="openModal('modal-student')"
                                     class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2"><i
                                         data-lucide="plus" class="w-4 h-4"></i> Tambah</button>
@@ -525,10 +576,27 @@
                             <table class="w-full text-left" id="student-table">
                                 <thead class="bg-slate-50 border-b text-slate-500">
                                     <tr>
+                                        <th class="px-6 py-4 w-10">
+                                            <input type="checkbox" id="select-all-students"
+                                                onchange="toggleSelectAll(this)"
+                                                class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                                        </th>
                                         <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider">Foto</th>
-                                        <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider">NIS</th>
-                                        <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider">Nama</th>
-                                        <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider">Kelas</th>
+                                        <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider cursor-pointer hover:bg-slate-100 transition select-none group"
+                                            onclick="sortTable(2)">
+                                            <div class="flex items-center gap-1">NIS <i data-lucide="arrow-up-down"
+                                                    class="w-3 h-3 opacity-0 group-hover:opacity-50"></i></div>
+                                        </th>
+                                        <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider cursor-pointer hover:bg-slate-100 transition select-none group"
+                                            onclick="sortTable(3)">
+                                            <div class="flex items-center gap-1">Nama <i data-lucide="arrow-up-down"
+                                                    class="w-3 h-3 opacity-0 group-hover:opacity-50"></i></div>
+                                        </th>
+                                        <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider cursor-pointer hover:bg-slate-100 transition select-none group"
+                                            onclick="sortTable(4)">
+                                            <div class="flex items-center gap-1">Kelas <i data-lucide="arrow-up-down"
+                                                    class="w-3 h-3 opacity-0 group-hover:opacity-50"></i></div>
+                                        </th>
                                         <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider">RFID UID</th>
                                         <th class="px-6 py-4 text-right">Aksi</th>
                                     </tr>
@@ -536,6 +604,11 @@
                                 <tbody class="divide-y divide-slate-100">
                                     {{range .Students}}
                                     <tr class="student-row hover:bg-slate-50 transition">
+                                        <td class="px-6 py-4">
+                                            <input type="checkbox" value="{{.ID}}"
+                                                class="student-checkbox rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                                onchange="toggleStudentSelection()">
+                                        </td>
                                         <td class="px-6 py-4">
                                             {{if .Photo}}<img src="/assets/photos/{{.Photo}}"
                                                 class="w-10 h-10 rounded-full object-cover border border-slate-200">{{else}}
@@ -649,6 +722,10 @@
                         <div class="flex justify-between items-center mb-6">
                             <h2 class="text-2xl font-bold text-slate-800">Kontrol Presensi Siswa</h2>
                             <div class="flex gap-2">
+                                <button onclick="openModal('modal-bulk-attendance')"
+                                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+                                    <i data-lucide="clipboard-list" class="w-4 h-4"></i> Presensi Manual
+                                </button>
                                 <a href="/scan" target="_blank"
                                     class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2"><i
                                         data-lucide="scan-line" class="w-4 h-4"></i> Buka Terminal Scan</a>
@@ -991,29 +1068,143 @@
                     </section>
 
                     <!-- 11. PRAYER LOGS -->
+                    <!-- 11. PRAYER SYSTEM -->
                     <section id="prayer-logs" class="page-section">
-                        <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-2xl font-bold text-slate-800">Laporan Sholat</h2>
-                            <button onclick="loadPrayerLogs()"
-                                class="text-sm text-slate-500 hover:text-blue-600 flex items-center gap-1"><i
-                                    data-lucide="refresh-cw" class="w-4 h-4"></i> Segarkan</button>
+                        <h2 class="text-2xl font-bold text-slate-800 mb-6">Sistem Presensi Sholat</h2>
+
+                        <!-- Tabs -->
+                        <div class="flex gap-4 border-b mb-6 border-slate-200">
+                            <button onclick="openPrayerTab('manual', this)"
+                                class="prayer-tab-btn px-4 py-2 font-medium text-blue-600 border-b-2 border-blue-600 transition-colors">Presensi
+                                Manual</button>
+                            <button onclick="openPrayerTab('report', this)"
+                                class="prayer-tab-btn px-4 py-2 font-medium text-slate-500 hover:text-blue-600 transition-colors">Laporan</button>
+                            <button onclick="openPrayerTab('logs', this)"
+                                class="prayer-tab-btn px-4 py-2 font-medium text-slate-500 hover:text-blue-600 transition-colors">Log
+                                Harian</button>
                         </div>
-                        <div class="bg-white rounded-xl border shadow-sm overflow-hidden">
-                            <table class="w-full text-left">
-                                <thead class="bg-slate-50 border-b">
-                                    <tr>
-                                        <th class="px-6 py-4 text-xs font-semibold uppercase">Waktu</th>
-                                        <th class="px-6 py-4 text-xs font-semibold uppercase">Nama</th>
-                                        <th class="px-6 py-4 text-xs font-semibold uppercase">Kelas</th>
-                                        <th class="px-6 py-4 text-xs font-semibold uppercase">Sholat</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="prayer-logs-table-body">
-                                    <tr>
-                                        <td colspan="4" class="px-6 py-8 text-center text-slate-500">Memuat data...</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+
+                        <!-- Tab: Manual Input -->
+                        <div id="prayer-manual" class="prayer-tab-content">
+                            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
+                                <h3 class="font-bold text-lg mb-4">Input Presensi Manual</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-slate-700 mb-1">Kelas</label>
+                                        <select id="prayer-manual-class" onchange="loadStudentsForPrayer()"
+                                            class="w-full border rounded px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500">
+                                            <option value="">-- Pilih Kelas --</option>
+                                            {{range .Classes}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-slate-700 mb-1">Tanggal</label>
+                                        <input type="date" id="prayer-manual-date" onchange="loadStudentsForPrayer()"
+                                            class="w-full border rounded px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-slate-700 mb-1">Waktu
+                                            Sholat</label>
+                                        <select id="prayer-manual-type" onchange="loadStudentsForPrayer()"
+                                            class="w-full border rounded px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500">
+                                            <option value="Dzuhur">Dzuhur</option>
+                                            <option value="Ashar">Ashar</option>
+                                        </select>
+                                    </div>
+                                    <div class="flex items-end">
+                                        <button onclick="loadStudentsForPrayer()"
+                                            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full flex justify-center items-center gap-2">
+                                            <i data-lucide="users" class="w-4 h-4"></i> Muat Data
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="overflow-x-auto border rounded-xl">
+                                    <table class="w-full text-left">
+                                        <thead class="bg-slate-50 border-b">
+                                            <tr>
+                                                <th class="px-6 py-3 w-10">
+                                                    <input type="checkbox" onchange="toggleAllPrayer(this)"
+                                                        class="rounded text-blue-600 focus:ring-blue-500">
+                                                </th>
+                                                <th class="px-6 py-3 text-xs font-bold uppercase text-slate-500">Nama
+                                                    Siswa</th>
+                                                <th class="px-6 py-3 text-xs font-bold uppercase text-slate-500">Status
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="prayer-manual-tbody" class="divide-y divide-slate-100">
+                                            <tr>
+                                                <td colspan="3" class="px-6 py-8 text-center text-slate-500">Pilih
+                                                    kelas dan tanggal untuk memuat data.</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="mt-4 text-right">
+                                    <button onclick="submitPrayerAttendance()"
+                                        class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded font-bold shadow-lg flex items-center gap-2 ml-auto">
+                                        <i data-lucide="save" class="w-4 h-4"></i> Simpan Presensi
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tab: Report -->
+                        <div id="prayer-report" class="prayer-tab-content hidden">
+                            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-slate-700 mb-1">Kelas</label>
+                                        <select id="prayer-report-class"
+                                            class="w-full border rounded px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500">
+                                            <option value="">-- Pilih Kelas --</option>
+                                            {{range .Classes}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-slate-700 mb-1">Bulan</label>
+                                        <input type="month" id="prayer-report-month"
+                                            class="w-full border rounded px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500">
+                                    </div>
+                                    <div class="flex items-end">
+                                        <button onclick="loadPrayerReport()"
+                                            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full flex justify-center items-center gap-2">
+                                            <i data-lucide="bar-chart-2" class="w-4 h-4"></i> Tampilkan Laporan
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="prayer-report-result" class="overflow-x-auto mt-6"></div>
+                            </div>
+                        </div>
+
+                        <!-- Tab: Recent Logs (Existing) -->
+                        <div id="prayer-logs" class="prayer-tab-content hidden">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="font-bold text-lg text-slate-700">Log Hari Ini</h3>
+                                <button onclick="loadPrayerLogs()"
+                                    class="text-sm text-blue-600 hover:bg-blue-50 px-3 py-1 rounded flex items-center gap-1">
+                                    <i data-lucide="refresh-cw" class="w-4 h-4"></i> Refresh
+                                </button>
+                            </div>
+                            <div class="bg-white rounded-xl border shadow-sm overflow-hidden">
+                                <table class="w-full text-left">
+                                    <thead class="bg-slate-50 border-b">
+                                        <tr>
+                                            <th class="px-6 py-4 text-xs font-semibold uppercase">Waktu</th>
+                                            <th class="px-6 py-4 text-xs font-semibold uppercase">Nama</th>
+                                            <th class="px-6 py-4 text-xs font-semibold uppercase">Kelas</th>
+                                            <th class="px-6 py-4 text-xs font-semibold uppercase">Sholat</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="prayer-logs-table-body">
+                                        <tr>
+                                            <td colspan="4" class="px-6 py-8 text-center text-slate-500">Memuat data...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </section>
 
@@ -1624,28 +1815,7 @@
             </div>
         </div>
 
-        <!-- Modal Student Import -->
-        <div id="modal-import-student"
-            class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-            <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
-                <h3 class="font-bold text-lg mb-4">Import Data Siswa (CSV)</h3>
-                <div class="bg-blue-50 p-4 rounded-lg mb-4 text-sm text-blue-800">
-                    <p class="font-bold mb-1">Format Kolom CSV:</p>
-                    <code class="bg-white px-1 rounded">NIS, Nama, Nama_Kelas, No_HP_Ortu, RFID_UID</code>
-                    <p class="mt-2 text-xs">Pastikan header ada di baris pertama. Kelas bisa Nama (contoh: "X TKJ 1")
-                        atau ID.</p>
-                </div>
-                <form action="/admin/student/import" method="POST" enctype="multipart/form-data"
-                    onsubmit="handleFormSubmit(event)" class="space-y-4">
-                    <div><label class="text-sm font-medium">Pilih File CSV</label><input type="file" name="file"
-                            accept=".csv" required class="w-full border rounded p-2"></div>
-                    <div class="flex justify-end gap-2"><button type="button"
-                            onclick="closeModal('modal-import-student')" class="text-slate-500">Batal</button><button
-                            type="submit" class="bg-green-600 text-white px-4 py-2 rounded">Upload & Import</button>
-                    </div>
-                </form>
-            </div>
-        </div>
+
 
         <!-- Modal Staff Import -->
         <div id="modal-import-staff"
@@ -1709,12 +1879,87 @@
                 </form>
             </div>
         </div>
+        </div>
+
+        <!-- MODAL IMPORT STUDENT -->
+        <div id="modal-import-student" class="fixed inset-0 z-50 hidden">
+            <div class="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+                onclick="closeModal('modal-import-student')"></div>
+            <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-md mx-auto mt-20 p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-bold text-slate-800">Import Data Siswa</h3>
+                    <button onclick="closeModal('modal-import-student')" class="text-slate-400 hover:text-slate-600">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <!-- Tabs -->
+                <div class="flex border-b border-slate-200 mb-6">
+                    <button onclick="switchImportTab('csv')" id="tab-import-csv"
+                        class="flex-1 py-2 text-sm font-medium text-blue-600 border-b-2 border-blue-600">CSV</button>
+                    <button onclick="switchImportTab('json')" id="tab-import-json"
+                        class="flex-1 py-2 text-sm font-medium text-slate-500 hover:text-slate-700">JSON</button>
+                </div>
+
+                <!-- CSV Form -->
+                <form id="form-import-student-csv" action="/admin/student/import" method="POST"
+                    enctype="multipart/form-data" onsubmit="handleFormSubmit(event)" class="space-y-4">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-slate-700">File CSV</label>
+                        <div class="border-2 border-dashed border-slate-200 rounded-lg p-6 text-center hover:border-blue-500 transition cursor-pointer"
+                            onclick="document.getElementById('file-import-student').click()">
+                            <i data-lucide="upload-cloud" class="w-8 h-8 mx-auto text-slate-400 mb-2"></i>
+                            <p class="text-sm text-slate-600">Klik untuk upload file CSV</p>
+                            <input type="file" name="file" id="file-import-student" class="hidden" accept=".csv"
+                                required onchange="this.previousElementSibling.innerText = this.files[0].name">
+                        </div>
+                        <p class="text-xs text-slate-500">Format: NIS, Nama, Kelas, No. HP Ortu, RFID UID</p>
+                    </div>
+                    <div class="flex justify-end gap-2 pt-4">
+                        <button type="button" onclick="closeModal('modal-import-student')"
+                            class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-lg">Batal</button>
+                        <button type="submit"
+                            class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">Import
+                            CSV</button>
+                    </div>
+                </form>
+
+                <!-- JSON Form -->
+                <form id="form-import-student-json" class="space-y-4 hidden" onsubmit="handleJsonImport(event)">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-slate-700">File JSON</label>
+                        <div class="border-2 border-dashed border-slate-200 rounded-lg p-6 text-center hover:border-blue-500 transition cursor-pointer"
+                            onclick="document.getElementById('file-import-student-json').click()">
+                            <i data-lucide="file-json" class="w-8 h-8 mx-auto text-slate-400 mb-2"></i>
+                            <p class="text-sm text-slate-600">Klik untuk upload file JSON</p>
+                            <input type="file" name="file" id="file-import-student-json" class="hidden" accept=".json"
+                                required onchange="this.previousElementSibling.innerText = this.files[0].name">
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-2 p-3 bg-red-50 rounded-lg border border-red-100">
+                        <input type="checkbox" id="check-clean-data" name="clean" value="true"
+                            class="mt-1 rounded text-red-600 focus:ring-red-500 border-red-300">
+                        <label for="check-clean-data" class="text-sm text-red-800">
+                            <span class="font-bold block">Kosongkan Data Lama</span>
+                            Hapus semua data siswa sebelum import? (Tindakan ini tidak dapat dibatalkan)
+                        </label>
+                    </div>
+                    <div class="flex justify-end gap-2 pt-4">
+                        <button type="button" onclick="closeModal('modal-import-student')"
+                            class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-lg">Batal</button>
+                        <button type="submit"
+                            class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">Import
+                            JSON</button>
+                    </div>
+                </form>
+            </div>
+        </div>
 
         <script>
 
 
 
-            console.log("Admin script starting...");
+
             lucide.createIcons();
 
             // --- CHARTS INITIALIZATION ---
@@ -1724,12 +1969,18 @@
                 // Safer approach: Parse the string content.
 
                 try {
-                    const dataWeeklyClass = JSON.parse({{.ChartWeeklyClass }});
-            const dataStatus = JSON.parse({{.ChartStatus }});
-            const dataArrival = JSON.parse({{.ChartArrival }});
+                    const dataWeeklyClass = JSON.parse('{{.ChartWeeklyClass}}');
+
+
+            const dataStatus = JSON.parse('{{.ChartStatus}}');
+
+
+            const dataArrival = JSON.parse('{{.ChartArrival}}');
+
+
 
             // 1. Weekly Class Chart (Line)
-            if (document.getElementById('chartWeeklyClass')) {
+            if (document.getElementById('chartWeeklyClass') && dataWeeklyClass && dataWeeklyClass.datasets && dataWeeklyClass.datasets.length > 0) {
                 new Chart(document.getElementById('chartWeeklyClass'), {
                     type: 'line',
                     data: dataWeeklyClass,
@@ -1739,6 +1990,8 @@
                         interaction: { mode: 'index', intersect: false }
                     }
                 });
+            } else if (document.getElementById('chartWeeklyClass')) {
+                document.getElementById('chartWeeklyClass').parentElement.innerHTML = '<div class="flex items-center justify-center h-full text-slate-400 text-sm">Belum ada data presensi</div>';
             }
 
             // 2. Status Chart (Doughnut)
@@ -1890,7 +2143,7 @@
                     const name = row.querySelector('.student-name').textContent.toUpperCase();
                     const nis = row.cells[0].textContent.toUpperCase();
                     const rfid = row.cells[3].textContent.toUpperCase();
-                    const className = row.querySelector('.student-class').textContent;
+                    const className = row.querySelector('.student-class').textContent.trim();
 
                     const matchesSearch = name.includes(input) || nis.includes(input) || rfid.includes(input);
                     const matchesClass = classFilter === "" || className === classFilter;
@@ -2212,7 +2465,67 @@
                     submitBtn.innerHTML = originalText;
                 }
             }
+            // --- JSON Import Handling ---
+            function switchImportTab(type) {
+                const csvForm = document.getElementById('form-import-student-csv');
+                const jsonForm = document.getElementById('form-import-student-json');
+                const csvTab = document.getElementById('tab-import-csv');
+                const jsonTab = document.getElementById('tab-import-json');
 
+                if (type === 'csv') {
+                    csvForm.classList.remove('hidden');
+                    jsonForm.classList.add('hidden');
+                    csvTab.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
+                    csvTab.classList.remove('text-slate-500');
+                    jsonTab.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
+                    jsonTab.classList.add('text-slate-500');
+                } else {
+                    csvForm.classList.add('hidden');
+                    jsonForm.classList.remove('hidden');
+                    jsonTab.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
+                    jsonTab.classList.remove('text-slate-500');
+                    csvTab.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
+                    csvTab.classList.add('text-slate-500');
+                }
+            }
+
+            function handleJsonImport(event) {
+                event.preventDefault();
+                const form = event.target;
+                const formData = new FormData(form);
+                const cleanData = document.getElementById('check-clean-data').checked;
+
+                // Append checkbox value manually if needed (though FormData usually handles it if checked)
+                // formData.set('clean', cleanData); 
+
+                Swal.fire({
+                    title: 'Import JSON?',
+                    text: cleanData ? "PERINGATAN: Semua data siswa lama akan dihapus!" : "Data akan ditambahkan.",
+                    icon: cleanData ? 'warning' : 'info',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, Import',
+                    cancelButtonText: 'Batal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        fetch('/admin/student/import-json', {
+                            method: 'POST',
+                            body: formData
+                        })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.status === 'success') {
+                                    Swal.fire('Berhasil!', data.message, 'success')
+                                        .then(() => window.location.reload());
+                                } else {
+                                    Swal.fire('Gagal!', data.message, 'error');
+                                }
+                            })
+                            .catch(error => {
+                                Swal.fire('Error!', 'Terjadi kesalahan jaringan', 'error');
+                            });
+                    }
+                });
+            }
             // --- Delete ---
             async function deleteItem(type, id) {
                 if ((await Swal.fire({ title: 'Hapus data ini?', icon: 'warning', showCancelButton: true })).isConfirmed) {
@@ -2269,12 +2582,75 @@
                 openModal('modal-staff');
             }
 
-            // --- Upload/Rename (Legacy) ---
-            async function uploadFile(input) {
+            // --- Upload Audio with Progress ---
+            function uploadFile(input) {
+                if (!input.files || input.files.length === 0) return;
+
+                const file = input.files[0];
                 const formData = new FormData();
-                formData.append('file', input.files[0]);
-                await fetch('/admin/audio/upload', { method: 'POST', body: formData });
-                window.location.reload();
+                formData.append('file', file);
+
+                // Show Progress UI
+                const progressContainer = document.getElementById('upload-progress-container');
+                const progressBar = document.getElementById('upload-progress-bar');
+                const progressText = document.getElementById('upload-percentage');
+
+                if (progressContainer) {
+                    progressContainer.classList.remove('hidden');
+                    progressBar.style.width = '0%';
+                    progressText.innerText = '0%';
+                    lucide.createIcons(); // Refresh icons inside hidden container
+                }
+
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', '/admin/audio/upload', true);
+
+                // Progress Event
+                xhr.upload.onprogress = function (e) {
+                    if (e.lengthComputable) {
+                        const percentComplete = Math.round((e.loaded / e.total) * 100);
+                        if (progressBar) progressBar.style.width = percentComplete + '%';
+                        if (progressText) progressText.innerText = percentComplete + '%';
+                    }
+                };
+
+                // Load/Success Event
+                xhr.onload = function () {
+                    if (xhr.status === 200) {
+                        // Success
+                        if (progressBar) progressBar.style.width = '100%';
+                        if (progressText) progressText.innerText = '100%';
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Upload Berhasil!',
+                            text: 'Audio telah ditambahkan ke library.',
+                            timer: 1500,
+                            showConfirmButton: false
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                    } else {
+                        // Error from server
+                        try {
+                            const res = JSON.parse(xhr.responseText);
+                            Swal.fire('Gagal', res.message || 'Terjadi kesalahan saat upload', 'error');
+                        } catch (e) {
+                            Swal.fire('Gagal', 'Terjadi kesalahan server (' + xhr.status + ')', 'error');
+                        }
+                        if (progressContainer) progressContainer.classList.add('hidden');
+                    }
+                    input.value = ''; // Reset input
+                };
+
+                // Network Error Event
+                xhr.onerror = function () {
+                    Swal.fire('Error', 'Koneksi gagal. Periksa jaringan anda.', 'error');
+                    if (progressContainer) progressContainer.classList.add('hidden');
+                    input.value = '';
+                };
+
+                xhr.send(formData);
             }
             async function renameAudio(id, old) {
                 const { value } = await Swal.fire({ input: 'text', inputValue: old });
@@ -2372,14 +2748,21 @@
                     logs.forEach(log => {
                         const tr = document.createElement('tr');
                         tr.className = 'hover:bg-slate-50 border-b border-slate-100 last:border-0';
+                        let statusBadge = '';
+                        if (log.status === 'PMS') {
+                            statusBadge = `<span class="px-2 py-1 rounded text-xs font-bold bg-pink-100 text-pink-700">PMS</span>`;
+                        } else {
+                            statusBadge = `<span class="px-2 py-1 rounded text-xs font-bold ${log.prayer_type === 'Dzuhur' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}">
+                                ${log.prayer_type}
+                            </span>`;
+                        }
+
                         tr.innerHTML = `
                             <td class="px-6 py-3 font-mono text-sm">${log.timestamp}</td>
                             <td class="px-6 py-3 font-medium text-slate-700">${log.name}</td>
                             <td class="px-6 py-3 text-slate-500">${log.class_name || '-'}</td>
                             <td class="px-6 py-3">
-                                <span class="px-2 py-1 rounded text-xs font-bold ${log.prayer_type === 'Dzuhur' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}">
-                                    ${log.prayer_type}
-                                </span>
+                                ${statusBadge}
                             </td>
                         `;
                         tbody.appendChild(tr);
@@ -2601,20 +2984,13 @@
 
             // --- Explicit Event Listeners ---
             document.addEventListener('DOMContentLoaded', () => {
-                console.log("DOM Loaded - Attaching listeners");
-
                 const holidayForm = document.getElementById('holiday-form');
                 if (holidayForm) {
                     holidayForm.addEventListener('submit', saveHoliday);
-                    console.log("Holiday form listener attached");
-                } else {
-                    console.error("Holiday form not found!");
                 }
-
-                // Ensure other forms also have listeners if needed
             });
 
-            console.log("Script execution finished");
+
 
             // Include lucide-icons mosque (moon) if not available or use generic
             // Function to load Prayer Logs
@@ -2653,39 +3029,800 @@
                     console.error(err);
                     tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-red-500">Gagal memuat data</td></tr>';
                 }
+
+            }
+        </script>
+
+        <!-- MODAL PROMOTE STUDENT -->
+        <div id="modal-promote-student" class="fixed inset-0 z-50 hidden">
+            <div class="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+                onclick="closeModal('modal-promote-student')"></div>
+            <div
+                class="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-auto mt-10 p-6 flex flex-col max-h-[90vh]">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-bold text-slate-800">Kenaikan Kelas / Pindah Kelas</h3>
+                    <button onclick="closeModal('modal-promote-student')" class="text-slate-400 hover:text-slate-600">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <div class="flex gap-4 mb-4">
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Dari
+                            Kelas</label>
+                        <select id="promote-source-class" onchange="loadStudentsForPromotion()"
+                            class="w-full px-3 py-2 border rounded-lg">
+                            <option value="">Pilih Kelas Asal</option>
+                            {{range .Classes}}
+                            <option value="{{.ID}}">{{.Name}}</option>
+                            {{end}}
+                        </select>
+                    </div>
+                    <div class="flex items-end pb-2">
+                        <i data-lucide="arrow-right" class="text-slate-400"></i>
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Ke
+                            Kelas</label>
+                        <select id="promote-target-class" class="w-full px-3 py-2 border rounded-lg">
+                            <option value="">Pilih Kelas Tujuan</option>
+                            {{range .Classes}}
+                            <option value="{{.ID}}">{{.Name}}</option>
+                            {{end}}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Student List -->
+                <div class="flex-1 overflow-y-auto border rounded-lg p-2 bg-slate-50 min-h-[300px]">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-100 border-b text-slate-500 sticky top-0 z-10">
+                            <tr>
+                                <th class="px-3 py-2 w-10">
+                                    <input type="checkbox" id="promote-select-all"
+                                        onchange="toggleSelectAllPromotion(this)"
+                                        class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                                </th>
+                                <th class="px-3 py-2">NIS</th>
+                                <th class="px-3 py-2">Nama Siswa</th>
+                            </tr>
+                        </thead>
+                        <tbody id="promote-student-list">
+                            <tr>
+                                <td colspan="3" class="px-3 py-8 text-center text-slate-500">Pilih
+                                    kelas asal untuk
+                                    menampilkan siswa</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="flex justify-between items-center pt-4 border-t mt-4">
+                    <div class="text-sm text-slate-500">
+                        Terpilih: <span id="promote-count" class="font-bold text-slate-800">0</span>
+                        siswa
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="closeModal('modal-promote-student')"
+                            class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg">Batal</button>
+                        <button onclick="submitPromotion()"
+                            class="px-4 py-2 bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg shadow-sm transition-colors">Proses
+                            Pindah</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // --- STUDENT PROMOTION LOGIC ---
+
+            async function loadStudentsForPromotion() {
+                const classID = document.getElementById('promote-source-class').value;
+                const tbody = document.getElementById('promote-student-list');
+                const countSpan = document.getElementById('promote-count');
+
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center py-4"><i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto text-indigo-600"></i></td></tr>';
+                lucide.createIcons();
+                countSpan.innerText = '0';
+                document.getElementById('promote-select-all').checked = false;
+
+                if (!classID) {
+                    tbody.innerHTML = '<tr><td colspan="3" class="px-3 py-8 text-center text-slate-500">Pilih kelas asal untuk menampilkan siswa</td></tr>';
+                    return;
+                }
+
+                try {
+                    const res = await fetch(`/admin/students/json?class_id=${classID}`);
+                    const students = await res.json();
+
+                    if (students && students.length > 0) {
+                        tbody.innerHTML = students.map(s => `
+                        <tr class="hover:bg-slate-100 transition-colors">
+                            <td class="px-3 py-2 border-b">
+                                <input type="checkbox" class="promote-checkbox rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" value="${s.ID}" onchange="updatePromoteCount()">
+                            </td>
+                            <td class="px-3 py-2 border-b font-mono text-xs text-slate-600">${s.NIS}</td>
+                            <td class="px-3 py-2 border-b font-medium text-slate-700">${s.Name}</td>
+                        </tr>
+                    `).join('');
+                    } else {
+                        tbody.innerHTML = '<tr><td colspan="3" class="px-3 py-8 text-center text-slate-500">Tidak ada siswa di kelas ini</td></tr>';
+                    }
+                } catch (err) {
+                    console.error(err);
+                    tbody.innerHTML = '<tr><td colspan="3" class="px-3 py-8 text-center text-red-500">Gagal memuat data siswa</td></tr>';
+                }
             }
 
-            // Hook into navigateMenu to load data when tab is opened
-            const baseNavigateMenu = window.navigateMenu;
-            window.navigateMenu = function (menuId, btn) {
-                if (typeof baseNavigateMenu === 'function') {
-                    baseNavigateMenu(menuId, btn);
-                } else {
-                    console.error("Base navigateMenu not found!");
+            function toggleSelectAllPromotion(source) {
+                const checkboxes = document.querySelectorAll('.promote-checkbox');
+                checkboxes.forEach(cb => cb.checked = source.checked);
+                updatePromoteCount();
+            }
+
+            function updatePromoteCount() {
+                const count = document.querySelectorAll('.promote-checkbox:checked').length;
+                document.getElementById('promote-count').innerText = count;
+            }
+
+            async function submitPromotion() {
+                const checkboxes = document.querySelectorAll('.promote-checkbox:checked');
+                const targetClassID = document.getElementById('promote-target-class').value;
+
+                if (checkboxes.length === 0) {
+                    Swal.fire('Peringatan', 'Pilih minimal satu siswa', 'warning');
+                    return;
+                }
+                if (!targetClassID) {
+                    Swal.fire('Peringatan', 'Pilih kelas tujuan', 'warning');
+                    return;
                 }
 
-                if (menuId === 'prayer-logs') {
-                    loadPrayerLogs();
-                }
-                if (menuId === 'points') {
-                    // Default to leaderboard and load data
-                    openPointTab('leaderboard', document.getElementById('btn-tab-leaderboard'));
-                }
-            };
+                const studentIDs = Array.from(checkboxes).map(cb => parseInt(cb.value));
 
-            // --- STUDENT POINT SYSTEM LOGIC ---
+                // Confirm
+                const result = await Swal.fire({
+                    title: 'Konfirmasi Pindah Kelas',
+                    text: `Apakah Anda yakin ingin memindahkan ${studentIDs.length} siswa ke kelas baru?`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, Pindahkan',
+                    cancelButtonText: 'Batal'
+                });
 
-            // Tab Switching for Point System
+                if (result.isConfirmed) {
+                    try {
+                        const res = await fetch('/admin/students/promote', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ student_ids: studentIDs, target_class_id: parseInt(targetClassID) })
+                        });
+                        const data = await res.json();
+
+                        if (res.ok) {
+                            Swal.fire('Berhasil', data.message, 'success').then(() => window.location.reload());
+                        } else {
+                            Swal.fire('Gagal', data.message, 'error');
+                        }
+                    } catch (err) {
+                        Swal.fire('Error', 'Terjadi kesalahan sistem', 'error');
+                    }
+                }
+            }
+
+            // --- Table Sorting ---
+            function sortTable(n) {
+                var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+                table = document.getElementById("student-table");
+                switching = true;
+                // Set the sorting direction to ascending:
+                dir = "asc";
+
+                while (switching) {
+                    switching = false;
+                    rows = table.rows;
+
+                    // Loop through all table rows (except the first, which contains table headers):
+                    for (i = 1; i < (rows.length - 1); i++) {
+                        shouldSwitch = false;
+
+                        x = rows[i].getElementsByTagName("TD")[n];
+                        y = rows[i + 1].getElementsByTagName("TD")[n];
+
+                        // Check if the two rows should switch place, based on the direction, asc or desc:
+                        if (dir == "asc") {
+                            if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+                                shouldSwitch = true;
+                                break;
+                            }
+                        } else if (dir == "desc") {
+                            if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+                                shouldSwitch = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (shouldSwitch) {
+                        rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                        switching = true;
+                        switchcount++;
+                    } else {
+                        if (switchcount == 0 && dir == "asc") {
+                            dir = "desc";
+                            switching = true;
+                        }
+                    }
+                }
+            }
+        </script>
+
+        <!-- MODAL BULK ATTENDANCE (PRESENSI MANUAL) -->
+        <div id="modal-bulk-attendance" class="fixed inset-0 z-50 hidden">
+            <div class="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+                onclick="closeModal('modal-bulk-attendance')"></div>
+            <div
+                class="relative bg-white rounded-xl shadow-2xl w-full max-w-4xl mx-auto mt-10 p-6 flex flex-col max-h-[90vh]">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-bold text-slate-800">Presensi Manual Kelas</h3>
+                    <button onclick="closeModal('modal-bulk-attendance')" class="text-slate-400 hover:text-slate-600">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <div class="flex gap-4 mb-4">
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Kelas</label>
+                        <select id="bulk-att-class" onchange="loadAttendanceSheet()"
+                            class="w-full px-3 py-2 border rounded-lg">
+                            <option value="">Pilih Kelas</option>
+                            {{range .Classes}}
+                            <option value="{{.ID}}">{{.Name}}</option>
+                            {{end}}
+                        </select>
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Tanggal</label>
+                        <input type="date" id="bulk-att-date" onchange="loadAttendanceSheet()"
+                            class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div class="flex items-end pb-1">
+                        <button type="button" onclick="setAllAttendance('Hadir')"
+                            class="text-xs bg-blue-100 text-blue-700 px-3 py-2 rounded hover:bg-blue-200 transition">
+                            Set Semua Hadir
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-y-auto border rounded-lg">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-50 sticky top-0">
+                            <tr>
+                                <th class="px-4 py-3 font-semibold text-slate-600">No</th>
+                                <th class="px-4 py-3 font-semibold text-slate-600">NIS</th>
+                                <th class="px-4 py-3 font-semibold text-slate-600">Nama Siswa</th>
+                                <th class="px-4 py-3 font-semibold text-slate-600 text-center">Status Kehadiran</th>
+                                <th class="px-4 py-3 font-semibold text-slate-600">Waktu Masuk</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bulk-att-tbody" class="divide-y divide-slate-100">
+                            <!-- Rows loaded via JS -->
+                            <tr>
+                                <td colspan="5" class="px-4 py-8 text-center text-slate-500">Pilih Kelas dan Tanggal
+                                    terlebih dahulu</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="flex justify-end gap-2 mt-6 pt-4 border-t">
+                    <button type="button" onclick="closeModal('modal-bulk-attendance')"
+                        class="text-slate-500 hover:text-slate-700 px-4 py-2">Batal</button>
+                    <button type="button" onclick="saveAttendanceSheet()"
+                        class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition font-medium">Simpan
+                        Presensi</button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // --- BULK ATTENDANCE LOGIC ---
+
+            // Set default date to today
+            document.getElementById('bulk-att-date').valueAsDate = new Date();
+
+            async function loadAttendanceSheet() {
+                const classID = document.getElementById('bulk-att-class').value;
+                const date = document.getElementById('bulk-att-date').value;
+                const tbody = document.getElementById('bulk-att-tbody');
+
+                if (!classID || !date) return;
+
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4">Memuat data...</td></tr>';
+
+                try {
+                    const res = await fetch(`/admin/attendance/daily?class_id=${classID}&date=${date}`);
+                    const students = await res.json();
+
+                    if (!students || students.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-slate-500">Tidak ada siswa di kelas ini</td></tr>';
+                        return;
+                    }
+
+                    let html = '';
+                    students.forEach((s, index) => {
+                        const status = s.status || 'Unknown';
+                        const isHadir = status == 'Hadir' ? 'checked' : '';
+                        const isSakit = status == 'Sakit' ? 'checked' : '';
+                        const isIzin = status == 'Izin' ? 'checked' : '';
+                        const isAlpha = status == 'Alpha' ? 'checked' : '';
+                        const isUnknown = status == 'Unknown' ? 'checked' : '';
+
+                        html += `
+                        <tr class="hover:bg-slate-50 transition student-att-row" data-id="${s.student_id}">
+                            <td class="px-4 py-3 text-slate-500 font-mono text-xs">${index + 1}</td>
+                            <td class="px-4 py-3 text-slate-600 font-mono text-xs">${s.nis}</td>
+                            <td class="px-4 py-3 font-medium text-slate-800">${s.name}</td>
+                            <td class="px-4 py-3 text-center">
+                                <div class="flex justify-center gap-4">
+                                    <label class="flex items-center gap-1 cursor-pointer">
+                                        <input type="radio" name="att-${s.student_id}" value="Hadir" ${isHadir} class="text-emerald-600 focus:ring-emerald-500">
+                                        <span class="text-xs font-medium text-emerald-700">Hadir</span>
+                                    </label>
+                                    <label class="flex items-center gap-1 cursor-pointer">
+                                        <input type="radio" name="att-${s.student_id}" value="Sakit" ${isSakit} class="text-amber-600 focus:ring-amber-500">
+                                        <span class="text-xs font-medium text-amber-700">Sakit</span>
+                                    </label>
+                                    <label class="flex items-center gap-1 cursor-pointer">
+                                        <input type="radio" name="att-${s.student_id}" value="Izin" ${isIzin} class="text-blue-600 focus:ring-blue-500">
+                                        <span class="text-xs font-medium text-blue-700">Izin</span>
+                                    </label>
+                                    <label class="flex items-center gap-1 cursor-pointer">
+                                        <input type="radio" name="att-${s.student_id}" value="Alpha" ${isAlpha} class="text-red-600 focus:ring-red-500">
+                                        <span class="text-xs font-medium text-red-700">Alpha</span>
+                                    </label>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 text-slate-500 text-xs">${s.time || '-'}</td>
+                        </tr>
+                        `;
+                    });
+                    tbody.innerHTML = html;
+
+                } catch (err) {
+                    console.error(err);
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-red-500">Gagal memuat data</td></tr>';
+                }
+            }
+
+            function setAllAttendance(status) {
+                const radios = document.querySelectorAll(`input[type="radio"][value="${status}"]`);
+                radios.forEach(r => r.click());
+            }
+
+            async function saveAttendanceSheet() {
+                const classID = document.getElementById('bulk-att-class').value;
+                const date = document.getElementById('bulk-att-date').value;
+
+                if (!classID || !date) {
+                    Swal.fire('Error', 'Pilih Kelas dan Tanggal', 'error');
+                    return;
+                }
+
+                const rows = document.querySelectorAll('.student-att-row');
+                const students = [];
+
+                rows.forEach(row => {
+                    const studentID = parseInt(row.getAttribute('data-id'));
+                    // Check selected radio
+                    const checked = row.querySelector(`input[name="att-${studentID}"]:checked`);
+
+                    if (checked) {
+                        students.push({
+                            student_id: studentID,
+                            status: checked.value
+                        });
+                    } else {
+                        // Default to Unknown if unselected? Or maybe force selection?
+                        // Usually we only send what is set. 
+                        // But for manual, maybe we want to send 'Unknown' if unchecked?
+                        // Let's assume user must select. Or we treat unselected as "No Change" if it was already set, or "Alpha" if new?
+                        // Simplest: Send "Unknown" if nothing checked, backend handles it.
+                        students.push({
+                            student_id: studentID,
+                            status: 'Unknown'
+                        });
+                    }
+                });
+
+                try {
+                    const res = await fetch('/admin/attendance/bulk', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ class_id: parseInt(classID), date: date, students: students })
+                    });
+
+                    const data = await res.json();
+                    if (res.ok) {
+                        Swal.fire('Berhasil', data.message, 'success');
+                        loadAttendanceSheet(); // Reload to show updated times if any
+                    } else {
+                        Swal.fire('Gagal', data.message, 'error');
+                    }
+                } catch (err) {
+                    Swal.fire('Error', 'Gagal menyimpan presensi', 'error');
+                }
+            }
+        </script>
+
+        <script>
+            // --- PRAYER SYSTEM LOGIC ---
+
+            // Tab Switching
+            function openPrayerTab(tabName, btn) {
+                // Hide all tabs
+                ['manual', 'report', 'logs'].forEach(t => {
+                    document.getElementById('prayer-' + t).classList.add('hidden');
+                });
+
+                // Show selected
+                document.getElementById('prayer-' + tabName).classList.remove('hidden');
+
+                // Update buttons
+                document.querySelectorAll('.prayer-tab-btn').forEach(b => {
+                    b.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
+                    b.classList.add('text-slate-500');
+                });
+                btn.classList.remove('text-slate-500');
+                btn.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
+
+                if (tabName === 'logs') loadPrayerLogs();
+            }
+
+            // Manual Input
+            async function loadStudentsForPrayer() {
+                const classID = document.getElementById('prayer-manual-class').value;
+                const date = document.getElementById('prayer-manual-date').value;
+                const type = document.getElementById('prayer-manual-type').value;
+                const tbody = document.getElementById('prayer-manual-tbody');
+
+                if (!classID || !date || !type) {
+                    tbody.innerHTML = '<tr><td colspan="3" class="px-6 py-8 text-center text-slate-500">Pilih Kelas, Tanggal, dan Waktu Sholat terlebih dahulu</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = '<tr><td colspan="3" class="px-6 py-8 text-center text-slate-500">Memuat data...</td></tr>';
+
+                try {
+                    const res = await fetch(`/admin/prayer/attendance?class_id=${classID}&date=${date}&type=${type}`);
+                    const data = await res.json();
+
+                    if (!data || data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="3" class="px-6 py-8 text-center text-slate-500">Tidak ada siswa</td></tr>';
+                        return;
+                    }
+
+                    tbody.innerHTML = data.map(s => `
+                        <tr class="hover:bg-slate-50 border-b last:border-0 transition-colors" data-student-id="${s.id}">
+                            <td class="px-6 py-3">
+                                <div class="flex items-center gap-4">
+                                    <label class="flex items-center gap-1 cursor-pointer">
+                                        <input type="radio" name="p_status_${s.id}" value="Hadir" 
+                                            ${s.status === 'Hadir' ? 'checked' : ''} 
+                                            class="prayer-radio text-emerald-600 focus:ring-emerald-500">
+                                        <span class="text-xs font-medium text-emerald-700">Hadir</span>
+                                    </label>
+                                    <label class="flex items-center gap-1 cursor-pointer">
+                                        <input type="radio" name="p_status_${s.id}" value="PMS" 
+                                            ${s.status === 'PMS' ? 'checked' : ''} 
+                                            class="prayer-radio text-pink-600 focus:ring-pink-500">
+                                        <span class="text-xs font-medium text-pink-700">PMS</span>
+                                    </label>
+                                     <label class="flex items-center gap-1 cursor-pointer">
+                                        <input type="radio" name="p_status_${s.id}" value="" 
+                                            ${!s.status ? 'checked' : ''} 
+                                            class="prayer-radio text-slate-400 focus:ring-slate-400">
+                                        <span class="text-xs font-medium text-slate-500">-</span>
+                                    </label>
+                                </div>
+                            </td>
+                            <td class="px-6 py-3 font-medium text-slate-700">${s.name}</td>
+                            <td class="px-6 py-3 text-xs">
+                                ${s.status === 'Hadir'
+                            ? `<span class="bg-green-100 text-green-700 px-2 py-1 rounded font-bold">Hadir</span>`
+                            : (s.status === 'PMS'
+                                ? `<span class="bg-pink-100 text-pink-700 px-2 py-1 rounded font-bold">PMS</span>`
+                                : `<span class="bg-slate-100 text-slate-500 px-2 py-1 rounded">Belum</span>`)}
+                            </td>
+                        </tr>
+                    `).join('');
+
+                } catch (err) {
+                    console.error(err);
+                    tbody.innerHTML = '<tr><td colspan="3" class="px-6 py-8 text-center text-red-500">Gagal memuat data</td></tr>';
+                }
+            }
+
+            function toggleAllPrayer(source) {
+                document.querySelectorAll('.prayer-check').forEach(cb => cb.checked = source.checked);
+            }
+
+            async function submitPrayerAttendance() {
+                const classID = document.getElementById('prayer-manual-class').value;
+                const date = document.getElementById('prayer-manual-date').value;
+                const type = document.getElementById('prayer-manual-type').value;
+
+                if (!classID || !date || !type) return;
+
+                const rows = document.querySelectorAll('#prayer-manual-tbody tr');
+                const students = [];
+                rows.forEach(row => {
+                    const id = parseInt(row.getAttribute('data-student-id'));
+                    const radio = row.querySelector(`input[name="p_status_${id}"]:checked`);
+
+                    if (id && radio && radio.value) {
+                        students.push({ id: id, status: radio.value });
+                    }
+                });
+
+                try {
+                    Swal.fire({ title: 'Menyimpan...', didOpen: () => Swal.showLoading() });
+
+                    const res = await fetch('/admin/prayer/attendance', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            class_id: classID,
+                            date: date,
+                            prayer_type: type,
+                            students: students
+                        })
+                    });
+
+                    const data = await res.json();
+
+                    if (res.ok) {
+                        Swal.fire('Berhasil', data.message, 'success');
+                        loadStudentsForPrayer(); // Reload to show updated status badges
+                    } else {
+                        throw new Error(data.message);
+                    }
+                } catch (err) {
+                    Swal.fire('Error', err.message || 'Gagal menyimpan', 'error');
+                }
+            }
+
+            // Reporting
+            async function loadPrayerReport() {
+                const classID = document.getElementById('prayer-report-class').value;
+                const month = document.getElementById('prayer-report-month').value; // YYYY-MM
+                const container = document.getElementById('prayer-report-result');
+
+                if (!classID || !month) {
+                    container.innerHTML = '<p class="text-center text-slate-500 py-8">Pilih Kelas dan Bulan</p>';
+                    return;
+                }
+
+                container.innerHTML = '<p class="text-center text-slate-500 py-8">Memuat laporan...</p>';
+
+                try {
+                    const res = await fetch(`/admin/prayer/report?class_id=${classID}&month=${month}`);
+                    const data = await res.json(); // Expect: { students: [{name, attendance: {day: [D, A]}}] }
+
+                    if (!data || !data.students || data.students.length === 0) {
+                        container.innerHTML = '<p class="text-center text-slate-500 py-8">Tidak ada data</p>';
+                        return;
+                    }
+
+                    // Build dynamic table
+                    // Columns: No, Name, 1..31 (each split D/A), Total
+                    let daysHeader = '';
+                    const daysInMonth = new Date(month.split('-')[0], month.split('-')[1], 0).getDate();
+
+                    for (let i = 1; i <= daysInMonth; i++) {
+                        daysHeader += `<th class="px-1 py-2 text-[10px] text-center w-8 border-l">${i}</th>`;
+                    }
+
+
+
+                    let rows = data.students.map((s, idx) => {
+                        let daysCells = '';
+                        // Totals are now returned from backend
+
+                        for (let i = 1; i <= daysInMonth; i++) {
+                            const dateKey = `${month}-${String(i).padStart(2, '0')}`;
+                            const att = s.attendance[dateKey] || [];
+                            const isPMS = att.includes('PMS');
+                            const isD = att.includes('Dzuhur');
+                            const isA = att.includes('Ashar');
+
+
+
+                            daysCells += `
+                                <td class="px-0 py-1 text-center border-l border-slate-100">
+                                    <div class="flex flex-col gap-0.5 items-center justify-center">
+                                        <div class="w-3 h-3 rounded-full ${isPMS ? 'bg-pink-500' : (isD ? 'bg-green-500' : 'bg-slate-200')}" title="Dzuhur/PMS"></div>
+                                        <div class="w-3 h-3 rounded-full ${isPMS ? 'bg-pink-500' : (isA ? 'bg-blue-500' : 'bg-slate-200')}" title="Ashar/PMS"></div>
+                                    </div>
+                                </td>
+                            `;
+                        }
+
+                        return `
+                            <tr class="hover:bg-slate-50 border-b last:border-0 text-xs">
+                                <td class="px-4 py-2 text-center text-slate-500">${idx + 1}</td>
+                                <td class="px-4 py-2 font-medium text-slate-700 whitespace-nowrap">${s.name}</td>
+                                ${daysCells}
+                                <td class="px-4 py-2 text-center font-bold text-green-600 border-l">${s.dzuhur || 0}</td>
+                                <td class="px-4 py-2 text-center font-bold text-blue-600">${s.ashar || 0}</td>
+                                <td class="px-4 py-2 text-center font-bold text-pink-600">${s.pms || 0}</td>
+                            </tr>
+                        `;
+                    }).join('');
+
+                    container.innerHTML = `
+                        <div class="overflow-x-auto border rounded-xl">
+                            <table class="w-full text-left">
+                                <thead class="bg-slate-50 border-b">
+                                    <tr>
+                                        <th class="px-4 py-3 text-xs font-bold uppercase text-slate-500 w-10" rowspan="2">No</th>
+                                        <th class="px-4 py-3 text-xs font-bold uppercase text-slate-500 w-48" rowspan="2">Nama Siswa</th>
+                                        <th class="px-4 py-2 text-xs font-bold uppercase text-center text-slate-500 border-l" colspan="${daysInMonth}">Tanggal (Atas: Dzuhur, Bawah: Ashar/PMS)</th>
+                                        <th class="px-4 py-2 text-xs font-bold uppercase text-center text-slate-500 border-l" colspan="3">Total</th>
+                                    </tr>
+                                    <tr>
+                                        ${daysHeader}
+                                        <th class="px-2 py-1 text-[10px] text-center border-l bg-green-50 text-green-700">Dzu</th>
+                                        <th class="px-2 py-1 text-[10px] text-center bg-blue-50 text-blue-700">Ash</th>
+                                        <th class="px-2 py-1 text-[10px] text-center bg-pink-50 text-pink-700">PMS</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 bg-white">
+                                    ${rows}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-4 flex gap-4 text-xs text-slate-500">
+                            <div class="flex items-center gap-2">
+                                <div class="w-3 h-3 rounded-full bg-green-500"></div> Dzuhur
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="w-3 h-3 rounded-full bg-blue-500"></div> Ashar
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="w-3 h-3 rounded-full bg-pink-500"></div> PMS
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="w-3 h-3 rounded-full bg-slate-200"></div> Tidak Hadir
+                            </div>
+                        </div>
+                    `;
+
+                } catch (err) {
+                    console.error(err);
+                    container.innerHTML = '<p class="text-center text-red-500 py-8">Gagal memuat laporan. Pastikan data tersedia.</p>';
+                }
+            }
+        </script>
+        <!-- MODAL: ADD POINT RULE -->
+        <div id="modal-add-point-rule"
+            class="fixed inset-0 z-50 flex items-center justify-center hidden bg-black/50 backdrop-blur-sm animate-fade-in">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden transform transition-all scale-95"
+                onclick="event.stopPropagation()">
+                <div class="px-6 py-4 border-b flex justify-between items-center bg-slate-50">
+                    <h3 class="font-bold text-lg text-slate-800">Tambah Aturan Poin</h3>
+                    <button onclick="closeModal('modal-add-point-rule')"
+                        class="text-slate-400 hover:text-red-500 transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <div class="p-6">
+                    <form action="/admin/point-rules/add" method="POST" onsubmit="submitAddPointRule(event)"
+                        class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Kategori</label>
+                            <select name="category"
+                                class="w-full border rounded-lg p-2.5 bg-slate-50 focus:bg-white transition-colors"
+                                required>
+                                <option value="achievement">Prestasi (Poin Positif)</option>
+                                <option value="violation">Pelanggaran (Poin Negatif)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Nama Aturan</label>
+                            <input type="text" name="name"
+                                class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-blue-100 outline-none transition-shadow"
+                                placeholder="Contoh: Datang Tepat Waktu" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Poin</label>
+                            <input type="number" name="points"
+                                class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-blue-100 outline-none transition-shadow"
+                                placeholder="Contoh: 10 atau -5" required>
+                            <p class="text-xs text-slate-500 mt-1">Gunakan angka negatif untuk pelanggaran.</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Deskripsi (Opsional)</label>
+                            <textarea name="description"
+                                class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-blue-100 outline-none transition-shadow"
+                                rows="2"></textarea>
+                        </div>
+                        <div class="pt-2">
+                            <button type="submit"
+                                class="w-full bg-blue-600 text-white rounded-lg py-2.5 hover:bg-blue-700 font-medium transition-colors shadow-lg shadow-blue-600/20">Simpan
+                                Aturan</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: ADD REWARD -->
+        <div id="modal-add-point-reward"
+            class="fixed inset-0 z-50 flex items-center justify-center hidden bg-black/50 backdrop-blur-sm animate-fade-in">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden transform transition-all scale-95"
+                onclick="event.stopPropagation()">
+                <div class="px-6 py-4 border-b flex justify-between items-center bg-slate-50">
+                    <h3 class="font-bold text-lg text-slate-800">Tambah Hadiah (Reward)</h3>
+                    <button onclick="closeModal('modal-add-point-reward')"
+                        class="text-slate-400 hover:text-red-500 transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <div class="p-6">
+                    <form action="/admin/point-rewards/add" method="POST" onsubmit="submitAddPointReward(event)"
+                        class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Nama Hadiah</label>
+                            <input type="text" name="name"
+                                class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-100 outline-none transition-shadow"
+                                placeholder="Contoh: Voucher Kantin" required>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Biaya Poin</label>
+                                <input type="number" name="points_cost" min="1"
+                                    class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-100 outline-none transition-shadow"
+                                    placeholder="Contoh: 50" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Stok Awal</label>
+                                <input type="number" name="stock" min="0"
+                                    class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-100 outline-none transition-shadow"
+                                    placeholder="Contoh: 10" required>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Deskripsi (Opsional)</label>
+                            <textarea name="description"
+                                class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-100 outline-none transition-shadow"
+                                rows="2"></textarea>
+                        </div>
+                        <div class="pt-2">
+                            <button type="submit"
+                                class="w-full bg-emerald-600 text-white rounded-lg py-2.5 hover:bg-emerald-700 font-medium transition-colors shadow-lg shadow-emerald-600/20">Simpan
+                                Hadiah</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <!-- POINT SYSTEM JS -->
+        <script>
+            // --- POINT SYSTEM LOGIC ---
+
+            // Tab Switching
             function openPointTab(tabName, btn) {
                 // Hide all tabs
                 ['leaderboard', 'input', 'redeem', 'master'].forEach(t => {
-                    document.getElementById('point-' + t).classList.add('hidden');
+                    const el = document.getElementById('point-' + t);
+                    if (el) el.classList.add('hidden');
                 });
 
-                // Show specific tab
-                document.getElementById('point-' + tabName).classList.remove('hidden');
+                // Show selected
+                const target = document.getElementById('point-' + tabName);
+                if (target) target.classList.remove('hidden');
 
-                // Update Button Styles
+                // Update buttons
                 document.querySelectorAll('.point-tab-btn').forEach(b => {
                     b.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
                     b.classList.add('text-slate-500');
@@ -2695,192 +3832,137 @@
                     btn.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
                 }
 
-                // Load Data based on tab
                 if (tabName === 'leaderboard') loadLeaderboard();
                 if (tabName === 'master') { loadPointRules(); loadPointRewards(); }
-                if (tabName === 'input') { loadPointRulesOptions(); document.getElementById('point-student-rfid').focus(); }
-                if (tabName === 'redeem') { loadPointRewardsOptions(); document.getElementById('redeem-student-rfid').focus(); }
             }
 
-            // Load Leaderboard
-            async function loadLeaderboard() {
-                const tbody = document.getElementById('leaderboard-table');
-                tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center">Loading...</td></tr>';
+            // --- MASTER DATA ---
+
+            async function loadPointRules() {
                 try {
-                    const res = await fetch('/admin/points/leaderboard');
+                    const res = await fetch('/admin/point-rules');
                     const data = await res.json();
-                    tbody.innerHTML = '';
+                    const tbody = document.getElementById('master-rules-table');
+
                     if (!data || data.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-slate-500">Belum ada data poin.</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-slate-500">Belum ada aturan</td></tr>';
                         return;
                     }
-                    data.forEach((item, index) => {
-                        let rankColor = 'text-slate-600';
-                        if (index === 0) rankColor = 'text-yellow-600 font-bold';
-                        if (index === 1) rankColor = 'text-slate-400 font-bold';
-                        if (index === 2) rankColor = 'text-orange-700 font-bold';
 
-                        tbody.innerHTML += `
-                            <tr class="hover:bg-slate-50 border-b last:border-0">
-                                <td class="px-6 py-3 font-medium ${rankColor}">#${index + 1}</td>
-                                <td class="px-6 py-3 font-medium text-slate-700">${item.name}</td>
-                                <td class="px-6 py-3 text-slate-500 text-xs">${item.class_name}</td>
-                                <td class="px-6 py-3 text-right font-bold text-blue-600">${item.points}</td>
-                            </tr>
-                        `;
-                    });
+                    tbody.innerHTML = data.map(r => `
+                        <tr class="group hover:bg-slate-50 transition-colors">
+                            <td class="px-4 py-3 font-medium text-slate-700">${r.name}</td>
+                            <td class="px-4 py-3 text-right font-bold ${r.points < 0 ? 'text-red-600' : 'text-green-600'}">
+                                ${r.points > 0 ? '+' : ''}${r.points}
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                <button onclick="deletePointRule(${r.id})" class="text-slate-400 hover:text-red-600 transition-colors">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                    lucide.createIcons();
                 } catch (err) {
                     console.error(err);
-                    tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-red-500">Gagal memuat data</td></tr>';
                 }
             }
 
-            // Load Rules for Master Data
-            async function loadPointRules() {
-                const tbody = document.getElementById('master-rules-table');
-                try {
-                    const res = await fetch('/admin/point-rules');
-                    const data = await res.json();
-                    tbody.innerHTML = '';
-                    data.forEach(r => {
-                        const color = r.points >= 0 ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50';
-                        tbody.innerHTML += `
-                            <tr class="hover:bg-slate-50 border-b">
-                                <td class="px-4 py-2">
-                                    <div class="font-medium text-slate-700">${r.name}</div>
-                                    <div class="text-[10px] text-slate-400 uppercase">${r.category}</div>
-                                </td>
-                                <td class="px-4 py-2 text-right">
-                                    <span class="px-2 py-1 rounded text-xs font-bold ${color}">${r.points > 0 ? '+' : ''}${r.points}</span>
-                                </td>
-                                <td class="px-4 py-2 text-center">
-                                    <button onclick="deletePointRule(${r.id})" class="text-slate-400 hover:text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                                </td>
-                            </tr>
-                        `;
-                    });
-                    lucide.createIcons();
-                } catch (e) { console.error(e); }
-            }
-
-            // Load Rewards for Master Data
             async function loadPointRewards() {
-                const tbody = document.getElementById('master-rewards-table');
                 try {
                     const res = await fetch('/admin/point-rewards');
                     const data = await res.json();
-                    tbody.innerHTML = '';
-                    data.forEach(r => {
-                        tbody.innerHTML += `
-                            <tr class="hover:bg-slate-50 border-b">
-                                <td class="px-4 py-2">
-                                    <div class="font-medium text-slate-700">${r.name}</div>
-                                    <div class="text-[10px] text-slate-400 truncate w-24">${r.description}</div>
-                                </td>
-                                <td class="px-4 py-2 text-right font-mono text-xs">${r.points_cost} Pts</td>
-                                <td class="px-4 py-2 text-right font-mono text-xs">${r.stock}</td>
-                                <td class="px-4 py-2 text-center">
-                                    <button onclick="deletePointReward(${r.id})" class="text-slate-400 hover:text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                                </td>
-                            </tr>
-                        `;
-                    });
-                    lucide.createIcons();
-                } catch (e) { console.error(e); }
-            }
+                    const tbody = document.getElementById('master-rewards-table');
 
-            // Load Options for Selects
-            async function loadPointRulesOptions() {
-                const select = document.getElementById('point-rule-select');
-                if (select.options.length > 1) return; // already loaded
-                try {
-                    const res = await fetch('/admin/point-rules');
-                    const data = await res.json();
-                    select.innerHTML = '<option value="">-- Pilih Aturan --</option>';
-                    data.forEach(r => {
-                        const icon = r.points >= 0 ? '🏆' : '⚠️';
-                        select.innerHTML += `<option value="${r.id}">${icon} ${r.name} (${r.points > 0 ? '+' : ''}${r.points})</option>`;
-                    });
-                } catch (e) { }
-            }
-
-            async function loadPointRewardsOptions() {
-                const select = document.getElementById('point-reward-select');
-                if (select.options.length > 1) return;
-                try {
-                    const res = await fetch('/admin/point-rewards');
-                    const data = await res.json();
-                    select.innerHTML = '<option value="">-- Pilih Hadiah --</option>';
-                    data.forEach(r => {
-                        let disabled = r.stock <= 0 ? 'disabled' : '';
-                        let label = r.stock <= 0 ? '(Habis)' : '';
-                        select.innerHTML += `<option value="${r.id}" ${disabled}>🎁 ${r.name} - ${r.points_cost} Pts ${label}</option>`;
-                    });
-                } catch (e) { }
-            }
-
-            // Student Lookups
-            // Debounce function needed? For now simple input event
-            let inputDebounceTimer;
-            function findStudentByRFID(rfid, context) {
-                clearTimeout(inputDebounceTimer);
-                inputDebounceTimer = setTimeout(async () => {
-                    if (rfid.length < 5) return;
-
-                    const previewEl = document.getElementById(context === 'input' ? 'point-student-preview-input' : 'point-student-preview-redeem');
-                    const idInput = document.getElementById(context === 'input' ? 'point-student-id' : 'redeem-student-id');
-
-                    previewEl.innerHTML = '<span class="text-slate-400">Mencari...</span>';
-
-                    try {
-                        const res = await fetch('/api/student/lookup?rfid=' + rfid);
-                        if (res.ok) {
-                            const s = await res.json();
-                            previewEl.innerHTML = `✅ ${s.name} (${s.class_name})`;
-                            idInput.value = s.id;
-
-                            // If redeem, load balance
-                            if (context === 'redeem') {
-                                loadStudentBalance(s.id);
-                            }
-                        } else {
-                            previewEl.innerHTML = '<span class="text-red-500">Siswa tidak ditemukan</span>';
-                            idInput.value = '';
-                        }
-                    } catch (e) {
-                        previewEl.innerHTML = '<span class="text-red-500">Error</span>';
+                    if (!data || data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-slate-500">Belum ada hadiah</td></tr>';
+                        return;
                     }
 
-                }, 500);
+                    tbody.innerHTML = data.map(r => `
+                        <tr class="group hover:bg-slate-50 transition-colors">
+                            <td class="px-4 py-3 font-medium text-slate-700">${r.name}</td>
+                            <td class="px-4 py-3 text-right font-bold text-orange-600">${r.points_cost} Poin</td>
+                            <td class="px-4 py-3 text-right text-slate-600">${r.stock}</td>
+                            <td class="px-4 py-3 text-center">
+                                <button onclick="deletePointReward(${r.id})" class="text-slate-400 hover:text-red-600 transition-colors">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                    lucide.createIcons();
+                } catch (err) {
+                    console.error(err);
+                }
             }
 
-            async function loadStudentBalance(studentId) {
-                const balEl = document.getElementById('point-student-balance');
-                balEl.innerHTML = '...';
-                try {
-                    const res = await fetch('/admin/points/student/' + studentId);
-                    const data = await res.json();
-                    balEl.innerHTML = `Saldo: ${data.total_points} Poin`;
-
-                    // Update validation logic for redeem form?
-                } catch (e) { balEl.innerHTML = '?'; }
+            function openAddRuleModal() {
+                openModal('modal-add-point-rule');
             }
 
-            // Submissions
+            function openAddRewardModal() {
+                openModal('modal-add-point-reward');
+            }
+
             async function submitAddPointRule(e) {
                 e.preventDefault();
-                await handleFormSubmit(e, '/admin/point-rules/add', () => {
-                    closeModal('modal-add-point-rule');
-                    loadPointRules();
-                });
+                const form = e.target;
+                const btn = form.querySelector('button[type="submit"]');
+                const orgText = btn.innerHTML;
+
+                btn.disabled = true;
+                btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Menyimpan...';
+                lucide.createIcons();
+
+                try {
+                    const res = await fetch('/admin/point-rules/add', { method: 'POST', body: new FormData(form) });
+                    const data = await res.json();
+
+                    if (res.ok) {
+                        closeModal('modal-add-point-rule');
+                        loadPointRules();
+                        form.reset();
+                        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: data.message, showConfirmButton: false, timer: 1500 });
+                    } else {
+                        Swal.fire('Gagal', data.message, 'error');
+                    }
+                } catch (err) {
+                    Swal.fire('Error', 'Gagal menyimpan', 'error');
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = orgText;
+                }
             }
 
             async function submitAddPointReward(e) {
                 e.preventDefault();
-                await handleFormSubmit(e, '/admin/point-rewards/add', () => {
-                    closeModal('modal-add-point-reward');
-                    loadPointRewards();
-                });
+                const form = e.target;
+                const btn = form.querySelector('button[type="submit"]');
+                const orgText = btn.innerHTML;
+
+                btn.disabled = true;
+                btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Menyimpan...';
+                lucide.createIcons();
+
+                try {
+                    const res = await fetch('/admin/point-rewards/add', { method: 'POST', body: new FormData(form) });
+                    const data = await res.json();
+
+                    if (res.ok) {
+                        closeModal('modal-add-point-reward');
+                        loadPointRewards();
+                        form.reset();
+                        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: data.message, showConfirmButton: false, timer: 1500 });
+                    } else {
+                        Swal.fire('Gagal', data.message, 'error');
+                    }
+                } catch (err) {
+                    Swal.fire('Error', 'Gagal menyimpan', 'error');
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = orgText;
+                }
             }
 
             async function deletePointRule(id) {
@@ -2895,116 +3977,176 @@
                 loadPointRewards();
             }
 
+            // --- INPUT & REDEEM ---
+
+            async function findStudentByRFID(rfid, mode) {
+                if (rfid.length < 5) return;
+
+                const previewEl = document.getElementById(`point-student-preview-${mode}`);
+                const idInput = document.getElementById(mode === 'input' ? 'point-student-id' : 'redeem-student-id');
+                const ruleSelect = document.getElementById('point-rule-select');
+                const rewardSelect = document.getElementById('point-reward-select');
+
+                previewEl.innerText = 'Mencari...';
+
+                try {
+                    const res = await fetch(`/api/student/lookup?rfid=${rfid}`);
+                    if (!res.ok) throw new Error('Siswa tidak ditemukan');
+
+                    const data = await res.json();
+                    previewEl.innerHTML = `<span class="text-green-600">✅ ${data.name} (${data.class_name})</span>`;
+                    idInput.value = data.id;
+
+                    // Load options if not loaded
+                    if (mode === 'input' && ruleSelect.options.length <= 1) loadRuleOptions();
+                    if (mode === 'redeem') {
+                        loadStudentBalance(data.id);
+                        if (rewardSelect.options.length <= 1) loadRewardOptions();
+                    }
+
+                } catch (err) {
+                    previewEl.innerHTML = `<span class="text-red-600">❌ Siswa tidak ditemukan</span>`;
+                    idInput.value = '';
+                }
+            }
+
+            async function loadStudentBalance(id) {
+                // Fetch profile to get balance
+                try {
+                    const res = await fetch(`/admin/points/student/${id}`);
+                    const data = await res.json();
+                    document.getElementById('point-student-balance').innerText = `Saldo: ${data.total_points} Poin`;
+                } catch (err) {
+                    console.error(err);
+                }
+            }
+
+            async function loadRuleOptions() {
+                const select = document.getElementById('point-rule-select');
+                const res = await fetch('/admin/point-rules');
+                const data = await res.json();
+
+                select.innerHTML = '<option value="">Pilih Aturan...</option>' +
+                    data.map(r => `<option value="${r.id}">${r.name} (${r.points > 0 ? '+' : ''}${r.points})</option>`).join('');
+            }
+
+            async function loadRewardOptions() {
+                const select = document.getElementById('point-reward-select');
+                const res = await fetch('/admin/point-rewards');
+                const data = await res.json();
+
+                select.innerHTML = '<option value="">Pilih Hadiah...</option>' +
+                    data.map(r => `<option value="${r.id}" ${r.stock <= 0 ? 'disabled' : ''}>${r.name} (${r.points_cost} Poin) - Stok: ${r.stock}</option>`).join('');
+            }
+
             async function submitPointTransaction(e) {
                 e.preventDefault();
                 const form = e.target;
-                const studentId = form.student_id.value;
-                if (!studentId) { alert('Siswa belum teridentifikasi (Scan RFID)'); return; }
+                const btn = form.querySelector('button[type="submit"]');
+                const orgText = btn.innerHTML;
 
-                await handleFormSubmit(e, '/admin/points/transaction', () => {
-                    alert('Poin berhasil disimpan!');
-                    form.reset();
-                    document.getElementById('point-student-preview-input').innerHTML = '';
-                    document.getElementById('point-student-id').value = '';
-                    document.getElementById('point-student-rfid').focus();
-                });
+                btn.disabled = true;
+                btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Menyimpan...';
+                lucide.createIcons();
+
+                try {
+                    const res = await fetch('/admin/points/transaction', { method: 'POST', body: new FormData(form) });
+                    const data = await res.json();
+
+                    if (res.ok) {
+                        // Clear inputs
+                        document.getElementById('point-student-rfid').value = '';
+                        document.getElementById('point-student-id').value = '';
+                        document.getElementById('point-student-preview-input').innerText = '';
+                        document.getElementById('point-rule-select').value = '';
+                        document.getElementById('point-student-rfid').focus();
+                        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: data.message, showConfirmButton: false, timer: 1500 });
+                    } else {
+                        Swal.fire('Gagal', data.message, 'error');
+                    }
+                } catch (err) {
+                    Swal.fire('Error', 'Gagal menyimpan', 'error');
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = orgText;
+                }
             }
 
             async function submitRedeem(e) {
                 e.preventDefault();
                 const form = e.target;
-                const studentId = form.student_id.value;
-                if (!studentId) { alert('Siswa belum teridentifikasi'); return; }
+                const btn = form.querySelector('button[type="submit"]');
+                const orgText = btn.innerHTML;
 
-                await handleFormSubmit(e, '/admin/points/redeem', () => {
-                    alert('Penukaran berhasil!');
-                    form.reset();
-                    document.getElementById('point-student-preview-redeem').innerHTML = '';
-                    document.getElementById('point-student-balance').innerHTML = '';
-                    document.getElementById('redeem-student-rfid').focus();
-                    loadPointRewardsOptions();
-                });
+                btn.disabled = true;
+                btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Proses...';
+                lucide.createIcons();
+
+                try {
+                    const res = await fetch('/admin/points/redeem', { method: 'POST', body: new FormData(form) });
+                    const data = await res.json();
+
+                    if (res.ok) {
+                        // Refresh balance
+                        const sid = document.getElementById('redeem-student-id').value;
+                        if (sid) loadStudentBalance(sid);
+                        loadPointRewards(); // Update stock
+                        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: data.message, showConfirmButton: false, timer: 1500 });
+                        form.reset();
+                    } else {
+                        Swal.fire('Gagal', data.message, 'error');
+                    }
+                } catch (err) {
+                    Swal.fire('Error', 'Gagal memproses', 'error');
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = orgText;
+                }
             }
 
-            function openAddRuleModal() {
-                document.getElementById('modal-add-point-rule').classList.remove('hidden');
-            }
-            function openAddRewardModal() {
-                document.getElementById('modal-add-point-reward').classList.remove('hidden');
+            // --- LEADERBOARD ---
+
+            async function loadLeaderboard() {
+                const tbody = document.getElementById('leaderboard-table');
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8">Memuat leaderboard...</td></tr>';
+
+                try {
+                    const res = await fetch('/admin/points/leaderboard');
+                    const data = await res.json();
+
+                    if (!data || data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-slate-500">Belum ada data poin</td></tr>';
+                        return;
+                    }
+
+                    tbody.innerHTML = data.map((s, idx) => `
+                        <tr class="hover:bg-slate-50 border-b last:border-0 transition-colors">
+                            <td class="px-6 py-4 font-bold text-slate-500">#${idx + 1}</td>
+                            <td class="px-6 py-4 font-medium text-slate-800">${s.name}</td>
+                            <td class="px-6 py-4 text-slate-600">${s.class_name || '-'}</td>
+                            <td class="px-6 py-4 text-right font-bold text-blue-600">${s.points} Poin</td>
+                        </tr>
+                    `).join('');
+                } catch (err) {
+                    console.error(err);
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-red-500">Gagal memuat leaderboard</td></tr>';
+                }
             }
 
+            // --- INITIALIZATION ---
+            document.addEventListener("DOMContentLoaded", function () {
+                if (window.location.hash === '#points') loadLeaderboard();
+            });
+
+            // Hook into existing navigation
+            if (typeof window.navigateMenu === 'function') {
+                const originalNavigate = window.navigateMenu;
+                window.navigateMenu = function (pageId, element) {
+                    originalNavigate(pageId, element);
+                    if (pageId === 'points') loadLeaderboard();
+                }
+            }
         </script>
-        <!-- Modal Add Point Rule -->
-        <div id="modal-add-point-rule"
-            class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-            <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
-                <h3 class="font-bold text-lg mb-4">Tambah Aturan Poin</h3>
-                <form onsubmit="submitAddPointRule(event)" class="space-y-4">
-                    <div>
-                        <label class="text-sm font-medium">Kategori</label>
-                        <select name="category" class="w-full border rounded p-2" required>
-                            <option value="violation">Pelanggaran (Negatif)</option>
-                            <option value="achievement">Prestasi (Positif)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-sm font-medium">Nama Aturan</label>
-                        <input type="text" name="name" required placeholder="Contoh: Terlambat, Juara Kelas"
-                            class="w-full border rounded p-2">
-                    </div>
-                    <div>
-                        <label class="text-sm font-medium">Poin</label>
-                        <input type="number" name="points" required placeholder="Contoh: -10 atau 20"
-                            class="w-full border rounded p-2">
-                        <p class="text-xs text-slate-500 mt-1">Gunakan tanda minus (-) untuk pelanggaran.</p>
-                    </div>
-                    <div>
-                        <label class="text-sm font-medium">Deskripsi</label>
-                        <textarea name="description" rows="2" class="w-full border rounded p-2"></textarea>
-                    </div>
-                    <div class="flex justify-end gap-2">
-                        <button type="button" onclick="closeModal('modal-add-point-rule')"
-                            class="text-slate-500">Batal</button>
-                        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Simpan</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- Modal Add Point Reward -->
-        <div id="modal-add-point-reward"
-            class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-            <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
-                <h3 class="font-bold text-lg mb-4">Tambah Hadiah (Reward)</h3>
-                <form onsubmit="submitAddPointReward(event)" class="space-y-4">
-                    <div>
-                        <label class="text-sm font-medium">Nama Hadiah</label>
-                        <input type="text" name="name" required placeholder="Contoh: Voucher Kantin"
-                            class="w-full border rounded p-2">
-                    </div>
-                    <div>
-                        <label class="text-sm font-medium">Biaya Poin</label>
-                        <input type="number" name="points_cost" required placeholder="Contoh: 50" min="1"
-                            class="w-full border rounded p-2">
-                    </div>
-                    <div>
-                        <label class="text-sm font-medium">Stok Awal</label>
-                        <input type="number" name="stock" required placeholder="Contoh: 10" min="0"
-                            class="w-full border rounded p-2">
-                    </div>
-                    <div>
-                        <label class="text-sm font-medium">Deskripsi</label>
-                        <textarea name="description" rows="2" class="w-full border rounded p-2"></textarea>
-                    </div>
-                    <div class="flex justify-end gap-2">
-                        <button type="button" onclick="closeModal('modal-add-point-reward')"
-                            class="text-slate-500">Batal</button>
-                        <button type="submit" class="bg-emerald-600 text-white px-4 py-2 rounded">Simpan</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
     </body>
 
 </html>

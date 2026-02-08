@@ -15,11 +15,17 @@
         <header class="bg-white border-b border-slate-200 sticky top-0 z-10">
             <div class="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
                 <div class="flex items-center gap-3">
-                    <a href="/admin" class="p-2 hover:bg-slate-100 rounded-full text-slate-500"><i
+                    <a href="/admin" class="p-2 hover:bg-slate-100 rounded-full text-slate-500 no-print"><i
                             data-lucide="arrow-left" class="w-5 h-5"></i></a>
                     <h1 class="font-bold text-lg">Detail Profil</h1>
                 </div>
-                <div class="text-sm text-slate-500 font-mono">{{.Type}}</div>
+                <div class="flex items-center gap-4">
+                    <button onclick="window.print()"
+                        class="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition no-print">
+                        <i data-lucide="printer" class="w-4 h-4"></i> Cetak / PDF
+                    </button>
+                    <div class="text-sm text-slate-500 font-mono">{{.Type}}</div>
+                </div>
             </div>
         </header>
 
@@ -27,7 +33,7 @@
 
             <!-- PROFILE CARD -->
             <div
-                class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 mb-8 flex flex-col md:flex-row gap-8 items-start">
+                class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 mb-8 flex flex-col md:flex-row gap-8 items-start page-section">
                 <div
                     class="w-32 h-32 bg-slate-100 rounded-full flex items-center justify-center border-4 border-slate-50 shrink-0 overflow-hidden">
                     {{if .Photo}}
@@ -55,7 +61,7 @@
             </div>
 
             <!-- STATS CARDS -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 page-section">
                 <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                     <p class="text-xs text-slate-500 uppercase font-bold text-center">Kehadiran (Bulan Ini)</p>
                     <h3 class="text-2xl font-bold text-center mt-2" id="stat-rate">0%</h3>
@@ -94,14 +100,15 @@
             </div>
 
             <!-- CALENDAR SECTION -->
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden page-section">
                 <!-- Toolbar -->
                 <div
-                    class="p-6 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-50/50">
+                    class="p-6 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-50/50 print-header">
                     <h3 class="font-bold text-xl flex items-center gap-2"><i data-lucide="calendar-days"
                             class="w-5 h-5 text-blue-600"></i> Riwayat Kehadiran</h3>
 
-                    <div class="flex items-center gap-3 bg-white p-1.5 rounded-lg border border-slate-200 shadow-sm">
+                    <div
+                        class="flex items-center gap-3 bg-white p-1.5 rounded-lg border border-slate-200 shadow-sm no-print">
                         <select id="filter-month" class="bg-transparent text-sm font-medium outline-none cursor-pointer"
                             onchange="loadCalendar()">
                             <option value="01">Januari</option>
@@ -181,7 +188,7 @@
                 const year = document.getElementById('filter-year').value;
                 const container = document.getElementById('calendar-grid');
 
-                container.innerHTML = '<div class="col-span-7 text-center py-12 text-slate-400">Memuat data...</div>';
+                container.innerHTML = '<div class="col-span-7 text-center py-12 text-slate-400 no-print">Memuat data...</div>';
 
                 try {
                     // Determine Endpoint
@@ -202,7 +209,7 @@
 
                     renderGrid(year, month, response.calendar);
                 } catch (err) {
-                    container.innerHTML = '<div class="col-span-7 text-center py-12 text-red-400">Gagal memuat data.</div>';
+                    container.innerHTML = '<div class="col-span-7 text-center py-12 text-red-400 no-print">Gagal memuat data.</div>';
                     console.error(err);
                 }
             }
@@ -227,9 +234,9 @@
                             let colorClass = 'bg-slate-100 text-slate-600 border-slate-200';
                             let label = log.status;
 
-                            if (log.status === 'Datang') {
+                            if (log.status === 'Datang' || log.status === 'Hadir') {
                                 colorClass = 'bg-green-50 text-green-700 border-green-200';
-                                label = 'Masuk';
+                                label = 'Hadir'; // Unified label
                             } else if (log.status === 'Pulang') {
                                 colorClass = 'bg-orange-50 text-orange-700 border-orange-200';
                             } else if (log.status === 'Terlambat') {
@@ -239,7 +246,7 @@
                             }
 
                             eventsHtml += `
-                            <div class="text-[10px] px-1.5 py-0.5 rounded border ${colorClass} mb-1 flex justify-between items-center">
+                            <div class="text-[10px] px-1.5 py-0.5 rounded border ${colorClass} mb-1 flex justify-between items-center print-event">
                                 <span class="font-medium">${label}</span>
                                 <span>${log.time}</span>
                             </div>
@@ -249,9 +256,10 @@
 
                     const isToday = (day === now.getDate() && (month - 1) === now.getMonth() && parseInt(year) === now.getFullYear());
                     const dayClass = isToday ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-300' : 'bg-white border-slate-200 hover:border-slate-300';
+                    const printClass = isToday ? 'print-today' : '';
 
                     container.innerHTML += `
-                    <div class="min-h-[100px] border rounded-xl p-2 flex flex-col ${dayClass} transition">
+                    <div class="min-h-[100px] border rounded-xl p-2 flex flex-col ${dayClass} ${printClass} transition print-day-box">
                         <div class="text-right mb-1"><span class="text-xs font-bold ${isToday ? 'text-blue-600' : 'text-slate-400'}">${day}</span></div>
                         <div class="flex-1 overflow-y-auto custom-scrollbar">
                             ${eventsHtml}
@@ -277,6 +285,71 @@
             .custom-scrollbar::-webkit-scrollbar-thumb {
                 background: #cbd5e1;
                 border-radius: 10px;
+            }
+
+            @media print {
+                @page {
+                    size: A4;
+                    margin: 1cm;
+                }
+
+                body {
+                    background: white !important;
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
+                }
+
+                .no-print,
+                header button,
+                header a {
+                    display: none !important;
+                }
+
+                header {
+                    border: none !important;
+                    position: static !important;
+                    padding: 0 !important;
+                    margin-bottom: 20px !important;
+                }
+
+                main {
+                    padding: 0 !important;
+                    max-width: 100% !important;
+                }
+
+                .shadow-sm,
+                .shadow {
+                    box-shadow: none !important;
+                }
+
+                .rounded-2xl,
+                .rounded-xl {
+                    border-radius: 0 !important;
+                }
+
+                .page-section {
+                    break-inside: avoid;
+                    margin-bottom: 24px !important;
+                    border: 1px solid #e2e8f0 !important;
+                }
+
+                /* Adjust Calendar for Print */
+                .print-day-box {
+                    min-height: 80px !important;
+                }
+
+                .custom-scrollbar {
+                    overflow: visible !important;
+                }
+
+                .print-event {
+                    border: 1px solid #cbd5e1 !important;
+                }
+
+                .print-today {
+                    background-color: #eff6ff !important;
+                    border-color: #bfdbfe !important;
+                }
             }
         </style>
     </body>

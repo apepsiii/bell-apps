@@ -35,7 +35,7 @@ const (
 	AdminPass   = "admin123"
 	CookieName  = "session_token"
 	SecretKey   = "admin-secret-key-123"
-	AppVersion  = "v1.0.0"
+	AppVersion  = "v1.1.0"
 )
 
 //go:embed views/*.html
@@ -152,6 +152,7 @@ type PrayerLog struct {
 	Name       string `json:"name"`
 	ClassName  string `json:"class_name"`
 	PrayerType string `json:"prayer_type"`
+	Status     string `json:"status"` // Added status field
 	Timestamp  string `json:"timestamp"`
 	Date       string `json:"date"`
 }
@@ -394,11 +395,11 @@ func InitDB() *sql.DB {
 		db.Exec("ALTER TABLE classes ADD COLUMN wa_group_id TEXT DEFAULT ''")
 	}
 
-	// Migration: Add 'photo' to students
-	var colCountPhoto int
-	db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('students') WHERE name='photo'").Scan(&colCountPhoto)
-	if colCountPhoto == 0 {
-		db.Exec("ALTER TABLE students ADD COLUMN photo TEXT DEFAULT ''")
+	// Migration: Add 'status' to prayer_logs
+	var colCountPrayerStatus int
+	db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('prayer_logs') WHERE name='status'").Scan(&colCountPrayerStatus)
+	if colCountPrayerStatus == 0 {
+		db.Exec("ALTER TABLE prayer_logs ADD COLUMN status TEXT DEFAULT 'Hadir'")
 	}
 
 	// Migration: Add 'parent_name' to students
@@ -827,7 +828,7 @@ func (a *App) DashboardHandler(c echo.Context) error {
 	}
 	rowsChart1.Close()
 
-	var datasets1 []ChartDataset
+	datasets1 := []ChartDataset{}
 	colors := []string{"#3b82f6", "#ef4444", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#6366f1"}
 	cIdx := 0
 	for cName, cCounts := range classDataMap {
@@ -852,8 +853,8 @@ func (a *App) DashboardHandler(c echo.Context) error {
 		  AND date >= ?
 		GROUP BY status`, chartDates[0])
 
-	var statusLabels []string
-	var statusCounts []int
+	statusLabels := []string{}
+	statusCounts := []int{}
 	for rowsChart2.Next() {
 		var sLabel string
 		var sCount int
@@ -1197,11 +1198,128 @@ func (a *App) UpdateStudentHandler(c echo.Context) error {
 }
 func (a *App) DeleteStudentHandler(c echo.Context) error {
 	id := c.Param("id")
-	_, err := a.DB.Exec("DELETE FROM students WHERE id=?", id)
+	// Check if ID is not 0 (meaning parsed successfully) to avoid accidental deletions of ID 0 if any
+	if id != "" && id != "0" {
+		_, err := a.DB.Exec("DELETE FROM students WHERE id=?", id)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+		}
+	}
+	return c.JSON(http.StatusOK, map[string]string{"status": "success", "message": "Siswa dihapus"})
+}
+
+type PromoteRequest struct {
+	StudentIDs    []int `json:"student_ids"`
+	TargetClassID int   `json:"target_class_id"`
+}
+
+func (a *App) GetStudentsJSONHandler(c echo.Context) error {
+	classID := c.QueryParam("class_id")
+	if classID == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Class ID required"})
+	}
+
+	rows, err := a.DB.Query("SELECT id, nis, name FROM students WHERE class_id = ? ORDER BY name ASC", classID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
 	}
-	return c.JSON(http.StatusOK, map[string]string{"status": "success", "message": "Siswa dihapus"})
+	defer rows.Close()
+
+	var students []Student
+	for rows.Next() {
+		var s Student
+		if err := rows.Scan(&s.ID, &s.NIS, &s.Name); err != nil {
+			continue
+		}
+		students = append(students, s)
+	}
+
+	return c.JSON(http.StatusOK, students)
+}
+
+func (a *App) PromoteStudentsHandler(c echo.Context) error {
+	var req PromoteRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid request"})
+	}
+
+	if len(req.StudentIDs) == 0 {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "No students selected"})
+	}
+
+	tx, err := a.DB.Begin()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Database transaction failed"})
+	}
+
+	query := "UPDATE students SET class_id = ? WHERE id IN ("
+	args := make([]interface{}, len(req.StudentIDs)+1)
+	args[0] = req.TargetClassID
+	
+	for i, id := range req.StudentIDs {
+		if i > 0 {
+			query += ","
+		}
+		query += "?"
+		args[i+1] = id
+	}
+	query += ")"
+
+	_, err = tx.Exec(query, args...)
+	if err != nil {
+		tx.Rollback()
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to promote students: " + err.Error()})
+	}
+
+	tx.Commit()
+	return c.JSON(http.StatusOK, map[string]string{
+		"status":  "success",
+		"message": fmt.Sprintf("Berhasil memindahkan %d siswa", len(req.StudentIDs)),
+	})
+}
+
+type BulkDeleteRequest struct {
+	IDs []int `json:"ids"`
+}
+
+func (a *App) BulkDeleteStudentsHandler(c echo.Context) error {
+	var req BulkDeleteRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid request format"})
+	}
+
+	if len(req.IDs) == 0 {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "No IDs provided"})
+	}
+
+	// Construct query: DELETE FROM students WHERE id IN (?, ?, ...)
+	query := "DELETE FROM students WHERE id IN ("
+	args := make([]interface{}, len(req.IDs))
+	for i, id := range req.IDs {
+		if i > 0 {
+			query += ","
+		}
+		query += "?"
+		args[i] = id
+	}
+	query += ")"
+
+	tx, err := a.DB.Begin()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Database transaction failed"})
+	}
+
+	_, err = tx.Exec(query, args...)
+	if err != nil {
+		tx.Rollback()
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to delete students: " + err.Error()})
+	}
+
+	tx.Commit()
+	return c.JSON(http.StatusOK, map[string]string{
+		"status":  "success",
+		"message": fmt.Sprintf("Berhasil menghapus %d siswa", len(req.IDs)),
+	})
 }
 
 // --- IMPORT HANDLERS ---
@@ -1401,6 +1519,108 @@ func (a *App) ManualAttendanceHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{"status": "success", "message": "Absensi manual berhasil disimpan"})
 }
 
+// --- JSON Import Structs ---
+type JSONExport []struct {
+	Type string        `json:"type"`
+	Name string        `json:"name"`
+	Data []StudentJSON `json:"data,omitempty"`
+}
+
+type StudentJSON struct {
+	ID        string `json:"id"`
+	NISN      string `json:"nisn"`
+	Nama      string `json:"nama"`
+	Kelas     string `json:"kelas"`
+	NamaWali  string `json:"nama_wali"`
+	NomorWali string `json:"nomor_wali"`
+	Foto      string `json:"foto"`
+}
+
+func (a *App) ImportStudentJSONHandler(c echo.Context) error {
+	file, err := c.FormFile("file")
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "File tidak ditemukan"})
+	}
+	clean := c.FormValue("clean") == "true"
+
+	src, err := file.Open()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Gagal membuka file"})
+	}
+	defer src.Close()
+
+	byteValue, _ := io.ReadAll(src)
+
+	var export JSONExport
+	err = json.Unmarshal(byteValue, &export)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Format JSON salah"})
+	}
+
+	tx, _ := a.DB.Begin()
+	successCount := 0
+
+	if clean {
+		tx.Exec("DELETE FROM students")
+	}
+
+	// Cache classes
+	classMap := make(map[string]int)
+	rows, _ := a.DB.Query("SELECT id, name FROM classes")
+	for rows.Next() {
+		var id int
+		var name string
+		rows.Scan(&id, &name)
+		classMap[strings.ToUpper(name)] = id
+	}
+	rows.Close()
+
+	for _, item := range export {
+		if item.Type == "table" && item.Name == "siswa" {
+			for _, s := range item.Data {
+				nisn := strings.TrimSpace(s.NISN)
+				nama := strings.TrimSpace(s.Nama)
+				kelas := strings.TrimSpace(s.Kelas)
+				namaWali := strings.TrimSpace(s.NamaWali)
+				nomorWali := strings.TrimSpace(s.NomorWali)
+				foto := strings.TrimSpace(s.Foto)
+
+				if nisn == "" || nama == "" {
+					continue
+				}
+
+				// 1. Get or Create Class
+				classID, ok := classMap[strings.ToUpper(kelas)]
+				if !ok {
+					// Check DB inside Tx just in case created in previous loop (though map should handle unique names if updated)
+					// Simpler: Just try to insert class if not mapped.
+					res, err := tx.Exec("INSERT INTO classes (name, major_id, wa_group_id) VALUES (?, 0, '')", kelas)
+					if err == nil {
+						id, _ := res.LastInsertId()
+						classID = int(id)
+						classMap[strings.ToUpper(kelas)] = classID
+					}
+				}
+
+				// 2. Insert or Upsert Student
+				query := `INSERT INTO students (rfid_uid, nis, name, parent_name, parent_phone, class_id, photo) 
+                          VALUES (?, ?, ?, ?, ?, ?, ?)
+                          ON CONFLICT(rfid_uid) DO UPDATE SET 
+                          nis=excluded.nis, name=excluded.name, parent_name=excluded.parent_name, 
+                          parent_phone=excluded.parent_phone, class_id=excluded.class_id, photo=excluded.photo`
+				
+				_, err := tx.Exec(query, nisn, nisn, nama, namaWali, nomorWali, classID, foto)
+				if err == nil {
+					successCount++
+				}
+			}
+		}
+	}
+
+	tx.Commit()
+	return c.JSON(http.StatusOK, map[string]string{"status": "success", "message": fmt.Sprintf("Import JSON berhasil (%d data)", successCount)})
+}
+
 func (a *App) GetStudentCalendarHandler(c echo.Context) error {
 	studentID := c.QueryParam("id")
 	month := c.QueryParam("month") // 01-12
@@ -1508,7 +1728,7 @@ func (a *App) GetStudentCalendarHandler(c echo.Context) error {
 	for _, logs := range calendarData {
 		for _, log := range logs {
 			switch log.Status {
-			case "Datang":
+			case "Datang", "Hadir":
 				totalPresent++
 			case "Terlambat":
 				totalLate++
@@ -1544,21 +1764,7 @@ func (a *App) GetStudentCalendarHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, response)
 }
 
-// Helper to fetch holidays for calendar
-func (a *App) GetHolidaysForMonth(year, month string) map[int]string {
-	holidays := make(map[int]string)
-	rows, err := a.DB.Query("SELECT date, name FROM holidays WHERE strftime('%Y', date) = ? AND strftime('%m', date) = ?", year, month)
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var dStr, name string
-			rows.Scan(&dStr, &name)
-			t, _ := time.Parse("2006-01-02", dStr)
-			holidays[t.Day()] = name
-		}
-	}
-	return holidays
-}
+
 
 func (a *App) GetStaffCalendarHandler(c echo.Context) error {
 	staffID := c.QueryParam("id")
@@ -2225,8 +2431,31 @@ func main() {
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 	e.Use(middleware.Recover())
+
+	// Custom Error Handler
+	e.HTTPErrorHandler = func(err error, c echo.Context) {
+		code := http.StatusInternalServerError
+		if he, ok := err.(*echo.HTTPError); ok {
+			code = he.Code
+		}
+
+		if code == http.StatusNotFound {
+			// Check if it's an API request
+			if strings.HasPrefix(c.Request().URL.Path, "/api") {
+				c.JSON(http.StatusNotFound, map[string]string{"message": "Not Found"})
+				return
+			}
+			// Render 404 page
+			if err := c.Render(http.StatusNotFound, "404.html", nil); err != nil {
+				c.Logger().Error(err)
+			}
+			return
+		}
+
+		e.DefaultHTTPErrorHandler(err, c)
+	}
+
 	e.Renderer = &Template{templates: template.Must(template.ParseFS(viewsFS, "views/*.html"))}
-	e.Static("/assets", "public/assets")
 	e.Static("/assets", "public/assets")
 
 	e.GET("/", func(c echo.Context) error { return c.Render(http.StatusOK, "index.html", nil) })
@@ -2287,6 +2516,10 @@ func main() {
 	admin.POST("/student/update/:id", app.UpdateStudentHandler)
 	admin.DELETE("/student/:id", app.DeleteStudentHandler)
 	admin.POST("/student/import", app.ImportStudentHandler)
+	admin.POST("/student/import-json", app.ImportStudentJSONHandler) // New JSON Import
+	admin.POST("/students/delete-multiple", app.BulkDeleteStudentsHandler) // New Bulk Delete Route
+	admin.GET("/students/json", app.GetStudentsJSONHandler)               // Fetch students for promotion
+	admin.POST("/students/promote", app.PromoteStudentsHandler)           // Promote students
 
 	// Staff
 	admin.POST("/staff/add", app.AddStaffHandler)
@@ -2297,6 +2530,8 @@ func main() {
 	// Attendance
 	admin.POST("/attendance/settings", app.UpdateAttendanceSettingsHandler)
 	admin.POST("/attendance/manual", app.ManualAttendanceHandler)
+	admin.GET("/attendance/daily", app.GetDailyAttendanceHandler) // New Bulk Attendance Data
+	admin.POST("/attendance/bulk", app.BulkAttendanceHandler)     // New Bulk Attendance Save
 	admin.POST("/attendance/test-wa", app.TestWAHandler)
 	admin.GET("/student/calendar", app.GetStudentCalendarHandler)
 	admin.GET("/staff/calendar", app.GetStaffCalendarHandler) // New Staff API
@@ -2315,6 +2550,11 @@ func main() {
 	e.GET("/api/attendance/recent-logs", app.RecentLogsHandler)     // Public API for Recent Logs
 	e.GET("/api/attendance/prayer", app.PrayerAttendanceHandler)    // Public API for Prayer Attendance (TAP)
 	e.GET("/api/attendance/prayer-logs", app.PrayerLogsListHandler) // Public API for Prayer Logs List
+
+	// Prayer Admin
+	admin.GET("/prayer/attendance", app.GetPrayerAttendanceHandler)
+	admin.POST("/prayer/attendance", app.BulkPrayerAttendanceHandler)
+	admin.GET("/prayer/report", app.PrayerReportHandler)
 	e.GET("/api/student/lookup", app.GetStudentByRFIDHandler)       // Public API for Student Lookup (Points)
 	
 	// WhatsApp Logs
@@ -2496,6 +2736,7 @@ func (a *App) PrayerAttendanceHandler(c echo.Context) error {
 		"time":        timeStr,
 	})
 }
+
 func (a *App) PrayerLogsListHandler(c echo.Context) error {
 	// Get logs for today by default, or limit
 	rows, err := a.DB.Query("SELECT id, rfid_uid, name, class_name, prayer_type, timestamp, date FROM prayer_logs ORDER BY id DESC LIMIT 100")
@@ -2519,3 +2760,132 @@ func (a *App) PrayerLogsListHandler(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, logs)
 }
+
+// --- BULK ATTENDANCE HANDLERS ---
+
+type DailyAttendanceItem struct {
+	StudentID int    `json:"student_id"`
+	NIS       string `json:"nis"`
+	Name      string `json:"name"`
+	RFID      string `json:"rfid"`
+	Status    string `json:"status"` // Hadir, Sakit, Izin, Alpha, Unknown
+	Time      string `json:"time"`
+	LogID     int    `json:"log_id"`
+}
+
+func (a *App) GetDailyAttendanceHandler(c echo.Context) error {
+	classID := c.QueryParam("class_id")
+	date := c.QueryParam("date") // Format: YYYY-MM-DD
+
+	if classID == "" || date == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Class ID and Date are required"})
+	}
+
+	// 1. Get all students in class
+	query := `
+		SELECT s.id, s.nis, s.name, s.rfid_uid, 
+		       COALESCE(l.status, 'Unknown') as status, 
+		       COALESCE(strftime('%H:%M', l.timestamp), '') as time,
+		       COALESCE(l.id, 0) as log_id
+		FROM students s
+		LEFT JOIN attendance_logs l ON s.rfid_uid = l.rfid_uid AND l.date = ?
+		WHERE s.class_id = ?
+		ORDER BY s.name ASC`
+
+	rows, err := a.DB.Query(query, date, classID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Database error: " + err.Error()})
+	}
+	defer rows.Close()
+
+	var result []DailyAttendanceItem
+	for rows.Next() {
+		var item DailyAttendanceItem
+		var rfid sql.NullString // Handle null RFID
+		if err := rows.Scan(&item.StudentID, &item.NIS, &item.Name, &rfid, &item.Status, &item.Time, &item.LogID); err != nil {
+			continue
+		}
+		item.RFID = rfid.String
+		result = append(result, item)
+	}
+
+	return c.JSON(http.StatusOK, result)
+}
+
+type BulkAttendanceItem struct {
+	StudentID int    `json:"student_id"`
+	RFID      string `json:"rfid"` // Optional, used for lookup if needed
+	Status    string `json:"status"` // Hadir, Sakit, Izin, Alpha
+}
+
+type BulkAttendanceRequest struct {
+	ClassID int                  `json:"class_id"`
+	Date    string               `json:"date"` // YYYY-MM-DD
+	Items   []BulkAttendanceItem `json:"students"`
+}
+
+func (a *App) BulkAttendanceHandler(c echo.Context) error {
+	var req BulkAttendanceRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid request"})
+	}
+
+	if req.Date == "" || len(req.Items) == 0 {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Date and Students are required"})
+	}
+
+	tx, err := a.DB.Begin()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Transaction failed"})
+	}
+
+	// Fetch class name for logging (optional, skipped for now to save query)
+
+	for _, item := range req.Items {
+		// 1. Get Student Data (Need Name for log)
+		var rfid, name string
+		// Try to get RFID from DB if not provided or just verify
+		// We use StudentID as the reliable key
+		err := tx.QueryRow("SELECT rfid_uid, name FROM students WHERE id=?", item.StudentID).Scan(&rfid, &name)
+		if err != nil {
+			continue // Skip if student not found
+		}
+
+		// 2. Check if log exists for this Date & RFID
+		var logID int
+		err = tx.QueryRow("SELECT id FROM attendance_logs WHERE rfid_uid=? AND date=?", rfid, req.Date).Scan(&logID)
+
+		timestamp := fmt.Sprintf("%s 07:00:00", req.Date) // Default time for manual entry
+		if item.Status == "Unknown" {
+			// If status set to Unknown, maybe delete the log?
+			// For now, let's just ignore or delete. "Alpha" is usually explicit.
+			// Let's implement Delete if Status is empty/Unknown to allow "Reset"
+			if logID != 0 {
+				tx.Exec("DELETE FROM attendance_logs WHERE id=?", logID)
+			}
+			continue
+		}
+
+		if err == sql.ErrNoRows {
+			// Insert
+			_, err = tx.Exec(`
+				INSERT INTO attendance_logs (rfid_uid, user_name, user_type, status, method, timestamp, date)
+				VALUES (?, ?, 'Siswa', ?, 'Manual', ?, ?)
+			`, rfid, name, item.Status, timestamp, req.Date)
+		} else {
+			// Update
+			_, err = tx.Exec(`
+				UPDATE attendance_logs 
+				SET status=?, method='Manual' 
+				WHERE id=?
+			`, item.Status, logID)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Commit failed: " + err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"status": "success", "message": "Presensi berhasil disimpan"})
+}
+

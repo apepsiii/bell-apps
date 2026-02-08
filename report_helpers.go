@@ -85,7 +85,7 @@ func (a *App) queryDailyReport(date, reportType, classID string) ReportData {
 
 			// Count statistics
 			switch status.String {
-			case "Datang":
+			case "Datang", "Hadir":
 				data.TotalPresent++
 			case "Terlambat":
 				data.TotalLate++
@@ -129,7 +129,7 @@ func (a *App) queryPeriodReport(startDate, endDate, reportType, classID string) 
 	if reportType == "student" {
 		query = `
 			SELECT s.nis, s.name, c.name as class_name,
-			    SUM(CASE WHEN al.status = 'Datang' THEN 1 ELSE 0 END) as present,
+			    SUM(CASE WHEN al.status IN ('Datang', 'Hadir') THEN 1 ELSE 0 END) as present,
 			    SUM(CASE WHEN al.status = 'Terlambat' THEN 1 ELSE 0 END) as late,
 			    SUM(CASE WHEN al.status = 'Sakit' THEN 1 ELSE 0 END) as sick,
 			    SUM(CASE WHEN al.status = 'Izin' THEN 1 ELSE 0 END) as permission,
@@ -151,7 +151,7 @@ func (a *App) queryPeriodReport(startDate, endDate, reportType, classID string) 
 	} else {
 		query = `
 			SELECT st.nip, st.name, st.role,
-			    SUM(CASE WHEN al.status = 'Datang' THEN 1 ELSE 0 END) as present,
+			    SUM(CASE WHEN al.status IN ('Datang', 'Hadir') THEN 1 ELSE 0 END) as present,
 			    SUM(CASE WHEN al.status = 'Terlambat' THEN 1 ELSE 0 END) as late,
 			    SUM(CASE WHEN al.status = 'Sakit' THEN 1 ELSE 0 END) as sick,
 			    SUM(CASE WHEN al.status = 'Izin' THEN 1 ELSE 0 END) as permission,
