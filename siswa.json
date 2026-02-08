@@ -1,0 +1,1413 @@
+[
+    {
+        "type": "header",
+        "version": "5.2.2",
+        "comment": "Export to JSON plugin for PHPMyAdmin"
+    },
+    {
+        "type": "database",
+        "name": "smknibas_db_ci_presenceupdate"
+    },
+    {
+        "type": "table",
+        "name": "siswa",
+        "database": "smknibas_db_ci_presenceupdate",
+        "data": [
+            {
+                "id": "550",
+                "nisn": "2515254803",
+                "nama": "ABDULAH FATHUR RAHMAN ASSYAHIDIN",
+                "kelas": "XII-BDP",
+                "nama_wali": "SITI MUAWANAH",
+                "nomor_wali": "6281310783701",
+                "foto": "1746381270_806cec8b19a6d5e76ee9.jpg"
+            },
+            {
+                "id": "551",
+                "nisn": "2513121059",
+                "nama": "ADISTY RAHMANDA PUTRI",
+                "kelas": "XII-BDP",
+                "nama_wali": "Iman Supriatman",
+                "nomor_wali": "629512650988",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "552",
+                "nisn": "2512307523",
+                "nama": "ALYSHA DWI VANIA",
+                "kelas": "XII-BDP",
+                "nama_wali": "ROSITA ",
+                "nomor_wali": "6289610742595",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "553",
+                "nisn": "2511570915",
+                "nama": "AMANDA RIZYA AKBAR",
+                "kelas": "XII-BDP",
+                "nama_wali": "RITA LESTARI",
+                "nomor_wali": "62895320056561",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "554",
+                "nisn": "2512999395",
+                "nama": "ANZILNA NAURAL MUMTAZAH",
+                "kelas": "XII-BDP",
+                "nama_wali": "LAILYA MAFLUKHAH",
+                "nomor_wali": "628567955557",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "555",
+                "nisn": "4267654589",
+                "nama": "DANIEL KRISTOFEL ENRISSON HASIBUAN",
+                "kelas": "XII-BDP",
+                "nama_wali": "HENNY P.C.SINAGA",
+                "nomor_wali": "628176996456",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "556",
+                "nisn": "2513691955",
+                "nama": "ELPANI ROSDIANTI",
+                "kelas": "XII-BDP",
+                "nama_wali": "NENENG",
+                "nomor_wali": "6285863043357",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "557",
+                "nisn": "2511354419",
+                "nama": "FADHILLAH",
+                "kelas": "XII-BDP",
+                "nama_wali": "Daelami",
+                "nomor_wali": "6283872828514",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "558",
+                "nisn": "552965605",
+                "nama": "HELDES",
+                "kelas": "XII-BDP",
+                "nama_wali": "Eni",
+                "nomor_wali": "6285930269041",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "559",
+                "nisn": "2971005792",
+                "nama": "JELITA APRILIA PUTRI",
+                "kelas": "XII-BDP",
+                "nama_wali": "Yeyet Nuryati",
+                "nomor_wali": "6289541597079",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "560",
+                "nisn": "549119525",
+                "nama": "KEYLA AHMAD",
+                "kelas": "XII-BDP",
+                "nama_wali": "Devi Susriani",
+                "nomor_wali": "6283849546470",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "561",
+                "nisn": "2509419331",
+                "nama": "MAHDIYAH ZAHRA",
+                "kelas": "XII-BDP",
+                "nama_wali": "Ayu karmila",
+                "nomor_wali": "6287888188208",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "562",
+                "nisn": "2513055987",
+                "nama": "MAULANA YUSUF IBRAHIM",
+                "kelas": "XII-BDP",
+                "nama_wali": "DEDEH KURNIASIH",
+                "nomor_wali": "62895375729893",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "563",
+                "nisn": "2521384403",
+                "nama": "MOCHAMAD CIPTA ANUGRAH",
+                "kelas": "XII-BDP",
+                "nama_wali": "Citra asriana",
+                "nomor_wali": "628316073882",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "564",
+                "nisn": "2509411267",
+                "nama": "MOHAMAD JOVAN ERLANGGA",
+                "kelas": "XII-BDP",
+                "nama_wali": "EVA ROSEDIANA DEWI",
+                "nomor_wali": "6283133967799",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "565",
+                "nisn": "2514532035",
+                "nama": "MUHAMAD ADITYA ALFARIZI",
+                "kelas": "XII-BDP",
+                "nama_wali": "MARISAH",
+                "nomor_wali": "6285210158327",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "566",
+                "nisn": "2511763507",
+                "nama": "MUHAMAD IQBAL ALFARIZ",
+                "kelas": "XII-BDP",
+                "nama_wali": "SRI SUHARTINI ",
+                "nomor_wali": "0851",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "709",
+                "nisn": "222310313",
+                "nama": "HELENA SAFRIANTI",
+                "kelas": "XII-OTKP",
+                "nama_wali": "Hellesi Adnami",
+                "nomor_wali": "08132819021891",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "568",
+                "nisn": "2516596547",
+                "nama": "MUHAMMAD AZHAR NAWAWI",
+                "kelas": "XII-BDP",
+                "nama_wali": "SUMIRAT ",
+                "nomor_wali": "6285692025754",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "569",
+                "nisn": "2509700419",
+                "nama": "NENG TESSA",
+                "kelas": "XII-BDP",
+                "nama_wali": "Ajam",
+                "nomor_wali": "62838133442258",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "570",
+                "nisn": "2512157667",
+                "nama": "NURAINISA POETRI",
+                "kelas": "XII-BDP",
+                "nama_wali": "SUKAESIH",
+                "nomor_wali": "6285890296672",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "571",
+                "nisn": "2519069907",
+                "nama": "NURLAILIA",
+                "kelas": "XII-BDP",
+                "nama_wali": "MIMAH SAHIMAH",
+                "nomor_wali": "6283848490149",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "572",
+                "nisn": "2513903059",
+                "nama": "RAHELIA",
+                "kelas": "XII-BDP",
+                "nama_wali": "RATNA SUMINAR",
+                "nomor_wali": "6285892930291",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "573",
+                "nisn": "2514949587",
+                "nama": "RESA AGUSTINA",
+                "kelas": "XII-BDP",
+                "nama_wali": "NUNUNG",
+                "nomor_wali": "6283895457028",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "574",
+                "nisn": "2513462211",
+                "nama": "RIANTI ARDIANA PUTRI",
+                "kelas": "XII-BDP",
+                "nama_wali": "Adung syahrudin",
+                "nomor_wali": "6285694470881",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "575",
+                "nisn": "2970854784",
+                "nama": "SELVI AGNIA PUTRI",
+                "kelas": "ALUMNI",
+                "nama_wali": "LENI MARLINA",
+                "nomor_wali": "6285882406131",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "576",
+                "nisn": "2511701523",
+                "nama": "SITI ALISA",
+                "kelas": "XII-BDP",
+                "nama_wali": "SITI NURIPAH",
+                "nomor_wali": "6283105832057",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "577",
+                "nisn": "2513130291",
+                "nama": "SITI KURNIA SARI",
+                "kelas": "XII-BDP",
+                "nama_wali": "Luna silvia",
+                "nomor_wali": "6285779352519",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "578",
+                "nisn": "2517868563",
+                "nama": "SITI NURMAYANTI MAULIDINI",
+                "kelas": "XII-BDP",
+                "nama_wali": "Ipah",
+                "nomor_wali": "6283877379811",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "579",
+                "nisn": "2514576547",
+                "nama": "SRI HARYATI",
+                "kelas": "XII-BDP",
+                "nama_wali": "ATI ATIKAH",
+                "nomor_wali": "6289657221282",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "580",
+                "nisn": "2518782147",
+                "nama": "SYALMAN ALFARIZI",
+                "kelas": "XII-BDP",
+                "nama_wali": "Suhendar",
+                "nomor_wali": "6281315194533",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "581",
+                "nisn": "2507632947",
+                "nama": "ABIMAYU AURORA MARANTIKA",
+                "kelas": "XII-OTKP",
+                "nama_wali": "IBU EMI SUHAEMI",
+                "nomor_wali": "6281316185487",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "708",
+                "nisn": "222310301",
+                "nama": "ADINDA SARAH GUMATI",
+                "kelas": "XII-OTKP",
+                "nama_wali": "Sariwati",
+                "nomor_wali": "628131982978972",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "583",
+                "nisn": "2510685379",
+                "nama": "ANDINI YULISTIANINGSIH",
+                "kelas": "XII-OTKP",
+                "nama_wali": "IBU ICE IRIANAH",
+                "nomor_wali": "08985277370",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "584",
+                "nisn": "2512144883",
+                "nama": "AZKA AULIA",
+                "kelas": "XII-OTKP",
+                "nama_wali": "IBU SUMIATI",
+                "nomor_wali": "6285210158081",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "585",
+                "nisn": "2512952739",
+                "nama": "CYNDI GELANTIA STEFANIE",
+                "kelas": "XII-OTKP",
+                "nama_wali": "IBU ANGGI",
+                "nomor_wali": "62895388817700",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "586",
+                "nisn": "2507550627",
+                "nama": "DEA SALFA RAHMA",
+                "kelas": "XII-OTKP",
+                "nama_wali": "IBU NILA KUSUMA",
+                "nomor_wali": "6282142086157",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "587",
+                "nisn": "2511952691",
+                "nama": "DIFFA SETIA SANDRA KIRANA",
+                "kelas": "XII-OTKP",
+                "nama_wali": "IBU SULASTRI",
+                "nomor_wali": "6289523008269",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "588",
+                "nisn": "2513586099",
+                "nama": "EFVRYLLIA SALSABILA",
+                "kelas": "XII-OTKP",
+                "nama_wali": "IBU FITRI YANI",
+                "nomor_wali": "6289523008269",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "589",
+                "nisn": "2510903827",
+                "nama": "ERGI AULIANDRA",
+                "kelas": "XII-OTKP",
+                "nama_wali": "IBU SARI NURJANAH",
+                "nomor_wali": "6285875400478",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "590",
+                "nisn": "2513638979",
+                "nama": "ERINA DAANYA AMELIA",
+                "kelas": "XII-OTKP",
+                "nama_wali": "AANG HAYATI",
+                "nomor_wali": "6285212631213",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "591",
+                "nisn": "2507439443",
+                "nama": "FAIZ FATHUL ISLAM",
+                "kelas": "XII-OTKP",
+                "nama_wali": "IBU TIENI ISWARNI ",
+                "nomor_wali": "6289518751979",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "592",
+                "nisn": "2514599763",
+                "nama": "GAGAS SUPRIATNA PUTRA",
+                "kelas": "XII-OTKP",
+                "nama_wali": "IBU EEN YULIA ",
+                "nomor_wali": "6283183638615",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "593",
+                "nisn": "2515224611",
+                "nama": "M. ABDUL KARIM DZULHIAGA",
+                "kelas": "XII-OTKP",
+                "nama_wali": "IBU WITA ANISA SEPTIAGA",
+                "nomor_wali": "6281574275798",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "594",
+                "nisn": "2510755011",
+                "nama": "MOHAMAD VIZRI ZAELANI",
+                "kelas": "XII-OTKP",
+                "nama_wali": "IBU NURAENI",
+                "nomor_wali": "6283893159472",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "595",
+                "nisn": "2511805427",
+                "nama": "MUHAMAD ARIF RAMDANI",
+                "kelas": "XII-OTKP",
+                "nama_wali": "IBU HANNA MUNTAHANAH",
+                "nomor_wali": "6282310767760",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "596",
+                "nisn": "2509995667",
+                "nama": "MUHAMAD IKBAL NUR IMAN",
+                "kelas": "XII-OTKP",
+                "nama_wali": "IBU TITIN PATIMAH",
+                "nomor_wali": "6285780985052",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "597",
+                "nisn": "2511394547",
+                "nama": "MUHAMAD RAIHAN FARISAL",
+                "kelas": "XII-OTKP",
+                "nama_wali": "IBU SUSI SULISTIANAWATY",
+                "nomor_wali": "6289517445595",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "598",
+                "nisn": "2511398803",
+                "nama": "MUHAMAD SAEPUL RIZKI",
+                "kelas": "XII-OTKP",
+                "nama_wali": "IBU SITI JENAB",
+                "nomor_wali": "62895320463532",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "599",
+                "nisn": "2513899635",
+                "nama": "NABILA NADIA ERNAS",
+                "kelas": "XII-OTKP",
+                "nama_wali": "IBU ERNI MARYANI",
+                "nomor_wali": "62895385841243",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "600",
+                "nisn": "2513272227",
+                "nama": "NABILA ZALWA OKTAVIANI",
+                "kelas": "XII-OTKP",
+                "nama_wali": "IBU ARYANTI",
+                "nomor_wali": "6282124900801",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "601",
+                "nisn": "552870533",
+                "nama": "NAZWA NAULIA PUTRI",
+                "kelas": "XII-OTKP",
+                "nama_wali": "IBU ITA ROSITA",
+                "nomor_wali": "6285748752381",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "602",
+                "nisn": "2511356867",
+                "nama": "PUTRI MARYANTI",
+                "kelas": "XII-OTKP",
+                "nama_wali": "IBU UNAR JUNIARSIH",
+                "nomor_wali": "6283872822039",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "605",
+                "nisn": "2507533827",
+                "nama": "SALMA DESFANIA AZ ZAHRA",
+                "kelas": "XII-OTKP",
+                "nama_wali": "IBU WAWAT HERAWATI",
+                "nomor_wali": "6289663611012",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "606",
+                "nisn": "2519210851",
+                "nama": "SELA JULIANTI",
+                "kelas": "XII-OTKP",
+                "nama_wali": "JUBAEDAH ",
+                "nomor_wali": "6281293755188",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "607",
+                "nisn": "2513414755",
+                "nama": "SITI FANIYAH",
+                "kelas": "XII-OTKP",
+                "nama_wali": "IBU ASIH HERNAWATI",
+                "nomor_wali": "6285894861643",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "608",
+                "nisn": "2511552227",
+                "nama": "SYIFA AULIA",
+                "kelas": "XII-OTKP",
+                "nama_wali": "IBU DEDEH KURNIASIH",
+                "nomor_wali": "6281287916620",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "609",
+                "nisn": "2514577923",
+                "nama": "TEGUH IRWANSYAH",
+                "kelas": "XII-OTKP",
+                "nama_wali": "BAPAK WAWAN GUNAWAN",
+                "nomor_wali": "6281997317797",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "610",
+                "nisn": "2509894387",
+                "nama": "TIA NURDIANTI",
+                "kelas": "XII-OTKP",
+                "nama_wali": "IBU DEDE HERLIAH",
+                "nomor_wali": "6281401786380",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "611",
+                "nisn": "4267792717",
+                "nama": "ADNAN MUHAMMAD ABDULLAH",
+                "kelas": "XI-OTKP",
+                "nama_wali": "BADRIAH",
+                "nomor_wali": "6285890198663",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "612",
+                "nisn": "2970990624",
+                "nama": "AMANDA DINAR",
+                "kelas": "XI-OTKP",
+                "nama_wali": "CHRISTINE NATALIA",
+                "nomor_wali": "6283879736504",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "613",
+                "nisn": "2971077488",
+                "nama": "ELVIRA AZZAHRA",
+                "kelas": "XI-OTKP",
+                "nama_wali": "DEDE NANI",
+                "nomor_wali": "6289521070418",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "614",
+                "nisn": "4268865693",
+                "nama": "LAILA RAMADANI",
+                "kelas": "XI-OTKP",
+                "nama_wali": "JULAEHA",
+                "nomor_wali": "6285175429180",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "615",
+                "nisn": "4267571757",
+                "nama": "LINA ANGGRAENI",
+                "kelas": "XI-OTKP",
+                "nama_wali": "TUKKIMIN DIAN WAHYUNI",
+                "nomor_wali": "6287820783587",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "617",
+                "nisn": "4268764973",
+                "nama": "MUHAMAD RAKHA SETIAWAN",
+                "kelas": "XI-OTKP",
+                "nama_wali": "FIKKI SETIAWAN",
+                "nomor_wali": "62895423035325",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "618",
+                "nisn": "4267936877",
+                "nama": "MUHAMMAD RIJAL",
+                "kelas": "XI-OTKP",
+                "nama_wali": "ICAH WAWATI",
+                "nomor_wali": "62895355313754",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "619",
+                "nisn": "4267839821",
+                "nama": "MUHAMMAD RIZKY PENWAR",
+                "kelas": "XI-OTKP",
+                "nama_wali": "ABDUL KADIR",
+                "nomor_wali": "62895320083453",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "620",
+                "nisn": "4267630909",
+                "nama": "MUHAMMAD SYAHRUL PRATAMA",
+                "kelas": "XI-OTKP",
+                "nama_wali": "INDAH SUSANTI",
+                "nomor_wali": "628976390560",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "621",
+                "nisn": "4268516381",
+                "nama": "NUR FAIDAH",
+                "kelas": "XI-OTKP",
+                "nama_wali": "YATI",
+                "nomor_wali": "6287830193347",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "622",
+                "nisn": "4267665597",
+                "nama": "PUTRI MELATI",
+                "kelas": "XI-OTKP",
+                "nama_wali": "FAJAR",
+                "nomor_wali": "6289638271413",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "623",
+                "nisn": "2973541296",
+                "nama": "RISKA CAHYA ANJANI",
+                "kelas": "XI-OTKP",
+                "nama_wali": "SITI WAHIDAH",
+                "nomor_wali": "628979258677",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "711",
+                "nisn": "222310342",
+                "nama": "HESTI SURAYA NINGSIH",
+                "kelas": "XII-BDP",
+                "nama_wali": "HILMI HESTIAH",
+                "nomor_wali": "6281912907234",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "625",
+                "nisn": "2956973696",
+                "nama": "SARAH AMELIA",
+                "kelas": "XI-OTKP",
+                "nama_wali": "SARIPUDIN",
+                "nomor_wali": "6289513261872",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "626",
+                "nisn": "2970698832",
+                "nama": "SEPTI RAMADHANI",
+                "kelas": "XI-OTKP",
+                "nama_wali": "YAYU RAHAYU",
+                "nomor_wali": "62895349003165",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "627",
+                "nisn": "2970661552",
+                "nama": "SERLI CAHYA NURDINI",
+                "kelas": "XI-OTKP",
+                "nama_wali": "NINING",
+                "nomor_wali": "6285894105820",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "629",
+                "nisn": "2970906832",
+                "nama": "SITI FATIMAH AZ-ZAHRA",
+                "kelas": "XI-OTKP",
+                "nama_wali": "UJANG SOPARI",
+                "nomor_wali": "6285780259547",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "630",
+                "nisn": "2956391200",
+                "nama": "SITI HABIBAH",
+                "kelas": "XI-OTKP",
+                "nama_wali": "SITI JUARSIH",
+                "nomor_wali": "6285714918679",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "631",
+                "nisn": "2970746720",
+                "nama": "SITI LUTFIAH NUR SAWILYAH",
+                "kelas": "XI-OTKP",
+                "nama_wali": "MARYANI",
+                "nomor_wali": "6285693553785",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "632",
+                "nisn": "2971273952",
+                "nama": "SITI NUR THALITA",
+                "kelas": "XI-OTKP",
+                "nama_wali": "KIAH",
+                "nomor_wali": "6283133327899",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "633",
+                "nisn": "2971266224",
+                "nama": "SITI SALMA AZKIA",
+                "kelas": "XI-OTKP",
+                "nama_wali": "RIKA SUSILAWATI",
+                "nomor_wali": "6289654353115",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "634",
+                "nisn": "2970984864",
+                "nama": "SYALWA AS SAEFU ROMADONA",
+                "kelas": "XI-OTKP",
+                "nama_wali": "SAEPUDIN",
+                "nomor_wali": "6283840901207",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "635",
+                "nisn": "2971134512",
+                "nama": "TEDDY RAHMAT SUPRIATNA",
+                "kelas": "XI-OTKP",
+                "nama_wali": "ALIYAH",
+                "nomor_wali": "6283815553204",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "636",
+                "nisn": "2971112192",
+                "nama": "VEGA AULIA",
+                "kelas": "XI-OTKP",
+                "nama_wali": "NENENG",
+                "nomor_wali": "62851710864382",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "637",
+                "nisn": "4267729837",
+                "nama": "ZAHRA KAMILA WIJAYA",
+                "kelas": "XI-OTKP",
+                "nama_wali": "JAYA",
+                "nomor_wali": "6285814137273",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "638",
+                "nisn": "4267892717",
+                "nama": "ZAHRA ZASKI AULIA",
+                "kelas": "XI-OTKP",
+                "nama_wali": "ADE SUGANDA",
+                "nomor_wali": "6283813586436",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "639",
+                "nisn": "4267796637",
+                "nama": "AFRIL NUR ASSYIFA",
+                "kelas": "XI-BDP",
+                "nama_wali": "ATIN SOFYAN",
+                "nomor_wali": "6285710744721",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "640",
+                "nisn": "2970675168",
+                "nama": "AGISTY SULISTIYU",
+                "kelas": "XI-BDP",
+                "nama_wali": "YULI AGUSTINI",
+                "nomor_wali": "6285717033320",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "641",
+                "nisn": "4267701533",
+                "nama": "AJENG AYUNI PUTRI",
+                "kelas": "XI-BDP",
+                "nama_wali": "YENI ROYANI",
+                "nomor_wali": "6283811198359",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "642",
+                "nisn": "2970977792",
+                "nama": "ALVIANSYAH PRIASETYA NAZAR",
+                "kelas": "XI-BDP",
+                "nama_wali": "ALVIN LEE NAZAR",
+                "nomor_wali": "6285888315340",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "643",
+                "nisn": "2970861920",
+                "nama": "ANANDA ASRI RAMADANTI",
+                "kelas": "XI-BDP",
+                "nama_wali": "RINI KARTINI",
+                "nomor_wali": "6285694801992",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "645",
+                "nisn": "2970371472",
+                "nama": "ANNISA NUR FEBRIYANTY",
+                "kelas": "XI-BDP",
+                "nama_wali": "ETI ROHATI",
+                "nomor_wali": "6285888414432",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "646",
+                "nisn": "2970365152",
+                "nama": "AZKIA NURUL FAJARI",
+                "kelas": "XI-BDP",
+                "nama_wali": "ANITA",
+                "nomor_wali": "6285811933703",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "647",
+                "nisn": "2970994384",
+                "nama": "CLARA ANNA AGUSTINA",
+                "kelas": "XI-BDP",
+                "nama_wali": "YANI SUMIYATI",
+                "nomor_wali": "6282111572322",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "648",
+                "nisn": "4268612013",
+                "nama": "DEASI CAHYANI",
+                "kelas": "XI-BDP",
+                "nama_wali": "SUPRIYATTIH",
+                "nomor_wali": "6289611498290",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "649",
+                "nisn": "2970284752",
+                "nama": "DESWA ADHANI",
+                "kelas": "XI-BDP",
+                "nama_wali": "YULIANTI",
+                "nomor_wali": "6288975917869",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "650",
+                "nisn": "2970925024",
+                "nama": "FAKHRI DWIANDRA MAULANDI",
+                "kelas": "XI-BDP",
+                "nama_wali": "MAMUNG",
+                "nomor_wali": "6289518394956",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "651",
+                "nisn": "549167989",
+                "nama": "HESTINAH",
+                "kelas": "XI-BDP",
+                "nama_wali": "IPAH",
+                "nomor_wali": "6283876901016",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "652",
+                "nisn": "2970943216",
+                "nama": "INDAH MAYANG SARI",
+                "kelas": "XI-BDP",
+                "nama_wali": "LILIS MARYANI",
+                "nomor_wali": "6285710654610",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "653",
+                "nisn": "4267839837",
+                "nama": "MUHAMAD ABIDIN",
+                "kelas": "XI-BDP",
+                "nama_wali": "OMA",
+                "nomor_wali": "6281389916982",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "654",
+                "nisn": "4267662685",
+                "nama": "MUHAMAD IHSAN",
+                "kelas": "XI-BDP",
+                "nama_wali": "ICHWAN SUWANDI",
+                "nomor_wali": "6283811296004",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "655",
+                "nisn": "4267718557",
+                "nama": "MUHAMAD NUR WAHYU",
+                "kelas": "XI-BDP",
+                "nama_wali": "NUR",
+                "nomor_wali": "6285445958020",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "656",
+                "nisn": "552846421",
+                "nama": "MUTIA SABILA",
+                "kelas": "XI-BDP",
+                "nama_wali": "SAPPUDIN",
+                "nomor_wali": "6283856440394",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "657",
+                "nisn": "4267911501",
+                "nama": "MOH. VICKY FIRANSYA",
+                "kelas": "XI-BDP",
+                "nama_wali": "WAWAN KURNIAWAN",
+                "nomor_wali": "6285718647528",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "658",
+                "nisn": "4267716509",
+                "nama": "NATASYA PUTRI",
+                "kelas": "XI-BDP",
+                "nama_wali": "NATA SASMITA",
+                "nomor_wali": "6285718105141",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "659",
+                "nisn": "4268593949",
+                "nama": "NAYSYILA HERAWATI",
+                "kelas": "XI-BDP",
+                "nama_wali": "HURAINI",
+                "nomor_wali": "6283894965160",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "660",
+                "nisn": "4267749965",
+                "nama": "PUTRI FAIHA AL - ROJAK",
+                "kelas": "XI-BDP",
+                "nama_wali": "JERI OJAK SETIAWAN",
+                "nomor_wali": "628381866606",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "661",
+                "nisn": "2971126944",
+                "nama": "SITI NUR FADILLA",
+                "kelas": "XI-BDP",
+                "nama_wali": "M.HERMAWAN",
+                "nomor_wali": "6282311448345",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "662",
+                "nisn": "4268575341",
+                "nama": "TRISA APRILIA PUTRI",
+                "kelas": "XI-BDP",
+                "nama_wali": "SANTI ELAWATI ",
+                "nomor_wali": "629603960429",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "663",
+                "nisn": "2970652432",
+                "nama": "VISKA CANTIKA",
+                "kelas": "XI-BDP",
+                "nama_wali": "ALAM SARI ",
+                "nomor_wali": "6285711903628",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "664",
+                "nisn": "2970888032",
+                "nama": "YUDISTI ZETIRA RAMADAN",
+                "kelas": "XI-BDP",
+                "nama_wali": "SRI SUMASTINI",
+                "nomor_wali": "6285719340689",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "665",
+                "nisn": "4267849741",
+                "nama": "ZAHRA ABDULLAH",
+                "kelas": "XI-BDP",
+                "nama_wali": "MARIANAH",
+                "nomor_wali": "6283189962174",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "666",
+                "nisn": "2959012784",
+                "nama": "ZAQI MUHAMAD AKBAR",
+                "kelas": "XI-BDP",
+                "nama_wali": "IMAS",
+                "nomor_wali": "6281288463741",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "667",
+                "nisn": "4268751693",
+                "nama": "ZIDAN MAULIDAN",
+                "kelas": "XI-BDP",
+                "nama_wali": "RIANI HANDAYANI",
+                "nomor_wali": "6285710308629",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "668",
+                "nisn": "3730162260",
+                "nama": "ADJMA NURPIRDA",
+                "kelas": "X-MPLB",
+                "nama_wali": "IBU ERNI",
+                "nomor_wali": "6285891695321",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "669",
+                "nisn": "3729794356",
+                "nama": "AGIESKHA VIANA SIAMY",
+                "kelas": "X-MPLB",
+                "nama_wali": "IBU NENENG",
+                "nomor_wali": "6285281021740",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "670",
+                "nisn": "550791109",
+                "nama": "ALISA APRIL YANTI",
+                "kelas": "X-MPLB",
+                "nama_wali": "MOHTAR ",
+                "nomor_wali": "6289694866668",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "671",
+                "nisn": "553069077",
+                "nama": "ANGGYA ESA MAULIDA",
+                "kelas": "X-MPLB",
+                "nama_wali": "SUPIAH",
+                "nomor_wali": "6285693813207",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "672",
+                "nisn": "552675301",
+                "nama": "DEA CITRA APRILIA",
+                "kelas": "X-MPLB",
+                "nama_wali": "ANI",
+                "nomor_wali": "6289505746755",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "673",
+                "nisn": "553089493",
+                "nama": "DENIS MUHAMAD RISQI",
+                "kelas": "X-MPLB",
+                "nama_wali": "LILIM ",
+                "nomor_wali": "628995768152",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "674",
+                "nisn": "549171909",
+                "nama": "MAUDI ANUGRAH HEKSA PUTRI",
+                "kelas": "X-MPLB",
+                "nama_wali": "IBU ENTIN",
+                "nomor_wali": "6281802047662",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "675",
+                "nisn": "549191557",
+                "nama": "MELLA ROSE",
+                "kelas": "X-MPLB",
+                "nama_wali": "IBU MERRY ",
+                "nomor_wali": "6281513915893",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "676",
+                "nisn": "548948613",
+                "nama": "NURI MAULIDA",
+                "kelas": "X-MPLB",
+                "nama_wali": "IBU SITI HASANAH ",
+                "nomor_wali": "6283194413613",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "677",
+                "nisn": "550443845",
+                "nama": "SASKIA AQILA KAADZIYAH",
+                "kelas": "X-MPLB",
+                "nama_wali": "IBU SITI",
+                "nomor_wali": "6281380268110",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "678",
+                "nisn": "551111301",
+                "nama": "SHIFFA APRILIA",
+                "kelas": "X-MPLB",
+                "nama_wali": "IBU DESI ",
+                "nomor_wali": "6283808767732",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "679",
+                "nisn": "551580789",
+                "nama": "SITI ASTRI APSIAH",
+                "kelas": "X-MPLB",
+                "nama_wali": "IBU RIKA ",
+                "nomor_wali": "6289503138875",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "680",
+                "nisn": "551226949",
+                "nama": "SITI DELA DAVINA RAMADHANI",
+                "kelas": "X-MPLB",
+                "nama_wali": "BAPAK DANI",
+                "nomor_wali": "6283192632433",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "681",
+                "nisn": "551168133",
+                "nama": "TASSYA NURMAENI",
+                "kelas": "X-MPLB",
+                "nama_wali": "IBU ENI",
+                "nomor_wali": "6285770194977",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "682",
+                "nisn": "551371365",
+                "nama": "TAUFIK RAU'UF ERYADI",
+                "kelas": "X-MPLB",
+                "nama_wali": "IBU RAHAYU",
+                "nomor_wali": "62895355354174",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "683",
+                "nisn": "548084453",
+                "nama": "UMAR SUBAGYA SUBARKAH",
+                "kelas": "X-MPLB",
+                "nama_wali": "ANDI SUGANDI",
+                "nomor_wali": "6285714052828",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "684",
+                "nisn": "3772860212",
+                "nama": "WINDI MEIDI",
+                "kelas": "X-MPLB",
+                "nama_wali": "VINA OKTAVIANI",
+                "nomor_wali": "6281399791064",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "685",
+                "nisn": "549360453",
+                "nama": "AZAHRA ADELIA PUTRI",
+                "kelas": "X-PM",
+                "nama_wali": "NAMA WALI",
+                "nomor_wali": "0887",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "686",
+                "nisn": "551072933",
+                "nama": "DELLIA OCTHAVIANI",
+                "kelas": "X-PM",
+                "nama_wali": "NAMA WALI",
+                "nomor_wali": "0888",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "687",
+                "nisn": "552602565",
+                "nama": "DESWITA PUTRI ANGGRAENI",
+                "kelas": "X-PM",
+                "nama_wali": "NAMA WALI",
+                "nomor_wali": "0889",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "688",
+                "nisn": "552640965",
+                "nama": "FITRI SETIAWAN",
+                "kelas": "X-PM",
+                "nama_wali": "NAMA WALI",
+                "nomor_wali": "0890",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "689",
+                "nisn": "553042661",
+                "nama": "INGGRIT NURGRITA SARI",
+                "kelas": "X-PM",
+                "nama_wali": "NAMA WALI",
+                "nomor_wali": "0891",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "690",
+                "nisn": "552868901",
+                "nama": "INKA SINTYA MAYLAIKA",
+                "kelas": "X-PM",
+                "nama_wali": "NAMA WALI",
+                "nomor_wali": "0892",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "691",
+                "nisn": "548986965",
+                "nama": "KEVIN ARYANSYAH",
+                "kelas": "X-PM",
+                "nama_wali": "NAMA WALI",
+                "nomor_wali": "0893",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "692",
+                "nisn": "549192053",
+                "nama": "MAYA DEFRIANTI",
+                "kelas": "X-PM",
+                "nama_wali": "NAMA WALI",
+                "nomor_wali": "0894",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "693",
+                "nisn": "548702405",
+                "nama": "MUTIARA HANDAYANI",
+                "kelas": "X-PM",
+                "nama_wali": "NAMA WALI",
+                "nomor_wali": "0895",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "694",
+                "nisn": "551578325",
+                "nama": "NOURI NASHIRA",
+                "kelas": "X-PM",
+                "nama_wali": "NAMA WALI",
+                "nomor_wali": "0896",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "695",
+                "nisn": "548539717",
+                "nama": "SALSABILA",
+                "kelas": "X-PM",
+                "nama_wali": "NAMA WALI",
+                "nomor_wali": "0897",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "696",
+                "nisn": "548678293",
+                "nama": "SANDYRA CENDANA JATI. P",
+                "kelas": "X-PM",
+                "nama_wali": "NAMA WALI",
+                "nomor_wali": "0898",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "697",
+                "nisn": "549291093",
+                "nama": "SEPTIAN RISKI",
+                "kelas": "X-PM",
+                "nama_wali": "NAMA WALI",
+                "nomor_wali": "0899",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "698",
+                "nisn": "551176181",
+                "nama": "SHILVA RAMADHANI",
+                "kelas": "X-PM",
+                "nama_wali": "NAMA WALI",
+                "nomor_wali": "0900",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "699",
+                "nisn": "551251733",
+                "nama": "SITI JULIANISA PUTRI",
+                "kelas": "X-PM",
+                "nama_wali": "NAMA WALI",
+                "nomor_wali": "0901",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "700",
+                "nisn": "550747285",
+                "nama": "SITI MELATI",
+                "kelas": "X-PM",
+                "nama_wali": "NAMA WALI",
+                "nomor_wali": "0902",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "702",
+                "nisn": "2514604099",
+                "nama": "SITI ZAHRA MUSLIANI",
+                "kelas": "XII-OTKP",
+                "nama_wali": "Nama Wali",
+                "nomor_wali": "628121",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "703",
+                "nisn": "548539541",
+                "nama": "RASHIED UMAR RAZIEB",
+                "kelas": "XII-OTKP",
+                "nama_wali": "DEDE HERLIAH",
+                "nomor_wali": "6285888666720",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "704",
+                "nisn": "549187941",
+                "nama": "M. HILMAN MAULANA",
+                "kelas": "XI-OTKP",
+                "nama_wali": "S. SANJAYA",
+                "nomor_wali": "6285881036291",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "705",
+                "nisn": "548273589",
+                "nama": "FEBIYANTI",
+                "kelas": "XI-OTKP",
+                "nama_wali": "JURIAH",
+                "nomor_wali": "6289670099163",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "706",
+                "nisn": "2510886675",
+                "nama": "RAHMAH NURMILAH SARI",
+                "kelas": "XII-OTKP",
+                "nama_wali": "Wali ",
+                "nomor_wali": "62813090291",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "710",
+                "nisn": "222310314",
+                "nama": "IRFAN",
+                "kelas": "XII-OTKP",
+                "nama_wali": "IRNAWATI",
+                "nomor_wali": "0812121212",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "713",
+                "nisn": "222310358",
+                "nama": "RIFA RASIYA",
+                "kelas": "XII-BDP",
+                "nama_wali": "RIANTI SYARIA",
+                "nomor_wali": "628102819378",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "715",
+                "nisn": "232410376",
+                "nama": "MEYSIE AYU ANGGRIANI",
+                "kelas": "XI-OTKP",
+                "nama_wali": "REYGI ABDULFAJAR",
+                "nomor_wali": "",
+                "foto": "nopic.png"
+            },
+            {
+                "id": "716",
+                "nisn": "232410388",
+                "nama": "SHIRREN APRILIA WAHYUDI",
+                "kelas": "XI-OTKP",
+                "nama_wali": "SARI SUNARDI",
+                "nomor_wali": "",
+                "foto": "nopic.png"
+            }
+        ]
+    }
+]

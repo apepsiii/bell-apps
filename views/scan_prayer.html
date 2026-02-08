@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="id">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Absensi Sholat</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script src="https://unpkg.com/lucide@latest"></script>
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap');
+
+            body {
+                font-family: 'Inter', sans-serif;
+            }
+
+            .mono {
+                font-family: 'JetBrains Mono', monospace;
+            }
+
+            /* Glassmorphism */
+            .glass {
+                background: rgba(255, 255, 255, 0.05);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+
+            /* Animations */
+            @keyframes scaleIn {
+                from {
+                    transform: scale(0.8);
+                    opacity: 0;
+                }
+
+                to {
+                    transform: scale(1);
+                    opacity: 1;
+                }
+            }
+
+            .animate-scaleIn {
+                animation: scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+
+            /* Pulse ring */
+            .pulse-ring {
+                animation: pulse 2s infinite;
+            }
+
+            @keyframes pulse {
+
+                0%,
+                100% {
+                    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+                }
+
+                50% {
+                    box-shadow: 0 0 0 20px rgba(16, 185, 129, 0);
+                }
+            }
+
+            /* Islamic Pattern Background */
+            .bg-islamic {
+                background-color: #064e3b;
+                background-image:
+                    radial-gradient(circle at 100% 100%, rgba(255, 255, 255, 0.05) 15%, transparent 16%),
+                    radial-gradient(circle at 0 0, rgba(255, 255, 255, 0.05) 15%, transparent 16%),
+                    radial-gradient(circle at 100% 0, rgba(255, 255, 255, 0.05) 15%, transparent 16%),
+                    radial-gradient(circle at 0 100%, rgba(255, 255, 255, 0.05) 15%, transparent 16%);
+                background-size: 60px 60px;
+            }
+        </style>
+    </head>
+
+    <body class="bg-islamic text-white h-screen overflow-hidden flex transition-all duration-700" id="main-body">
+
+        <!-- Statistics Sidebar -->
+        <div class="w-80 p-6 glass border-r border-white/10 flex flex-col gap-4">
+
+            <!-- Mode Switcher -->
+            <div class="flex p-1 bg-black/20 rounded-lg mb-2">
+                <a href="/scan" id="btn-mode-presence"
+                    class="flex-1 py-2 text-center text-xs font-bold rounded-md transition-all text-slate-400 hover:text-white">
+                    PRESENSI
+                </a>
+                <a href="/scan-sholat" id="btn-mode-prayer"
+                    class="flex-1 py-2 text-center text-xs font-bold rounded-md transition-all bg-white text-emerald-900 shadow-md">
+                    SHOLAT
+                </a>
+            </div>
+
+            <div class="text-center mb-4">
+                <h2 class="text-xl font-bold mb-1">Jadwal Sholat</h2>
+                <p id="stats-date" class="text-sm text-slate-400 mono"></p>
+            </div>
+
+            <!-- Prayer Time Highlight -->
+            <div class="glass rounded-2xl p-6 text-center border-emerald-500/30">
+                <div class="w-20 h-20 mx-auto mb-3 bg-emerald-500/20 rounded-full flex items-center justify-center">
+                    <i data-lucide="moon" class="w-10 h-10 text-emerald-400"></i>
+                </div>
+                <h3 id="next-prayer-name" class="text-2xl font-bold text-emerald-400">DZUHUR</h3>
+                <p id="next-prayer-time" class="text-lg font-mono mt-1">12:00 WIB</p>
+                <p class="text-xs text-slate-400 mt-2">Waktu sholat berikutnya</p>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 gap-3">
+                <div class="glass rounded-xl p-4 flex items-center justify-between">
+                    <div>
+                        <div class="text-xs text-slate-400">Total Jamaah</div>
+                        <div id="prayer-count" class="text-2xl font-bold text-emerald-400">0</div>
+                    </div>
+                    <div class="w-10 h-10 bg-emerald-500/10 rounded-lg flex items-center justify-center">
+                        <i data-lucide="users" class="w-5 h-5 text-emerald-400"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass rounded-xl p-4 mt-auto">
+                <p class="text-xs text-center text-emerald-200/60 italic">
+                    "Sesungguhnya shalat itu adalah fardhu yang ditentukan waktunya atas orang-orang yang beriman."
+                </p>
+                <p class="text-[10px] text-center text-emerald-200/40 mt-1">(QS. An-Nisa: 103)</p>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col">
+            <!-- Clock Header -->
+            <div class="p-6 text-right">
+                <div id="clock-time" class="text-5xl font-black mono tracking-wider">00:00:00</div>
+                <div id="clock-date" class="text-slate-400 font-medium text-lg mt-1">Senin, 1 Januari 2025</div>
+            </div>
+
+            <!-- Main Card -->
+            <div class="flex-1 flex items-center justify-center p-6">
+                <div class="w-full max-w-2xl">
+                    <h1
+                        class="text-4xl font-bold mb-2 text-center bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent transition-all duration-500">
+                        ABSENSI SHOLAT
+                    </h1>
+                    <p class="text-slate-400 mb-8 text-center" id="subtitle-msg">Silakan tempel kartu untuk mencatat
+                        kehadiran sholat</p>
+
+                    <!-- Hidden Input -->
+                    <input type="text" id="rfid-input" class="opacity-0 absolute top-0 left-0 w-0 h-0"
+                        autocomplete="off" autofocus>
+
+                    <!-- Status Card -->
+                    <div id="status-card" class="glass rounded-3xl p-12 shadow-2xl transition-all duration-300">
+
+                        <!-- Idle State -->
+                        <div id="state-idle">
+                            <div id="icon-container"
+                                class="w-40 h-40 bg-emerald-500/20 rounded-full mx-auto flex items-center justify-center mb-6 pulse-ring transition-colors duration-500">
+                                <i data-lucide="scan-line" class="w-20 h-20 text-emerald-400" id="icon-idle"></i>
+                            </div>
+                            <h2 class="text-3xl font-bold text-center">Menunggu Kartu...</h2>
+                        </div>
+
+                        <!-- Loading State -->
+                        <div id="state-loading" class="hidden">
+                            <div class="w-40 h-40 mx-auto mb-6 flex items-center justify-center">
+                                <div
+                                    class="w-20 h-20 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin">
+                                </div>
+                            </div>
+                            <h2 class="text-3xl font-bold text-center text-emerald-400">Memproses...</h2>
+                        </div>
+
+                        <!-- Success State -->
+                        <div id="state-success" class="hidden">
+                            <div id="photo-container"
+                                class="w-40 h-40 bg-green-500/20 rounded-full mx-auto flex items-center justify-center mb-6 border-4 border-green-500 overflow-hidden">
+                                <i data-lucide="check" class="w-20 h-20 text-green-500" id="default-icon"></i>
+                                <img id="student-photo" src="" class="w-full h-full object-cover hidden">
+                            </div>
+                            <h2 id="success-name" class="text-5xl font-black text-center mb-3">NAMA SISWA</h2>
+                            <div class="flex items-center justify-center gap-4 mb-4">
+                                <span id="success-identity" class="text-lg text-slate-300 mono"></span>
+                                <span id="success-class"
+                                    class="px-3 py-1 bg-emerald-500/20 text-emerald-300 rounded-lg text-sm font-medium"></span>
+                            </div>
+                            <div class="inline-block px-6 py-3 rounded-xl bg-green-500/20 text-green-400 font-bold text-2xl uppercase tracking-wider mx-auto block text-center"
+                                id="success-status">
+                                BERHASIL
+                            </div>
+                            <p class="text-slate-400 mt-6 mono text-center text-xl" id="success-time">07:05:00</p>
+                        </div>
+
+                        <!-- Error State -->
+                        <div id="state-error" class="hidden">
+                            <div
+                                class="w-40 h-40 bg-red-500/20 rounded-full mx-auto flex items-center justify-center mb-6 border-4 border-red-500">
+                                <i data-lucide="x" class="w-20 h-20 text-red-500"></i>
+                            </div>
+                            <h2 id="error-title" class="text-4xl font-bold text-center mb-3">GAGAL</h2>
+                            <p id="error-msg" class="text-red-400 text-lg text-center">Silakan hubungi Admin</p>
+                        </div>
+
+                    </div>
+
+                    <!-- Recent Logs -->
+                    <div class="mt-8">
+                        <h3 class="text-lg font-bold mb-4 text-center text-emerald-200">Terakhir Scan Sholat</h3>
+                        <div id="recent-logs" class="grid grid-cols-5 gap-3">
+                            <!-- Loading state -->
+                            <div class="col-span-5 text-center text-slate-500 text-sm">Memuat...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            lucide.createIcons();
+
+            // --- Clock ---
+            function updateClock() {
+                const now = new Date();
+                document.getElementById('clock-time').innerText = now.toLocaleTimeString('id-ID', { hour12: false });
+                document.getElementById('clock-date').innerText = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                document.getElementById('stats-date').innerText = now.toLocaleDateString('id-ID');
+            }
+            setInterval(updateClock, 1000);
+            updateClock();
+
+            // --- Determine Next Prayer (Logic placeholder) ---
+            function updateNextPrayer() {
+                const now = new Date();
+                const hour = now.getHours();
+                // Simple logic: < 15:00 = Dzuhur, else Ashar
+                const titleEl = document.getElementById('next-prayer-name');
+                const timeEl = document.getElementById('next-prayer-time');
+
+                if (titleEl && timeEl) {
+                    if (hour < 15) {
+                        titleEl.innerText = "DZUHUR";
+                        timeEl.innerText = "12:00 WIB";
+                    } else {
+                        titleEl.innerText = "ASHAR";
+                        timeEl.innerText = "15:15 WIB";
+                    }
+                }
+            }
+            updateNextPrayer();
+
+
+            // --- Recent Logs (Prayer Only) ---
+            async function fetchPrayerLogs() {
+                try {
+                    const res = await fetch('/api/attendance/prayer-logs');
+                    const logs = await res.json();
+
+                    const container = document.getElementById('recent-logs');
+                    container.innerHTML = '';
+
+                    if (logs && logs.length > 0) {
+                        // Take first 5
+                        const recent = logs.slice(0, 5);
+
+                        // Update total count locally based on list length or fetch separte stats
+                        // document.getElementById('prayer-count').innerText = logs.length; // Approximate
+
+                        recent.forEach(log => {
+                            const card = document.createElement('div');
+                            card.className = 'glass rounded-xl p-3 text-center transition-all hover:scale-105 border-emerald-500/20';
+
+                            // Parse timestamp 2024-01-01 12:00:00
+                            let timeOnly = log.timestamp.split(' ')[1] || log.timestamp;
+                            if (timeOnly.length > 5) timeOnly = timeOnly.substring(0, 5);
+
+                            const name = log.name || 'Siswa';
+
+                            card.innerHTML = `
+                                <div class="w-16 h-16 mx-auto mb-2 rounded-full overflow-hidden bg-emerald-900 flex items-center justify-center border-2 border-emerald-500/30">
+                                     <i data-lucide="user" class="w-8 h-8 text-emerald-400"></i>
+                                </div>
+                                <p class="text-xs font-bold text-white truncate">${name}</p>
+                                <p class="text-xs text-emerald-400 font-medium">${log.prayer_type}</p>
+                                <p class="text-xs text-slate-400 mono">${timeOnly}</p>
+                            `;
+                            container.appendChild(card);
+                        });
+                        lucide.createIcons();
+
+                        // Update simple count
+                        document.getElementById('prayer-count').innerText = logs.length;
+
+                    } else {
+                        container.innerHTML = '<div class="col-span-5 text-center text-slate-500 text-sm">Belum ada data</div>';
+                    }
+                } catch (err) {
+                    console.error('Failed to fetch prayer logs:', err);
+                }
+            }
+
+            // Fetch recent logs on load and every 10s
+            fetchPrayerLogs();
+            setInterval(fetchPrayerLogs, 10000);
+
+            // --- RFID Handling ---
+            const input = document.getElementById('rfid-input');
+            const card = document.getElementById('status-card');
+
+            document.addEventListener('click', () => input.focus());
+            input.addEventListener('blur', () => setTimeout(() => input.focus(), 100));
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    const rfid = input.value.trim();
+                    if (rfid) processRFID(rfid);
+                    input.value = '';
+                }
+            });
+
+            function showState(state) {
+                ['state-idle', 'state-loading', 'state-success', 'state-error'].forEach(id => {
+                    document.getElementById(id).classList.add('hidden');
+                });
+                const el = document.getElementById(state);
+                el.classList.remove('hidden');
+                el.classList.add('animate-scaleIn');
+            }
+
+            async function processRFID(uid) {
+                showState('state-loading');
+
+                try {
+                    const res = await fetch(`/api/attendance/prayer?rfid=${encodeURIComponent(uid)}`);
+                    const data = await res.json();
+
+                    if (res.ok && data.status !== 'duplicate') {
+                        // SUCCESS
+                        document.getElementById('success-name').innerText = data.name;
+                        document.getElementById('success-identity').innerText = data.prayer_type || '';
+                        document.getElementById('success-class').innerText = data.time || '';
+
+                        document.getElementById('success-status').innerText = data.message;
+                        document.getElementById('success-time').innerText = new Date().toLocaleTimeString('id-ID');
+
+                        // Show Photo (Prayer API might not return photo yet, use placeholder logic if needed)
+                        const imgEl = document.getElementById('student-photo');
+                        const iconEl = document.getElementById('default-icon');
+
+                        // Assuming API doesn't return photo yet, default to icon
+                        imgEl.classList.add('hidden');
+                        iconEl.classList.remove('hidden');
+
+                        // Style
+                        const statusEl = document.getElementById('success-status');
+                        statusEl.className = "inline-block px-6 py-3 rounded-xl bg-emerald-500/20 text-emerald-400 font-bold text-2xl uppercase tracking-wider mx-auto block text-center";
+
+                        playSound('success');
+                        showState('state-success');
+
+                        // Refresh logs
+                        setTimeout(() => fetchPrayerLogs(), 1000);
+
+                    } else if (data.status === 'duplicate') {
+                        document.getElementById('error-title').innerText = "SUDAH ABSEN!";
+                        document.getElementById('error-msg').innerText = `${data.name} sudah sholat ${data.prayer_type}.`;
+                        showState('state-error');
+                        playSound('error');
+                    } else {
+                        document.getElementById('error-title').innerText = "GAGAL";
+                        document.getElementById('error-msg').innerText = data.message || "Kartu tidak valid";
+                        showState('state-error');
+                        playSound('error');
+                    }
+                } catch (err) {
+                    console.error(err);
+                    document.getElementById('error-title').innerText = "ERROR SISTEM";
+                    document.getElementById('error-msg').innerText = "Koneksi ke server terputus";
+                    showState('state-error');
+                    playSound('error');
+                }
+
+                // Reset to Idle after 3 seconds
+                setTimeout(() => {
+                    showState('state-idle');
+                    lucide.createIcons();
+                }, 3000);
+            }
+
+            // --- Audio Feedback ---
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+            function playSound(type) {
+                if (type === 'success') {
+                    playBeep(1000, 0.1);
+                    setTimeout(() => playBeep(1500, 0.1), 150);
+                } else {
+                    playBeep(300, 0.5, 'sawtooth');
+                }
+            }
+
+            function playBeep(freq, duration, type = 'sine') {
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                osc.frequency.value = freq;
+                osc.type = type;
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            }
+        </script>
+    </body>
+
+</html>

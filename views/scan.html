@@ -75,13 +75,39 @@
                     box-shadow: 0 0 0 20px rgba(59, 130, 246, 0);
                 }
             }
+
+            /* Islamic Pattern Background */
+            .bg-islamic {
+                background-color: #064e3b;
+                background-image:
+                    radial-gradient(circle at 100% 100%, rgba(255, 255, 255, 0.05) 15%, transparent 16%),
+                    radial-gradient(circle at 0 0, rgba(255, 255, 255, 0.05) 15%, transparent 16%),
+                    radial-gradient(circle at 100% 0, rgba(255, 255, 255, 0.05) 15%, transparent 16%),
+                    radial-gradient(circle at 0 100%, rgba(255, 255, 255, 0.05) 15%, transparent 16%);
+                background-size: 60px 60px;
+            }
         </style>
     </head>
 
-    <body class="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white h-screen overflow-hidden flex">
+    <body
+        class="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white h-screen overflow-hidden flex transition-all duration-700"
+        id="main-body">
 
         <!-- Statistics Sidebar -->
         <div class="w-80 p-6 glass border-r border-white/10 flex flex-col gap-4">
+
+            <!-- Mode Switcher -->
+            <div class="flex p-1 bg-black/20 rounded-lg mb-2">
+                <a href="/scan" id="btn-mode-presence"
+                    class="flex-1 py-2 text-center text-xs font-bold rounded-md transition-all">
+                    PRESENSI
+                </a>
+                <a href="/scan-sholat" id="btn-mode-prayer"
+                    class="flex-1 py-2 text-center text-xs font-bold rounded-md transition-all text-slate-400 hover:text-white">
+                    SHOLAT
+                </a>
+            </div>
+
             <div class="text-center mb-4">
                 <h2 class="text-xl font-bold mb-1">Statistik Hari Ini</h2>
                 <p id="stats-date" class="text-sm text-slate-400 mono"></p>
@@ -139,10 +165,10 @@
             <div class="flex-1 flex items-center justify-center p-6">
                 <div class="w-full max-w-2xl">
                     <h1
-                        class="text-4xl font-bold mb-2 text-center bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                        class="text-4xl font-bold mb-2 text-center bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent transition-all duration-500">
                         TERMINAL ABSENSI
                     </h1>
-                    <p class="text-slate-400 mb-8 text-center">Silakan tempel kartu pada Reader</p>
+                    <p class="text-slate-400 mb-8 text-center" id="subtitle-msg">Silakan tempel kartu pada Reader</p>
 
                     <!-- Hidden Input -->
                     <input type="text" id="rfid-input" class="opacity-0 absolute top-0 left-0 w-0 h-0"
@@ -153,9 +179,9 @@
 
                         <!-- Idle State -->
                         <div id="state-idle">
-                            <div
-                                class="w-40 h-40 bg-blue-500/20 rounded-full mx-auto flex items-center justify-center mb-6 pulse-ring">
-                                <i data-lucide="scan-line" class="w-20 h-20 text-blue-400"></i>
+                            <div id="icon-container"
+                                class="w-40 h-40 bg-blue-500/20 rounded-full mx-auto flex items-center justify-center mb-6 pulse-ring transition-colors duration-500">
+                                <i data-lucide="scan-line" class="w-20 h-20 text-blue-400" id="icon-idle"></i>
                             </div>
                             <h2 class="text-3xl font-bold text-center">Menunggu Kartu...</h2>
                             <p class="text-slate-400 mt-3 text-center">Pastikan kursor aktif</p>
@@ -331,18 +357,46 @@
                 el.classList.add('animate-scaleIn');
             }
 
+            // --- Mode Handling ---
+            const urlParams = new URLSearchParams(window.location.search);
+            const isPrayerMode = urlParams.get('mode') === 'sholat';
+
+            if (isPrayerMode) {
+                document.title = "Absensi Sholat";
+                const titleEl = document.querySelector('h1');
+                titleEl.textContent = "ABSENSI SHOLAT";
+                titleEl.className = "text-4xl font-bold mb-2 text-center bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent";
+
+                // Optional: visual cue for prayer mode
+                document.body.classList.remove('from-slate-900', 'via-blue-900', 'to-slate-900');
+                document.body.classList.add('from-slate-900', 'via-emerald-900', 'to-slate-900');
+            }
+
             async function processRFID(uid) {
                 showState('state-loading');
 
                 try {
-                    const res = await fetch(`/api/attendance/record?rfid=${encodeURIComponent(uid)}`);
+                    // Switch API based on mode
+                    const endpoint = isPrayerMode
+                        ? `/api/attendance/prayer?rfid=${encodeURIComponent(uid)}`
+                        : `/api/attendance/record?rfid=${encodeURIComponent(uid)}`;
+
+                    const res = await fetch(endpoint);
                     const data = await res.json();
 
                     if (res.ok && data.status !== 'duplicate') {
                         // SUCCESS
                         document.getElementById('success-name').innerText = data.name;
-                        document.getElementById('success-identity').innerText = data.identity_no || '';
-                        document.getElementById('success-class').innerText = data.class_name || data.type;
+
+                        // Handle different response structure for Prayer API
+                        if (isPrayerMode) {
+                            document.getElementById('success-identity').innerText = data.prayer_type || '';
+                            document.getElementById('success-class').innerText = data.time || '';
+                        } else {
+                            document.getElementById('success-identity').innerText = data.identity_no || '';
+                            document.getElementById('success-class').innerText = data.class_name || data.type;
+                        }
+
                         document.getElementById('success-status').innerText = data.message;
                         document.getElementById('success-time').innerText = new Date().toLocaleTimeString('id-ID');
 
@@ -361,31 +415,36 @@
 
                         // Update Style based on status
                         const statusEl = document.getElementById('success-status');
+
+                        // Default Success Style
+                        let statusClass = "inline-block px-6 py-3 rounded-xl bg-green-500/20 text-green-400 font-bold text-2xl uppercase tracking-wider mx-auto block text-center";
+                        let soundType = 'success';
+
                         if (data.message.includes('Terlambat')) {
-                            statusEl.className = "inline-block px-6 py-3 rounded-xl bg-orange-500/20 text-orange-400 font-bold text-2xl uppercase tracking-wider mx-auto block text-center";
-                            playSound('late');
+                            statusClass = "inline-block px-6 py-3 rounded-xl bg-orange-500/20 text-orange-400 font-bold text-2xl uppercase tracking-wider mx-auto block text-center";
+                            soundType = 'late';
                         } else if (data.message.includes('Pulang')) {
-                            statusEl.className = "inline-block px-6 py-3 rounded-xl bg-blue-500/20 text-blue-400 font-bold text-2xl uppercase tracking-wider mx-auto block text-center";
-                            playSound('checkout');
-                        } else {
-                            statusEl.className = "inline-block px-6 py-3 rounded-xl bg-green-500/20 text-green-400 font-bold text-2xl uppercase tracking-wider mx-auto block text-center";
-                            playSound('success');
-                            // Confetti for on-time attendance
+                            statusClass = "inline-block px-6 py-3 rounded-xl bg-blue-500/20 text-blue-400 font-bold text-2xl uppercase tracking-wider mx-auto block text-center";
+                            soundType = 'checkout';
+                        }
+
+                        statusEl.className = statusClass;
+                        playSound(soundType);
+
+                        if (!isPrayerMode) {
+                            // Confetti only for morning attendance
                             const hour = new Date().getHours();
-                            if (hour < 7) {
+                            if (hour < 7 && soundType === 'success') {
                                 triggerConfetti();
                             }
                         }
 
                         showState('state-success');
 
-                        // Update last log
-                        document.getElementById('last-log').innerText = `${data.time} - ${data.name} (${data.message})`;
-
                         // Refresh stats and recent logs
                         setTimeout(() => {
-                            fetchStats();
-                            fetchRecentLogs();
+                            if (!isPrayerMode) fetchStats(); // Stats maybe not relevant for prayer yet
+                            // fetchRecentLogs(); // Prayer logs separate?
                         }, 1000);
 
                     } else if (data.status === 'duplicate') {

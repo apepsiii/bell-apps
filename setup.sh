@@ -8,22 +8,20 @@ echo "   SmartBell Installation Wizard 🔔      "
 echo "========================================="
 
 # 1. Check Files
-echo "[*] Memeriksa file aplikasi..."
-if [ ! -f "bell_linux" ]; then
-    echo "❌ File 'bell_linux' tidak ditemukan!"
+BINARY_NAME=${1:-bell_linux}
+
+echo "[*] Memeriksa file aplikasi ($BINARY_NAME)..."
+if [ ! -f "$BINARY_NAME" ]; then
+    echo "❌ File '$BINARY_NAME' tidak ditemukan!"
     echo "   Pastikan Anda sudah upload file binary hasil compile."
     exit 1
 fi
 
-if [ ! -d "views" ]; then
-    echo "❌ Folder 'views' tidak ditemukan!"
-    echo "   Pastikan Anda sudah upload folder views."
-    exit 1
-fi
+
 
 # 2. Permission & Folders
 echo "[*] Mengatur izin dan folder..."
-chmod +x bell_linux
+chmod +x "$BINARY_NAME"
 mkdir -p public/assets/audio
 mkdir -p public/assets/photos
 mkdir -p tmp
@@ -51,7 +49,7 @@ After=network.target
 [Service]
 User=root
 WorkingDirectory=$CURRENT_DIR
-ExecStart=$CURRENT_DIR/bell_linux
+ExecStart=$CURRENT_DIR/$BINARY_NAME
 Restart=always
 Environment=PORT=$APP_PORT
 

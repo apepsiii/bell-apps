@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"database/sql"
+	"embed"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -11,6 +13,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -32,7 +35,17 @@ const (
 	AdminPass   = "admin123"
 	CookieName  = "session_token"
 	SecretKey   = "admin-secret-key-123"
+	AppVersion  = "v1.0.0"
 )
+
+//go:embed views/*.html
+var viewsFS embed.FS
+
+//go:embed setup.sh
+var setupScript string
+
+//go:embed setup_nginx.sh
+var setupNginxScript string
 
 // --- STRUCTS & MODELS ---
 
@@ -184,6 +197,7 @@ type DashboardData struct {
 		TotalStudents  int
 		TotalStaff     int
 	}
+	AppVersion string
 }
 
 // Report Data Structures
@@ -266,6 +280,7 @@ func InitDB() *sql.DB {
 			nis TEXT,
 			name TEXT,
 			parent_phone TEXT,
+			parent_name TEXT,
 			class_id INTEGER,
 			photo TEXT
 		);`,
@@ -384,6 +399,13 @@ func InitDB() *sql.DB {
 	db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('students') WHERE name='photo'").Scan(&colCountPhoto)
 	if colCountPhoto == 0 {
 		db.Exec("ALTER TABLE students ADD COLUMN photo TEXT DEFAULT ''")
+	}
+
+	// Migration: Add 'parent_name' to students
+	var colCountParentName int
+	db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('students') WHERE name='parent_name'").Scan(&colCountParentName)
+	if colCountParentName == 0 {
+		db.Exec("ALTER TABLE students ADD COLUMN parent_name TEXT DEFAULT ''")
 	}
 
 	// Seed Attendance Settings
@@ -900,6 +922,7 @@ func (a *App) DashboardHandler(c echo.Context) error {
 		ChartWeeklyClass:   string(jsonChart1),
 		ChartStatus:        string(jsonChart2),
 		ChartArrival:       string(jsonChart3),
+		AppVersion:         AppVersion,
 	}
 	data.Stats.TotalSchedules = len(schedules)
 	data.Stats.NextBell = a.GetNextBell()
@@ -2022,10 +2045,14 @@ func (a *App) RecordAttendanceHandler(c echo.Context) error {
 				JOIN classes c ON s.class_id = c.id 
 				WHERE s.rfid_uid=?`, rfid).Scan(&parentPhone, &classGroup)
 
+			// Format Date properly (e.g. "Senin, 02 Januari 2006")
+			formattedDate := now.Format("02-01-2006") // Default fallback
+			
 			// Replace Template Variables
 			msg = strings.ReplaceAll(msg, "{name}", name)
 			msg = strings.ReplaceAll(msg, "{time}", timeStr)
 			msg = strings.ReplaceAll(msg, "{status}", status)
+			msg = strings.ReplaceAll(msg, "{date}", formattedDate)
 
 			// 1. Send to Parent
 			if parentPhone != "" {
@@ -2141,8 +2168,10 @@ func (a *App) RecentLogsHandler(c echo.Context) error {
 		rows.Scan(&name, &userType, &status, &timestamp, &photoNull)
 		
 		// Parse timestamp to get time only
-		t, _ := time.Parse("2006-01-02 15:04:05", timestamp)
-		timeOnly := t.Format("15:04")
+		timeOnly := "00:00"
+		if len(timestamp) >= 16 {
+			timeOnly = timestamp[11:16]
+		}
 		
 		logs = append(logs, map[string]interface{}{
 			"name":      name,
@@ -2176,9 +2205,18 @@ func (a *App) ScanPageHandler(c echo.Context) error {
 	return c.Render(http.StatusOK, "scan.html", nil)
 }
 
+func (a *App) ScanPrayerPageHandler(c echo.Context) error {
+	return c.Render(http.StatusOK, "scan_prayer.html", nil)
+}
+
 // --- MAIN ---
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "wizard" {
+		runWizard()
+		return
+	}
+
 	db := InitDB()
 	defer db.Close()
 	app := &App{DB: db}
@@ -2186,7 +2224,9 @@ func main() {
 	e := echo.New()
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
-	e.Renderer = &Template{templates: template.Must(template.ParseGlob("views/*.html"))}
+	e.Use(middleware.Recover())
+	e.Renderer = &Template{templates: template.Must(template.ParseFS(viewsFS, "views/*.html"))}
+	e.Static("/assets", "public/assets")
 	e.Static("/assets", "public/assets")
 
 	e.GET("/", func(c echo.Context) error { return c.Render(http.StatusOK, "index.html", nil) })
@@ -2196,7 +2236,10 @@ func main() {
 		}
 		return c.Render(http.StatusOK, "login.html", nil)
 	})
-	e.GET("/scan", app.ScanPageHandler) // Halaman Terminal Absensi
+	e.GET("/scan", app.ScanPageHandler)             // Public Scan Page (Presence)
+	e.GET("/scan-sholat", app.ScanPrayerPageHandler) // Public Scan Page (Prayer)
+
+	// API Endpointsi
 	e.POST("/api/login", app.LoginHandler)
 	e.POST("/api/logout", app.LogoutHandler)
 	e.GET("/api/sync", app.SyncHandler)
@@ -2309,6 +2352,79 @@ func main() {
 	}
 	e.Logger.Fatal(e.Start(":" + port))
 }
+
+func runWizard() {
+	fmt.Println("=========================================")
+	fmt.Println("   SmartBell All-in-One Wizard 🚀        ")
+	fmt.Println("=========================================")
+
+	if os.Getuid() != 0 {
+		fmt.Println("❌ Harap jalankan dengan sudo (sudo ./bell_linux wizard)")
+		os.Exit(1)
+	}
+
+	reader := bufio.NewReader(os.Stdin)
+
+	// Detect Executable Name
+	exePath, err := os.Executable()
+	if err != nil {
+		fmt.Println("❌ Gagal mendeteksi nama file aplikasi.")
+		return
+	}
+	exeName := filepath.Base(exePath)
+
+	for {
+		fmt.Println("\nPilih menu:")
+		fmt.Println("1) Install Baru (Fresh Install)")
+		fmt.Println("2) Update Aplikasi (Update Service ke File Ini)")
+		fmt.Println("3) Setup Domain & SSL")
+		fmt.Println("4) Keluar")
+		fmt.Print("Masukkan pilihan: ")
+
+		choice, _ := reader.ReadString('\n')
+		choice = strings.TrimSpace(choice)
+
+		switch choice {
+		case "1", "2":
+			// Option 2 now also runs setup to update the service to point to THIS file
+			if choice == "2" {
+				fmt.Println("--- Update Service Systemd ---")
+			} else {
+				fmt.Println("--- Menjalankan Installer ---")
+			}
+			runScript(setupScript, "setup.sh", exeName)
+		case "3":
+			fmt.Println("--- Setup Domain & SSL ---")
+			runScript(setupNginxScript, "setup_nginx.sh")
+		case "4":
+			fmt.Println("Bye! 👋")
+			return
+		default:
+			fmt.Println("Pilihan tidak valid.")
+		}
+	}
+}
+
+func runScript(content, name string, args ...string) {
+	// Write to temp file
+	tmpFile := "/tmp/" + name
+	err := os.WriteFile(tmpFile, []byte(content), 0755)
+	if err != nil {
+		fmt.Printf("❌ Gagal membuat script sementara: %v\n", err)
+		return
+	}
+	// Run it
+	cmd := exec.Command("bash", append([]string{tmpFile}, args...)...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	if err := cmd.Run(); err != nil {
+		fmt.Printf("❌ Script error: %v\n", err)
+	}
+	// Cleanup
+	os.Remove(tmpFile)
+}
+
 func (a *App) PrayerAttendanceHandler(c echo.Context) error {
 	rfid := c.QueryParam("rfid")
 	if rfid == "" {
