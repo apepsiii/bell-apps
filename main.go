@@ -35,7 +35,7 @@ const (
 	AdminPass   = "admin123"
 	CookieName  = "session_token"
 	SecretKey   = "admin-secret-key-123"
-	AppVersion  = "v1.2.0"
+	AppVersion  = "v1.2.1"
 )
 
 //go:embed views/*.html views/mobile/*.html
@@ -2607,7 +2607,11 @@ func main() {
 	
 	// Public Login Page
 	e.GET("/operator/login", func(c echo.Context) error {
-		return c.File("views/mobile/login.html")
+		data, err := viewsFS.ReadFile("views/mobile/login.html")
+		if err != nil {
+			return c.String(http.StatusNotFound, "Page not found")
+		}
+		return c.HTMLBlob(http.StatusOK, data)
 	})
 	
 	// Authentication API
@@ -2621,16 +2625,32 @@ func main() {
 	})
 	
 	operatorPages.GET("/dashboard", func(c echo.Context) error {
-		return c.File("views/mobile/dashboard.html")
+		data, err := viewsFS.ReadFile("views/mobile/dashboard.html")
+		if err != nil {
+			return c.String(http.StatusNotFound, "Page not found")
+		}
+		return c.HTMLBlob(http.StatusOK, data)
 	})
 	operatorPages.GET("/scan", func(c echo.Context) error {
-		return c.File("views/mobile/scan.html")
+		data, err := viewsFS.ReadFile("views/mobile/scan.html")
+		if err != nil {
+			return c.String(http.StatusNotFound, "Page not found")
+		}
+		return c.HTMLBlob(http.StatusOK, data)
 	})
 	operatorPages.GET("/manual", func(c echo.Context) error {
-		return c.File("views/mobile/manual.html")
+		data, err := viewsFS.ReadFile("views/mobile/manual.html")
+		if err != nil {
+			return c.String(http.StatusNotFound, "Page not found")
+		}
+		return c.HTMLBlob(http.StatusOK, data)
 	})
 	operatorPages.GET("/profile", func(c echo.Context) error {
-		return c.File("views/mobile/profile.html")
+		data, err := viewsFS.ReadFile("views/mobile/profile.html")
+		if err != nil {
+			return c.String(http.StatusNotFound, "Page not found")
+		}
+		return c.HTMLBlob(http.StatusOK, data)
 	})
 	
 	// Protected Operator API
