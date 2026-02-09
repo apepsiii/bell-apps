@@ -2609,7 +2609,8 @@ func main() {
 	e.GET("/operator/login", func(c echo.Context) error {
 		data, err := viewsFS.ReadFile("views/mobile/login.html")
 		if err != nil {
-			return c.String(http.StatusNotFound, "Page not found")
+			c.Logger().Errorf("Failed to read login.html from embedded FS: %v", err)
+			return c.String(http.StatusNotFound, "Page not found: "+err.Error())
 		}
 		return c.HTMLBlob(http.StatusOK, data)
 	})
