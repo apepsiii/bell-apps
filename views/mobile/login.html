@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="id">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <title>Login Operator - SmartBell</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+            body {
+                font-family: 'Inter', sans-serif;
+            }
+
+            .gradient-bg {
+                background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            }
+
+            .glass {
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(10px);
+            }
+        </style>
+    </head>
+
+    <body class="gradient-bg min-h-screen flex items-center justify-center p-4">
+
+        <div class="w-full max-w-md">
+            <!-- Logo/Header -->
+            <div class="text-center mb-8">
+                <div class="w-20 h-20 bg-white rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg">
+                    <svg class="w-12 h-12 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
+                        </path>
+                    </svg>
+                </div>
+                <h1 class="text-3xl font-bold text-white mb-2">SmartBell</h1>
+                <p class="text-emerald-100">Manajemen Sholat</p>
+            </div>
+
+            <!-- Login Card -->
+            <div class="glass rounded-3xl shadow-2xl p-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">Login Operator</h2>
+
+                <form id="loginForm" class="space-y-5">
+                    <!-- Username -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Username</label>
+                        <input type="text" id="username" name="username"
+                            class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition"
+                            placeholder="Masukkan username" required autocomplete="username">
+                    </div>
+
+                    <!-- Password -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                        <input type="password" id="password" name="password"
+                            class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition"
+                            placeholder="Masukkan password" required autocomplete="current-password">
+                    </div>
+
+                    <!-- Error Message -->
+                    <div id="errorMsg"
+                        class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+                        <span id="errorText"></span>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" id="loginBtn"
+                        class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-xl transition duration-200 shadow-lg">
+                        <span id="btnText">Masuk</span>
+                        <span id="btnLoading" class="hidden">
+                            <svg class="animate-spin h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                    stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                </path>
+                            </svg>
+                        </span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Footer -->
+            <div class="text-center mt-6 text-emerald-100 text-sm">
+                <p>&copy; 2026 SmartBell. All rights reserved.</p>
+            </div>
+        </div>
+
+        <script>
+            const form = document.getElementById('loginForm');
+            const errorMsg = document.getElementById('errorMsg');
+            const errorText = document.getElementById('errorText');
+            const loginBtn = document.getElementById('loginBtn');
+            const btnText = document.getElementById('btnText');
+            const btnLoading = document.getElementById('btnLoading');
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                // Hide error
+                errorMsg.classList.add('hidden');
+
+                // Show loading
+                loginBtn.disabled = true;
+                btnText.classList.add('hidden');
+                btnLoading.classList.remove('hidden');
+
+                const formData = new FormData(form);
+
+                try {
+                    const response = await fetch('/api/operator/login', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        // Success - redirect to dashboard
+                        window.location.href = '/operator/dashboard';
+                    } else {
+                        // Show error
+                        errorText.textContent = data.message || 'Login gagal';
+                        errorMsg.classList.remove('hidden');
+                    }
+                } catch (error) {
+                    errorText.textContent = 'Terjadi kesalahan koneksi';
+                    errorMsg.classList.remove('hidden');
+                } finally {
+                    // Reset button
+                    loginBtn.disabled = false;
+                    btnText.classList.remove('hidden');
+                    btnLoading.classList.add('hidden');
+                }
+            });
+        </script>
+    </body>
+
+</html>

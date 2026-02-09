@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="id">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <title>Dashboard - SmartBell Operator</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script src="https://unpkg.com/lucide@latest"></script>
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+            body {
+                font-family: 'Inter', sans-serif;
+                padding-bottom: 80px;
+                /* Space for bottom nav */
+            }
+
+            .glass {
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(10px);
+            }
+
+            .bottom-nav {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                background: white;
+                box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+                z-index: 50;
+            }
+
+            .nav-item {
+                transition: all 0.2s;
+            }
+
+            .nav-item.active {
+                color: #059669;
+            }
+        </style>
+    </head>
+
+    <body class="bg-gray-50">
+
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white p-6 pb-8">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <p class="text-sm opacity-90">Assalamualaikum,</p>
+                    <h1 class="text-2xl font-bold" id="operatorName">Operator</h1>
+                </div>
+                <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center">
+                    <i data-lucide="user" class="w-6 h-6 text-emerald-600"></i>
+                </div>
+            </div>
+            <p class="text-sm opacity-90" id="currentDate"></p>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="px-4 -mt-6 mb-6">
+            <div class="bg-white rounded-2xl shadow-lg p-5">
+                <h2 class="font-bold text-gray-800 mb-4">Statistik Hari Ini</h2>
+
+                <!-- Dzuhur Stats -->
+                <div class="mb-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-medium text-gray-600">Sholat Dzuhur</span>
+                        <span class="text-xs text-gray-500" id="dzuhurTotal">0/0</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="bg-green-50 rounded-lg p-3 text-center">
+                            <div class="text-2xl font-bold text-green-600" id="dzuhurHadir">0</div>
+                            <div class="text-xs text-gray-600">Hadir</div>
+                        </div>
+                        <div class="bg-orange-50 rounded-lg p-3 text-center">
+                            <div class="text-2xl font-bold text-orange-600" id="dzuhurPMS">0</div>
+                            <div class="text-xs text-gray-600">PMS</div>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-3 text-center">
+                            <div class="text-2xl font-bold text-gray-600" id="dzuhurBelum">0</div>
+                            <div class="text-xs text-gray-600">Belum</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ashar Stats -->
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-medium text-gray-600">Sholat Ashar</span>
+                        <span class="text-xs text-gray-500" id="asharTotal">0/0</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="bg-green-50 rounded-lg p-3 text-center">
+                            <div class="text-2xl font-bold text-green-600" id="asharHadir">0</div>
+                            <div class="text-xs text-gray-600">Hadir</div>
+                        </div>
+                        <div class="bg-orange-50 rounded-lg p-3 text-center">
+                            <div class="text-2xl font-bold text-orange-600" id="asharPMS">0</div>
+                            <div class="text-xs text-gray-600">PMS</div>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-3 text-center">
+                            <div class="text-2xl font-bold text-gray-600" id="asharBelum">0</div>
+                            <div class="text-xs text-gray-600">Belum</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Logs -->
+        <div class="px-4 mb-6">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="font-bold text-gray-800">Presensi Terakhir</h2>
+                <button onclick="fetchRecentLogs()" class="text-emerald-600 text-sm">
+                    <i data-lucide="refresh-cw" class="w-4 h-4 inline"></i>
+                </button>
+            </div>
+            <div id="recentLogs" class="space-y-2">
+                <div class="text-center text-gray-500 text-sm py-8">Memuat...</div>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <div class="bottom-nav">
+            <div class="grid grid-cols-4 h-16">
+                <a href="/operator/dashboard" class="nav-item active flex flex-col items-center justify-center">
+                    <i data-lucide="home" class="w-6 h-6 mb-1"></i>
+                    <span class="text-xs">Home</span>
+                </a>
+                <a href="/operator/scan" class="nav-item flex flex-col items-center justify-center text-gray-600">
+                    <i data-lucide="scan" class="w-6 h-6 mb-1"></i>
+                    <span class="text-xs">Scan</span>
+                </a>
+                <a href="/operator/manual" class="nav-item flex flex-col items-center justify-center text-gray-600">
+                    <i data-lucide="clipboard-check" class="w-6 h-6 mb-1"></i>
+                    <span class="text-xs">Manual</span>
+                </a>
+                <a href="/operator/profile" class="nav-item flex flex-col items-center justify-center text-gray-600">
+                    <i data-lucide="user" class="w-6 h-6 mb-1"></i>
+                    <span class="text-xs">Profile</span>
+                </a>
+            </div>
+        </div>
+
+        <script>
+            lucide.createIcons();
+
+            // Update current date
+            const dateEl = document.getElementById('currentDate');
+            const now = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            dateEl.textContent = now.toLocaleDateString('id-ID', options);
+
+            // Fetch prayer statistics
+            async function fetchStats() {
+                try {
+                    const res = await fetch('/api/operator/prayer-stats');
+                    const data = await res.json();
+
+                    // Update Dzuhur
+                    document.getElementById('dzuhurHadir').textContent = data.dzuhur.hadir;
+                    document.getElementById('dzuhurPMS').textContent = data.dzuhur.pms;
+                    document.getElementById('dzuhurBelum').textContent = data.dzuhur.belum;
+                    document.getElementById('dzuhurTotal').textContent =
+                        `${data.dzuhur.hadir + data.dzuhur.pms}/${data.total_students}`;
+
+                    // Update Ashar
+                    document.getElementById('asharHadir').textContent = data.ashar.hadir;
+                    document.getElementById('asharPMS').textContent = data.ashar.pms;
+                    document.getElementById('asharBelum').textContent = data.ashar.belum;
+                    document.getElementById('asharTotal').textContent =
+                        `${data.ashar.hadir + data.ashar.pms}/${data.total_students}`;
+                } catch (err) {
+                    console.error('Failed to fetch stats:', err);
+                }
+            }
+
+            // Fetch recent logs
+            async function fetchRecentLogs() {
+                try {
+                    const res = await fetch('/api/operator/recent-logs');
+                    const logs = await res.json();
+
+                    const container = document.getElementById('recentLogs');
+                    container.innerHTML = '';
+
+                    if (logs && logs.length > 0) {
+                        logs.forEach(log => {
+                            const statusColor = log.status === 'PMS' ? 'text-orange-600' : 'text-green-600';
+                            const prayerBadge = log.prayer_type === 'Dzuhur' ?
+                                'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700';
+
+                            const card = document.createElement('div');
+                            card.className = 'bg-white rounded-xl p-3 shadow-sm flex items-center gap-3';
+                            card.innerHTML = `
+                            <div class="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+                                ${log.photo ?
+                                    `<img src="/assets/photos/${log.photo}" class="w-full h-full rounded-full object-cover">` :
+                                    `<i data-lucide="user" class="w-6 h-6 text-gray-500"></i>`
+                                }
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="font-semibold text-gray-800 truncate">${log.name}</p>
+                                <p class="text-xs text-gray-500">${log.class_name}</p>
+                            </div>
+                            <div class="text-right flex-shrink-0">
+                                <span class="text-xs px-2 py-1 rounded-full ${prayerBadge}">${log.prayer_type}</span>
+                                <p class="text-xs ${statusColor} font-medium mt-1">${log.status}</p>
+                                <p class="text-xs text-gray-400">${log.time}</p>
+                            </div>
+                        `;
+                            container.appendChild(card);
+                        });
+                        lucide.createIcons();
+                    } else {
+                        container.innerHTML = '<div class="text-center text-gray-500 text-sm py-8">Belum ada data</div>';
+                    }
+                } catch (err) {
+                    console.error('Failed to fetch logs:', err);
+                }
+            }
+
+            // Initial load
+            fetchStats();
+            fetchRecentLogs();
+
+            // Auto refresh every 30 seconds
+            setInterval(fetchStats, 30000);
+            setInterval(fetchRecentLogs, 30000);
+        </script>
+    </body>
+
+</html>

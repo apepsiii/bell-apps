@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="id">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <title>Scan QR - SmartBell Operator</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script src="https://unpkg.com/lucide@latest"></script>
+        <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+            body {
+                font-family: 'Inter', sans-serif;
+                padding-bottom: 80px;
+            }
+
+            #reader {
+                width: 100%;
+                max-width: 500px;
+                margin: 0 auto;
+            }
+
+            .bottom-nav {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                background: white;
+                box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+                z-index: 50;
+            }
+
+            .nav-item.active {
+                color: #059669;
+            }
+        </style>
+    </head>
+
+    <body class="bg-gray-50">
+
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white p-6">
+            <div class="flex items-center gap-3">
+                <a href="/operator/dashboard" class="text-white">
+                    <i data-lucide="arrow-left" class="w-6 h-6"></i>
+                </a>
+                <h1 class="text-xl font-bold">Scan QR Code</h1>
+            </div>
+        </div>
+
+        <!-- Prayer Type Selection -->
+        <div class="px-4 py-4 bg-white shadow-sm">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Waktu Sholat:</label>
+            <div class="flex gap-3">
+                <label class="flex-1">
+                    <input type="radio" name="prayerType" value="Dzuhur" checked class="peer hidden">
+                    <div
+                        class="border-2 border-gray-300 peer-checked:border-emerald-600 peer-checked:bg-emerald-50 rounded-xl p-3 text-center cursor-pointer transition">
+                        <span class="font-semibold peer-checked:text-emerald-700">Dzuhur</span>
+                    </div>
+                </label>
+                <label class="flex-1">
+                    <input type="radio" name="prayerType" value="Ashar" class="peer hidden">
+                    <div
+                        class="border-2 border-gray-300 peer-checked:border-emerald-600 peer-checked:bg-emerald-50 rounded-xl p-3 text-center cursor-pointer transition">
+                        <span class="font-semibold peer-checked:text-emerald-700">Ashar</span>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <!-- QR Scanner -->
+        <div class="px-4 py-6">
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                <div id="reader"></div>
+            </div>
+            <p class="text-center text-sm text-gray-600 mt-4">
+                <i data-lucide="info" class="w-4 h-4 inline"></i>
+                Arahkan kamera ke QR Code
+            </p>
+        </div>
+
+        <!-- Result Modal -->
+        <div id="resultModal"
+            class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div class="bg-white rounded-2xl p-6 max-w-sm w-full">
+                <div id="resultContent"></div>
+                <button onclick="closeModal()"
+                    class="w-full mt-4 bg-emerald-600 text-white py-3 rounded-xl font-semibold">
+                    Tutup
+                </button>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <div class="bottom-nav">
+            <div class="grid grid-cols-4 h-16">
+                <a href="/operator/dashboard" class="nav-item flex flex-col items-center justify-center text-gray-600">
+                    <i data-lucide="home" class="w-6 h-6 mb-1"></i>
+                    <span class="text-xs">Home</span>
+                </a>
+                <a href="/operator/scan" class="nav-item active flex flex-col items-center justify-center">
+                    <i data-lucide="scan" class="w-6 h-6 mb-1"></i>
+                    <span class="text-xs">Scan</span>
+                </a>
+                <a href="/operator/manual" class="nav-item flex flex-col items-center justify-center text-gray-600">
+                    <i data-lucide="clipboard-check" class="w-6 h-6 mb-1"></i>
+                    <span class="text-xs">Manual</span>
+                </a>
+                <a href="/operator/profile" class="nav-item flex flex-col items-center justify-center text-gray-600">
+                    <i data-lucide="user" class="w-6 h-6 mb-1"></i>
+                    <span class="text-xs">Profile</span>
+                </a>
+            </div>
+        </div>
+
+        <script>
+            lucide.createIcons();
+
+            let html5QrCode;
+            let isProcessing = false;
+
+            function getPrayerType() {
+                return document.querySelector('input[name="prayerType"]:checked').value;
+            }
+
+            function onScanSuccess(decodedText, decodedResult) {
+                if (isProcessing) return;
+                isProcessing = true;
+
+                // Stop scanner
+                html5QrCode.pause();
+
+                // Vibrate if supported
+                if (navigator.vibrate) {
+                    navigator.vibrate(200);
+                }
+
+                // Process scan
+                processScan(decodedText);
+            }
+
+            async function processScan(qrData) {
+                try {
+                    const prayerType = getPrayerType();
+
+                    const response = await fetch('/api/operator/scan-qr', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            qr_data: qrData,
+                            prayer_type: prayerType
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.status === 'success') {
+                        showResult('success', data);
+                    } else if (data.status === 'duplicate') {
+                        showResult('duplicate', data);
+                    } else {
+                        showResult('error', data);
+                    }
+                } catch (error) {
+                    showResult('error', { message: 'Terjadi kesalahan koneksi' });
+                }
+            }
+
+            function showResult(type, data) {
+                const modal = document.getElementById('resultModal');
+                const content = document.getElementById('resultContent');
+
+                if (type === 'success') {
+                    content.innerHTML = `
+                    <div class="text-center">
+                        <div class="w-20 h-20 bg-green-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                            <i data-lucide="check" class="w-12 h-12 text-green-600"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold text-gray-800 mb-2">${data.name}</h3>
+                        <p class="text-gray-600 mb-1">${data.class_name}</p>
+                        <p class="text-sm text-gray-500 mb-4">${data.prayer_type} - ${data.time}</p>
+                        <div class="bg-green-50 text-green-700 px-4 py-2 rounded-lg font-semibold">
+                            ✓ ${data.message}
+                        </div>
+                    </div>
+                `;
+                } else if (type === 'duplicate') {
+                    content.innerHTML = `
+                    <div class="text-center">
+                        <div class="w-20 h-20 bg-orange-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                            <i data-lucide="alert-circle" class="w-12 h-12 text-orange-600"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-2">${data.name}</h3>
+                        <p class="text-orange-600">${data.message}</p>
+                    </div>
+                `;
+                } else {
+                    content.innerHTML = `
+                    <div class="text-center">
+                        <div class="w-20 h-20 bg-red-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                            <i data-lucide="x" class="w-12 h-12 text-red-600"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-2">Gagal</h3>
+                        <p class="text-red-600">${data.message}</p>
+                    </div>
+                `;
+                }
+
+                lucide.createIcons();
+                modal.classList.remove('hidden');
+            }
+
+            function closeModal() {
+                const modal = document.getElementById('resultModal');
+                modal.classList.add('hidden');
+                isProcessing = false;
+                html5QrCode.resume();
+            }
+
+            // Initialize scanner
+            function startScanner() {
+                html5QrCode = new Html5Qrcode("reader");
+
+                html5QrCode.start(
+                    { facingMode: "environment" },
+                    {
+                        fps: 10,
+                        qrbox: { width: 250, height: 250 }
+                    },
+                    onScanSuccess
+                ).catch(err => {
+                    console.error("Unable to start scanning", err);
+                    alert("Gagal mengakses kamera. Pastikan izin kamera sudah diberikan.");
+                });
+            }
+
+            // Start scanner on load
+            startScanner();
+        </script>
+    </body>
+
+</html>

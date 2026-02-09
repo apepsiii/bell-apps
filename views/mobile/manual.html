@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="id">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <title>Absen Manual - SmartBell Operator</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script src="https://unpkg.com/lucide@latest"></script>
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+            body {
+                font-family: 'Inter', sans-serif;
+                padding-bottom: 80px;
+            }
+
+            .bottom-nav {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                background: white;
+                box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+                z-index: 50;
+            }
+
+            .nav-item.active {
+                color: #059669;
+            }
+        </style>
+    </head>
+
+    <body class="bg-gray-50">
+
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white p-6">
+            <div class="flex items-center gap-3">
+                <a href="/operator/dashboard" class="text-white">
+                    <i data-lucide="arrow-left" class="w-6 h-6"></i>
+                </a>
+                <h1 class="text-xl font-bold">Absen Manual</h1>
+            </div>
+        </div>
+
+        <!-- Form -->
+        <div class="px-4 py-6 space-y-4">
+            <!-- Class Selection -->
+            <div class="bg-white rounded-xl p-4 shadow-sm">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Kelas:</label>
+                <select id="classSelect"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none">
+                    <option value="">-- Pilih Kelas --</option>
+                </select>
+            </div>
+
+            <!-- Prayer Type -->
+            <div class="bg-white rounded-xl p-4 shadow-sm">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Waktu Sholat:</label>
+                <div class="flex gap-3">
+                    <label class="flex-1">
+                        <input type="radio" name="prayerType" value="Dzuhur" checked class="peer hidden">
+                        <div
+                            class="border-2 border-gray-300 peer-checked:border-emerald-600 peer-checked:bg-emerald-50 rounded-xl p-3 text-center cursor-pointer">
+                            <span class="font-semibold">Dzuhur</span>
+                        </div>
+                    </label>
+                    <label class="flex-1">
+                        <input type="radio" name="prayerType" value="Ashar" class="peer hidden">
+                        <div
+                            class="border-2 border-gray-300 peer-checked:border-emerald-600 peer-checked:bg-emerald-50 rounded-xl p-3 text-center cursor-pointer">
+                            <span class="font-semibold">Ashar</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Student List -->
+            <div id="studentListContainer" class="hidden">
+                <div class="bg-white rounded-xl p-4 shadow-sm">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-semibold text-gray-800">Daftar Siswa</h3>
+                        <button onclick="toggleAll()" class="text-sm text-emerald-600 font-medium">Pilih Semua</button>
+                    </div>
+                    <div id="studentList" class="space-y-2 max-h-96 overflow-y-auto">
+                        <!-- Students will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Save Button -->
+                <button onclick="saveAttendance()" id="saveBtn"
+                    class="w-full bg-emerald-600 text-white py-4 rounded-xl font-semibold shadow-lg">
+                    💾 Simpan Presensi
+                </button>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <div class="bottom-nav">
+            <div class="grid grid-cols-4 h-16">
+                <a href="/operator/dashboard" class="nav-item flex flex-col items-center justify-center text-gray-600">
+                    <i data-lucide="home" class="w-6 h-6 mb-1"></i>
+                    <span class="text-xs">Home</span>
+                </a>
+                <a href="/operator/scan" class="nav-item flex flex-col items-center justify-center text-gray-600">
+                    <i data-lucide="scan" class="w-6 h-6 mb-1"></i>
+                    <span class="text-xs">Scan</span>
+                </a>
+                <a href="/operator/manual" class="nav-item active flex flex-col items-center justify-center">
+                    <i data-lucide="clipboard-check" class="w-6 h-6 mb-1"></i>
+                    <span class="text-xs">Manual</span>
+                </a>
+                <a href="/operator/profile" class="nav-item flex flex-col items-center justify-center text-gray-600">
+                    <i data-lucide="user" class="w-6 h-6 mb-1"></i>
+                    <span class="text-xs">Profile</span>
+                </a>
+            </div>
+        </div>
+
+        <script>
+            lucide.createIcons();
+
+            let students = [];
+            let allSelected = false;
+
+            // Load classes
+            async function loadClasses() {
+                try {
+                    const res = await fetch('/api/operator/classes');
+                    const classes = await res.json();
+
+                    const select = document.getElementById('classSelect');
+                    classes.forEach(cls => {
+                        const option = document.createElement('option');
+                        option.value = cls.id;
+                        option.textContent = `${cls.name} - ${cls.major_name}`;
+                        select.appendChild(option);
+                    });
+                } catch (err) {
+                    console.error('Failed to load classes:', err);
+                }
+            }
+
+            // Load students when class is selected
+            document.getElementById('classSelect').addEventListener('change', async (e) => {
+                const classId = e.target.value;
+                if (!classId) {
+                    document.getElementById('studentListContainer').classList.add('hidden');
+                    return;
+                }
+
+                const prayerType = document.querySelector('input[name="prayerType"]:checked').value;
+                const today = new Date().toISOString().split('T')[0];
+
+                try {
+                    const res = await fetch(`/api/operator/students?class_id=${classId}&date=${today}&type=${prayerType}`);
+                    if (!res.ok) {
+                        throw new Error('Failed to fetch students');
+                    }
+                    students = await res.json();
+
+                    renderStudents();
+                    document.getElementById('studentListContainer').classList.remove('hidden');
+                } catch (err) {
+                    console.error('Failed to load students:', err);
+                    alert('Gagal memuat daftar siswa: ' + err.message);
+                }
+            });
+
+            function renderStudents() {
+                const container = document.getElementById('studentList');
+                container.innerHTML = '';
+
+                students.forEach((student, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center gap-3 p-3 border border-gray-200 rounded-lg';
+                    div.innerHTML = `
+                    <input type="checkbox" id="student_${student.id}" ${student.is_present ? 'checked' : ''} 
+                           class="w-5 h-5 text-emerald-600 rounded" onchange="updateStudent(${index})">
+                    <label for="student_${student.id}" class="flex-1 cursor-pointer">
+                        <span class="font-medium text-gray-800">${student.name}</span>
+                    </label>
+                    <select id="status_${student.id}" class="text-sm border border-gray-300 rounded px-2 py-1" 
+                            ${!student.is_present ? 'disabled' : ''} onchange="updateStudentStatus(${index})">
+                        <option value="Hadir" ${student.status === 'Hadir' ? 'selected' : ''}>Hadir</option>
+                        <option value="PMS" ${student.status === 'PMS' ? 'selected' : ''}>PMS</option>
+                    </select>
+                `;
+                    container.appendChild(div);
+                });
+            }
+
+            function updateStudent(index) {
+                const checkbox = document.getElementById(`student_${students[index].id}`);
+                const statusSelect = document.getElementById(`status_${students[index].id}`);
+
+                students[index].is_present = checkbox.checked;
+                statusSelect.disabled = !checkbox.checked;
+
+                if (checkbox.checked && !students[index].status) {
+                    students[index].status = 'Hadir';
+                    statusSelect.value = 'Hadir';
+                }
+            }
+
+            function updateStudentStatus(index) {
+                const statusSelect = document.getElementById(`status_${students[index].id}`);
+                students[index].status = statusSelect.value;
+            }
+
+            function toggleAll() {
+                allSelected = !allSelected;
+                students.forEach((student, index) => {
+                    student.is_present = allSelected;
+                    if (allSelected && !student.status) {
+                        student.status = 'Hadir';
+                    }
+                });
+                renderStudents();
+            }
+
+            async function saveAttendance() {
+                const classId = document.getElementById('classSelect').value;
+                const prayerType = document.querySelector('input[name="prayerType"]:checked').value;
+                const today = new Date().toISOString().split('T')[0];
+
+                const selectedStudents = students
+                    .filter(s => s.is_present)
+                    .map(s => ({ id: s.id, status: s.status }));
+
+                const saveBtn = document.getElementById('saveBtn');
+                saveBtn.disabled = true;
+                saveBtn.textContent = 'Menyimpan...';
+
+                try {
+                    const res = await fetch('/api/operator/prayer-attendance', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            class_id: classId,
+                            date: today,
+                            prayer_type: prayerType,
+                            students: selectedStudents
+                        })
+                    });
+
+                    const data = await res.json();
+
+                    if (res.ok) {
+                        alert('✓ ' + data.message);
+                        window.location.href = '/operator/dashboard';
+                    } else {
+                        alert('✗ ' + data.message);
+                    }
+                } catch (err) {
+                    alert('Terjadi kesalahan: ' + err.message);
+                } finally {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = '💾 Simpan Presensi';
+                }
+            }
+
+            // Load classes on page load
+            loadClasses();
+        </script>
+    </body>
+
+</html>

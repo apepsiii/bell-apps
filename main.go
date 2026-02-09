@@ -35,7 +35,7 @@ const (
 	AdminPass   = "admin123"
 	CookieName  = "session_token"
 	SecretKey   = "admin-secret-key-123"
-	AppVersion  = "v1.1.0"
+	AppVersion  = "v1.2.0"
 )
 
 //go:embed views/*.html
@@ -369,6 +369,17 @@ func InitDB() *sql.DB {
 			timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
 			recorded_by TEXT
 		);`,
+		// Operators Table for Mobile Prayer Management
+		`CREATE TABLE IF NOT EXISTS operators (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			username TEXT UNIQUE NOT NULL,
+			password TEXT NOT NULL,
+			name TEXT NOT NULL,
+			phone TEXT,
+			photo TEXT,
+			is_active BOOLEAN DEFAULT 1,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		);`,
 		`INSERT OR IGNORE INTO attendance_settings (setting_key, setting_value) VALUES ('dzuhur_start', '11:30');`,
 		`INSERT OR IGNORE INTO attendance_settings (setting_key, setting_value) VALUES ('dzuhur_end', '13:00');`,
 		`INSERT OR IGNORE INTO attendance_settings (setting_key, setting_value) VALUES ('ashar_start', '15:00');`,
@@ -407,6 +418,13 @@ func InitDB() *sql.DB {
 	db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('students') WHERE name='parent_name'").Scan(&colCountParentName)
 	if colCountParentName == 0 {
 		db.Exec("ALTER TABLE students ADD COLUMN parent_name TEXT DEFAULT ''")
+	}
+
+	// Migration: Add 'recorded_by' to prayer_logs
+	var colCountRecordedBy int
+	db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('prayer_logs') WHERE name='recorded_by'").Scan(&colCountRecordedBy)
+	if colCountRecordedBy == 0 {
+		db.Exec("ALTER TABLE prayer_logs ADD COLUMN recorded_by TEXT DEFAULT 'RFID'")
 	}
 
 	// Seed Attendance Settings
@@ -2425,6 +2443,10 @@ func main() {
 
 	db := InitDB()
 	defer db.Close()
+	
+	// Create default operator account
+	CreateDefaultOperator(db)
+	
 	app := &App{DB: db}
 
 	e := echo.New()
@@ -2580,6 +2602,55 @@ func main() {
 	admin.POST("/point-rewards/add", app.AddPointRewardHandler)
 	admin.DELETE("/point-rewards/:id", app.DeletePointRewardHandler)
 	admin.POST("/points/redeem", app.RedeemRewardHandler)
+
+	// ===== OPERATOR ROUTES (Mobile Prayer Management) =====
+	
+	// Public Login Page
+	e.GET("/operator/login", func(c echo.Context) error {
+		return c.File("views/mobile/login.html")
+	})
+	
+	// Authentication API
+	e.POST("/api/operator/login", app.OperatorLoginHandler)
+	e.POST("/api/operator/logout", app.OperatorLogoutHandler)
+	
+	// Protected Operator Pages
+	operatorPages := e.Group("/operator")
+	operatorPages.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return app.OperatorAuthMiddleware(next)
+	})
+	
+	operatorPages.GET("/dashboard", func(c echo.Context) error {
+		return c.File("views/mobile/dashboard.html")
+	})
+	operatorPages.GET("/scan", func(c echo.Context) error {
+		return c.File("views/mobile/scan.html")
+	})
+	operatorPages.GET("/manual", func(c echo.Context) error {
+		return c.File("views/mobile/manual.html")
+	})
+	operatorPages.GET("/profile", func(c echo.Context) error {
+		return c.File("views/mobile/profile.html")
+	})
+	
+	// Protected Operator API
+	operatorAPI := e.Group("/api/operator")
+	operatorAPI.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return app.OperatorAuthMiddleware(next)
+	})
+	
+	operatorAPI.GET("/prayer-stats", app.OperatorPrayerStatsHandler)
+	operatorAPI.POST("/scan-qr", app.ScanQRCodeHandler)
+	operatorAPI.GET("/classes", app.GetClassesHandler)
+	operatorAPI.GET("/recent-logs", app.GetRecentPrayerLogsHandler)
+	operatorAPI.GET("/students", app.GetStudentsForPrayerHandler)
+	operatorAPI.POST("/prayer-attendance", app.SavePrayerAttendanceHandler)
+	operatorAPI.GET("/profile", app.GetOperatorProfileHandler)
+	operatorAPI.PUT("/profile", app.UpdateOperatorProfileHandler)
+	operatorAPI.PUT("/password", app.ChangeOperatorPasswordHandler)
+	
+	// QR Code Generation (can be used by admin too)
+	admin.GET("/qr-generate", app.GenerateQRCodeHandler)
 
 	// School Settings API
 	admin.GET("/settings/school", app.GetSchoolSettingsHandler)

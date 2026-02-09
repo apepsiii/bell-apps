@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="id">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <title>Profile - SmartBell Operator</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script src="https://unpkg.com/lucide@latest"></script>
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+            body {
+                font-family: 'Inter', sans-serif;
+                padding-bottom: 80px;
+            }
+
+            .bottom-nav {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                background: white;
+                box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+                z-index: 50;
+            }
+
+            .nav-item.active {
+                color: #059669;
+            }
+        </style>
+    </head>
+
+    <body class="bg-gray-50">
+
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white p-6 pb-20">
+            <h1 class="text-xl font-bold">Profile Operator</h1>
+        </div>
+
+        <!-- Profile Card -->
+        <div class="px-4 -mt-12">
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+                <!-- Avatar -->
+                <div class="flex flex-col items-center mb-6">
+                    <div class="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mb-3">
+                        <i data-lucide="user" class="w-12 h-12 text-emerald-600"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-gray-800" id="operatorName">Loading...</h2>
+                    <p class="text-sm text-gray-500" id="operatorUsername">@username</p>
+                </div>
+
+                <!-- Info -->
+                <div class="space-y-3">
+                    <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                        <i data-lucide="phone" class="w-5 h-5 text-gray-600"></i>
+                        <span class="text-gray-800" id="operatorPhone">-</span>
+                    </div>
+                    <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                        <i data-lucide="calendar" class="w-5 h-5 text-gray-600"></i>
+                        <span class="text-gray-600 text-sm">Bergabung: <span id="joinDate">-</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="mt-6 space-y-3">
+                <button onclick="changePassword()"
+                    class="w-full bg-white text-gray-800 py-4 rounded-xl font-semibold shadow-sm flex items-center justify-center gap-2">
+                    <i data-lucide="key" class="w-5 h-5"></i>
+                    Ubah Password
+                </button>
+                <button onclick="logout()"
+                    class="w-full bg-red-600 text-white py-4 rounded-xl font-semibold shadow-lg flex items-center justify-center gap-2">
+                    <i data-lucide="log-out" class="w-5 h-5"></i>
+                    Logout
+                </button>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <div class="bottom-nav">
+            <div class="grid grid-cols-4 h-16">
+                <a href="/operator/dashboard" class="nav-item flex flex-col items-center justify-center text-gray-600">
+                    <i data-lucide="home" class="w-6 h-6 mb-1"></i>
+                    <span class="text-xs">Home</span>
+                </a>
+                <a href="/operator/scan" class="nav-item flex flex-col items-center justify-center text-gray-600">
+                    <i data-lucide="scan" class="w-6 h-6 mb-1"></i>
+                    <span class="text-xs">Scan</span>
+                </a>
+                <a href="/operator/manual" class="nav-item flex flex-col items-center justify-center text-gray-600">
+                    <i data-lucide="clipboard-check" class="w-6 h-6 mb-1"></i>
+                    <span class="text-xs">Manual</span>
+                </a>
+                <a href="/operator/profile" class="nav-item active flex flex-col items-center justify-center">
+                    <i data-lucide="user" class="w-6 h-6 mb-1"></i>
+                    <span class="text-xs">Profile</span>
+                </a>
+            </div>
+        </div>
+
+        <script>
+            lucide.createIcons();
+
+            // Load profile
+            async function loadProfile() {
+                try {
+                    const res = await fetch('/api/operator/profile');
+                    const data = await res.json();
+
+                    document.getElementById('operatorName').textContent = data.name;
+                    document.getElementById('operatorUsername').textContent = '@' + data.username;
+                    document.getElementById('operatorPhone').textContent = data.phone || '-';
+
+                    if (data.created_at) {
+                        const date = new Date(data.created_at);
+                        document.getElementById('joinDate').textContent = date.toLocaleDateString('id-ID');
+                    }
+                } catch (err) {
+                    console.error('Failed to load profile:', err);
+                }
+            }
+
+            function changePassword() {
+                const oldPass = prompt('Masukkan password lama:');
+                if (!oldPass) return;
+
+                const newPass = prompt('Masukkan password baru:');
+                if (!newPass) return;
+
+                const confirmPass = prompt('Konfirmasi password baru:');
+                if (newPass !== confirmPass) {
+                    alert('Password tidak cocok!');
+                    return;
+                }
+
+                fetch('/api/operator/password', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        old_password: oldPass,
+                        new_password: newPass
+                    })
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        alert(data.message);
+                    })
+                    .catch(err => {
+                        alert('Terjadi kesalahan');
+                    });
+            }
+
+            async function logout() {
+                if (!confirm('Yakin ingin logout?')) return;
+
+                try {
+                    await fetch('/api/operator/logout', { method: 'POST' });
+                    window.location.href = '/operator/login';
+                } catch (err) {
+                    console.error('Logout failed:', err);
+                }
+            }
+
+            loadProfile();
+        </script>
+    </body>
+
+</html>
