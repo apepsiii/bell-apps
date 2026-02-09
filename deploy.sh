@@ -32,11 +32,29 @@ do
             echo "[*] Menghentikan service..."
             systemctl stop smartbell
             
-            echo "[*] Memperbarui izin eksekusi..."
-            if [ -f "bell_linux" ]; then
-                chmod +x bell_linux
+            echo "[*] Mencari file binary terbaru..."
+            # Find the latest smartbell ARM binary
+            BINARY_FILE=$(ls -t smartbell_v*_arm64 2>/dev/null | head -1)
+            
+            if [ -z "$BINARY_FILE" ]; then
+                # Fallback to bell_linux if no versioned file found
+                BINARY_FILE="bell_linux"
+            fi
+            
+            if [ -f "$BINARY_FILE" ]; then
+                echo "[*] Menggunakan file: $BINARY_FILE"
+                chmod +x "$BINARY_FILE"
+                
+                # Copy to standard location
+                cp "$BINARY_FILE" /opt/smartbell/bell_linux
+                chmod +x /opt/smartbell/bell_linux
+                
+                echo "[*] File berhasil diupdate!"
             else
-                echo "⚠️ File bell_linux tidak ditemukan! Pastikan sudah diupload."
+                echo "❌ File binary tidak ditemukan!"
+                echo "   Pastikan sudah upload file smartbell_v*_arm64 atau bell_linux"
+                systemctl start smartbell
+                break
             fi
             
             echo "[*] Menjalankan kembali service..."
@@ -45,7 +63,7 @@ do
             echo "[*] Cek status..."
             sleep 2
             if systemctl is-active --quiet smartbell; then
-                echo "✅ UPDATE BERHASIL! Aplikasi berjalan."
+                echo "✅ UPDATE BERHASIL! Aplikasi berjalan dengan $BINARY_FILE"
             else
                 echo "❌ Gagal menjalankan aplikasi. Cek log dengan: sudo journalctl -u smartbell -n 20"
             fi
