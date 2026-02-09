@@ -38,7 +38,7 @@ const (
 	AppVersion  = "v1.2.0"
 )
 
-//go:embed views/*.html
+//go:embed views/*.html views/mobile/*.html
 var viewsFS embed.FS
 
 //go:embed setup.sh
