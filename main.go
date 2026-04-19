@@ -210,6 +210,32 @@ type StudentStatus struct {
 	Time   string
 }
 
+type CalendarLog struct {
+	Status string `json:"status"`
+	Time   string `json:"time"`
+}
+
+type WhatsAppLogEntry struct {
+	ID        int    `json:"id"`
+	Target    string `json:"target"`
+	Message   string `json:"message"`
+	Status    string `json:"status"`
+	Response  string `json:"response"`
+	Timestamp string `json:"timestamp"`
+}
+
+type ChartDataset struct {
+	Label       string `json:"label"`
+	Data        []int  `json:"data"`
+	BorderColor string `json:"borderColor"`
+	Fill        bool   `json:"fill"`
+}
+
+type ChartStruct struct {
+	Labels   []string       `json:"labels"`
+	Datasets []ChartDataset `json:"datasets"`
+}
+
 type DashboardData struct {
 	Username           string
 	Schedules          []Schedule
@@ -599,18 +625,9 @@ func (a *App) GetWhatsAppLogsHandler(c echo.Context) error {
 	}
 	defer rows.Close()
 
-	type Log struct {
-		ID        int    `json:"id"`
-		Target    string `json:"target"`
-		Message   string `json:"message"`
-		Status    string `json:"status"`
-		Response  string `json:"response"`
-		Timestamp string `json:"timestamp"`
-	}
-
-	var logs []Log
+	var logs []WhatsAppLogEntry
 	for rows.Next() {
-		var l Log
+		var l WhatsAppLogEntry
 		var resp sql.NullString
 		rows.Scan(&l.ID, &l.Target, &l.Message, &l.Status, &resp, &l.Timestamp)
 		l.Response = resp.String
@@ -865,16 +882,6 @@ func (a *App) DashboardHandler(c echo.Context) error {
 
 	// 1. Weekly Class Progress (Last 7 Days)
 	// Output: {labels: [Date1, ...], datasets: [{label: 'ClassA', data: [10, ...]}, ...]}
-	type ChartDataset struct {
-		Label       string `json:"label"`
-		Data        []int  `json:"data"`
-		BorderColor string `json:"borderColor"`
-		Fill        bool   `json:"fill"`
-	}
-	type ChartStruct struct {
-		Labels   []string       `json:"labels"`
-		Datasets []ChartDataset `json:"datasets"`
-	}
 
 	// Generate Dates (Last 7 days)
 	var chartDates []string
@@ -1731,11 +1738,6 @@ func (a *App) GetStudentCalendarHandler(c echo.Context) error {
 
 	// 3. Process Data
 	// Output: map[DayString][]Log
-	type CalendarLog struct {
-		Status string `json:"status"`
-		Time   string `json:"time"`
-	}
-
 	calendarData := make(map[int][]CalendarLog)
 
 	for rows.Next() {
@@ -1870,10 +1872,6 @@ func (a *App) GetStaffCalendarHandler(c echo.Context) error {
 	}
 	defer rows.Close()
 
-	type CalendarLog struct {
-		Status string `json:"status"`
-		Time   string `json:"time"`
-	}
 	calendarData := make(map[int][]CalendarLog)
 
 	for rows.Next() {
