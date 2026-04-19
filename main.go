@@ -2757,9 +2757,9 @@ func main() {
 	admin.DELETE("/schedule/:id", handler.DeleteSchedule(db))
 
 	// Audio Routes
-	admin.POST("/audio/upload", app.UploadAudioHandler)
-	admin.POST("/audio/rename/:id", app.RenameAudioHandler)
-	admin.DELETE("/audio/:id", app.DeleteAudioHandler)
+	admin.POST("/audio/upload", handler.UploadAudio(db))
+	admin.POST("/audio/rename/:id", handler.RenameAudio(db))
+	admin.DELETE("/audio/:id", handler.DeleteAudio(db))
 
 	// Device Routes
 	admin.POST("/device/add", handler.AddDevice(db))
@@ -2779,9 +2779,9 @@ func main() {
 	admin.DELETE("/class/:id", handler.DeleteClass(db))
 
 	// Students
-	admin.POST("/student/add", app.AddStudentHandler)
-	admin.POST("/student/update/:id", app.UpdateStudentHandler)
-	admin.DELETE("/student/:id", app.DeleteStudentHandler)
+	admin.POST("/student/add", handler.AddStudent(db))
+	admin.POST("/student/update/:id", handler.UpdateStudent(db))
+	admin.DELETE("/student/:id", handler.DeleteStudent(db))
 	admin.POST("/student/import", app.ImportStudentHandler)
 	admin.POST("/student/import-json", app.ImportStudentJSONHandler)
 	admin.POST("/students/delete-multiple", app.BulkDeleteStudentsHandler)
