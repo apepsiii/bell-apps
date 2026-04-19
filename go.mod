@@ -3,6 +3,7 @@ module belsekolah
 go 1.25.6
 
 require (
+	github.com/go-sql-driver/mysql v1.9.3
 	github.com/hegedustibor/htgo-tts v0.0.0-20240912200108-467b3e535435
 	github.com/jung-kurt/gofpdf v1.16.2
 	github.com/labstack/echo/v4 v4.15.0
@@ -13,6 +14,7 @@ require (
 )
 
 require (
+	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect

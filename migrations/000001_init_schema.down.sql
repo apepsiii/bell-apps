@@ -1,0 +1,22 @@
+-- Rollback: Drop all tables
+
+DROP TABLE IF EXISTS student_faces;
+DROP TABLE IF EXISTS student_points;
+DROP TABLE IF EXISTS point_rewards;
+DROP TABLE IF EXISTS point_rules;
+DROP TABLE IF EXISTS announcements;
+DROP TABLE IF EXISTS prayer_logs;
+DROP TABLE IF EXISTS signage_media;
+DROP TABLE IF EXISTS running_texts;
+DROP TABLE IF EXISTS whatsapp_logs;
+DROP TABLE IF EXISTS school_settings;
+DROP TABLE IF EXISTS holidays;
+DROP TABLE IF EXISTS attendance_logs;
+DROP TABLE IF EXISTS attendance_settings;
+DROP TABLE IF EXISTS staff;
+DROP TABLE IF EXISTS students;
+DROP TABLE IF EXISTS classes;
+DROP TABLE IF EXISTS majors;
+DROP TABLE IF EXISTS devices;
+DROP TABLE IF EXISTS audio_files;
+DROP TABLE IF EXISTS schedules;
