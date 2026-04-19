@@ -441,11 +441,9 @@
 
                         showState('state-success');
 
-                        // Refresh stats and recent logs
-                        setTimeout(() => {
-                            if (!isPrayerMode) fetchStats(); // Stats maybe not relevant for prayer yet
-                            // fetchRecentLogs(); // Prayer logs separate?
-                        }, 1000);
+                        // Refresh stats and recent logs immediately
+                        fetchStats();
+                        fetchRecentLogs();
 
                     } else if (data.status === 'duplicate') {
                         // DUPLICATE

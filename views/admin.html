@@ -124,6 +124,8 @@
                                     <button onclick="navigateMenu('reports', this)" id="nav-reports"
                                         class="nav-item w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">Laporan
                                         PDF</button>
+                                    <button onclick="navigateMenu('announcements', this)" id="nav-announcements"
+                                        class="nav-item w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">Pengumuman</button>
                                 </div>
                             </div>
 
@@ -214,6 +216,8 @@
                                 Sholat</button>
                             <button onclick="navigateMenu('points', this); toggleMobileMenu()"
                                 class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-blue-600 hover:bg-slate-50 pl-6">Poin</button>
+                            <button onclick="navigateMenu('announcements', this); toggleMobileMenu()"
+                                class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-blue-600 hover:bg-slate-50 pl-6">Pengumuman</button>
                         </div>
                     </div>
                 </div>
@@ -973,6 +977,33 @@
                         </div>
                     </section>
 
+                    <!-- ANNOUNCEMENTS SECTION -->
+                    <section id="announcements" class="page-section">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-bold text-slate-800">Manajemen Pengumuman</h2>
+                            <button onclick="openModal('modal-announcement')"
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-lg shadow-blue-600/20">
+                                <i data-lucide="plus" class="w-4 h-4"></i> Buat Pengumuman
+                            </button>
+                        </div>
+
+                        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                            <table class="w-full text-left">
+                                <thead class="bg-slate-50 border-b border-slate-200">
+                                    <tr>
+                                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Judul</th>
+                                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Jadwal</th>
+                                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                                        <th class="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="announcement-table-body" class="divide-y divide-slate-100">
+                                    <!-- Rows will be populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
                     <!-- DEVICES (EXISTING) -->
                     <section id="devices" class="page-section">
                         <!-- ... Perangkat code ... -->
@@ -1468,6 +1499,31 @@
                     <div class="flex justify-end gap-2"><button type="button" onclick="closeModal('modal-add-schedule')"
                             class="text-slate-500">Batal</button><button type="submit"
                             class="bg-blue-600 text-white px-4 py-2 rounded">Simpan</button></div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal Announcement -->
+        <div id="modal-announcement" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6">
+                <h3 class="font-bold text-lg mb-4">Buat Pengumuman Baru</h3>
+                <form id="announcement-form" onsubmit="handleAnnouncementSubmit(event)" class="space-y-4">
+                    <div>
+                        <label class="text-sm font-medium">Judul</label>
+                        <input type="text" name="title" required class="w-full border rounded p-2">
+                    </div>
+                    <div>
+                        <label class="text-sm font-medium">Isi Pesan (Akan diubah menjadi suara)</label>
+                        <textarea name="message" rows="4" required class="w-full border rounded p-2"></textarea>
+                    </div>
+                    <div>
+                        <label class="text-sm font-medium">Jadwalkan (Opsional)</label>
+                        <input type="datetime-local" name="scheduled_at" class="w-full border rounded p-2">
+                    </div>
+                    <div class="flex justify-end gap-2 pt-4">
+                        <button type="button" onclick="closeModal('modal-announcement')" class="text-slate-500">Batal</button>
+                        <button type="submit" class="bg-blue-600 text-white px-5 py-2 rounded-lg font-semibold">Simpan & Putar</button>
+                    </div>
                 </form>
             </div>
         </div>
@@ -4144,8 +4200,116 @@
                 window.navigateMenu = function (pageId, element) {
                     originalNavigate(pageId, element);
                     if (pageId === 'points') loadLeaderboard();
+                    if (pageId === 'announcements') loadAnnouncements();
                 }
             }
+
+            // --- ANNOUNCEMENT SCRIPTS ---
+            async function loadAnnouncements() {
+                try {
+                    const response = await fetch('/admin/announcements');
+                    const announcements = await response.json();
+                    const tableBody = document.getElementById('announcement-table-body');
+                    tableBody.innerHTML = '';
+
+                    if (!announcements || announcements.length === 0) {
+                        tableBody.innerHTML = '<tr><td colspan="4" class="text-center py-12 text-slate-500">Belum ada pengumuman.</td></tr>';
+                        return;
+                    }
+
+                    announcements.forEach(ann => {
+                        const scheduledAt = ann.scheduled_at.Valid ? new Date(ann.scheduled_at.Time).toLocaleString('id-ID') : 'Segera';
+                        let statusBadge;
+                        switch (ann.status) {
+                            case 'played':
+                                statusBadge = `<span class="bg-green-100 text-green-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full">Selesai</span>`;
+                                break;
+                            case 'scheduled':
+                                statusBadge = `<span class="bg-yellow-100 text-yellow-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full">Terjadwal</span>`;
+                                break;
+                            case 'playing':
+                                statusBadge = `<span class="bg-blue-100 text-blue-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full animate-pulse">Memutar...</span>`;
+                                break;
+                            default:
+                                statusBadge = `<span class="bg-gray-100 text-gray-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full">${ann.status}</span>`;
+                        }
+
+                        const row = `
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-6 py-4 font-medium text-slate-800">${ann.title}</td>
+                        <td class="px-6 py-4 text-sm text-slate-500">${scheduledAt}</td>
+                        <td class="px-6 py-4">${statusBadge}</td>
+                        <td class="px-6 py-4 text-right space-x-2">
+                            <button onclick="playAnnouncement(${ann.id}, '${ann.audio_file}')" class="text-green-600 hover:bg-green-50 p-2 rounded-lg" title="Putar Sekarang"><i data-lucide="play-circle" class="w-4 h-4"></i></button>
+                            <button onclick="deleteItem('announcement', ${ann.id})" class="text-red-600 hover:bg-red-50 p-2 rounded-lg" title="Hapus"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </td>
+                    </tr>`;
+                        tableBody.innerHTML += row;
+                    });
+                    lucide.createIcons();
+                } catch (error) {
+                    console.error('Failed to load announcements:', error);
+                    const tableBody = document.getElementById('announcement-table-body');
+                    tableBody.innerHTML = '<tr><td colspan="4" class="text-center py-12 text-red-500">Gagal memuat data.</td></tr>';
+                }
+            }
+
+            async function handleAnnouncementSubmit(event) {
+                event.preventDefault();
+                const form = event.target;
+                const formData = new FormData(form);
+
+                try {
+                    const response = await fetch('/admin/announcement/add', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const result = await response.json();
+                    if (response.ok) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil!',
+                            text: result.message,
+                            timer: 2000,
+                            showConfirmButton: false
+                        }).then(() => {
+                            closeModal('modal-announcement');
+                            loadAnnouncements();
+                        });
+                    } else {
+                        Swal.fire('Gagal', result.message, 'error');
+                    }
+                } catch (error) {
+                    Swal.fire('Error', 'Terjadi kesalahan: ' + error, 'error');
+                }
+            }
+
+            async function playAnnouncement(id, audioFile) {
+                try {
+                    // Mainkan audio di browser
+                    const audio = new Audio('/assets/audio/' + audioFile);
+                    audio.play();
+
+                    const response = await fetch(`/admin/announcement/play/${id}`, { method: 'POST' });
+                    const result = await response.json();
+                    if (response.ok) {
+                        Swal.fire({
+                            toast: true,
+                            position: 'top-end',
+                            icon: 'info',
+                            title: 'Pengumuman sedang diputar di browser.',
+                            showConfirmButton: false,
+                            timer: 2500
+                        });
+                        loadAnnouncements();
+                    } else {
+                        Swal.fire('Gagal', result.message, 'error');
+                    }
+                } catch (error) {
+                    Swal.fire('Error', 'Terjadi kesalahan: ' + error, 'error');
+                }
+            }
+
         </script>
     </body>
 

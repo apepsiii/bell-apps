@@ -18,6 +18,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -51,6 +52,9 @@ var setupNginxScript string
 
 type App struct {
 	DB *sql.DB
+	// Mutex to protect active announcement state
+	mu                sync.Mutex
+	activeAnnouncment *Announcement
 }
 
 type Template struct {
@@ -157,6 +161,7 @@ type PrayerLog struct {
 	Date       string `json:"date"`
 }
 
+
 // Helper struct for Dashboard presentation
 type StudentStatus struct {
 	Student
@@ -174,6 +179,7 @@ type DashboardData struct {
 	Classes            []Class
 	Students           []Student
 	StaffList          []Staff
+	Announcements      []Announcement
 	AttendanceLogs     []AttendanceLog
 	AttendanceSettings map[string]string
 
@@ -343,6 +349,16 @@ func InitDB() *sql.DB {
 			prayer_type TEXT,
 			timestamp DATETIME,
 			date DATE
+		);`,
+		`CREATE TABLE IF NOT EXISTS announcements (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			title TEXT,
+			message TEXT,
+			audio_file TEXT,
+			scheduled_at DATETIME,
+			played_at DATETIME,
+			status TEXT, -- 'scheduled', 'played', 'cancelled'
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		);`,
 		// Student Point System Tables
 		`CREATE TABLE IF NOT EXISTS point_rules (
@@ -795,6 +811,16 @@ func (a *App) DashboardHandler(c echo.Context) error {
 	}
 	rowsSM.Close()
 
+	// 3. Announcements
+	rowsAnn, _ := a.DB.Query("SELECT id, title, message, audio_file, scheduled_at, played_at, status, created_at FROM announcements ORDER BY created_at DESC")
+	var announcements []Announcement
+	for rowsAnn.Next() {
+		var ann Announcement
+		rowsAnn.Scan(&ann.ID, &ann.Title, &ann.Message, &ann.AudioFile, &ann.ScheduledAt, &ann.PlayedAt, &ann.Status, &ann.CreatedAt)
+		announcements = append(announcements, ann)
+	}
+	rowsAnn.Close()
+
 	// --- CHARTS DATA GENERATION ---
 
 	// 1. Weekly Class Progress (Last 7 Days)
@@ -932,6 +958,7 @@ func (a *App) DashboardHandler(c echo.Context) error {
 		Classes:            classes,
 		Students:           students,
 		StaffList:          staffList,
+		Announcements:      announcements,
 		AttendanceLogs:     logs,
 		AttendanceSettings: attSettings,
 		PresentStudents:    presentList,
@@ -1741,7 +1768,8 @@ func (a *App) GetStudentCalendarHandler(c echo.Context) error {
 	monthType := time.Month(monthInt)
 	yearInt, _ := strconv.Atoi(year)
 	
-	workingDays := a.GetWorkingDaysInMonth(yearInt, monthType)
+	workingDays, _ := a.GetWorkingDaysInMonth(yearInt, monthType)
+	holidaysMap, _ := a.GetHolidaysForMonth(yearInt, monthType)
 
 	for _, logs := range calendarData {
 		for _, log := range logs {
@@ -1776,7 +1804,7 @@ func (a *App) GetStudentCalendarHandler(c echo.Context) error {
 			"alpha":            totalAlpha,
 			"attendance_rate":  attendanceRate,
 		},
-		"holidays": a.GetHolidaysForMonth(year, month),
+		"holidays": holidaysMap,
 	}
 
 	return c.JSON(http.StatusOK, response)
@@ -1846,7 +1874,8 @@ func (a *App) GetStaffCalendarHandler(c echo.Context) error {
 	monthType := time.Month(monthInt)
 	yearInt, _ := strconv.Atoi(year)
 	
-	workingDays := a.GetWorkingDaysInMonth(yearInt, monthType)
+	workingDays, _ := a.GetWorkingDaysInMonth(yearInt, monthType)
+	holidaysMap, _ := a.GetHolidaysForMonth(yearInt, monthType)
 
 	for _, logs := range calendarData {
 		for _, log := range logs {
@@ -1881,13 +1910,13 @@ func (a *App) GetStaffCalendarHandler(c echo.Context) error {
 			"alpha":            totalAlpha,
 			"attendance_rate":  attendanceRate,
 		},
-		"holidays": a.GetHolidaysForMonth(year, month),
+		"holidays": holidaysMap,
 	}
 
 	return c.JSON(http.StatusOK, response)
 }
 
-// --- PROFILE HANDLERS ---
+// --- PROFILE HANDLERS -----
 
 type ProfileData struct {
 	Type       string // "Siswa" or "Guru/Staff"
@@ -2411,7 +2440,12 @@ func (a *App) RecentLogsHandler(c echo.Context) error {
 }
 
 func (a *App) SyncHandler(c echo.Context) error {
-	rows, _ := a.DB.Query("SELECT time, label, audio_file FROM schedules ORDER BY time ASC")
+	// 1. Get regular schedules
+	rows, err := a.DB.Query("SELECT time, label, audio_file FROM schedules ORDER BY time ASC")
+	if err != nil {
+		log.Printf("Error querying schedules: %v", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "could not query schedules"})
+	}
 	defer rows.Close()
 
 	var schedules []map[string]string
@@ -2419,9 +2453,39 @@ func (a *App) SyncHandler(c echo.Context) error {
 		var t, l, af string
 		rows.Scan(&t, &l, &af)
 		schedules = append(schedules, map[string]string{
-			"time": t, "label": l, "audio": af, "audio_url": "/assets/audio/" + af,
+			"time":      t,
+			"label":     l,
+			"audio":     af,
+			"audio_url": "/assets/audio/" + af,
 		})
 	}
+
+	// 2. Check for an active announcement
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	if a.activeAnnouncment != nil {
+		// Prepend the announcement to the schedule list
+		announcementSchedule := map[string]string{
+			"time":      time.Now().Format("15:04"), // Play now
+			"label":     a.activeAnnouncment.Title,
+			"audio":     a.activeAnnouncment.AudioFile,
+			"audio_url": "/assets/audio/" + a.activeAnnouncment.AudioFile,
+			"type":      "announcement", // Differentiate from regular bell
+		}
+		// Add to the beginning of the slice
+		schedules = append([]map[string]string{announcementSchedule}, schedules...)
+
+		// Mark as played in DB and clear from active state
+		// Do this in a goroutine to not block the response
+		go func(annID int) {
+			a.DB.Exec("UPDATE announcements SET status='played', played_at=? WHERE id=?", time.Now(), annID)
+		}(a.activeAnnouncment.ID)
+
+		// Clear the active announcement so it only plays once per sync
+		a.activeAnnouncment = nil
+	}
+
 	return c.JSON(http.StatusOK, schedules)
 }
 
@@ -2433,21 +2497,200 @@ func (a *App) ScanPrayerPageHandler(c echo.Context) error {
 	return c.Render(http.StatusOK, "scan_prayer.html", nil)
 }
 
-// --- MAIN ---
+// --- ANNOUNCEMENT SCHEDULER ---
+func (a *App) StartAnnouncementScheduler() {
+	log.Println("📢 Starting Announcement Scheduler...")
+	ticker := time.NewTicker(30 * time.Second) // Check every 30 seconds for more responsiveness
 
-func main() {
-	if len(os.Args) > 1 && os.Args[1] == "wizard" {
-		runWizard()
+	go func() {
+		for {
+			<-ticker.C
+			a.checkForPendingAnnouncements()
+		}
+	}()
+}
+
+func (a *App) checkForPendingAnnouncements() {
+	a.mu.Lock()
+	// If an announcement is already active, wait for it to be cleared by the sync handler
+	if a.activeAnnouncment != nil {
+		a.mu.Unlock()
 		return
 	}
+	a.mu.Unlock()
 
-	db := InitDB()
-	defer db.Close()
-	
-	// Create default operator account
+	now := time.Now()
+	// Check for announcements scheduled in the past minute that are still pending
+	rows, err := a.DB.Query("SELECT id, title, message, audio_file, scheduled_at, status FROM announcements WHERE status = 'pending' AND scheduled_at <= ?", now)
+	if err != nil {
+		log.Printf("Error checking for announcements: %v", err)
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var ann Announcement
+		var scheduledAt sql.NullTime
+		rows.Scan(&ann.ID, &ann.Title, &ann.Message, &ann.AudioFile, &scheduledAt, &ann.Status)
+		ann.ScheduledAt = scheduledAt
+
+		log.Printf("Found pending announcement: %s (ID: %d)", ann.Title, ann.ID)
+
+		// Set as active announcement
+		a.mu.Lock()
+		a.activeAnnouncment = &ann
+		a.mu.Unlock()
+
+		// Update status to 'playing' to prevent it from being picked up again
+		a.DB.Exec("UPDATE announcements SET status='playing' WHERE id=?", ann.ID)
+
+		// We only play one announcement at a time. Break after the first one.
+		// The next tick will pick up others if they were scheduled for the same minute.
+		break
+	}
+}
+
+// --- MAIN ---
+
+func migrate(db *sql.DB) {
+	// Create tables
+	_, err := db.Exec(`
+	CREATE TABLE IF NOT EXISTS schedules (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		time TEXT NOT NULL,
+		label TEXT NOT NULL,
+		audio TEXT NOT NULL,
+		days TEXT,
+		is_active INTEGER DEFAULT 1
+	);
+	CREATE TABLE IF NOT EXISTS audio_files (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		filename TEXT NOT NULL UNIQUE,
+		display_name TEXT NOT NULL,
+		uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	);
+	CREATE TABLE IF NOT EXISTS operators (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		username TEXT NOT NULL UNIQUE,
+		password TEXT NOT NULL,
+		role TEXT NOT NULL,
+		last_login DATETIME
+	);
+	CREATE TABLE IF NOT EXISTS majors (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		name TEXT NOT NULL UNIQUE
+	);
+	CREATE TABLE IF NOT EXISTS classes (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		name TEXT NOT NULL,
+		major_id INTEGER,
+		wa_group_id TEXT,
+		FOREIGN KEY(major_id) REFERENCES majors(id)
+	);
+	CREATE TABLE IF NOT EXISTS students (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		rfid TEXT UNIQUE,
+		nis TEXT UNIQUE,
+		name TEXT NOT NULL,
+		phone TEXT,
+		class_id INTEGER,
+		photo TEXT,
+		FOREIGN KEY(class_id) REFERENCES classes(id)
+	);
+	CREATE TABLE IF NOT EXISTS staff (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		rfid TEXT UNIQUE,
+		nip TEXT UNIQUE,
+		name TEXT NOT NULL,
+		phone TEXT,
+		role TEXT
+	);
+	CREATE TABLE IF NOT EXISTS attendance (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		student_id INTEGER,
+		status TEXT NOT NULL,
+		timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+		entry_method TEXT,
+		FOREIGN KEY(student_id) REFERENCES students(id)
+	);
+	CREATE TABLE IF NOT EXISTS prayer_attendance (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		user_id INTEGER,
+		user_type TEXT,
+		timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+	);
+	CREATE TABLE IF NOT EXISTS wa_logs (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		phone TEXT,
+		message TEXT,
+		status TEXT,
+		timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+	);
+	CREATE TABLE IF NOT EXISTS holidays (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		date TEXT NOT NULL UNIQUE,
+		name TEXT NOT NULL,
+		type TEXT,
+		description TEXT
+	);
+	CREATE TABLE IF NOT EXISTS school_settings (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		setting_key TEXT NOT NULL UNIQUE,
+		setting_value TEXT
+	);
+	CREATE TABLE IF NOT EXISTS points (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		student_id INTEGER,
+		point_master_id INTEGER,
+		description TEXT,
+		timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+		operator_id INTEGER,
+		FOREIGN KEY(student_id) REFERENCES students(id),
+		FOREIGN KEY(point_master_id) REFERENCES point_masters(id)
+	);
+	CREATE TABLE IF NOT EXISTS point_masters (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		code TEXT NOT NULL UNIQUE,
+		description TEXT NOT NULL,
+		point INTEGER NOT NULL,
+		type TEXT NOT NULL
+	);
+	CREATE TABLE IF NOT EXISTS devices (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		device_id TEXT NOT NULL UNIQUE,
+		name TEXT,
+		ip_address TEXT,
+		last_seen DATETIME
+	);
+	CREATE TABLE IF NOT EXISTS announcements (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		title TEXT NOT NULL,
+		message TEXT,
+		audio_file TEXT,
+		scheduled_at DATETIME,
+		played_at DATETIME,
+		status TEXT,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	);
+	`)
+	if err != nil {
+		log.Fatal("failed to create tables", err)
+	}
+}
+
+func main() {
+	app := &App{}
+
+	db, err := sql.Open("sqlite", DBPath)
+	if err != nil {
+		log.Fatal("failed to open db", err)
+	}
+	app.DB = db
+	migrate(db)
 	CreateDefaultOperator(db)
-	
-	app := &App{DB: db}
+
+	// Start the scheduler
+	app.StartAnnouncementScheduler()
 
 	e := echo.New()
 	e.Use(middleware.Logger())
@@ -2506,6 +2749,12 @@ func main() {
 	})
 	admin.GET("", app.DashboardHandler)
 
+	// Announcement Routes
+	admin.GET("/announcements", app.GetAnnouncementsHandler)
+	admin.POST("/announcement/add", app.CreateAnnouncementHandler)
+	admin.DELETE("/announcement/:id", app.DeleteAnnouncementHandler)
+	admin.POST("/announcement/play/:id", app.PlayAnnouncementHandler)
+
 	// Schedule Routes
 	admin.POST("/schedule/add", app.AddScheduleHandler)
 	admin.POST("/schedule/update/:id", app.UpdateScheduleHandler)
@@ -2547,47 +2796,19 @@ func main() {
 	admin.POST("/staff/add", app.AddStaffHandler)
 	admin.POST("/staff/update/:id", app.UpdateStaffHandler)
 	admin.DELETE("/staff/:id", app.DeleteStaffHandler)
-	admin.POST("/staff/import", app.ImportStaffHandler)
 
-	// Attendance
-	admin.POST("/attendance/settings", app.UpdateAttendanceSettingsHandler)
-	admin.POST("/attendance/manual", app.ManualAttendanceHandler)
-	admin.GET("/attendance/daily", app.GetDailyAttendanceHandler) // New Bulk Attendance Data
-	admin.POST("/attendance/bulk", app.BulkAttendanceHandler)     // New Bulk Attendance Save
-	admin.POST("/attendance/test-wa", app.TestWAHandler)
-	admin.GET("/student/calendar", app.GetStudentCalendarHandler)
-	admin.GET("/staff/calendar", app.GetStaffCalendarHandler) // New Staff API
+	// Announcement routes
+	e.GET("/admin/announcements", app.GetAnnouncementsHandler)
+	e.POST("/admin/announcement/add", app.CreateAnnouncementHandler)
+	e.DELETE("/admin/announcement/:id", app.DeleteAnnouncementHandler)
+	e.POST("/admin/announcement/play/:id", app.PlayAnnouncementHandler)
 
-	// Profile Pages
-	admin.GET("/student/:id", app.StudentProfileHandler)
-	admin.GET("/staff/:id", app.StaffProfileHandler)
-
-	// Report Routes
-	admin.GET("/report/daily", app.DailyReportHandler)
-	admin.GET("/report/weekly", app.WeeklyReportHandler)
-	admin.GET("/report/monthly", app.MonthlyReportHandler)
-
-	e.GET("/api/attendance/record", app.RecordAttendanceHandler)    // Public API for IoT
-	e.GET("/api/attendance/today-stats", app.TodayStatsHandler)     // Public API for Kiosk Stats
-	e.GET("/api/attendance/recent-logs", app.RecentLogsHandler)     // Public API for Recent Logs
-	e.GET("/api/attendance/prayer", app.PrayerAttendanceHandler)    // Public API for Prayer Attendance (TAP)
-	e.GET("/api/attendance/prayer-logs", app.PrayerLogsListHandler) // Public API for Prayer Logs List
-
-	// Prayer Admin
-	admin.GET("/prayer/attendance", app.GetPrayerAttendanceHandler)
-	admin.POST("/prayer/attendance", app.BulkPrayerAttendanceHandler)
-	admin.GET("/prayer/report", app.PrayerReportHandler)
-	e.GET("/api/student/lookup", app.GetStudentByRFIDHandler)       // Public API for Student Lookup (Points)
-	
-	// WhatsApp Logs
-	admin.GET("/wa-logs", app.GetWhatsAppLogsHandler)
-
-	// Holiday API
-	admin.GET("/holidays", app.GetHolidaysHandler)
-	admin.POST("/holidays", app.AddHolidayHandler)
-	admin.PUT("/holidays/:id", app.UpdateHolidayHandler)
-	admin.DELETE("/holidays/:id", app.DeleteHolidayHandler)
-	admin.POST("/holidays/import-national", app.ImportNationalHolidaysHandler)
+	// Holiday routes
+	e.GET("/admin/holidays", app.GetHolidaysHandler)
+	e.POST("/admin/holiday/add", app.AddHolidayHandler)
+	e.PUT("/admin/holiday/:id", app.UpdateHolidayHandler)
+	e.DELETE("/admin/holiday/:id", app.DeleteHolidayHandler)
+	e.POST("/admin/holidays/import-national", app.ImportNationalHolidaysHandler)
 
 	// Student Point System API
 	admin.GET("/point-rules", app.GetPointRulesHandler)

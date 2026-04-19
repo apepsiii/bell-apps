@@ -233,21 +233,25 @@ func (a *App) IsWorkingDay(date time.Time) (bool, string) { // returns (isWorkin
 }
 
 // GetWorkingDaysInMonth returns the number of working days in a specific month
-func (a *App) GetWorkingDaysInMonth(year int, month time.Month) int {
-	// 1. Get total days in month
-	start := time.Date(year, month, 1, 0, 0, 0, 0, time.Local)
-	end := start.AddDate(0, 1, 0).Add(-time.Nanosecond)
-	daysInMonth := end.Day()
-
-	workingDays := 0
-	for i := 1; i <= daysInMonth; i++ {
-		date := time.Date(year, month, i, 0, 0, 0, 0, time.Local)
-		isWork, _ := a.IsWorkingDay(date)
-		if isWork {
-			workingDays++
-		}
+func (a *App) GetWorkingDaysInMonth(year int, month time.Month) (int, error) {
+	holidays, err := a.GetHolidaysForMonth(year, month)
+	if err != nil {
+		return 0, err
 	}
-	return workingDays
+
+	daysInMonth := time.Date(year, month+1, 0, 0, 0, 0, 0, time.UTC).Day()
+	workingDays := 0
+	for day := 1; day <= daysInMonth; day++ {
+		date := time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
+		if date.Weekday() == time.Sunday {
+			continue
+		}
+		if _, isHoliday := holidays[day]; isHoliday {
+			continue
+		}
+		workingDays++
+	}
+	return workingDays, nil
 }
 
 // ImportNationalHolidaysHandler - Quick add standard holidays
@@ -288,26 +292,30 @@ func (a *App) ImportNationalHolidaysHandler(c echo.Context) error {
 }
 
 // Helper: Get Holidays for Month
-func (a *App) GetHolidaysForMonth(year, month string) []Holiday {
+func (a *App) GetHolidaysForMonth(year int, month time.Month) (map[int]string, error) {
 	// Query holidays table
 	// SQLite strftime('%m', date)
-	query := `SELECT id, date, name, type FROM holidays 
+	query := `SELECT date, description FROM holidays 
 	          WHERE strftime('%Y', date) = ? AND strftime('%m', date) = ?`
 	
 	rows, err := a.DB.Query(query, year, month)
 	if err != nil {
-		return []Holiday{}
+		return nil, err
 	}
 	defer rows.Close()
 
-	var holidays []Holiday
+	holidays := make(map[int]string)
 	for rows.Next() {
-		var h Holiday
-		var desc sql.NullString
-		if err := rows.Scan(&h.ID, &h.Date, &h.Name, &h.Type, &desc); err == nil {
-			h.Description = desc.String
-			holidays = append(holidays, h)
+		var dateStr string
+		var description string
+		if err := rows.Scan(&dateStr, &description); err != nil {
+			return nil, err
 		}
+		t, err := time.Parse("2006-01-02", dateStr)
+		if err != nil {
+			return nil, err
+		}
+		holidays[t.Day()] = description
 	}
-	return holidays
+	return holidays, nil
 }
