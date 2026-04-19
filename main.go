@@ -70,6 +70,13 @@ func getAllSettings(db *sql.DB) map[string]string {
 	return result
 }
 
+func replaceTemplateVars(msg string, vars map[string]string) string {
+	for k, v := range vars {
+		msg = strings.ReplaceAll(msg, "{"+k+"}", v)
+	}
+	return msg
+}
+
 func execOrError(db *sql.DB, query string, args ...interface{}) error {
 	_, err := db.Exec(query, args...)
 	return err
