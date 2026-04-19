@@ -4,6 +4,15 @@
 *.so
 *.dylib
 bell.exe
+bell_linux
+bell_arm64
+smartbell*
+*.pdb
+
+# Database (Local data)
+*.db
+database.db
+database.db-journal
 
 # Database (Local data)
 *.db
