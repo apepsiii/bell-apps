@@ -2752,9 +2752,9 @@ func main() {
 	admin.POST("/announcement/play/:id", handler.PlayAnnouncement(db))
 
 	// Schedule Routes
-	admin.POST("/schedule/add", app.AddScheduleHandler)
-	admin.POST("/schedule/update/:id", app.UpdateScheduleHandler)
-	admin.DELETE("/schedule/:id", app.DeleteScheduleHandler)
+	admin.POST("/schedule/add", handler.AddSchedule(db))
+	admin.POST("/schedule/update/:id", handler.UpdateSchedule(db))
+	admin.DELETE("/schedule/:id", handler.DeleteSchedule(db))
 
 	// Audio Routes
 	admin.POST("/audio/upload", app.UploadAudioHandler)
@@ -2762,36 +2762,36 @@ func main() {
 	admin.DELETE("/audio/:id", app.DeleteAudioHandler)
 
 	// Device Routes
-	admin.POST("/device/add", app.AddDeviceHandler)
-	admin.POST("/device/update/:id", app.UpdateDeviceHandler)
-	admin.DELETE("/device/:id", app.DeleteDeviceHandler)
+	admin.POST("/device/add", handler.AddDevice(db))
+	admin.POST("/device/update/:id", handler.UpdateDevice(db))
+	admin.DELETE("/device/:id", handler.DeleteDevice(db))
 
 	// --- ACADEMIC ROUTES ---
 
 	// Majors
-	admin.POST("/major/add", app.AddMajorHandler)
-	admin.POST("/major/update/:id", app.UpdateMajorHandler)
-	admin.DELETE("/major/:id", app.DeleteMajorHandler)
+	admin.POST("/major/add", handler.AddMajor(db))
+	admin.POST("/major/update/:id", handler.UpdateMajor(db))
+	admin.DELETE("/major/:id", handler.DeleteMajor(db))
 
 	// Classes
-	admin.POST("/class/add", app.AddClassHandler)
-	admin.POST("/class/update/:id", app.UpdateClassHandler)
-	admin.DELETE("/class/:id", app.DeleteClassHandler)
+	admin.POST("/class/add", handler.AddClass(db))
+	admin.POST("/class/update/:id", handler.UpdateClass(db))
+	admin.DELETE("/class/:id", handler.DeleteClass(db))
 
 	// Students
 	admin.POST("/student/add", app.AddStudentHandler)
 	admin.POST("/student/update/:id", app.UpdateStudentHandler)
 	admin.DELETE("/student/:id", app.DeleteStudentHandler)
 	admin.POST("/student/import", app.ImportStudentHandler)
-	admin.POST("/student/import-json", app.ImportStudentJSONHandler)       // New JSON Import
-	admin.POST("/students/delete-multiple", app.BulkDeleteStudentsHandler) // New Bulk Delete Route
-	admin.GET("/students/json", app.GetStudentsJSONHandler)                // Fetch students for promotion
-	admin.POST("/students/promote", app.PromoteStudentsHandler)            // Promote students
+	admin.POST("/student/import-json", app.ImportStudentJSONHandler)
+	admin.POST("/students/delete-multiple", app.BulkDeleteStudentsHandler)
+	admin.GET("/students/json", app.GetStudentsJSONHandler)
+	admin.POST("/students/promote", app.PromoteStudentsHandler)
 
 	// Staff
-	admin.POST("/staff/add", app.AddStaffHandler)
-	admin.POST("/staff/update/:id", app.UpdateStaffHandler)
-	admin.DELETE("/staff/:id", app.DeleteStaffHandler)
+	admin.POST("/staff/add", handler.AddStaff(db))
+	admin.POST("/staff/update/:id", handler.UpdateStaff(db))
+	admin.DELETE("/staff/:id", handler.DeleteStaff(db))
 
 	// Announcement routes
 	e.GET("/admin/announcements", handler.GetAnnouncements(db))
