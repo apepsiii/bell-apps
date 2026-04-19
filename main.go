@@ -164,9 +164,11 @@ type Student struct {
 	NIS         string
 	Name        string
 	ParentPhone string
+	ParentName  string
 	ClassID     int
 	ClassName   string // For display
 	Photo       string // Filename
+	Birthday    string
 }
 
 type Staff struct {
@@ -837,18 +839,19 @@ func (a *App) DashboardHandler(c echo.Context) error {
 
 	// 3. Students (Join Classes)
 	rowsStudent, _ := a.DB.Query(`
-		SELECT s.id, s.rfid_uid, s.nis, s.name, s.parent_phone, s.class_id, c.name, s.photo
+		SELECT s.id, s.rfid_uid, s.nis, s.name, s.parent_phone, s.class_id, c.name, s.photo, s.birthday
 		FROM students s
 		LEFT JOIN classes c ON s.class_id = c.id
 		ORDER BY s.name ASC`)
 	var students []Student
 	for rowsStudent.Next() {
 		var s Student
-		var className sql.NullString
-		var photo sql.NullString
-		rowsStudent.Scan(&s.ID, &s.RFID, &s.NIS, &s.Name, &s.ParentPhone, &s.ClassID, &className, &photo)
+		var className, photo sql.NullString
+		var birthday sql.NullString
+		rowsStudent.Scan(&s.ID, &s.RFID, &s.NIS, &s.Name, &s.ParentPhone, &s.ClassID, &className, &photo, &birthday)
 		s.ClassName = className.String
 		s.Photo = photo.String
+		s.Birthday = birthday.String
 		students = append(students, s)
 	}
 	rowsStudent.Close()
@@ -1300,6 +1303,7 @@ func (a *App) AddStudentHandler(c echo.Context) error {
 	name := c.FormValue("name")
 	phone := FormatPhone(c.FormValue("parent_phone")) // Format HP
 	classID := c.FormValue("class_id")
+	birthday := c.FormValue("birthday")
 
 	// Photo Upload
 	photoFile := ""
@@ -1321,7 +1325,7 @@ func (a *App) AddStudentHandler(c echo.Context) error {
 		}
 	}
 
-	_, err = a.DB.Exec("INSERT INTO students (rfid_uid, nis, name, parent_phone, class_id, photo) VALUES (?, ?, ?, ?, ?, ?)", rfid, nis, name, phone, classID, photoFile)
+	_, err = a.DB.Exec("INSERT INTO students (rfid_uid, nis, name, parent_phone, class_id, photo, birthday) VALUES (?, ?, ?, ?, ?, ?, ?)", rfid, nis, name, phone, classID, photoFile, birthday)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Gagal (Mungkin RFID/NIS duplikat): " + err.Error()})
 	}
@@ -1334,6 +1338,7 @@ func (a *App) UpdateStudentHandler(c echo.Context) error {
 	name := c.FormValue("name")
 	phone := FormatPhone(c.FormValue("parent_phone"))
 	classID := c.FormValue("class_id")
+	birthday := c.FormValue("birthday")
 
 	// Handle Photo
 	file, err := c.FormFile("photo")
@@ -1352,12 +1357,12 @@ func (a *App) UpdateStudentHandler(c echo.Context) error {
 				io.Copy(dst, src)
 
 				// Update with photo
-				_, err = a.DB.Exec("UPDATE students SET rfid_uid=?, nis=?, name=?, parent_phone=?, class_id=?, photo=? WHERE id=?", rfid, nis, name, phone, classID, newFilename, id)
+				_, err = a.DB.Exec("UPDATE students SET rfid_uid=?, nis=?, name=?, parent_phone=?, class_id=?, photo=?, birthday=? WHERE id=?", rfid, nis, name, phone, classID, newFilename, birthday, id)
 			}
 		}
 	} else {
 		// No new photo, keep old
-		_, err = a.DB.Exec("UPDATE students SET rfid_uid=?, nis=?, name=?, parent_phone=?, class_id=? WHERE id=?", rfid, nis, name, phone, classID, id)
+		_, err = a.DB.Exec("UPDATE students SET rfid_uid=?, nis=?, name=?, parent_phone=?, class_id=?, birthday=? WHERE id=?", rfid, nis, name, phone, classID, birthday, id)
 	}
 
 	if err != nil {

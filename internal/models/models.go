@@ -60,6 +60,7 @@ type Student struct {
 	ClassID     int
 	ClassName   string
 	Photo       string
+	Birthday    string
 }
 
 type Staff struct {

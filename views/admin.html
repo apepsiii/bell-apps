@@ -636,7 +636,7 @@
                                                 title="Lihat Profil & Kalender"><i data-lucide="calendar"
                                                     class="w-4 h-4"></i></a>
                                             <button
-                                                onclick="editStudent('{{.ID}}', '{{.RFID}}', '{{.NIS}}', '{{.Name}}', '{{.ParentPhone}}', '{{.ClassID}}', '{{.Photo}}')"
+                                                onclick="editStudent('{{.ID}}', '{{.RFID}}', '{{.NIS}}', '{{.Name}}', '{{.ParentPhone}}', '{{.ClassID}}', '{{.Photo}}', '{{.Birthday}}')"
                                                 class="text-blue-600 hover:bg-blue-50 p-2 rounded transition"><i
                                                     data-lucide="edit-2" class="w-4 h-4"></i></button>
                                             <button onclick="deleteItem('student', {{.ID}})"
@@ -1589,6 +1589,8 @@
                             id="stu-name" required class="w-full border rounded p-2"></div>
                     <div><label class="text-sm font-medium">No. HP Ortu</label><input type="text" name="parent_phone"
                             id="stu-phone" required placeholder="08..." class="w-full border rounded p-2"></div>
+                    <div><label class="text-sm font-medium">Tanggal Lahir</label><input type="date" name="birthday"
+                            id="stu-birthday" class="w-full border rounded p-2"></div>
                     <div>
                         <label class="text-sm font-medium">Foto Siswa</label>
                         <div id="stu-photo-preview" class="mb-2 hidden">
@@ -2639,13 +2641,16 @@
                 document.getElementById('cls-wa').value = waGroup;
                 openModal('modal-class');
             }
-            function editStudent(id, rfid, nis, name, phone, classId, photo) {
+            function editStudent(id, rfid, nis, name, phone, classId, photo, birthday) {
                 document.getElementById('student-form').action = `/admin/student/update/${id}`;
                 document.getElementById('stu-rfid').value = rfid;
                 document.getElementById('stu-nis').value = nis;
                 document.getElementById('stu-name').value = name;
                 document.getElementById('stu-phone').value = phone;
                 document.getElementById('stu-class').value = classId;
+
+                const birthdayInput = document.getElementById('stu-birthday');
+                if (birthdayInput) birthdayInput.value = birthday || '';
 
                 const preview = document.getElementById('stu-photo-preview');
                 if (photo) {
