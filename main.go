@@ -120,6 +120,17 @@ type Schedule struct {
 	AudioFile string
 }
 
+type Announcement struct {
+	ID          int
+	Title       string
+	Message     string
+	AudioFile   string
+	ScheduledAt sql.NullTime
+	PlayedAt    sql.NullTime
+	Status      string
+	CreatedAt   time.Time
+}
+
 type AudioFile struct {
 	ID          int
 	FileName    string
@@ -617,6 +628,53 @@ func (a *App) SendOneSenderMessage(to, message, token, apiUrl, recipientType, im
 	a.DB.Exec("INSERT INTO whatsapp_logs (target, message, status, response) VALUES (?, ?, ?, ?)", to, message, status, responseStr)
 
 	return responseStr, nil
+}
+
+func (a *App) GetWorkingDaysInMonth(year int, month time.Month) (int, error) {
+	holidays, err := a.GetHolidaysForMonth(year, month)
+	if err != nil {
+		return 0, err
+	}
+
+	daysInMonth := time.Date(year, month+1, 0, 0, 0, 0, 0, time.UTC).Day()
+	workingDays := 0
+	for day := 1; day <= daysInMonth; day++ {
+		date := time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
+		if date.Weekday() == time.Sunday {
+			continue
+		}
+		if _, isHoliday := holidays[day]; isHoliday {
+			continue
+		}
+		workingDays++
+	}
+	return workingDays, nil
+}
+
+func (a *App) GetHolidaysForMonth(year int, month time.Month) (map[int]string, error) {
+	query := `SELECT date, description FROM holidays 
+	          WHERE strftime('%Y', date) = ? AND strftime('%m', date) = ?`
+
+	rows, err := a.DB.Query(query, year, month)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	holidays := make(map[int]string)
+	for rows.Next() {
+		var dateStr string
+		var description string
+		if err := rows.Scan(&dateStr, &description); err != nil {
+			return nil, err
+		}
+		t, err := time.Parse("2006-01-02", dateStr)
+		if err != nil {
+			return nil, err
+		}
+		holidays[t.Day()] = description
+	}
+	return holidays, nil
 }
 
 // GetWhatsAppLogsHandler - Fetch logs
@@ -2714,7 +2772,7 @@ func main() {
 
 	db := repository.InitDB()
 	app.DB = db
-	CreateDefaultOperator(db)
+	repository.CreateDefaultOperator(db)
 
 	// Start the scheduler
 	app.StartAnnouncementScheduler()
