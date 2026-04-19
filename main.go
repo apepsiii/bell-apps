@@ -551,6 +551,18 @@ func InitDB() *sql.DB {
 		db.Exec("INSERT INTO attendance_settings VALUES (?, ?)", "wa_template_staff_out", staffOut)
 
 		db.Exec("INSERT INTO attendance_settings VALUES (?, ?)", "wa_image_link", "https://via.placeholder.com/150")
+
+		// Birthday Greeting Template
+		birthdayTemplate := "🎂🎉 Selamat Ulang Tahun, {name}! 🎉🎂\n\n" +
+			"Happy Birthday, {name}! 🎂✨\n\n" +
+			"Semoga tahun ini dipenuhi kebahagiaan, здоровье, dan успех!\n\n" +
+			"🌟 Hari Specialmu 🌟\n" +
+			"Semoga semua mimpi dan harapanmu tercapai!\n\n" +
+			"— SmartBell School System 🎓"
+		db.Exec("INSERT INTO attendance_settings VALUES (?, ?)", "wa_template_birthday", birthdayTemplate)
+		db.Exec("INSERT INTO attendance_settings VALUES (?, ?)", "wa_image_birthday", "https://via.placeholder.com/300x300?text=Happy+Birthday")
+		db.Exec("INSERT INTO attendance_settings VALUES (?, ?)", "birthday_enabled", "false")
+		db.Exec("INSERT INTO attendance_settings VALUES (?, ?)", "birthday_time", "08:00")
 	}
 
 	return db
@@ -2133,6 +2145,12 @@ func (a *App) UpdateAttendanceSettingsHandler(c echo.Context) error {
 	asStart := c.FormValue("ashar_start")
 	asEnd := c.FormValue("ashar_end")
 
+	// Birthday Greeting Settings
+	birthdayEnabled := c.FormValue("birthday_enabled")
+	birthdayTemplate := c.FormValue("wa_template_birthday")
+	birthdayImage := c.FormValue("wa_image_birthday")
+	birthdayTime := c.FormValue("birthday_time")
+
 	tx, _ := a.DB.Begin()
 	// Gunakan INSERT OR REPLACE agar jika setting belum ada (karena migrasi), akan otomatis dibuat
 	tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "arrival_start", arrivalStart)
@@ -2153,6 +2171,12 @@ func (a *App) UpdateAttendanceSettingsHandler(c echo.Context) error {
 	tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "dzuhur_end", dzEnd)
 	tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "ashar_start", asStart)
 	tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "ashar_end", asEnd)
+
+	// Birthday Settings
+	tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "birthday_enabled", birthdayEnabled)
+	tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "wa_template_birthday", birthdayTemplate)
+	tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "wa_image_birthday", birthdayImage)
+	tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "birthday_time", birthdayTime)
 
 	tx.Commit()
 
@@ -2639,6 +2663,104 @@ func (a *App) checkForPendingAnnouncements() {
 	}
 }
 
+// --- BIRTHDAY GREETING SCHEDULER ---
+func (a *App) StartBirthdayScheduler() {
+	log.Println("🎂 Starting Birthday Scheduler...")
+	ticker := time.NewTicker(1 * time.Hour) // Check every hour
+
+	go func() {
+		// Run once at startup
+		a.checkBirthdayGreetings()
+		for {
+			<-ticker.C
+			a.checkBirthdayGreetings()
+		}
+	}()
+}
+
+func (a *App) checkBirthdayGreetings() {
+	// Check if birthday feature is enabled
+	var enabled string
+	err := a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='birthday_enabled'").Scan(&enabled)
+	if err != nil || enabled != "true" {
+		return
+	}
+
+	// Get birthday time setting
+	var birthdayTime string
+	a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='birthday_time'").Scan(&birthdayTime)
+
+	// Check if current time matches birthday time (format: "08:00")
+	currentTime := time.Now().Format("15:04")
+	if birthdayTime != currentTime {
+		return
+	}
+
+	// Get today's date in MM-DD format
+	today := time.Now().Format("01-02")
+
+	// Query students with birthday today
+	rows, err := a.DB.Query(`
+		SELECT s.id, s.name, s.parent_phone, s.photo, c.name as class_name
+		FROM students s
+		LEFT JOIN classes c ON s.class_id = c.id
+		WHERE s.birthday IS NOT NULL AND s.birthday != '' AND substr(s.birthday, 6, 5) = ?`, today)
+	if err != nil {
+		log.Printf("Error checking birthdays: %v", err)
+		return
+	}
+	defer rows.Close()
+
+	// Get settings
+	var template, imageURL, waToken, waURL string
+	a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='wa_template_birthday'").Scan(&template)
+	a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='wa_image_birthday'").Scan(&imageURL)
+	a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='onesender_api_token'").Scan(&waToken)
+	a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='onesender_api_url'").Scan(&waURL)
+
+	if waToken == "" || waURL == "" {
+		log.Println("WhatsApp not configured for birthday greetings")
+		return
+	}
+
+	count := 0
+	for rows.Next() {
+		var id int
+		var name, parentPhone, className string
+		var photoNull, classNameNull sql.NullString
+
+		rows.Scan(&id, &name, &parentPhone, &photoNull, &classNameNull)
+		if photoNull.Valid {
+			// Photo available if needed for future enhancement
+		}
+		if classNameNull.Valid {
+			className = classNameNull.String
+		}
+
+		if parentPhone == "" {
+			continue
+		}
+
+		// Replace template variables
+		msg := template
+		msg = strings.ReplaceAll(msg, "{name}", name)
+		msg = strings.ReplaceAll(msg, "{class}", className)
+		msg = strings.ReplaceAll(msg, "{date}", time.Now().Format("02 January 2006"))
+
+		// Send WhatsApp message with image
+		go func(phone, message, imgURL string) {
+			a.SendOneSenderMessage(phone, message, waToken, waURL, "individual", imgURL)
+		}(parentPhone, msg, imageURL)
+
+		count++
+		log.Printf("🎂 Sending birthday greeting to %s (%s)", name, parentPhone)
+	}
+
+	if count > 0 {
+		log.Printf("🎂 Sent %d birthday greetings", count)
+	}
+}
+
 // --- MAIN ---
 
 func migrate(db *sql.DB) {
@@ -2776,10 +2898,10 @@ func main() {
 
 	// Start the scheduler
 	app.StartAnnouncementScheduler()
+	app.StartBirthdayScheduler()
 
 	e := echo.New()
 	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
 	e.Use(middleware.Recover())
 
 	// Custom Error Handler

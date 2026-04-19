@@ -1809,6 +1809,8 @@
                                     <button type="button" onclick="openTab('tab-staff-out', event)"
                                         class="tab-btn px-3 py-2 text-xs font-bold text-slate-500 hover:text-blue-600 whitespace-nowrap">Staff
                                         Pulang</button>
+                                    <button type="button" onclick="openTab('tab-birthday', event)"
+                                        class="tab-btn px-3 py-2 text-xs font-bold text-slate-500 hover:text-blue-600 whitespace-nowrap">🎂 Ulang Tahun</button>
                                 </div>
 
                                 <!-- Content -->
@@ -1838,8 +1840,35 @@
                                     <p class="text-xs text-slate-400 mt-1">Variabel Khusus: {teacher_name}, {type},
                                         {date}</p>
                                 </div>
+                                <div id="tab-birthday" class="tab-content hidden">
+                                    <textarea name="wa_template_birthday" rows="4"
+                                        class="w-full border rounded p-2 text-sm"
+                                        placeholder="Template Ulang Tahun...">{{index .AttendanceSettings "wa_template_birthday"}}</textarea>
+                                    <p class="text-xs text-slate-400 mt-1">Variabel: {name}, {class}, {date}</p>
+                                </div>
 
                                 <p class="text-xs text-slate-400 mt-1">Variabel Umum: {name}, {time}, {status}</p>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4 mt-2">
+                                <div>
+                                    <label class="text-sm font-medium">Link Gambar Ulang Tahun</label>
+                                    <input type="text" name="wa_image_birthday"
+                                        value="{{index .AttendanceSettings "wa_image_birthday"}}"
+                                        placeholder="https://..."
+                                        class="w-full border rounded p-2 text-sm font-mono">
+                                </div>
+                                <div>
+                                    <label class="text-sm font-medium">Waktu Kirim</label>
+                                    <input type="time" name="birthday_time"
+                                        value="{{index .AttendanceSettings "birthday_time"}}"
+                                        class="w-full border rounded p-2 text-sm">
+                                    <label class="flex items-center gap-2 mt-1">
+                                        <input type="checkbox" name="birthday_enabled" value="true"
+                                            {{if eq (index .AttendanceSettings "birthday_enabled") "true"}}checked{{end}}
+                                        class="rounded">
+                                        <span class="text-xs">Aktifkan Otomatis</span>
+                                    </label>
+                                </div>
                             </div>
                             <div>
                                 <label class="text-sm font-medium">Link Gambar Header</label>
