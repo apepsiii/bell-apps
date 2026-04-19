@@ -25,6 +25,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	_ "modernc.org/sqlite"
 
+	"belsekolah/internal/handler"
 	"belsekolah/internal/repository"
 )
 
@@ -2745,10 +2746,10 @@ func main() {
 	admin.GET("", app.DashboardHandler)
 
 	// Announcement Routes
-	admin.GET("/announcements", app.GetAnnouncementsHandler)
-	admin.POST("/announcement/add", app.CreateAnnouncementHandler)
-	admin.DELETE("/announcement/:id", app.DeleteAnnouncementHandler)
-	admin.POST("/announcement/play/:id", app.PlayAnnouncementHandler)
+	admin.GET("/announcements", handler.GetAnnouncements(db))
+	admin.POST("/announcement/add", handler.CreateAnnouncement(db))
+	admin.DELETE("/announcement/:id", handler.DeleteAnnouncement(db))
+	admin.POST("/announcement/play/:id", handler.PlayAnnouncement(db))
 
 	// Schedule Routes
 	admin.POST("/schedule/add", app.AddScheduleHandler)
@@ -2793,31 +2794,31 @@ func main() {
 	admin.DELETE("/staff/:id", app.DeleteStaffHandler)
 
 	// Announcement routes
-	e.GET("/admin/announcements", app.GetAnnouncementsHandler)
-	e.POST("/admin/announcement/add", app.CreateAnnouncementHandler)
-	e.DELETE("/admin/announcement/:id", app.DeleteAnnouncementHandler)
-	e.POST("/admin/announcement/play/:id", app.PlayAnnouncementHandler)
+	e.GET("/admin/announcements", handler.GetAnnouncements(db))
+	e.POST("/admin/announcement/add", handler.CreateAnnouncement(db))
+	e.DELETE("/admin/announcement/:id", handler.DeleteAnnouncement(db))
+	e.POST("/admin/announcement/play/:id", handler.PlayAnnouncement(db))
 
 	// Holiday routes
-	e.GET("/admin/holidays", app.GetHolidaysHandler)
-	e.POST("/admin/holiday/add", app.AddHolidayHandler)
-	e.PUT("/admin/holiday/:id", app.UpdateHolidayHandler)
-	e.DELETE("/admin/holiday/:id", app.DeleteHolidayHandler)
-	e.POST("/admin/holidays/import-national", app.ImportNationalHolidaysHandler)
+	e.GET("/admin/holidays", handler.GetHolidays(db))
+	e.POST("/admin/holiday/add", handler.AddHoliday(db))
+	e.PUT("/admin/holiday/:id", handler.UpdateHoliday(db))
+	e.DELETE("/admin/holiday/:id", handler.DeleteHoliday(db))
+	e.POST("/admin/holidays/import-national", handler.ImportNationalHolidays(db))
 
 	// Student Point System API
-	admin.GET("/point-rules", app.GetPointRulesHandler)
-	admin.POST("/point-rules/add", app.AddPointRuleHandler)
-	admin.DELETE("/point-rules/:id", app.DeletePointRuleHandler)
-	admin.GET("/points/student/:id", app.GetStudentPointProfileHandler)
-	admin.POST("/points/transaction", app.AddPointTransactionHandler)
-	admin.GET("/points/leaderboard", app.GetLeaderboardHandler)
+	admin.GET("/point-rules", handler.GetPointRules(db))
+	admin.POST("/point-rules/add", handler.AddPointRule(db))
+	admin.DELETE("/point-rules/:id", handler.DeletePointRule(db))
+	admin.GET("/points/student/:id", handler.GetStudentPointProfile(db))
+	admin.POST("/points/transaction", handler.AddPointTransaction(db))
+	admin.GET("/points/leaderboard", handler.GetLeaderboard(db))
 
 	// Reward System API
-	admin.GET("/point-rewards", app.GetPointRewardsHandler)
-	admin.POST("/point-rewards/add", app.AddPointRewardHandler)
-	admin.DELETE("/point-rewards/:id", app.DeletePointRewardHandler)
-	admin.POST("/points/redeem", app.RedeemRewardHandler)
+	admin.GET("/point-rewards", handler.GetPointRewards(db))
+	admin.POST("/point-rewards/add", handler.AddPointReward(db))
+	admin.DELETE("/point-rewards/:id", handler.DeletePointReward(db))
+	admin.POST("/points/redeem", handler.RedeemReward(db))
 
 	// ===== OPERATOR ROUTES (Mobile Prayer Management) =====
 
@@ -2832,14 +2833,12 @@ func main() {
 	})
 
 	// Authentication API
-	e.POST("/api/operator/login", app.OperatorLoginHandler)
-	e.POST("/api/operator/logout", app.OperatorLogoutHandler)
+	e.POST("/api/operator/login", handler.OperatorLogin(db))
+	e.POST("/api/operator/logout", handler.OperatorLogout(db))
 
 	// Protected Operator Pages
 	operatorPages := e.Group("/operator")
-	operatorPages.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return app.OperatorAuthMiddleware(next)
-	})
+	operatorPages.Use(handler.OperatorAuth(db))
 
 	operatorPages.GET("/dashboard", func(c echo.Context) error {
 		data, err := viewsFS.ReadFile("views/mobile/dashboard.html")
@@ -2872,26 +2871,24 @@ func main() {
 
 	// Protected Operator API
 	operatorAPI := e.Group("/api/operator")
-	operatorAPI.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return app.OperatorAuthMiddleware(next)
-	})
+	operatorAPI.Use(handler.OperatorAuth(db))
 
-	operatorAPI.GET("/prayer-stats", app.OperatorPrayerStatsHandler)
-	operatorAPI.POST("/scan-qr", app.ScanQRCodeHandler)
-	operatorAPI.GET("/classes", app.GetClassesHandler)
-	operatorAPI.GET("/recent-logs", app.GetRecentPrayerLogsHandler)
-	operatorAPI.GET("/students", app.GetStudentsForPrayerHandler)
-	operatorAPI.POST("/prayer-attendance", app.SavePrayerAttendanceHandler)
-	operatorAPI.GET("/profile", app.GetOperatorProfileHandler)
-	operatorAPI.PUT("/profile", app.UpdateOperatorProfileHandler)
-	operatorAPI.PUT("/password", app.ChangeOperatorPasswordHandler)
+	operatorAPI.GET("/prayer-stats", handler.GetOperatorPrayerStats(db))
+	operatorAPI.POST("/scan-qr", handler.ScanQR(db))
+	operatorAPI.GET("/classes", handler.GetClasses(db))
+	operatorAPI.GET("/recent-logs", handler.GetRecentPrayerLogs(db))
+	operatorAPI.GET("/students", handler.GetPrayerAttendance(db))
+	operatorAPI.POST("/prayer-attendance", handler.BulkPrayerAttendance(db))
+	operatorAPI.GET("/profile", handler.GetOperatorProfile(db))
+	operatorAPI.PUT("/profile", handler.UpdateOperatorProfile(db))
+	operatorAPI.PUT("/password", handler.ChangeOperatorPassword(db))
 
 	// QR Code Generation (can be used by admin too)
-	admin.GET("/qr-generate", app.GenerateQRCodeHandler)
+	admin.GET("/qr-generate", handler.GenerateQR(db))
 
 	// School Settings API
-	admin.GET("/settings/school", app.GetSchoolSettingsHandler)
-	admin.PUT("/settings/school", app.UpdateSchoolSettingsHandler)
+	admin.GET("/settings/school", handler.GetSchoolSettings(db))
+	admin.PUT("/settings/school", handler.UpdateSchoolSettings(db))
 
 	// Port Configuration
 	port := os.Getenv("PORT")
