@@ -24,6 +24,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	_ "modernc.org/sqlite"
+
+	"belsekolah/internal/repository"
 )
 
 // --- CONFIGURATION ---
@@ -160,7 +162,6 @@ type PrayerLog struct {
 	Timestamp  string `json:"timestamp"`
 	Date       string `json:"date"`
 }
-
 
 // Helper struct for Dashboard presentation
 type StudentStatus struct {
@@ -535,12 +536,12 @@ func (a *App) SendOneSenderMessage(to, message, token, apiUrl, recipientType, im
 
 	body, _ := io.ReadAll(resp.Body)
 	responseStr := string(body)
-	
+
 	status := "success"
 	if resp.StatusCode >= 400 {
 		status = "failed"
 	}
-	
+
 	a.DB.Exec("INSERT INTO whatsapp_logs (target, message, status, response) VALUES (?, ?, ?, ?)", to, message, status, responseStr)
 
 	return responseStr, nil
@@ -1300,7 +1301,7 @@ func (a *App) PromoteStudentsHandler(c echo.Context) error {
 	query := "UPDATE students SET class_id = ? WHERE id IN ("
 	args := make([]interface{}, len(req.StudentIDs)+1)
 	args[0] = req.TargetClassID
-	
+
 	for i, id := range req.StudentIDs {
 		if i > 0 {
 			query += ","
@@ -1653,7 +1654,7 @@ func (a *App) ImportStudentJSONHandler(c echo.Context) error {
                           ON CONFLICT(rfid_uid) DO UPDATE SET 
                           nis=excluded.nis, name=excluded.name, parent_name=excluded.parent_name, 
                           parent_phone=excluded.parent_phone, class_id=excluded.class_id, photo=excluded.photo`
-				
+
 				_, err := tx.Exec(query, nisn, nisn, nama, namaWali, nomorWali, classID, foto)
 				if err == nil {
 					successCount++
@@ -1714,14 +1715,14 @@ func (a *App) GetStudentCalendarHandler(c echo.Context) error {
 		// Parse Date to get Day
 		// dateStr can be in format "2006-01-02" or "2006-01-02T15:04:05Z"
 		var day int
-		
+
 		// Try parsing as full timestamp first
 		t, err := time.Parse(time.RFC3339, dateStr)
 		if err != nil {
 			// Try parsing as date only
 			t, err = time.Parse("2006-01-02", dateStr)
 		}
-		
+
 		if err == nil {
 			day = t.Day()
 		} else {
@@ -1767,7 +1768,7 @@ func (a *App) GetStudentCalendarHandler(c echo.Context) error {
 	monthInt, _ := strconv.Atoi(month)
 	monthType := time.Month(monthInt)
 	yearInt, _ := strconv.Atoi(year)
-	
+
 	workingDays, _ := a.GetWorkingDaysInMonth(yearInt, monthType)
 	holidaysMap, _ := a.GetHolidaysForMonth(yearInt, monthType)
 
@@ -1796,21 +1797,19 @@ func (a *App) GetStudentCalendarHandler(c echo.Context) error {
 	response := map[string]interface{}{
 		"calendar": calendarData,
 		"stats": map[string]interface{}{
-			"working_days":     workingDays,
-			"present":          totalPresent,
-			"late":             totalLate,
-			"sick":             totalSick,
-			"permission":       totalPermission,
-			"alpha":            totalAlpha,
-			"attendance_rate":  attendanceRate,
+			"working_days":    workingDays,
+			"present":         totalPresent,
+			"late":            totalLate,
+			"sick":            totalSick,
+			"permission":      totalPermission,
+			"alpha":           totalAlpha,
+			"attendance_rate": attendanceRate,
 		},
 		"holidays": holidaysMap,
 	}
 
 	return c.JSON(http.StatusOK, response)
 }
-
-
 
 func (a *App) GetStaffCalendarHandler(c echo.Context) error {
 	staffID := c.QueryParam("id")
@@ -1873,7 +1872,7 @@ func (a *App) GetStaffCalendarHandler(c echo.Context) error {
 	monthInt, _ := strconv.Atoi(month)
 	monthType := time.Month(monthInt)
 	yearInt, _ := strconv.Atoi(year)
-	
+
 	workingDays, _ := a.GetWorkingDaysInMonth(yearInt, monthType)
 	holidaysMap, _ := a.GetHolidaysForMonth(yearInt, monthType)
 
@@ -1902,13 +1901,13 @@ func (a *App) GetStaffCalendarHandler(c echo.Context) error {
 	response := map[string]interface{}{
 		"calendar": calendarData,
 		"stats": map[string]interface{}{
-			"working_days":     workingDays,
-			"present":          totalPresent,
-			"late":             totalLate,
-			"sick":             totalSick,
-			"permission":       totalPermission,
-			"alpha":            totalAlpha,
-			"attendance_rate":  attendanceRate,
+			"working_days":    workingDays,
+			"present":         totalPresent,
+			"late":            totalLate,
+			"sick":            totalSick,
+			"permission":      totalPermission,
+			"alpha":           totalAlpha,
+			"attendance_rate": attendanceRate,
 		},
 		"holidays": holidaysMap,
 	}
@@ -2187,7 +2186,7 @@ func (a *App) RecordAttendanceHandler(c echo.Context) error {
 		FROM students s 
 		LEFT JOIN classes c ON s.class_id = c.id 
 		WHERE s.rfid_uid=?`, rfid).Scan(&name, &photoNull, &identityNo, &classNameNull)
-	
+
 	if err == nil {
 		userType = "Siswa"
 		photo = photoNull.String
@@ -2300,7 +2299,7 @@ func (a *App) RecordAttendanceHandler(c echo.Context) error {
 
 			// Format Date properly (e.g. "Senin, 02 Januari 2006")
 			formattedDate := now.Format("02-01-2006") // Default fallback
-			
+
 			// Replace Template Variables
 			msg = strings.ReplaceAll(msg, "{name}", name)
 			msg = strings.ReplaceAll(msg, "{time}", timeStr)
@@ -2408,7 +2407,7 @@ func (a *App) RecentLogsHandler(c echo.Context) error {
 		LEFT JOIN students s ON al.rfid_uid = s.rfid_uid
 		ORDER BY al.timestamp DESC
 		LIMIT ?`, limit)
-	
+
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
@@ -2419,13 +2418,13 @@ func (a *App) RecentLogsHandler(c echo.Context) error {
 		var name, userType, status, timestamp string
 		var photoNull sql.NullString
 		rows.Scan(&name, &userType, &status, &timestamp, &photoNull)
-		
+
 		// Parse timestamp to get time only
 		timeOnly := "00:00"
 		if len(timestamp) >= 16 {
 			timeOnly = timestamp[11:16]
 		}
-		
+
 		logs = append(logs, map[string]interface{}{
 			"name":      name,
 			"type":      userType,
@@ -2681,12 +2680,8 @@ func migrate(db *sql.DB) {
 func main() {
 	app := &App{}
 
-	db, err := sql.Open("sqlite", DBPath)
-	if err != nil {
-		log.Fatal("failed to open db", err)
-	}
+	db := repository.InitDB()
 	app.DB = db
-	migrate(db)
 	CreateDefaultOperator(db)
 
 	// Start the scheduler
@@ -2730,7 +2725,7 @@ func main() {
 		}
 		return c.Render(http.StatusOK, "login.html", nil)
 	})
-	e.GET("/scan", app.ScanPageHandler)             // Public Scan Page (Presence)
+	e.GET("/scan", app.ScanPageHandler)              // Public Scan Page (Presence)
 	e.GET("/scan-sholat", app.ScanPrayerPageHandler) // Public Scan Page (Prayer)
 
 	// API Endpointsi
@@ -2787,10 +2782,10 @@ func main() {
 	admin.POST("/student/update/:id", app.UpdateStudentHandler)
 	admin.DELETE("/student/:id", app.DeleteStudentHandler)
 	admin.POST("/student/import", app.ImportStudentHandler)
-	admin.POST("/student/import-json", app.ImportStudentJSONHandler) // New JSON Import
+	admin.POST("/student/import-json", app.ImportStudentJSONHandler)       // New JSON Import
 	admin.POST("/students/delete-multiple", app.BulkDeleteStudentsHandler) // New Bulk Delete Route
-	admin.GET("/students/json", app.GetStudentsJSONHandler)               // Fetch students for promotion
-	admin.POST("/students/promote", app.PromoteStudentsHandler)           // Promote students
+	admin.GET("/students/json", app.GetStudentsJSONHandler)                // Fetch students for promotion
+	admin.POST("/students/promote", app.PromoteStudentsHandler)            // Promote students
 
 	// Staff
 	admin.POST("/staff/add", app.AddStaffHandler)
@@ -2825,7 +2820,7 @@ func main() {
 	admin.POST("/points/redeem", app.RedeemRewardHandler)
 
 	// ===== OPERATOR ROUTES (Mobile Prayer Management) =====
-	
+
 	// Public Login Page
 	e.GET("/operator/login", func(c echo.Context) error {
 		data, err := viewsFS.ReadFile("views/mobile/login.html")
@@ -2835,17 +2830,17 @@ func main() {
 		}
 		return c.HTMLBlob(http.StatusOK, data)
 	})
-	
+
 	// Authentication API
 	e.POST("/api/operator/login", app.OperatorLoginHandler)
 	e.POST("/api/operator/logout", app.OperatorLogoutHandler)
-	
+
 	// Protected Operator Pages
 	operatorPages := e.Group("/operator")
 	operatorPages.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return app.OperatorAuthMiddleware(next)
 	})
-	
+
 	operatorPages.GET("/dashboard", func(c echo.Context) error {
 		data, err := viewsFS.ReadFile("views/mobile/dashboard.html")
 		if err != nil {
@@ -2874,13 +2869,13 @@ func main() {
 		}
 		return c.HTMLBlob(http.StatusOK, data)
 	})
-	
+
 	// Protected Operator API
 	operatorAPI := e.Group("/api/operator")
 	operatorAPI.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return app.OperatorAuthMiddleware(next)
 	})
-	
+
 	operatorAPI.GET("/prayer-stats", app.OperatorPrayerStatsHandler)
 	operatorAPI.POST("/scan-qr", app.ScanQRCodeHandler)
 	operatorAPI.GET("/classes", app.GetClassesHandler)
@@ -2890,7 +2885,7 @@ func main() {
 	operatorAPI.GET("/profile", app.GetOperatorProfileHandler)
 	operatorAPI.PUT("/profile", app.UpdateOperatorProfileHandler)
 	operatorAPI.PUT("/password", app.ChangeOperatorPasswordHandler)
-	
+
 	// QR Code Generation (can be used by admin too)
 	admin.GET("/qr-generate", app.GenerateQRCodeHandler)
 
@@ -2992,7 +2987,7 @@ func (a *App) PrayerAttendanceHandler(c echo.Context) error {
 		FROM students s 
 		LEFT JOIN classes c ON s.class_id = c.id 
 		WHERE s.rfid_uid=?`, rfid).Scan(&name, &classNameNull)
-	
+
 	if err != nil {
 		return c.JSON(http.StatusNotFound, map[string]string{"message": "Kartu tidak dikenali"})
 	}
@@ -3011,10 +3006,18 @@ func (a *App) PrayerAttendanceHandler(c echo.Context) error {
 	a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='ashar_end'").Scan(&asEnd)
 
 	// Defaults if empty
-	if dzStart == "" { dzStart = "11:30" }
-	if dzEnd == "" { dzEnd = "13:00" }
-	if asStart == "" { asStart = "15:00" }
-	if asEnd == "" { asEnd = "16:00" }
+	if dzStart == "" {
+		dzStart = "11:30"
+	}
+	if dzEnd == "" {
+		dzEnd = "13:00"
+	}
+	if asStart == "" {
+		asStart = "15:00"
+	}
+	if asEnd == "" {
+		asEnd = "16:00"
+	}
 
 	prayerType := ""
 
@@ -3066,7 +3069,7 @@ func (a *App) PrayerLogsListHandler(c echo.Context) error {
 		l.ClassName = className.String
 		logs = append(logs, l)
 	}
-	
+
 	if logs == nil {
 		logs = []PrayerLog{}
 	}
@@ -3127,7 +3130,7 @@ func (a *App) GetDailyAttendanceHandler(c echo.Context) error {
 
 type BulkAttendanceItem struct {
 	StudentID int    `json:"student_id"`
-	RFID      string `json:"rfid"` // Optional, used for lookup if needed
+	RFID      string `json:"rfid"`   // Optional, used for lookup if needed
 	Status    string `json:"status"` // Hadir, Sakit, Izin, Alpha
 }
 
@@ -3201,4 +3204,3 @@ func (a *App) BulkAttendanceHandler(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, map[string]string{"status": "success", "message": "Presensi berhasil disimpan"})
 }
-
