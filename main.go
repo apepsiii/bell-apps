@@ -2881,6 +2881,7 @@ func main() {
 	admin.POST("/staff/add", handler.AddStaff(db))
 	admin.POST("/staff/update/:id", handler.UpdateStaff(db))
 	admin.DELETE("/staff/:id", handler.DeleteStaff(db))
+	admin.POST("/staff/import", app.ImportStaffHandler)
 
 	// Announcement routes
 	e.GET("/admin/announcements", handler.GetAnnouncements(db))
@@ -2978,6 +2979,31 @@ func main() {
 	// School Settings API
 	admin.GET("/settings/school", handler.GetSchoolSettings(db))
 	admin.PUT("/settings/school", handler.UpdateSchoolSettings(db))
+
+	// WhatsApp Logs
+	admin.GET("/wa-logs", app.GetWhatsAppLogsHandler)
+
+	// Attendance Routes
+	admin.POST("/attendance/manual", app.ManualAttendanceHandler)
+	admin.GET("/attendance/daily", app.GetDailyAttendanceHandler)
+	admin.POST("/attendance/bulk", app.BulkAttendanceHandler)
+	admin.GET("/attendance/record", app.RecordAttendanceHandler)
+	admin.POST("/attendance/settings", app.UpdateAttendanceSettingsHandler)
+
+	// Prayer Routes
+	admin.GET("/prayer/attendance", app.PrayerAttendanceHandler)
+	admin.GET("/prayer/report", app.GetStudentCalendarHandler)
+
+	// Report Routes
+	admin.GET("/report/daily", app.ExportAttendanceHandler)
+	admin.GET("/report/weekly", app.ExportAttendanceHandler)
+	admin.GET("/report/monthly", app.ExportAttendanceHandler)
+
+	// Prayer Routes
+	e.GET("/api/attendance/prayer-logs", app.PrayerLogsListHandler)
+
+	// Test WA Route
+	e.POST("/api/attendance/test-wa", app.TestWAHandler)
 
 	// Port Configuration
 	port := os.Getenv("PORT")
