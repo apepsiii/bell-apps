@@ -42,6 +42,44 @@ const (
 	AppVersion  = "v1.2.1"
 )
 
+// --- DRY HELPER FUNCTIONS ---
+
+func getSetting(db *sql.DB, key string) string {
+	var value string
+	db.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key=?", key).Scan(&value)
+	return value
+}
+
+func getSettingsMap(db *sql.DB, keys ...string) map[string]string {
+	result := make(map[string]string)
+	for _, key := range keys {
+		result[key] = getSetting(db, key)
+	}
+	return result
+}
+
+func getAllSettings(db *sql.DB) map[string]string {
+	rows, _ := db.Query("SELECT setting_key, setting_value FROM attendance_settings")
+	defer rows.Close()
+	result := make(map[string]string)
+	for rows.Next() {
+		var k, v string
+		rows.Scan(&k, &v)
+		result[k] = v
+	}
+	return result
+}
+
+func execOrError(db *sql.DB, query string, args ...interface{}) error {
+	_, err := db.Exec(query, args...)
+	return err
+}
+
+func queryOrEmpty(db *sql.DB, query string, args ...interface{}) *sql.Rows {
+	rows, _ := db.Query(query, args...)
+	return rows
+}
+
 //go:embed views/*.html views/mobile/*.html
 var viewsFS embed.FS
 
@@ -1511,31 +1549,22 @@ func (a *App) ManualAttendanceHandler(c echo.Context) error {
 
 	// --- NOTIFIKASI WA (Async) ---
 	// Ambil Settings
-	var waURL, waToken, waTemplateIn, waTemplateLate, waTemplateOut, waTemplateStaff, waImage string
-
-	// Better to load all at once or query smartly, but for now individual queries to ensure data freshness
-	a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='onesender_api_url'").Scan(&waURL)
-	a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='onesender_api_token'").Scan(&waToken)
-	a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='wa_template_in'").Scan(&waTemplateIn)
-	a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='wa_template_late'").Scan(&waTemplateLate)
-	a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='wa_template_out'").Scan(&waTemplateOut)
-	a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='wa_template_staff'").Scan(&waTemplateStaff)
-	a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='wa_image_link'").Scan(&waImage)
+	wa := getSettingsMap(a.DB, "onesender_api_url", "onesender_api_token", "wa_template_in", "wa_template_late", "wa_template_out", "wa_template_staff", "wa_image_link")
 
 	// Determine Template based on Status/Type
 	// Note: Manual handler hardcodes 'Siswa', logic here needs to be generic if staff manual added, but currently only students in manual list
 	var msgTemplate string
 	if status == "Datang" {
-		msgTemplate = waTemplateIn
+		msgTemplate = wa["wa_template_in"]
 	}
 	if status == "Terlambat" {
-		msgTemplate = waTemplateLate
+		msgTemplate = wa["wa_template_late"]
 	}
 	if status == "Pulang" {
-		msgTemplate = waTemplateOut
+		msgTemplate = wa["wa_template_out"]
 	}
 	if msgTemplate == "" {
-		msgTemplate = waTemplateIn
+		msgTemplate = wa["wa_template_in"]
 	} // Fallback
 
 	// Ambil Data HP Ortu & Grup Kelas
@@ -1555,11 +1584,11 @@ func (a *App) ManualAttendanceHandler(c echo.Context) error {
 
 		// 1. Send to Parent
 		if parentPhone != "" {
-			a.SendOneSenderMessage(parentPhone, msg, waToken, waURL, "individual", waImage)
+			a.SendOneSenderMessage(parentPhone, msg, wa["onesender_api_token"], wa["onesender_api_url"], "individual", wa["wa_image_link"])
 		}
 		// 2. Send to Class Group
 		if classGroup != "" {
-			a.SendOneSenderMessage(classGroup, msg, waToken, waURL, "group", waImage)
+			a.SendOneSenderMessage(classGroup, msg, wa["onesender_api_token"], wa["onesender_api_url"], "group", wa["wa_image_link"])
 		}
 	}()
 
@@ -2150,17 +2179,14 @@ func (a *App) TestWAHandler(c echo.Context) error {
 	}
 
 	// Get Settings from DB
-	var waURL, waToken, waImage string
-	a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='onesender_api_url'").Scan(&waURL)
-	a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='onesender_api_token'").Scan(&waToken)
-	a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='wa_image_link'").Scan(&waImage)
+	wa := getSettingsMap(a.DB, "onesender_api_url", "onesender_api_token", "wa_image_link")
 
-	if waToken == "" {
+	if wa["onesender_api_token"] == "" {
 		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Token API belum disetting"})
 	}
 
 	msg := "Test Koneksi SmartBell: Berhasil terhubung!"
-	resp, err := a.SendOneSenderMessage(target, msg, waToken, waURL, "individual", waImage)
+	resp, err := a.SendOneSenderMessage(target, msg, wa["onesender_api_token"], wa["onesender_api_url"], "individual", wa["wa_image_link"])
 
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Error HTTP: " + err.Error()})
@@ -2996,11 +3022,12 @@ func (a *App) PrayerAttendanceHandler(c echo.Context) error {
 	dateStr := now.Format("2006-01-02")
 	timestamp := now.Format("2006-01-02 15:04:05")
 
-	var dzStart, dzEnd, asStart, asEnd string
-	a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='dzuhur_start'").Scan(&dzStart)
-	a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='dzuhur_end'").Scan(&dzEnd)
-	a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='ashar_start'").Scan(&asStart)
-	a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='ashar_end'").Scan(&asEnd)
+	prayerSettings := getSettingsMap(a.DB, "dzuhur_start", "dzuhur_end", "ashar_start", "ashar_end")
+
+	dzStart := prayerSettings["dzuhur_start"]
+	dzEnd := prayerSettings["dzuhur_end"]
+	asStart := prayerSettings["ashar_start"]
+	asEnd := prayerSettings["ashar_end"]
 
 	// Defaults if empty
 	if dzStart == "" {
