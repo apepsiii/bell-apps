@@ -2730,8 +2730,8 @@ func main() {
 	e.GET("/scan-sholat", app.ScanPrayerPageHandler) // Public Scan Page (Prayer)
 
 	// API Endpointsi
-	e.POST("/api/login", app.LoginHandler)
-	e.POST("/api/logout", app.LogoutHandler)
+	e.POST("/api/login", handler.Login())
+	e.POST("/api/logout", handler.Logout())
 	e.GET("/api/sync", app.SyncHandler)
 
 	admin := e.Group("/admin", func(next echo.HandlerFunc) echo.HandlerFunc {
