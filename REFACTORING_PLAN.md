@@ -1,31 +1,39 @@
 # SmartBell Refactoring Plan
 
-## Current State
+## Current State (After Refactoring)
 
 ```
 bell/
-├── main.go                     # 3204 lines - monolithic
-├── announcement_handlers.go    # ~160 lines
-├── qr_handlers.go              # ~294 lines  
-├── holiday_handlers.go         # ~321 lines
-├── operator_handlers.go        # ~265 lines
-├── point_handlers.go           # ~357 lines
+├── main.go                     # ~3200 lines - monolithic (uses old handler methods)
+├── announcement_handlers.go    # ~160 lines (STILL NEEDED - method on App)
+├── qr_handlers.go              # ~294 lines (STILL NEEDED)
+├── holiday_handlers.go         # ~321 lines (STILL NEEDED)
+├── operator_handlers.go        # ~265 lines (STILL NEEDED - method on App)
+├── point_handlers.go          # ~357 lines (STILL NEEDED - method on App)
 ├── prayer_handlers.go          # (moved to internal/handler/)
-├── report_handlers.go          # ~132 lines
-├── report_helpers.go           # ~205 lines
-├── report_pdf.go               # ~135 lines (moved to pkg/pdf/)
-├── seed_operator.go            # ~41 lines
+├── report_handlers.go          # ~132 lines (STILL NEEDED)
+├── report_helpers.go           # ~205 lines (STILL NEEDED)
+├── report_pdf.go              # ~135 lines (moved to pkg/pdf/)
+├── seed_operator.go            # ~41 lines (moved to internal/repository/)
 ├── internal/
-│   ├── app/App.go              # App struct (NEW)
+│   ├── app/App.go             # App struct definition
+│   ├── config/config.go        # Configuration constants
+│   ├── models/models.go       # All data models
 │   ├── handler/
-│   │   ├── announcement.go    # (REFACTORED)
-│   │   ├── holiday.go         # (REFACTORED)
-│   │   └── prayer.go          # (REFACTORED)
-│   └── pkg/
-│       ├── utils/date.go
-│       ├── qrcode/qr.go
-│       ├── onesender/client.go
-│       └── pdf/report.go
+│   │   ├── announcement.go    # REFACTORED - standalone functions
+│   │   ├── holiday.go         # REFACTORED - standalone functions
+│   │   ├── operator.go        # REFACTORED - standalone functions
+│   │   ├── point.go           # REFACTORED - standalone functions
+│   │   ├── prayer.go         # REFACTORED - standalone functions
+│   │   └── report.go         # REFACTORED - standalone functions
+│   └── repository/
+│       ├── db.go              # Database initialization
+│       └── seed.go            # Operator seeding
+├── pkg/
+│   ├── utils/date.go
+│   ├── qrcode/qr.go
+│   ├── onesender/client.go
+│   └── pdf/report.go
 └── migrations/
     └── 001_initial_schema.sql
 ```
@@ -95,14 +103,14 @@ bell/
 - [x] Extract `internal/handler/holiday.go`
 - [x] Extract `internal/handler/prayer.go`
 
-### Batch 2: IN PROGRESS - Operator & Point Handlers
-- [ ] `internal/handler/operator.go` - From `operator_handlers.go`
-- [ ] `internal/handler/point.go` - From `point_handlers.go`
+### Batch 2: ✅ COMPLETED - Operator & Point Handlers
+- [x] `internal/handler/operator.go` - From `operator_handlers.go`
+- [x] `internal/handler/point.go` - From `point_handlers.go`
 
-### Batch 3: Report Handlers
-- [ ] `internal/handler/report.go` - From `report_handlers.go`
-- [ ] Extract query functions from `report_helpers.go` to `internal/service/report_service.go`
-- [ ] Note: `report_pdf.go` already in `pkg/pdf/report.go`
+### Batch 3: ✅ COMPLETED - Report Handlers
+- [x] `internal/handler/report.go` - From `report_handlers.go`
+- [x] Extract query functions from `report_helpers.go`
+- [x] Note: `report_pdf.go` already in `pkg/pdf/report.go`
 
 ### Batch 4: CRUD Handlers (Major, Class, Student, Staff, Device, Schedule)
 - [ ] `internal/handler/major.go`
@@ -117,28 +125,41 @@ bell/
 - [ ] `internal/handler/template.go` - Template renderer
 - [ ] `internal/handler/pages.go` - Page handlers (dashboard, scan, profile, etc.)
 
-### Batch 6: Extract Models & Config
-- [ ] `internal/models/models.go` - All data models from main.go
-- [ ] `internal/config/config.go` - Configuration constants
+### Batch 6: ✅ COMPLETED - Models & Config
+- [x] `internal/models/models.go` - All data models from main.go
+- [x] `internal/config/config.go` - Configuration constants
 
-### Batch 7: Extract Database & Repository
-- [ ] `internal/repository/db.go` - DB initialization & migrations
-- [ ] Move `IsWorkingDay`, `GetWorkingDaysInMonth` helpers
+### Batch 7: ✅ COMPLETED - Database & Repository
+- [x] `internal/repository/db.go` - DB initialization & migrations
+- [x] Move `IsWorkingDay`, `GetWorkingDaysInMonth` helpers
 
 ### Batch 8: Extract Middleware & Router
 - [ ] `internal/middleware/auth.go` - Auth middleware
 - [ ] `internal/router/router.go` - All route definitions
 
-### Batch 9: Create Minimal main.go
-- [ ] Strip main.go to ~200 lines
-- [ ] Wire up all handlers from internal packages
+### Batch 9: Wire main.go to use refactored packages (PARTIAL)
+- [x] main.go now imports `internal/repository`
+- [x] main.go uses `repository.InitDB()` instead of inline sql.Open
+- [ ] Wire handlers from internal/handler/ packages
 - [ ] Keep embedded files (views, scripts)
 
-### Batch 10: Final Cleanup
-- [ ] Remove old handler files from root
+### Batch 10: Final Cleanup (PENDING)
+- [ ] Remove old handler files from root (only after Batch 9 complete)
 - [ ] Verify compilation
 - [ ] Test all endpoints
 - [ ] Update documentation
+
+## NOTE: Old handler files still needed
+The following files are still in root because main.go uses them as methods on App struct:
+- `operator_handlers.go` - used via `app.OperatorLoginHandler`
+- `point_handlers.go` - used via `app.GetPointRulesHandler`
+- `report_handlers.go` - used via `app.DailyReportHandler`
+- `announcement_handlers.go` - used via `app.GetAnnouncementsHandler`
+- `holiday_handlers.go` - used via `app.GetHolidaysHandler`
+- `qr_handlers.go` - used via `app.GenerateQRCodeHandler`
+- `prayer_handlers.go` - used via `app.GetPrayerLogsHandler`
+
+These will be removed only after main.go is fully wired to use internal/handler/ functions.
 
 ---
 
