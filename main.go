@@ -2784,9 +2784,9 @@ func main() {
 	admin.DELETE("/student/:id", handler.DeleteStudent(db))
 	admin.POST("/student/import", app.ImportStudentHandler)
 	admin.POST("/student/import-json", app.ImportStudentJSONHandler)
-	admin.POST("/students/delete-multiple", app.BulkDeleteStudentsHandler)
-	admin.GET("/students/json", app.GetStudentsJSONHandler)
-	admin.POST("/students/promote", app.PromoteStudentsHandler)
+	admin.POST("/students/delete-multiple", handler.BulkDeleteStudents(db))
+	admin.GET("/students/json", handler.GetStudentsJSON(db))
+	admin.POST("/students/promote", handler.PromoteStudents(db))
 
 	// Staff
 	admin.POST("/staff/add", handler.AddStaff(db))
