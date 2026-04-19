@@ -3103,6 +3103,12 @@ func main() {
 	// QR Code Generation (can be used by admin too)
 	admin.GET("/qr-generate", handler.GenerateQR(db))
 
+	// Face Recognition Routes
+	admin.POST("/face/register", handler.RegisterFace(db))
+	admin.GET("/faces", handler.ListFaces(db))
+	admin.DELETE("/face/:student_id", handler.DeleteFace(db))
+	admin.POST("/face/verify", handler.VerifyFace(db))
+
 	// School Settings API
 	admin.GET("/settings/school", handler.GetSchoolSettings(db))
 	admin.PUT("/settings/school", handler.UpdateSchoolSettings(db))
