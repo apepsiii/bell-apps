@@ -3211,8 +3211,8 @@ func main() {
 	admin.POST("/student/update/:id", handler.UpdateStudent(db))
 	admin.POST("/student/status/:id", handler.UpdateStudentStatus(db))
 	admin.DELETE("/student/:id", handler.DeleteStudent(db))
-	admin.POST("/student/import", app.ImportStudentHandler)
-	admin.POST("/student/import-json", app.ImportStudentJSONHandler)
+	admin.POST("/student/import", handler.ImportStudents(db))
+	admin.POST("/student/import-json", handler.ImportStudentsJSON(db))
 	admin.POST("/students/delete-multiple", handler.BulkDeleteStudents(db))
 	admin.GET("/students/json", handler.GetStudentsJSON(db))
 	admin.POST("/students/promote", handler.PromoteStudents(db))
@@ -3225,7 +3225,7 @@ func main() {
 	admin.POST("/staff/add", handler.AddStaff(db))
 	admin.POST("/staff/update/:id", handler.UpdateStaff(db))
 	admin.DELETE("/staff/:id", handler.DeleteStaff(db))
-	admin.POST("/staff/import", app.ImportStaffHandler)
+	admin.POST("/staff/import", handler.ImportStaff(db))
 
 	// Announcement routes
 	e.GET("/admin/announcements", handler.GetAnnouncements(db))
