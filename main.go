@@ -3361,7 +3361,7 @@ func main() {
 	e.POST("/api/attendance/verify-face", app.VerifyFaceAttendanceHandler)
 
 	// Test WA Route
-	e.POST("/api/attendance/test-wa", app.TestWAHandler)
+	e.POST("/api/attendance/test-wa", handler.TestWA(db))
 
 	// Port Configuration
 	port := os.Getenv("PORT")
