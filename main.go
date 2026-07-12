@@ -3336,23 +3336,23 @@ func main() {
 
 	// Attendance Routes
 	admin.POST("/attendance/manual", app.ManualAttendanceHandler)
-	admin.GET("/attendance/daily", app.GetDailyAttendanceHandler)
-	admin.POST("/attendance/bulk", app.BulkAttendanceHandler)
+	admin.GET("/attendance/daily", handler.GetDailyAttendance(db))
+	admin.POST("/attendance/bulk", handler.BulkAttendance(db))
 	admin.GET("/attendance/record", app.RecordAttendanceHandler)
-	admin.POST("/attendance/settings", app.UpdateAttendanceSettingsHandler)
+	admin.POST("/attendance/settings", handler.UpdateAttendanceSettings(db))
 
 	// Prayer Routes
 	admin.GET("/prayer/attendance", app.PrayerAttendanceHandler)
-	admin.GET("/prayer/report", app.GetStudentCalendarHandler)
+	admin.GET("/prayer/report", handler.GetStudentCalendar(db))
 
 	// Student/Staff Calendar Routes
-	admin.GET("/student/calendar", app.GetStudentCalendarHandler)
-	admin.GET("/staff/calendar", app.GetStaffCalendarHandler)
+	admin.GET("/student/calendar", handler.GetStudentCalendar(db))
+	admin.GET("/staff/calendar", handler.GetStaffCalendar(db))
 
 	// Report Routes
-	admin.GET("/report/daily", app.ExportAttendanceHandler)
-	admin.GET("/report/weekly", app.ExportAttendanceHandler)
-	admin.GET("/report/monthly", app.ExportAttendanceHandler)
+	admin.GET("/report/daily", handler.ExportAttendance(db))
+	admin.GET("/report/weekly", handler.ExportAttendance(db))
+	admin.GET("/report/monthly", handler.ExportAttendance(db))
 
 	// Prayer Routes
 	e.GET("/api/attendance/prayer-logs", app.PrayerLogsListHandler)
