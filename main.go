@@ -3153,9 +3153,9 @@ func main() {
 		}
 		return c.Render(http.StatusOK, "login.html", nil)
 	})
-	e.GET("/scan", app.ScanPageHandler)              // Public Scan Page (Presence)
-	e.GET("/scan-face", app.ScanFacePageHandler)    // Public Scan Page (Face Recognition)
-	e.GET("/scan-sholat", app.ScanPrayerPageHandler) // Public Scan Page (Prayer)
+	e.GET("/scan", handler.ScanPage(db))              // Public Scan Page (Presence)
+	e.GET("/scan-face", handler.ScanFacePage(db))    // Public Scan Page (Face Recognition)
+	e.GET("/scan-sholat", handler.ScanPrayerPage(db)) // Public Scan Page (Prayer)
 
 	// API Endpointsi
 	e.POST("/api/login", handler.Login())
@@ -3217,9 +3217,9 @@ func main() {
 	admin.GET("/students/json", handler.GetStudentsJSON(db))
 	admin.POST("/students/promote", handler.PromoteStudents(db))
 	admin.POST("/students/bulk-status", handler.BulkUpdateStudentStatus(db))
-	admin.GET("/student/:id", app.StudentProfileHandler)
-	admin.GET("/staff/:id", app.StaffProfileHandler)
-	admin.GET("/face/register/:id", app.FaceRegisterPageHandler)
+	admin.GET("/student/:id", handler.StudentProfile(db))
+	admin.GET("/staff/:id", handler.StaffProfile(db))
+	admin.GET("/face/register/:id", handler.FaceRegisterPage(db))
 
 	// Staff
 	admin.POST("/staff/add", handler.AddStaff(db))
