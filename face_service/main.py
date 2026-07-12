@@ -1,6 +1,7 @@
 import os
 import json
 import base64
+import sqlite3
 import numpy as np
 from io import BytesIO
 from datetime import datetime
@@ -10,137 +11,104 @@ import cv2
 from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import JSONResponse
 from PIL import Image
-import mysql.connector
-from mysql.connector import Error as MySQLError
 from dotenv import load_dotenv
 
 load_dotenv()
 
-DB_CONFIG = {
-    "host": os.getenv("DB_HOST", "localhost"),
-    "port": int(os.getenv("DB_PORT", "3306")),
-    "user": os.getenv("DB_USER", "root"),
-    "password": os.getenv("DB_PASSWORD", ""),
-    "database": os.getenv("DB_NAME", "bell"),
-}
+DB_PATH = os.getenv("DB_PATH", "./faces.db")
 
 FACE_CASCADE = cv2.CascadeClassifier(
     cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
 )
 
 
-def get_db_connection():
-    try:
-        conn = mysql.connector.connect(**DB_CONFIG)
-        return conn
-    except MySQLError as e:
-        print(f"Database connection error: {e}")
-        return None
+def get_db():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 
-def detect_and_crop_face(image):
-    """Detect face in image and return cropped face"""
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    faces = FACE_CASCADE.detectMultiScale(gray, 1.3, 5)
-
-    if len(faces) == 0:
-        return None
-
-    if len(faces) > 1:
-        return None
-
-    x, y, w, h = faces[0]
-    face = image[y : y + h, x : x + w]
-    return cv2.resize(face, (150, 150))
-
-
-def image_to_encoding(image_bytes):
-    """Convert image bytes to face encoding using LBPH"""
-    pil_image = Image.open(BytesIO(image_bytes))
-    pil_image = pil_image.convert("RGB")
-    opencv_image = np.array(pil_image)
-    opencv_image = cv2.cvtColor(opencv_image, cv2.COLOR_RGB2BGR)
-
-    face = detect_and_crop_face(opencv_image)
-
-    if face is None:
-        return None
-
-    gray = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
-
-    recognizer = cv2.face.LBPHFaceRecognizer_create()
-    recognizer.train([gray], np.array([0]))
-
-    return {
-        "face": face.tolist() if isinstance(face, np.ndarray) else face,
-        "gray": gray.tolist() if isinstance(gray, np.ndarray) else gray,
-    }
+def init_db():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS student_faces (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_id INTEGER NOT NULL,
+            name TEXT DEFAULT '',
+            class_name TEXT DEFAULT '',
+            encoding TEXT NOT NULL,
+            image_path TEXT,
+            registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(student_id)
+        )
+    """)
+    conn.commit()
+    conn.close()
 
 
-def save_face_encoding(student_id, encoding, image_path=None):
-    conn = get_db_connection()
-    if not conn:
-        return False
-
+def save_face_encoding(student_id, name, class_name, encoding, image_path=None):
+    conn = get_db()
     try:
         cursor = conn.cursor()
-        face_json = json.dumps(encoding)
+        encoding_json = json.dumps(encoding)
 
-        cursor.execute(
-            """
-            INSERT INTO student_faces (student_id, encoding, image_path, registered_at)
-            VALUES (%s, %s, %s, NOW())
-            ON DUPLICATE KEY UPDATE
-            encoding = VALUES(encoding),
-            image_path = VALUES(image_path),
-            registered_at = NOW()
-        """,
-            (student_id, face_json, image_path),
-        )
+        cursor.execute("""
+            INSERT OR REPLACE INTO student_faces (student_id, name, class_name, encoding, image_path, registered_at)
+            VALUES (?, ?, ?, ?, ?, datetime('now'))
+        """, (student_id, name, class_name, encoding_json, image_path))
 
         conn.commit()
-        cursor.close()
         conn.close()
         return True
-    except MySQLError as e:
-        print(f"Error saving face encoding: {e}")
+    except Exception as e:
+        print(f"Error saving face: {e}")
+        conn.close()
         return False
 
 
 def get_all_encodings():
-    conn = get_db_connection()
-    if not conn:
-        return []
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT student_id, name, class_name, encoding FROM student_faces")
 
-    try:
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("""
-            SELECT sf.student_id, sf.encoding, s.name, s.class_id, c.name as class_name
-            FROM student_faces sf
-            JOIN students s ON sf.student_id = s.id
-            LEFT JOIN classes c ON s.class_id = c.id
-        """)
+    rows = cursor.fetchall()
+    conn.close()
 
-        results = cursor.fetchall()
-        cursor.close()
-        conn.close()
-
-        encodings = []
-        for row in results:
+    encodings = []
+    for row in rows:
+        try:
             encoding_data = json.loads(row["encoding"])
-            encodings.append(
-                {
-                    "student_id": row["student_id"],
-                    "name": row["name"],
-                    "class_name": row["class_name"] or "",
-                    "gray": encoding_data.get("gray", []),
-                }
-            )
+            encodings.append({
+                "student_id": row["student_id"],
+                "name": row["name"] or "Unknown",
+                "class_name": row["class_name"] or "",
+                "gray": encoding_data.get("gray", []),
+            })
+        except Exception as e:
+            print(f"Error loading encoding for student {row['student_id']}: {e}")
+            continue
 
-        return encodings
-    except MySQLError as e:
-        print(f"Error fetching encodings: {e}")
-        return []
+    print(f"Loaded {len(encodings)} face encodings from database")
+    return encodings
+
+
+def detect_and_crop_face(image):
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    faces = FACE_CASCADE.detectMultiScale(gray, 1.3, 5)
+
+    if len(faces) == 0:
+        return None, None
+
+    if len(faces) > 1:
+        return None, None
+
+    x, y, w, h = faces[0]
+    face = image[y:y+h, x:x+w]
+    face = cv2.resize(face, (150, 150))
+    gray_face = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
+
+    return face, gray_face
 
 
 def recognize_face(gray_face, threshold=80):
@@ -156,13 +124,12 @@ def recognize_face(gray_face, threshold=80):
 
     for known in known_encodings:
         try:
-            known_gray = np.array(known.get("gray", []), dtype=np.uint8)
-            if len(known_gray) == 0:
+            known_gray = known.get("gray", [])
+            if not known_gray:
                 continue
 
-            known_ids = np.array([0])
-            recognizer.setTrainLabels([0])
-            recognizer.train([gray_face], known_ids)
+            known_img = cv2.resize(np.array(known_gray, dtype=np.uint8), (150, 150))
+            known_img_rgb = cv2.cvtColor(known_img, cv2.COLOR_GRAY2BGR)
 
             label, distance = recognizer.predict(gray_face)
 
@@ -170,8 +137,10 @@ def recognize_face(gray_face, threshold=80):
                 best_distance = distance
                 best_match = known
         except Exception as e:
-            print(f"Error comparing face: {e}")
+            print(f"Error comparing: {e}")
             continue
+
+    print(f"Best match: {best_match['name'] if best_match else 'None'}, distance: {best_distance}")
 
     if best_distance <= threshold:
         return {
@@ -185,60 +154,63 @@ def recognize_face(gray_face, threshold=80):
     return {
         "matched": False,
         "distance": float(best_distance),
-        "message": "Face not recognized",
+        "message": f"Face not recognized (distance: {best_distance:.1f})",
     }
 
 
 @asynccontextmanager
 async def lifespan(app):
     print("Face Recognition Service Starting...")
+    init_db()
     yield
     print("Face Recognition Service Shutting Down...")
 
 
-app = FastAPI(title="SmartBell Face Recognition", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="SmartBell Face Recognition", version="2.0.0", lifespan=lifespan)
 
 
 @app.get("/health")
 async def health_check():
-    conn = get_db_connection()
-    db_status = "connected" if conn else "disconnected"
-    if conn:
-        conn.close()
-
+    init_db()
     face_count = len(get_all_encodings())
+    return {"status": "healthy", "face_count": face_count}
 
-    return {"status": "healthy", "database": db_status, "face_count": face_count}
 
-
-@app.post("/encode")
-async def encode_face(
-    student_id: int, name: str, class_name: str = "", image: UploadFile = File(...)
-):
+@app.post("/register")
+async def register_face(request: dict):
     try:
-        image_bytes = await image.read()
+        student_id = request.get("student_id")
+        name = request.get("name", "")
+        class_name = request.get("class_name", "")
+        image_base64 = request.get("image_base64", "")
+
+        if not student_id:
+            return JSONResponse(status_code=400, content={"error": "student_id is required"})
+
+        if not image_base64:
+            return JSONResponse(status_code=400, content={"error": "image_base64 is required"})
+
+        if "," in image_base64:
+            image_base64 = image_base64.split(",")[1]
+
+        image_bytes = base64.b64decode(image_base64)
 
         pil_image = Image.open(BytesIO(image_bytes))
         pil_image = pil_image.convert("RGB")
         opencv_image = np.array(pil_image)
         opencv_image = cv2.cvtColor(opencv_image, cv2.COLOR_RGB2BGR)
 
-        face = detect_and_crop_face(opencv_image)
+        face, gray = detect_and_crop_face(opencv_image)
 
         if face is None:
-            return JSONResponse(
-                status_code=400,
-                content={"error": "No face detected or multiple faces found"},
-            )
-
-        gray = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
+            return JSONResponse(status_code=400, content={"error": "No face detected or multiple faces found"})
 
         os.makedirs("faces", exist_ok=True)
         image_path = f"faces/{student_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.jpg"
         cv2.imwrite(image_path, face)
 
-        encoding = {"face": face.tolist(), "gray": gray.tolist()}
-        success = save_face_encoding(student_id, encoding, image_path)
+        encoding = {"face": face.tolist(), "gray": [row.tolist() if hasattr(row, 'tolist') else row for row in gray.tolist()]}
+        success = save_face_encoding(student_id, name, class_name, encoding, image_path)
 
         if success:
             return {
@@ -247,9 +219,7 @@ async def encode_face(
                 "message": f"Face registered for {name}",
             }
         else:
-            return JSONResponse(
-                status_code=500, content={"error": "Failed to save face encoding"}
-            )
+            return JSONResponse(status_code=500, content={"error": "Failed to save face encoding"})
 
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
@@ -259,6 +229,9 @@ async def encode_face(
 async def verify_face(request: dict):
     try:
         image_data = request.get("image_base64", "")
+
+        if not image_data:
+            return JSONResponse(status_code=400, content={"error": "image_base64 is required"})
 
         if "," in image_data:
             image_data = image_data.split(",")[1]
@@ -270,39 +243,14 @@ async def verify_face(request: dict):
         opencv_image = np.array(pil_image)
         opencv_image = cv2.cvtColor(opencv_image, cv2.COLOR_RGB2BGR)
 
-        face = detect_and_crop_face(opencv_image)
+        face, gray = detect_and_crop_face(opencv_image)
 
         if face is None:
             return JSONResponse(status_code=400, content={"error": "No face detected"})
 
-        gray = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
+        gray_face = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
 
-        result = recognize_face(gray)
-
-        return result
-
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
-
-
-@app.post("/verify_file")
-async def verify_face_file(image: UploadFile = File(...)):
-    try:
-        image_bytes = await image.read()
-
-        pil_image = Image.open(BytesIO(image_bytes))
-        pil_image = pil_image.convert("RGB")
-        opencv_image = np.array(pil_image)
-        opencv_image = cv2.cvtColor(opencv_image, cv2.COLOR_RGB2BGR)
-
-        face = detect_and_crop_face(opencv_image)
-
-        if face is None:
-            return JSONResponse(status_code=400, content={"error": "No face detected"})
-
-        gray = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
-
-        result = recognize_face(gray)
+        result = recognize_face(gray_face)
 
         return result
 
@@ -312,22 +260,13 @@ async def verify_face_file(image: UploadFile = File(...)):
 
 @app.delete("/face/{student_id}")
 async def delete_face(student_id: int):
-    conn = get_db_connection()
-    if not conn:
-        return JSONResponse(
-            status_code=500, content={"error": "Database connection failed"}
-        )
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM student_faces WHERE student_id = ?", (student_id,))
+    conn.commit()
+    conn.close()
 
-    try:
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM student_faces WHERE student_id = %s", (student_id,))
-        conn.commit()
-        cursor.close()
-        conn.close()
-
-        return {"success": True, "message": f"Face deleted for student {student_id}"}
-    except MySQLError as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
+    return {"success": True, "message": f"Face deleted for student {student_id}"}
 
 
 @app.get("/faces")
@@ -338,6 +277,5 @@ async def list_faces():
 
 if __name__ == "__main__":
     import uvicorn
-
     port = int(os.getenv("PORT", "8001"))
     uvicorn.run(app, host="0.0.0.0", port=port)

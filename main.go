@@ -169,6 +169,7 @@ type Student struct {
 	ClassName   string // For display
 	Photo       string // Filename
 	Birthday    string
+	Status      string // "active" or "inactive"
 }
 
 type Staff struct {
@@ -283,12 +284,14 @@ type DashboardData struct {
 	ChartArrival     string
 
 	Stats struct {
-		TotalSchedules int
-		NextBell       string
-		OnlineDevices  int
-		TotalDevices   int
-		TotalStudents  int
-		TotalStaff     int
+		TotalSchedules  int
+		NextBell        string
+		OnlineDevices   int
+		TotalDevices    int
+		TotalStudents   int
+		TotalStaff      int
+		ActiveStudents  int
+		InactiveStudents int
 	}
 	AppVersion string
 }
@@ -375,7 +378,9 @@ func InitDB() *sql.DB {
 			parent_phone TEXT,
 			parent_name TEXT,
 			class_id INTEGER,
-			photo TEXT
+			photo TEXT,
+			birthday TEXT,
+			status TEXT DEFAULT 'active'
 		);`,
 		`CREATE TABLE IF NOT EXISTS staff (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -837,9 +842,9 @@ func (a *App) DashboardHandler(c echo.Context) error {
 	}
 	rowsClass.Close()
 
-	// 3. Students (Join Classes)
+	// 3. Students (Join Classes) - Only active students for attendance
 	rowsStudent, _ := a.DB.Query(`
-		SELECT s.id, s.rfid_uid, s.nis, s.name, s.parent_phone, s.class_id, c.name, s.photo, s.birthday
+		SELECT s.id, s.rfid_uid, s.nis, s.name, s.parent_phone, s.class_id, c.name, s.photo, s.birthday, s.status
 		FROM students s
 		LEFT JOIN classes c ON s.class_id = c.id
 		ORDER BY s.name ASC`)
@@ -848,10 +853,13 @@ func (a *App) DashboardHandler(c echo.Context) error {
 		var s Student
 		var className, photo sql.NullString
 		var birthday sql.NullString
-		rowsStudent.Scan(&s.ID, &s.RFID, &s.NIS, &s.Name, &s.ParentPhone, &s.ClassID, &className, &photo, &birthday)
+		rowsStudent.Scan(&s.ID, &s.RFID, &s.NIS, &s.Name, &s.ParentPhone, &s.ClassID, &className, &photo, &birthday, &s.Status)
 		s.ClassName = className.String
 		s.Photo = photo.String
 		s.Birthday = birthday.String
+		if s.Status == "" {
+			s.Status = "active"
+		}
 		students = append(students, s)
 	}
 	rowsStudent.Close()
@@ -904,6 +912,10 @@ func (a *App) DashboardHandler(c echo.Context) error {
 	var absentList []Student
 
 	for _, s := range students {
+		// Skip inactive students for attendance tracking
+		if s.Status == "inactive" {
+			continue
+		}
 		if logData, ok := presentMap[s.RFID]; ok {
 			presentList = append(presentList, StudentStatus{
 				Student: s,
@@ -1103,6 +1115,19 @@ func (a *App) DashboardHandler(c echo.Context) error {
 	data.Stats.TotalDevices = len(devices)
 	data.Stats.TotalStudents = len(students)
 	data.Stats.TotalStaff = len(staffList)
+
+	// Count active and inactive students
+	activeCount := 0
+	inactiveCount := 0
+	for _, s := range students {
+		if s.Status == "inactive" {
+			inactiveCount++
+		} else {
+			activeCount++
+		}
+	}
+	data.Stats.ActiveStudents = activeCount
+	data.Stats.InactiveStudents = inactiveCount
 
 	return c.Render(http.StatusOK, "admin.html", data)
 }
@@ -2482,6 +2507,150 @@ func (a *App) RecordAttendanceHandler(c echo.Context) error {
 	})
 }
 
+// API for Face Recognition Attendance
+// Endpoint: /api/attendance/verify-face
+func (a *App) VerifyFaceAttendanceHandler(c echo.Context) error {
+	type VerifyRequest struct {
+		ImageBase64 string `json:"image_base64"`
+	}
+
+	var req VerifyRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid request"})
+	}
+
+	if req.ImageBase64 == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Image required"})
+	}
+
+	// Call Face Service for verification
+	faceURL := "http://localhost:8001/verify"
+	payload, _ := json.Marshal(map[string]string{"image_base64": req.ImageBase64})
+
+	resp, err := http.Post(faceURL, "application/json", bytes.NewBuffer(payload))
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Face service error: " + err.Error()})
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+
+	if resp.StatusCode != http.StatusOK {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": fmt.Sprintf("Face service returned %d", resp.StatusCode)})
+	}
+
+	var faceResult struct {
+		Matched   bool    `json:"matched"`
+		StudentID int     `json:"student_id"`
+		Name      string  `json:"name"`
+		ClassName string  `json:"class_name"`
+		Distance  float64 `json:"distance"`
+		Message   string  `json:"message"`
+	}
+
+	if err := json.Unmarshal(body, &faceResult); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Invalid response from face service"})
+	}
+
+	if !faceResult.Matched {
+		return c.JSON(http.StatusOK, map[string]string{
+			"status":  "not_matched",
+			"message": faceResult.Message,
+		})
+	}
+
+	// Face matched - now record attendance
+	// Get student info
+	var rfid, photo string
+	var photoNull sql.NullString
+	err = a.DB.QueryRow("SELECT rfid_uid, photo FROM students WHERE id=?", faceResult.StudentID).Scan(&rfid, &photoNull)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Student not found"})
+	}
+	photo = photoNull.String
+
+	// Check duplicate
+	now := time.Now()
+	timeStr := now.Format("15:04")
+	dateStr := now.Format("2006-01-02")
+	timestamp := now.Format("2006-01-02 15:04:05")
+
+	var count int
+	a.DB.QueryRow("SELECT COUNT(*) FROM attendance_logs WHERE rfid_uid=? AND date=? AND (status='Datang' OR status='Terlambat')", rfid, dateStr).Scan(&count)
+	if count > 0 {
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"status":     "duplicate",
+			"message":    "Sudah absen hari ini",
+			"student_id": faceResult.StudentID,
+			"name":       faceResult.Name,
+			"class_name": faceResult.ClassName,
+			"photo":      photo,
+		})
+	}
+
+	// Determine status
+	status := "Datang"
+	if timeStr > "07:15" {
+		status = "Terlambat"
+	}
+
+	// Record attendance
+	_, err = a.DB.Exec("INSERT INTO attendance_logs (rfid_uid, user_name, user_type, status, method, timestamp, date) VALUES (?, ?, 'Siswa', ?, 'FACE', ?, ?)",
+		rfid, faceResult.Name, status, timestamp, dateStr)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+	}
+
+	// Send WA notification (async)
+	go func() {
+		var waURL, waToken, waTemplateIn, waTemplateLate, waImage string
+		rows, _ := a.DB.Query("SELECT setting_value FROM attendance_settings WHERE setting_key IN ('onesender_api_url', 'onesender_api_token', 'wa_template_in', 'wa_template_late', 'wa_image_link')")
+		settings := make(map[string]string)
+		for rows.Next() {
+			var k, v string
+			rows.Scan(&k, &v)
+			settings[k] = v
+		}
+		rows.Close()
+		waURL = settings["onesender_api_url"]
+		waToken = settings["onesender_api_token"]
+		waTemplateIn = settings["wa_template_in"]
+		waTemplateLate = settings["wa_template_late"]
+		waImage = settings["wa_image_link"]
+
+		msg := waTemplateIn
+		if status == "Terlambat" {
+			msg = waTemplateLate
+		}
+		if msg == "" {
+			msg = "Halo, {name} presensi {status} pada {time}."
+		}
+		msg = strings.ReplaceAll(msg, "{name}", faceResult.Name)
+		msg = strings.ReplaceAll(msg, "{time}", timeStr)
+		msg = strings.ReplaceAll(msg, "{status}", status)
+
+		var parentPhone, classGroup string
+		a.DB.QueryRow("SELECT s.parent_phone, c.wa_group_id FROM students s JOIN classes c ON s.class_id = c.id WHERE s.id=?", faceResult.StudentID).Scan(&parentPhone, &classGroup)
+
+		if parentPhone != "" {
+			a.SendOneSenderMessage(parentPhone, msg, waToken, waURL, "individual", waImage)
+		}
+		if classGroup != "" {
+			a.SendOneSenderMessage(classGroup, msg, waToken, waURL, "group", waImage)
+		}
+	}()
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"status":     "matched",
+		"student_id": faceResult.StudentID,
+		"name":       faceResult.Name,
+		"class_name": faceResult.ClassName,
+		"message":    "Absen " + status + " Berhasil",
+		"photo":      photo,
+		"time":       timeStr,
+	})
+}
+
 // API for Today's Statistics (for Kiosk Display)
 // Endpoint: /api/attendance/today-stats
 func (a *App) TodayStatsHandler(c echo.Context) error {
@@ -2613,6 +2782,48 @@ func (a *App) ScanPageHandler(c echo.Context) error {
 
 func (a *App) ScanPrayerPageHandler(c echo.Context) error {
 	return c.Render(http.StatusOK, "scan_prayer.html", nil)
+}
+
+func (a *App) ScanFacePageHandler(c echo.Context) error {
+	return c.Render(http.StatusOK, "attendance_face.html", nil)
+}
+
+func (a *App) FaceRegisterPageHandler(c echo.Context) error {
+	id := c.Param("id")
+	var s struct {
+		ID         int
+		Name       string
+		ExtraInfo  string
+		Photo      string
+		ClassName  string
+		IdentityNo string
+		RFID       string
+		Phone      string
+		Type       string
+	}
+
+	err := a.DB.QueryRow(`
+		SELECT s.id, s.name, s.photo, s.nis, s.rfid_uid, s.parent_phone, c.name
+		FROM students s
+		LEFT JOIN classes c ON s.class_id = c.id
+		WHERE s.id = ?`, id).Scan(&s.ID, &s.Name, &s.Photo, &s.IdentityNo, &s.RFID, &s.Phone, &s.ClassName)
+
+	if err != nil {
+		return c.Redirect(http.StatusSeeOther, "/admin/students")
+	}
+
+	data := map[string]interface{}{
+		"ID":         s.ID,
+		"Name":        s.Name,
+		"ExtraInfo":   s.ClassName,
+		"Photo":       s.Photo,
+		"IdentityNo":   s.IdentityNo,
+		"RFID":        s.RFID,
+		"Phone":       s.Phone,
+		"Type":        "Siswa",
+	}
+
+	return c.Render(http.StatusOK, "face_register.html", data)
 }
 
 // --- ANNOUNCEMENT SCHEDULER ---
@@ -2943,6 +3154,7 @@ func main() {
 		return c.Render(http.StatusOK, "login.html", nil)
 	})
 	e.GET("/scan", app.ScanPageHandler)              // Public Scan Page (Presence)
+	e.GET("/scan-face", app.ScanFacePageHandler)    // Public Scan Page (Face Recognition)
 	e.GET("/scan-sholat", app.ScanPrayerPageHandler) // Public Scan Page (Prayer)
 
 	// API Endpointsi
@@ -2997,12 +3209,17 @@ func main() {
 	// Students
 	admin.POST("/student/add", handler.AddStudent(db))
 	admin.POST("/student/update/:id", handler.UpdateStudent(db))
+	admin.POST("/student/status/:id", handler.UpdateStudentStatus(db))
 	admin.DELETE("/student/:id", handler.DeleteStudent(db))
 	admin.POST("/student/import", app.ImportStudentHandler)
 	admin.POST("/student/import-json", app.ImportStudentJSONHandler)
 	admin.POST("/students/delete-multiple", handler.BulkDeleteStudents(db))
 	admin.GET("/students/json", handler.GetStudentsJSON(db))
 	admin.POST("/students/promote", handler.PromoteStudents(db))
+	admin.POST("/students/bulk-status", handler.BulkUpdateStudentStatus(db))
+	admin.GET("/student/:id", app.StudentProfileHandler)
+	admin.GET("/staff/:id", app.StaffProfileHandler)
+	admin.GET("/face/register/:id", app.FaceRegisterPageHandler)
 
 	// Staff
 	admin.POST("/staff/add", handler.AddStaff(db))
@@ -3105,6 +3322,7 @@ func main() {
 
 	// Face Recognition Routes
 	admin.POST("/face/register", handler.RegisterFace(db))
+	admin.GET("/face/status", handler.GetFaceStatus(db))
 	admin.GET("/faces", handler.ListFaces(db))
 	admin.DELETE("/face/:student_id", handler.DeleteFace(db))
 	admin.POST("/face/verify", handler.VerifyFace(db))
@@ -3127,6 +3345,10 @@ func main() {
 	admin.GET("/prayer/attendance", app.PrayerAttendanceHandler)
 	admin.GET("/prayer/report", app.GetStudentCalendarHandler)
 
+	// Student/Staff Calendar Routes
+	admin.GET("/student/calendar", app.GetStudentCalendarHandler)
+	admin.GET("/staff/calendar", app.GetStaffCalendarHandler)
+
 	// Report Routes
 	admin.GET("/report/daily", app.ExportAttendanceHandler)
 	admin.GET("/report/weekly", app.ExportAttendanceHandler)
@@ -3134,6 +3356,9 @@ func main() {
 
 	// Prayer Routes
 	e.GET("/api/attendance/prayer-logs", app.PrayerLogsListHandler)
+
+	// Face Recognition Attendance API
+	e.POST("/api/attendance/verify-face", app.VerifyFaceAttendanceHandler)
 
 	// Test WA Route
 	e.POST("/api/attendance/test-wa", app.TestWAHandler)

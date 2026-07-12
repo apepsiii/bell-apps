@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -61,7 +62,7 @@ type FaceRegisterResponse struct {
 func RegisterFace(db interface{}) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		studentIDStr := c.QueryParam("student_id")
-		_, err := strconv.Atoi(studentIDStr)
+		studentID, err := strconv.Atoi(studentIDStr)
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid student ID"})
 		}
@@ -85,21 +86,25 @@ func RegisterFace(db interface{}) echo.HandlerFunc {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to read image"})
 		}
 
-		faceURL := GetFaceServiceURL() + "/encode"
+		faceURL := GetFaceServiceURL() + "/register"
 
-		req, err := http.NewRequest("POST", faceURL, bytes.NewBuffer(imageData))
+		// Create JSON body with all data
+		reqBody := map[string]interface{}{
+			"student_id": studentID,
+			"name":       name,
+			"class_name": className,
+			"image_base64": base64.StdEncoding.EncodeToString(imageData),
+		}
+		reqJSON, _ := json.Marshal(reqBody)
+
+		req, err := http.NewRequest("POST", faceURL, bytes.NewBuffer(reqJSON))
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to create request"})
 		}
 
-		req.Header.Set("Content-Type", "application/octet-stream")
-		q := req.URL.Query()
-		q.Add("student_id", studentIDStr)
-		q.Add("name", name)
-		q.Add("class_name", className)
-		req.URL.RawQuery = q.Encode()
+		req.Header.Set("Content-Type", "application/json")
 
-		client := &http.Client{Timeout: 30 * time.Second}
+		client := &http.Client{Timeout: 60 * time.Second}
 		resp, err := client.Do(req)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Face service error: " + err.Error()})
@@ -228,5 +233,67 @@ func DeleteFace(db interface{}) echo.HandlerFunc {
 		}
 
 		return c.JSON(http.StatusOK, map[string]string{"message": "Face deleted"})
+	}
+}
+
+type FaceStatusResponse struct {
+	Registered bool   `json:"registered"`
+	StudentID  int    `json:"student_id"`
+	Name       string `json:"name,omitempty"`
+	ClassName  string `json:"class_name,omitempty"`
+}
+
+func GetFaceStatus(db interface{}) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		studentIDStr := c.QueryParam("student_id")
+		studentID, err := strconv.Atoi(studentIDStr)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid student ID"})
+		}
+
+		faceURL := GetFaceServiceURL() + "/faces"
+
+		resp, err := http.Get(faceURL)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Face service error: " + err.Error()})
+		}
+		defer resp.Body.Close()
+
+		body, _ := io.ReadAll(resp.Body)
+
+		if resp.StatusCode != http.StatusOK {
+			return c.JSON(http.StatusInternalServerError, map[string]string{
+				"message": fmt.Sprintf("Face service returned %d", resp.StatusCode),
+			})
+		}
+
+		var result struct {
+			Count int `json:"count"`
+			Faces []struct {
+				StudentID int    `json:"student_id"`
+				Name      string `json:"name"`
+				ClassName string `json:"class_name"`
+			} `json:"faces"`
+		}
+
+		if err := json.Unmarshal(body, &result); err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Invalid response from face service"})
+		}
+
+		for _, face := range result.Faces {
+			if face.StudentID == studentID {
+				return c.JSON(http.StatusOK, FaceStatusResponse{
+					Registered: true,
+					StudentID:  studentID,
+					Name:       face.Name,
+					ClassName:  face.ClassName,
+				})
+			}
+		}
+
+		return c.JSON(http.StatusOK, FaceStatusResponse{
+			Registered: false,
+			StudentID:  studentID,
+		})
 	}
 }

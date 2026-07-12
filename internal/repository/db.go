@@ -73,6 +73,7 @@ func runSQLiteMigrations(db *sql.DB) {
 		{"students", "parent_name", "ALTER TABLE students ADD COLUMN parent_name TEXT DEFAULT ''"},
 		{"prayer_logs", "recorded_by", "ALTER TABLE prayer_logs ADD COLUMN recorded_by TEXT DEFAULT 'RFID'"},
 		{"students", "birthday", "ALTER TABLE students ADD COLUMN birthday TEXT DEFAULT ''"},
+		{"students", "status", "ALTER TABLE students ADD COLUMN status TEXT DEFAULT 'active'"},
 	}
 
 	for _, m := range migrations {
@@ -96,6 +97,7 @@ func runMySQLMigrations(db *sql.DB) {
 		{"students", "parent_name", "ALTER TABLE students ADD COLUMN parent_name VARCHAR(255) DEFAULT ''"},
 		{"prayer_logs", "recorded_by", "ALTER TABLE prayer_logs ADD COLUMN recorded_by VARCHAR(50) DEFAULT 'RFID'"},
 		{"students", "birthday", "ALTER TABLE students ADD COLUMN birthday VARCHAR(20) DEFAULT ''"},
+		{"students", "status", "ALTER TABLE students ADD COLUMN status VARCHAR(20) DEFAULT 'active'"},
 	}
 
 	for _, m := range migrations {

@@ -239,17 +239,19 @@
                             </div>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                                <p class="text-sm text-slate-500">Total Siswa</p>
-                                <h3 class="text-2xl font-bold">{{.Stats.TotalStudents}}</h3>
+                            <div class="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-xl shadow-sm">
+                                <p class="text-sm text-green-100">Siswa Aktif</p>
+                                <h3 class="text-2xl font-bold text-white">{{.Stats.ActiveStudents}}</h3>
+                                <p class="text-xs text-green-200 mt-1">Dari total {{.Stats.TotalStudents}} siswa</p>
+                            </div>
+                            <div class="bg-gradient-to-br from-red-500 to-red-600 p-6 rounded-xl shadow-sm">
+                                <p class="text-sm text-red-100">Siswa Tidak Aktif</p>
+                                <h3 class="text-2xl font-bold text-white">{{.Stats.InactiveStudents}}</h3>
+                                <p class="text-xs text-red-200 mt-1">Alumni/mundur</p>
                             </div>
                             <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                                 <p class="text-sm text-slate-500">Total Guru/Staff</p>
                                 <h3 class="text-2xl font-bold">{{.Stats.TotalStaff}}</h3>
-                            </div>
-                            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                                <p class="text-sm text-slate-500">Jadwal Bel</p>
-                                <h3 class="text-2xl font-bold">{{.Stats.TotalSchedules}}</h3>
                             </div>
                             <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                                 <p class="text-sm text-slate-500">Bel Berikutnya</p>
@@ -538,19 +540,39 @@
                         <div class="flex justify-between items-center mb-6">
                             <div class="flex items-center gap-4">
                                 <h2 class="text-2xl font-bold text-slate-800">Data Siswa</h2>
-                                <button id="btn-delete-selected" onclick="deleteSelectedStudents()"
-                                    class="hidden bg-red-100 hover:bg-red-200 text-red-600 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-all">
-                                    <i data-lucide="trash-2" class="w-4 h-4"></i> Hapus (<span
-                                        id="selected-count">0</span>)
-                                </button>
+                                <div id="bulk-action-bar" class="hidden flex items-center gap-2">
+                                    <span class="text-sm text-slate-500">Terpilih: <span id="selected-count" class="font-bold text-slate-800">0</span></span>
+                                    <div class="relative">
+                                        <button onclick="toggleBulkMenu()" id="bulk-menu-btn"
+                                            class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2">
+                                            Aksi <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                                        </button>
+                                        <div id="bulk-menu-dropdown" class="hidden absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border py-1 z-50">
+                                            <button onclick="bulkActivateStudents()"
+                                                class="w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-green-50 flex items-center gap-2">
+                                                <i data-lucide="user-check" class="w-4 h-4"></i> Aktifkan
+                                            </button>
+                                            <button onclick="bulkDeactivateStudents()"
+                                                class="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-orange-50 flex items-center gap-2">
+                                                <i data-lucide="user-x" class="w-4 h-4"></i> Nonaktifkan
+                                            </button>
+                                            <button onclick="openModal('modal-promote-student')"
+                                                class="w-full text-left px-4 py-2 text-sm text-indigo-600 hover:bg-indigo-50 flex items-center gap-2">
+                                                <i data-lucide="trending-up" class="w-4 h-4"></i> Naik Kelas
+                                            </button>
+                                            <hr class="my-1 border-slate-200">
+                                            <button onclick="deleteSelectedStudents()"
+                                                class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+                                                <i data-lucide="trash-2" class="w-4 h-4"></i> Hapus
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="flex gap-2">
                                 <button onclick="openModal('modal-import-student')"
                                     class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2"><i
                                         data-lucide="upload" class="w-4 h-4"></i> Import CSV</button>
-                                <button onclick="openModal('modal-promote-student')"
-                                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2"><i
-                                        data-lucide="trending-up" class="w-4 h-4"></i> Naik Kelas</button>
                                 <button onclick="openModal('modal-student')"
                                     class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2"><i
                                         data-lucide="plus" class="w-4 h-4"></i> Tambah</button>
@@ -602,6 +624,7 @@
                                                     class="w-3 h-3 opacity-0 group-hover:opacity-50"></i></div>
                                         </th>
                                         <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider">RFID UID</th>
+                                        <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider">Status</th>
                                         <th class="px-6 py-4 text-right">Aksi</th>
                                     </tr>
                                 </thead>
@@ -630,13 +653,26 @@
                                         </td>
                                         <td class="px-6 py-4 text-xs font-mono bg-slate-50 text-slate-500 rounded">
                                             {{.RFID}}</td>
+                                        <td class="px-6 py-4">
+                                            {{if eq .Status "active"}}
+                                            <span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-medium">Aktif</span>
+                                            {{else}}
+                                            <span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-medium">Tidak Aktif</span>
+                                            {{end}}
+                                        </td>
                                         <td class="px-6 py-4 text-right space-x-2">
+                                            <button onclick="toggleStudentStatus({{.ID}}, '{{.Status}}')"
+                                                class="{{if eq .Status "active"}}text-orange-600 hover:bg-orange-50{{else}}text-green-600 hover:bg-green-50{{end}} p-2 rounded transition"
+                                                title="{{if eq .Status "active"}}Nonaktifkan{{else}}Aktifkan{{end}}">
+                                                <i data-lucide="toggle-{{if eq .Status "active"}}right{{else}}left{{end}}" class="w-4 h-4"></i>
+                                            </button>
                                             <a href="/admin/student/{{.ID}}"
-                                                class="inline-block text-purple-600 hover:bg-purple-50 p-2 rounded transition"
-                                                title="Lihat Profil & Kalender"><i data-lucide="calendar"
-                                                    class="w-4 h-4"></i></a>
+                                                class="inline-flex items-center gap-1 text-purple-600 hover:bg-purple-50 px-2 py-1 rounded transition text-xs font-medium"
+                                                title="Lihat Profil & Kalender">
+                                                <i data-lucide="user" class="w-3 h-3"></i> Profil
+                                            </a>
                                             <button
-                                                onclick="editStudent('{{.ID}}', '{{.RFID}}', '{{.NIS}}', '{{.Name}}', '{{.ParentPhone}}', '{{.ClassID}}', '{{.Photo}}', '{{.Birthday}}')"
+                                                onclick="editStudent('{{.ID}}', '{{.RFID}}', '{{.NIS}}', '{{.Name}}', '{{.ParentPhone}}', '{{.ClassID}}', '{{.Photo}}', '{{.Birthday}}', '{{.Status}}')"
                                                 class="text-blue-600 hover:bg-blue-50 p-2 rounded transition"><i
                                                     data-lucide="edit-2" class="w-4 h-4"></i></button>
                                             <button onclick="deleteItem('student', {{.ID}})"
@@ -646,7 +682,7 @@
                                     </tr>
                                     {{else}}
                                     <tr>
-                                        <td colspan="6" class="px-6 py-12 text-center text-slate-400"><i
+                                        <td colspan="7" class="px-6 py-12 text-center text-slate-400"><i
                                                 data-lucide="graduation-cap"
                                                 class="w-12 h-12 mx-auto mb-2 opacity-50"></i>
                                             <p>Belum ada data siswa</p>
@@ -1593,16 +1629,71 @@
                             id="stu-birthday" class="w-full border rounded p-2"></div>
                     <div>
                         <label class="text-sm font-medium">Foto Siswa</label>
-                        <div id="stu-photo-preview" class="mb-2 hidden">
-                            <img src="" class="w-20 h-20 rounded-full object-cover border">
+                        <div class="flex gap-3 items-start">
+                            <div id="stu-photo-preview" class="mb-2 hidden">
+                                <img src="" class="w-20 h-20 rounded-full object-cover border">
+                            </div>
+                            <div id="stu-camera-preview" class="mb-2 hidden">
+                                <img id="stu-captured-photo" class="w-20 h-20 rounded-full object-cover border border-blue-500">
+                            </div>
+                            <input type="hidden" name="captured_photo" id="stu-captured-photo-data">
                         </div>
-                        <input type="file" name="photo" accept="image/*"
-                            class="w-full border rounded p-2 text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                        <div class="flex gap-2 mb-2">
+                            <input type="file" name="photo" accept="image/*" id="stu-photo-input"
+                                class="flex-1 border rounded p-2 text-sm text-slate-500">
+                            <button type="button" onclick="openCameraModal('stu')"
+                                class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded text-sm flex items-center gap-1">
+                                <i data-lucide="camera" class="w-4 h-4"></i> Camera
+                            </button>
+                        </div>
                     </div>
                     <div class="flex justify-end gap-2"><button type="button" onclick="closeModal('modal-student')"
                             class="text-slate-500">Batal</button><button type="submit"
                             class="bg-blue-600 text-white px-4 py-2 rounded">Simpan</button></div>
                 </form>
+            </div>
+        </div>
+
+        <!-- Camera Capture Modal (Reusable) -->
+        <div id="modal-camera" class="hidden fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+                <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-gradient-to-r from-blue-600 to-blue-700">
+                    <h3 class="font-bold text-lg text-white flex items-center gap-2">
+                        <i data-lucide="camera" class="w-5 h-5"></i> Ambil Foto
+                    </h3>
+                    <button onclick="closeCameraModal()" class="text-white/80 hover:text-white">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+                <div class="p-4">
+                    <div id="camera-container" class="relative bg-slate-900 rounded-xl overflow-hidden mb-4" style="aspect-ratio: 4/3;">
+                        <video id="camera-video" autoplay playsinline class="w-full h-full object-cover"></video>
+                        <canvas id="camera-canvas" class="hidden"></canvas>
+                        <div id="camera-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-400">
+                            <i data-lucide="camera-off" class="w-12 h-12 mb-2"></i>
+                            <p class="text-sm">Kamera tidak tersedia</p>
+                        </div>
+                    </div>
+                    <div id="camera-preview-container" class="hidden mb-4">
+                        <img id="camera-preview-img" class="w-full max-h-48 object-contain rounded-xl border-2 border-blue-500">
+                    </div>
+                    <p id="camera-message" class="text-center text-sm text-slate-500 mb-4">Posisikan wajah di dalam frame</p>
+                    <div id="camera-error" class="hidden text-center text-sm text-red-500 mb-4"></div>
+                    <div class="flex gap-3 justify-center">
+                        <button id="btn-camera-capture" onclick="captureFromCamera()"
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition">
+                            <i data-lucide="camera" class="w-5 h-5"></i> Ambil Foto
+                        </button>
+                        <button id="btn-camera-retake" onclick="retakeFromCamera()"
+                            class="hidden bg-slate-200 hover:bg-slate-300 text-slate-700 px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition">
+                            <i data-lucide="rotate-ccw" class="w-5 h-5"></i> Ambil Ulang
+                        </button>
+                        <button id="btn-camera-use" onclick="usePhotoFromCamera()"
+                            class="hidden bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition">
+                            <i data-lucide="check" class="w-5 h-5"></i> Gunakan Foto
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -2171,6 +2262,17 @@
                 }
             }
 
+            // --- Reload with Hash Preservation ---
+            function reloadWithHash() {
+                const hash = window.location.hash;
+                if (hash) {
+                    sessionStorage.setItem('restoreHash', hash);
+                    window.location.reload();
+                } else {
+                    window.location.reload();
+                }
+            }
+
             // --- Navigation ---
             function navigateMenu(pageId, element) {
                 document.querySelectorAll('.page-section').forEach(sec => sec.classList.remove('active'));
@@ -2214,6 +2316,18 @@
 
             // --- Persist Page State ---
             document.addEventListener("DOMContentLoaded", function () {
+                // First check sessionStorage for restored hash (from reloadWithHash)
+                const savedHash = sessionStorage.getItem('restoreHash');
+                if (savedHash) {
+                    sessionStorage.removeItem('restoreHash');
+                    window.location.hash = savedHash;
+                    const sectionId = savedHash.substring(1);
+                    if (sectionId) {
+                        navigateMenu(sectionId, null);
+                    }
+                    return;
+                }
+                // Otherwise check URL hash
                 const hash = window.location.hash.substring(1);
                 if (hash) {
                     navigateMenu(hash, null);
@@ -2242,6 +2356,166 @@
                     }
                 });
             }
+
+            // --- Student Multi-Select Functions ---
+            function toggleStudentSelection() {
+                const checkboxes = document.querySelectorAll('.student-checkbox');
+                const selected = document.querySelectorAll('.student-checkbox:checked');
+                const bulkBar = document.getElementById('bulk-action-bar');
+                const countSpan = document.getElementById('selected-count');
+
+                countSpan.innerText = selected.length;
+
+                if (selected.length > 0) {
+                    bulkBar.classList.remove('hidden');
+                    bulkBar.classList.add('flex');
+                } else {
+                    bulkBar.classList.add('hidden');
+                    bulkBar.classList.remove('flex');
+                }
+            }
+
+            function toggleSelectAllStudents(source) {
+                const checkboxes = document.querySelectorAll('.student-checkbox');
+                checkboxes.forEach(cb => {
+                    if (!cb.disabled) {
+                        cb.checked = source.checked;
+                    }
+                });
+                toggleStudentSelection();
+            }
+
+            function toggleBulkMenu() {
+                const dropdown = document.getElementById('bulk-menu-dropdown');
+                dropdown.classList.toggle('hidden');
+            }
+
+            function closeBulkMenu() {
+                const dropdown = document.getElementById('bulk-menu-dropdown');
+                if (!dropdown.classList.contains('hidden')) {
+                    dropdown.classList.add('hidden');
+                }
+            }
+
+            function getSelectedStudentIds() {
+                const checkboxes = document.querySelectorAll('.student-checkbox:checked');
+                return Array.from(checkboxes).map(cb => parseInt(cb.value));
+            }
+
+            async function bulkActivateStudents() {
+                closeBulkMenu();
+                const ids = getSelectedStudentIds();
+                if (ids.length === 0) {
+                    Swal.fire('Peringatan', 'Pilih siswa terlebih dahulu', 'warning');
+                    return;
+                }
+
+                const result = await Swal.fire({
+                    title: 'Konfirmasi',
+                    text: `Aktifkan ${ids.length} siswa yang dipilih?`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, Aktifkan'
+                });
+
+                if (!result.isConfirmed) return;
+
+                try {
+                    const res = await fetch('/admin/students/bulk-status', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ids: ids, status: 'active' })
+                    });
+                    const data = await res.json();
+                    if (data.status === 'success') {
+                        Swal.fire('Berhasil', data.message, 'success').then(() => reloadWithHash());
+                    } else {
+                        Swal.fire('Gagal', data.message, 'error');
+                    }
+                } catch (err) {
+                    Swal.fire('Error', 'Gagal menghubungi server', 'error');
+                }
+            }
+
+            async function bulkDeactivateStudents() {
+                closeBulkMenu();
+                const ids = getSelectedStudentIds();
+                if (ids.length === 0) {
+                    Swal.fire('Peringatan', 'Pilih siswa terlebih dahulu', 'warning');
+                    return;
+                }
+
+                const result = await Swal.fire({
+                    title: 'Konfirmasi',
+                    text: `Nonaktifkan ${ids.length} siswa yang dipilih?`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, Nonaktifkan'
+                });
+
+                if (!result.isConfirmed) return;
+
+                try {
+                    const res = await fetch('/admin/students/bulk-status', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ids: ids, status: 'inactive' })
+                    });
+                    const data = await res.json();
+                    if (data.status === 'success') {
+                        Swal.fire('Berhasil', data.message, 'success').then(() => reloadWithHash());
+                    } else {
+                        Swal.fire('Gagal', data.message, 'error');
+                    }
+                } catch (err) {
+                    Swal.fire('Error', 'Gagal menghubungi server', 'error');
+                }
+            }
+
+            async function deleteSelectedStudents() {
+                closeBulkMenu();
+                const ids = getSelectedStudentIds();
+                if (ids.length === 0) {
+                    Swal.fire('Peringatan', 'Pilih siswa terlebih dahulu', 'warning');
+                    return;
+                }
+
+                const result = await Swal.fire({
+                    title: 'Konfirmasi Hapus',
+                    text: `Hapus ${ids.length} siswa yang dipilih? Tindakan ini tidak dapat dibatalkan.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, Hapus',
+                    confirmButtonColor: '#d33'
+                });
+
+                if (!result.isConfirmed) return;
+
+                try {
+                    const res = await fetch('/admin/students/delete-multiple', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ids: ids })
+                    });
+                    const data = await res.json();
+                    if (data.status === 'success') {
+                        Swal.fire('Berhasil', data.message, 'success').then(() => reloadWithHash());
+                    } else {
+                        Swal.fire('Gagal', data.message, 'error');
+                    }
+                } catch (err) {
+                    Swal.fire('Error', 'Gagal menghubungi server', 'error');
+                }
+            }
+
+            // Close bulk menu when clicking outside
+            document.addEventListener('click', function(e) {
+                const bulkMenuBtn = document.getElementById('bulk-menu-btn');
+                const bulkMenuDropdown = document.getElementById('bulk-menu-dropdown');
+                if (bulkMenuBtn && bulkMenuDropdown && !bulkMenuBtn.contains(e.target) && !bulkMenuDropdown.contains(e.target)) {
+                    bulkMenuDropdown.classList.add('hidden');
+                }
+            });
 
             // --- Report Functions ---
             // Toggle date inputs based on report type
@@ -2435,6 +2709,132 @@
             function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
             function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 
+            // Camera Modal for Student Photo
+            let cameraStream = null;
+            let currentCameraTarget = null;
+            let capturedCameraImage = null;
+
+            function openCameraModal(target) {
+                currentCameraTarget = target;
+                capturedCameraImage = null;
+
+                const modal = document.getElementById('modal-camera');
+                const video = document.getElementById('camera-video');
+                const placeholder = document.getElementById('camera-placeholder');
+                const previewContainer = document.getElementById('camera-preview-container');
+                const btnCapture = document.getElementById('btn-camera-capture');
+                const btnRetake = document.getElementById('btn-camera-retake');
+                const btnUse = document.getElementById('btn-camera-use');
+                const errorDiv = document.getElementById('camera-error');
+                const message = document.getElementById('camera-message');
+
+                video.srcObject = null;
+                video.classList.add('hidden');
+                placeholder.classList.remove('hidden');
+                previewContainer.classList.add('hidden');
+                btnCapture.classList.remove('hidden');
+                btnRetake.classList.add('hidden');
+                btnUse.classList.add('hidden');
+                errorDiv.classList.add('hidden');
+                message.classList.remove('hidden');
+                message.textContent = 'Posisikan wajah di dalam frame';
+
+                modal.classList.remove('hidden');
+                lucide.createIcons();
+
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 } })
+                    .then(stream => {
+                        cameraStream = stream;
+                        video.srcObject = stream;
+                        video.classList.remove('hidden');
+                        placeholder.classList.add('hidden');
+                    })
+                    .catch(err => {
+                        console.error('Camera error:', err);
+                        let errorMsg = 'Tidak dapat mengakses kamera. Gunakan upload file sebagai alternatif.';
+                        if (!window.location.protocol.includes('https') && window.location.hostname !== 'localhost') {
+                            errorMsg = 'Kamera memerlukan HTTPS. Gunakan localhost atau akses via HTTPS.';
+                        }
+                        errorDiv.textContent = errorMsg;
+                        errorDiv.classList.remove('hidden');
+                        placeholder.classList.remove('hidden');
+                    });
+            }
+
+            function closeCameraModal() {
+                const modal = document.getElementById('modal-camera');
+                modal.classList.add('hidden');
+
+                if (cameraStream) {
+                    cameraStream.getTracks().forEach(track => track.stop());
+                    cameraStream = null;
+                }
+            }
+
+            function captureFromCamera() {
+                const video = document.getElementById('camera-video');
+                const canvas = document.getElementById('camera-canvas');
+                const previewImg = document.getElementById('camera-preview-img');
+                const previewContainer = document.getElementById('camera-preview-container');
+                const btnCapture = document.getElementById('btn-camera-capture');
+                const btnRetake = document.getElementById('btn-camera-retake');
+                const btnUse = document.getElementById('btn-camera-use');
+                const message = document.getElementById('camera-message');
+
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                canvas.getContext('2d').drawImage(video, 0, 0);
+
+                capturedCameraImage = canvas.toDataURL('image/jpeg', 0.85);
+
+                previewImg.src = capturedCameraImage;
+                previewContainer.classList.remove('hidden');
+                btnCapture.classList.add('hidden');
+                btnRetake.classList.remove('hidden');
+                btnUse.classList.remove('hidden');
+                message.textContent = 'Foto berhasil diambil!';
+
+                video.classList.add('hidden');
+            }
+
+            function retakeFromCamera() {
+                const video = document.getElementById('camera-video');
+                const previewContainer = document.getElementById('camera-preview-container');
+                const btnCapture = document.getElementById('btn-camera-capture');
+                const btnRetake = document.getElementById('btn-camera-retake');
+                const btnUse = document.getElementById('btn-camera-use');
+                const message = document.getElementById('camera-message');
+
+                capturedCameraImage = null;
+                previewContainer.classList.add('hidden');
+                video.classList.remove('hidden');
+                btnCapture.classList.remove('hidden');
+                btnRetake.classList.add('hidden');
+                btnUse.classList.add('hidden');
+                message.textContent = 'Posisikan wajah di dalam frame';
+            }
+
+            function usePhotoFromCamera() {
+                if (!capturedCameraImage || !currentCameraTarget) {
+                    closeCameraModal();
+                    return;
+                }
+
+                if (currentCameraTarget === 'stu') {
+                    // Set the hidden field with base64 image data
+                    document.getElementById('stu-captured-photo-data').value = capturedCameraImage;
+                    // Show preview
+                    const previewDiv = document.getElementById('stu-camera-preview');
+                    const previewImg = document.getElementById('stu-captured-photo');
+                    previewImg.src = capturedCameraImage;
+                    previewDiv.classList.remove('hidden');
+                    // Hide file input preview if showing
+                    document.getElementById('stu-photo-preview').classList.add('hidden');
+                }
+
+                closeCameraModal();
+            }
+
             function manualAttendance(id, name) {
                 document.getElementById('manual-id').value = id;
                 document.getElementById('manual-name').innerText = name;
@@ -2494,7 +2894,7 @@
                             timer: 2000,
                             showConfirmButton: false
                         }).then(() => {
-                            window.location.reload();
+                            reloadWithHash();
                         });
                     } else {
                         alert('Gagal menyimpan kehadiran');
@@ -2540,7 +2940,7 @@
                             toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true,
                             didOpen: (toast) => { toast.addEventListener('mouseenter', Swal.stopTimer); toast.addEventListener('mouseleave', Swal.resumeTimer); }
                         });
-                        Toast.fire({ icon: 'success', title: data.message }).then(() => window.location.reload());
+                        Toast.fire({ icon: 'success', title: data.message }).then(() => reloadWithHash());
                     } else {
                         Swal.fire('Gagal', data.message, 'error');
                         submitBtn.disabled = false;
@@ -2602,7 +3002,7 @@
                             .then(data => {
                                 if (data.status === 'success') {
                                     Swal.fire('Berhasil!', data.message, 'success')
-                                        .then(() => window.location.reload());
+                                        .then(() => reloadWithHash());
                                 } else {
                                     Swal.fire('Gagal!', data.message, 'error');
                                 }
@@ -2617,7 +3017,7 @@
             async function deleteItem(type, id) {
                 if ((await Swal.fire({ title: 'Hapus data ini?', icon: 'warning', showCancelButton: true })).isConfirmed) {
                     await fetch(`/admin/${type}/${id}`, { method: 'DELETE' });
-                    window.location.reload();
+                    reloadWithHash();
                 }
             }
 
@@ -2641,7 +3041,7 @@
                 document.getElementById('cls-wa').value = waGroup;
                 openModal('modal-class');
             }
-            function editStudent(id, rfid, nis, name, phone, classId, photo, birthday) {
+            function editStudent(id, rfid, nis, name, phone, classId, photo, birthday, status) {
                 document.getElementById('student-form').action = `/admin/student/update/${id}`;
                 document.getElementById('stu-rfid').value = rfid;
                 document.getElementById('stu-nis').value = nis;
@@ -2661,6 +3061,30 @@
                 }
 
                 openModal('modal-student');
+            }
+
+            async function toggleStudentStatus(id, currentStatus) {
+                const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+                const action = newStatus === 'active' ? 'mengaktifkan' : 'menonaktifkan';
+
+                if (!confirm(`Yakin ingin ${action} siswa ini?`)) return;
+
+                try {
+                    const response = await fetch(`/admin/student/status/${id}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: newStatus })
+                    });
+
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        Swal.fire('Berhasil', `Status siswa berhasil diperbarui`, 'success').then(() => location.reload());
+                    } else {
+                        Swal.fire('Gagal', result.message || 'Terjadi kesalahan', 'error');
+                    }
+                } catch (err) {
+                    Swal.fire('Error', 'Gagal menghubungi server', 'error');
+                }
             }
             function editStaff(id, rfid, nip, name, phone, role) {
                 document.getElementById('staff-form').action = `/admin/staff/update/${id}`;
@@ -2718,7 +3142,7 @@
                             timer: 1500,
                             showConfirmButton: false
                         }).then(() => {
-                            window.location.reload();
+                            reloadWithHash();
                         });
                     } else {
                         // Error from server
@@ -2747,7 +3171,7 @@
                 if (value) {
                     const fd = new FormData(); fd.append('display_name', value);
                     await fetch(`/admin/audio/rename/${id}`, { method: 'POST', body: fd });
-                    window.location.reload();
+                    reloadWithHash();
                 }
             }
 
@@ -3290,7 +3714,7 @@
                         const data = await res.json();
 
                         if (res.ok) {
-                            Swal.fire('Berhasil', data.message, 'success').then(() => window.location.reload());
+                            Swal.fire('Berhasil', data.message, 'success').then(() => reloadWithHash());
                         } else {
                             Swal.fire('Gagal', data.message, 'error');
                         }

@@ -60,6 +60,37 @@
                 </div>
             </div>
 
+            <!-- FACE REGISTRATION CARD -->
+            <div id="face-section" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-lg flex items-center gap-2">
+                        <i data-lucide="scan-face" class="w-5 h-5 text-blue-600"></i> Wajah Terdaftar
+                    </h3>
+                    <span id="face-status-badge" class="px-3 py-1 rounded-full text-sm font-medium">
+                        <i data-lucide="loader-2" class="w-4 h-4 animate-spin inline"></i> Memuat...
+                    </span>
+                </div>
+                <div class="flex items-center gap-6">
+                    <div id="face-icon-container" class="w-20 h-20 bg-slate-100 rounded-xl flex items-center justify-center">
+                        <i data-lucide="user" class="w-10 h-10 text-slate-400"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p id="face-description" class="text-slate-600">Mendeteksi status wajah...</p>
+                        <p class="text-xs text-slate-400 mt-1">Gunakan untuk absensi dengan Face Recognition</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <a id="btn-register-face" href="/admin/face/register/{{.ID}}"
+                            class="hidden bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+                            <i data-lucide="camera" class="w-4 h-4"></i> Daftarkan Wajah
+                        </a>
+                        <button id="btn-delete-face" onclick="deleteFace()"
+                            class="hidden bg-red-100 hover:bg-red-200 text-red-600 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i> Hapus
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- STATS CARDS -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 page-section">
                 <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
@@ -271,6 +302,219 @@
 
             // Initial Load
             loadCalendar();
+
+            // =====================
+            // FACE REGISTRATION
+            // =====================
+            let mediaStream = null;
+            let capturedImageData = null;
+
+            async function loadFaceStatus() {
+                const badge = document.getElementById('face-status-badge');
+                const desc = document.getElementById('face-description');
+                const iconContainer = document.getElementById('face-icon-container');
+                const btnRegister = document.getElementById('btn-register-face');
+                const btnDelete = document.getElementById('btn-delete-face');
+
+                try {
+                    const res = await fetch(`/admin/face/status?student_id=${USER_ID}`);
+                    const data = await res.json();
+
+                    if (data.registered) {
+                        badge.className = 'px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-700';
+                        badge.innerHTML = '<i data-lucide="check-circle" class="w-4 h-4 inline"></i> Terdaftar';
+                        desc.textContent = `Wajah terdaftar atas nama ${data.name}`;
+                        iconContainer.innerHTML = '<i data-lucide="check-circle" class="w-10 h-10 text-green-500"></i>';
+                        iconContainer.className = 'w-20 h-20 bg-green-100 rounded-xl flex items-center justify-center';
+                        btnRegister.classList.add('hidden');
+                        btnDelete.classList.remove('hidden');
+                    } else {
+                        badge.className = 'px-3 py-1 rounded-full text-sm font-medium bg-slate-100 text-slate-600';
+                        badge.innerHTML = '<i data-lucide="x-circle" class="w-4 h-4 inline"></i> Belum Terdaftar';
+                        desc.textContent = 'Wajah belum terdaftar untuk absensi';
+                        iconContainer.innerHTML = '<i data-lucide="user" class="w-10 h-10 text-slate-400"></i>';
+                        iconContainer.className = 'w-20 h-20 bg-slate-100 rounded-xl flex items-center justify-center';
+                        btnRegister.classList.remove('hidden');
+                        btnDelete.classList.add('hidden');
+                    }
+                    lucide.createIcons();
+                } catch (err) {
+                    badge.className = 'px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-700';
+                    badge.innerHTML = '<i data-lucide="alert-circle" class="w-4 h-4 inline"></i> Error';
+                    desc.textContent = 'Tidak dapat menghubungkan ke Face Service';
+                    console.error(err);
+                    lucide.createIcons();
+                }
+            }
+
+            async function openFaceModal() {
+                const modal = document.getElementById('modal-face-capture');
+                modal.classList.remove('hidden');
+                capturedImageData = null;
+
+                const video = document.getElementById('face-video');
+                const placeholder = document.getElementById('face-camera-placeholder');
+                const previewContainer = document.getElementById('face-preview-container');
+                const btnCapture = document.getElementById('btn-capture-face');
+                const btnRetake = document.getElementById('btn-retake-face');
+                const btnSubmit = document.getElementById('btn-submit-face');
+                const errorDiv = document.getElementById('face-error');
+
+                video.srcObject = null;
+                video.classList.add('hidden');
+                placeholder.classList.remove('hidden');
+                previewContainer.classList.add('hidden');
+                btnCapture.classList.remove('hidden');
+                btnRetake.classList.add('hidden');
+                btnSubmit.classList.add('hidden');
+                errorDiv.classList.add('hidden');
+
+                try {
+                    mediaStream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'user', width: 640, height: 480 }
+                    });
+                    video.srcObject = mediaStream;
+                    video.classList.remove('hidden');
+                    placeholder.classList.add('hidden');
+                } catch (err) {
+                    console.error('Camera error:', err);
+                    let errorMsg = 'Tidak dapat mengakses kamera.';
+                    if (!window.location.protocol.includes('https') && window.location.hostname !== 'localhost') {
+                        errorMsg = 'Kamera memerlukan HTTPS. Gunakan localhost atau akses via HTTPS.';
+                    } else {
+                        errorMsg = 'Pastikan izin kamera diberikan pada browser.';
+                    }
+                    errorDiv.textContent = errorMsg;
+                    errorDiv.classList.remove('hidden');
+                }
+
+                lucide.createIcons();
+            }
+
+            function closeFaceModal() {
+                const modal = document.getElementById('modal-face-capture');
+                modal.classList.add('hidden');
+
+                if (mediaStream) {
+                    mediaStream.getTracks().forEach(track => track.stop());
+                    mediaStream = null;
+                }
+            }
+
+            function captureFace() {
+                const video = document.getElementById('face-video');
+                const canvas = document.getElementById('face-canvas');
+                const preview = document.getElementById('face-preview');
+                const previewContainer = document.getElementById('face-preview-container');
+                const btnCapture = document.getElementById('btn-capture-face');
+                const btnRetake = document.getElementById('btn-retake-face');
+                const btnSubmit = document.getElementById('btn-submit-face');
+                const instructions = document.getElementById('face-instructions');
+                const errorDiv = document.getElementById('face-error');
+
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                canvas.getContext('2d').drawImage(video, 0, 0);
+
+                capturedImageData = canvas.toDataURL('image/jpeg', 0.8);
+
+                preview.src = capturedImageData;
+                previewContainer.classList.remove('hidden');
+                btnCapture.classList.add('hidden');
+                btnRetake.classList.remove('hidden');
+                btnSubmit.classList.remove('hidden');
+                instructions.innerHTML = '<p class="text-green-600">Foto berhasil diambil!</p>';
+
+                video.classList.add('hidden');
+                errorDiv.classList.add('hidden');
+            }
+
+            function retakeFace() {
+                const video = document.getElementById('face-video');
+                const previewContainer = document.getElementById('face-preview-container');
+                const btnCapture = document.getElementById('btn-capture-face');
+                const btnRetake = document.getElementById('btn-retake-face');
+                const btnSubmit = document.getElementById('btn-submit-face');
+                const instructions = document.getElementById('face-instructions');
+
+                capturedImageData = null;
+                previewContainer.classList.add('hidden');
+                video.classList.remove('hidden');
+                btnCapture.classList.remove('hidden');
+                btnRetake.classList.add('hidden');
+                btnSubmit.classList.add('hidden');
+                instructions.innerHTML = '<p>Posisikan wajah Anda di dalam frame dengan pencahayaan yang baik</p><p class="text-xs text-slate-400 mt-1">Pastikan wajah terlihat jelas dan menghadap kamera</p>';
+            }
+
+            async function submitFace() {
+                if (!capturedImageData) return;
+
+                const btnSubmit = document.getElementById('btn-submit-face');
+                const btnRetake = document.getElementById('btn-retake-face');
+                const btnCapture = document.getElementById('btn-capture-face');
+                const loading = document.getElementById('face-loading');
+                const instructions = document.getElementById('face-instructions');
+                const errorDiv = document.getElementById('face-error');
+
+                btnSubmit.classList.add('hidden');
+                btnRetake.classList.add('hidden');
+                btnCapture.classList.add('hidden');
+                loading.classList.remove('hidden');
+                instructions.classList.add('hidden');
+                errorDiv.classList.add('hidden');
+
+                try {
+                    const formData = new FormData();
+                    const blob = await fetch(capturedImageData).then(r => r.blob());
+                    formData.append('image', blob, 'face.jpg');
+
+                    const name = "{{.Name}}";
+                    const className = "{{.ExtraInfo}}";
+
+                    const res = await fetch(`/admin/face/register?name=${encodeURIComponent(name)}&class_name=${encodeURIComponent(className)}&student_id=${USER_ID}`, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await res.json();
+
+                    if (res.ok && data.status === 'success') {
+                        closeFaceModal();
+                        loadFaceStatus();
+                    } else {
+                        throw new Error(data.message || 'Gagal mendaftarkan wajah');
+                    }
+                } catch (err) {
+                    console.error('Face registration error:', err);
+                    errorDiv.textContent = err.message || 'Gagal mendaftarkan wajah. Coba lagi.';
+                    errorDiv.classList.remove('hidden');
+                    loading.classList.add('hidden');
+                    btnRetake.classList.remove('hidden');
+                    btnSubmit.classList.remove('hidden');
+                }
+            }
+
+            async function deleteFace() {
+                if (!confirm('Hapus wajah terdaftar? Anda dapat mendaftarkan ulang nanti.')) return;
+
+                try {
+                    const res = await fetch(`/admin/face/${USER_ID}`, { method: 'DELETE' });
+                    if (res.ok) {
+                        loadFaceStatus();
+                    } else {
+                        throw new Error('Gagal menghapus wajah');
+                    }
+                } catch (err) {
+                    alert('Error: ' + err.message);
+                }
+            }
+
+            // Load face status on page load
+            if (USER_TYPE === 'Siswa') {
+                loadFaceStatus();
+            } else {
+                document.getElementById('face-section').classList.add('hidden');
+            }
         </script>
         <style>
             /* Hide scrollbar for cleaner look in small boxes */
@@ -353,5 +597,55 @@
             }
         </style>
     </body>
+
+    <!-- Face Capture Modal -->
+    <div id="modal-face-capture" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+            <div class="p-6 border-b border-slate-200 flex justify-between items-center bg-gradient-to-r from-blue-600 to-blue-700">
+                <h3 class="font-bold text-lg text-white flex items-center gap-2">
+                    <i data-lucide="camera" class="w-5 h-5"></i> Daftarkan Wajah
+                </h3>
+                <button onclick="closeFaceModal()" class="text-white/80 hover:text-white">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <div id="face-camera-container" class="relative bg-slate-900 rounded-xl overflow-hidden mb-4" style="aspect-ratio: 4/3;">
+                    <video id="face-video" autoplay playsinline class="w-full h-full object-cover"></video>
+                    <canvas id="face-canvas" class="hidden"></canvas>
+                    <div id="face-camera-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-400">
+                        <i data-lucide="camera-off" class="w-16 h-16 mb-4"></i>
+                        <p>Kamera tidak tersedia</p>
+                    </div>
+                </div>
+                <div id="face-preview-container" class="hidden mb-4">
+                    <img id="face-preview" class="w-full max-h-64 object-contain rounded-xl border-2 border-blue-500">
+                </div>
+                <div id="face-instructions" class="text-center text-sm text-slate-500 mb-4">
+                    <p>Posisikan wajah Anda di dalam frame dengan pencahayaan yang baik</p>
+                    <p class="text-xs text-slate-400 mt-1">Pastikan wajah terlihat jelas dan menghadap kamera</p>
+                </div>
+                <div id="face-error" class="hidden text-center text-sm text-red-500 mb-4"></div>
+                <div class="flex gap-3 justify-center">
+                    <button id="btn-capture-face" onclick="captureFace()"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition">
+                        <i data-lucide="camera" class="w-5 h-5"></i> Ambil Foto
+                    </button>
+                    <button id="btn-retake-face" onclick="retakeFace()"
+                        class="hidden bg-slate-200 hover:bg-slate-300 text-slate-700 px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition">
+                        <i data-lucide="rotate-ccw" class="w-5 h-5"></i> Ambil Ulang
+                    </button>
+                    <button id="btn-submit-face" onclick="submitFace()"
+                        class="hidden bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition">
+                        <i data-lucide="check" class="w-5 h-5"></i> Simpan
+                    </button>
+                </div>
+                <div id="face-loading" class="hidden text-center mt-4">
+                    <i data-lucide="loader-2" class="w-8 h-8 animate-spin text-blue-600 mx-auto"></i>
+                    <p class="text-sm text-slate-500 mt-2">Mendaftarkan wajah...</p>
+                </div>
+            </div>
+        </div>
+    </div>
 
 </html>

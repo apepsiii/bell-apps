@@ -29,7 +29,7 @@ func GetStudentsJSON(db *sql.DB) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, map[string]string{"message": "Class ID required"})
 		}
 
-		rows, err := db.Query("SELECT id, nis, name FROM students WHERE class_id = ? ORDER BY name ASC", classID)
+		rows, err := db.Query("SELECT id, nis, name FROM students WHERE class_id = ? AND status = 'active' ORDER BY name ASC", classID)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
 		}
@@ -128,6 +128,58 @@ func BulkDeleteStudents(db *sql.DB) echo.HandlerFunc {
 		return c.JSON(http.StatusOK, map[string]string{
 			"status":  "success",
 			"message": "Berhasil menghapus siswa",
+		})
+	}
+}
+
+type BulkStatusRequest struct {
+	IDs     []int  `json:"ids"`
+	Status  string `json:"status"`
+}
+
+func BulkUpdateStudentStatus(db *sql.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		var req BulkStatusRequest
+		if err := c.Bind(&req); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid request format"})
+		}
+
+		if len(req.IDs) == 0 {
+			return c.JSON(http.StatusBadRequest, map[string]string{"message": "No students selected"})
+		}
+
+		if req.Status != "active" && req.Status != "inactive" {
+			return c.JSON(http.StatusBadRequest, map[string]string{"message": "Status must be 'active' or 'inactive'"})
+		}
+
+		tx, err := db.Begin()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Transaction failed"})
+		}
+
+		query := "UPDATE students SET status = ? WHERE id IN ("
+		args := make([]interface{}, len(req.IDs)+1)
+		args[0] = req.Status
+
+		for i, id := range req.IDs {
+			if i > 0 {
+				query += ","
+			}
+			query += "?"
+			args[i+1] = id
+		}
+		query += ")"
+
+		_, err = tx.Exec(query, args...)
+		if err != nil {
+			tx.Rollback()
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to update status: " + err.Error()})
+		}
+
+		tx.Commit()
+		return c.JSON(http.StatusOK, map[string]string{
+			"status":  "success",
+			"message": "Berhasil mengupdate status siswa",
 		})
 	}
 }

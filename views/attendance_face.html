@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Absensi Wajah - SmartBell</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap');
+
+        body { font-family: 'Inter', sans-serif; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .face-box {
+            position: absolute;
+            border: 3px solid #3b82f6;
+            border-radius: 8px;
+            pointer-events: none;
+            animation: pulse-border 1.5s infinite;
+        }
+
+        @keyframes pulse-border {
+            0%, 100% { border-color: #3b82f6; }
+            50% { border-color: #60a5fa; }
+        }
+
+        .face-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 250px;
+            border: 2px dashed rgba(59, 130, 246, 0.5);
+            border-radius: 50%;
+        }
+
+        .scanning-line {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #3b82f6, transparent);
+            animation: scan 2s linear infinite;
+        }
+
+        @keyframes scan {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+
+        .animate-slideUp { animation: slideUp 0.5s ease-out; }
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .animate-scaleIn { animation: scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes scaleIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .bg-islamic {
+            background-color: #064e3b;
+            background-image:
+                radial-gradient(circle at 100% 100%, rgba(255, 255, 255, 0.05) 15%, transparent 16%),
+                radial-gradient(circle at 0 0, rgba(255, 255, 255, 0.05) 15%, transparent 16%),
+                radial-gradient(circle at 100% 0, rgba(255, 255, 255, 0.05) 15%, transparent 16%),
+                radial-gradient(circle at 0 100%, rgba(255, 255, 255, 0.05) 15%, transparent 16%);
+            background-size: 60px 60px;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white h-screen overflow-hidden flex">
+    <!-- Left Panel - Camera -->
+    <div class="w-1/2 flex flex-col p-6">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 p-2 rounded-lg">
+                    <i data-lucide="scan-face" class="w-6 h-6 text-white"></i>
+                </div>
+                <h1 class="font-bold text-xl">Absensi Wajah</h1>
+            </div>
+            <div class="flex gap-2">
+                <a href="/scan" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition">
+                    <i data-lucide="credit-card" class="w-4 h-4"></i> RFID
+                </a>
+                <button onclick="toggleCamera()" id="btn-toggle-cam" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition">
+                    <i data-lucide="camera" class="w-4 h-4"></i> <span id="cam-btn-text">Matikan Kamera</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Camera Container -->
+        <div class="flex-1 relative bg-black rounded-2xl overflow-hidden">
+            <video id="video" autoplay playsinline class="w-full h-full object-cover"></video>
+            <canvas id="canvas" class="hidden"></canvas>
+
+            <!-- Face Detection Overlay -->
+            <div id="face-overlay" class="absolute inset-0 pointer-events-none">
+                <div class="face-indicator" id="face-indicator"></div>
+                <div class="scanning-line" id="scan-line"></div>
+            </div>
+
+            <!-- Status Badge -->
+            <div class="absolute top-4 left-4 flex gap-2">
+                <span id="camera-status" class="bg-red-600 px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+                    <span class="w-2 h-2 bg-white rounded-full animate-pulse"></span> Kamera Off
+                </span>
+            </div>
+
+            <!-- FPS Counter -->
+            <div class="absolute top-4 right-4 bg-black/50 px-2 py-1 rounded text-xs mono">
+                <span id="fps-counter">FPS: 0</span>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="mt-4 glass rounded-xl p-4">
+            <h3 class="font-semibold text-sm mb-2 flex items-center gap-2">
+                <i data-lucide="info" class="w-4 h-4 text-blue-400"></i> Petunjuk
+            </h3>
+            <ul class="text-xs text-slate-300 space-y-1">
+                <li>• Posisikan wajah Anda di dalam kotak panduan</li>
+                <li>• Pastikan pencahayaan cukup dan wajah menghadap kamera</li>
+                <li>• Tunggu beberapa saat sampai wajah dikenali</li>
+                <li>• Absensi akan tercatat otomatis jika wajah dikenali</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Right Panel - Info & Logs -->
+    <div class="w-1/2 p-6 flex flex-col gap-4">
+        <!-- Clock -->
+        <div class="text-right">
+            <div id="clock-time" class="text-5xl font-black mono tracking-wider">00:00:00</div>
+            <div id="clock-date" class="text-slate-400 font-medium text-lg">Senin, 1 Januari 2025</div>
+        </div>
+
+        <!-- Result Card -->
+        <div id="result-card" class="glass rounded-2xl p-6 hidden">
+            <div class="flex items-center gap-6">
+                <div id="result-photo" class="w-24 h-24 bg-slate-700 rounded-xl flex items-center justify-center overflow-hidden">
+                    <i data-lucide="user" class="w-12 h-12 text-slate-500"></i>
+                </div>
+                <div class="flex-1">
+                    <h2 id="result-name" class="text-3xl font-bold text-white">Nama Siswa</h2>
+                    <p id="result-class" class="text-slate-400">Kelas</p>
+                    <div id="result-status" class="mt-2 px-4 py-1 bg-green-500/20 text-green-400 rounded-full inline-block font-medium">
+                        HADIR
+                    </div>
+                </div>
+                <div id="result-time" class="text-right">
+                    <div class="text-4xl font-bold mono text-blue-400">07:05</div>
+                    <p class="text-xs text-slate-500">Waktu Absensi</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="grid grid-cols-2 gap-4">
+            <div class="glass rounded-xl p-4 text-center">
+                <div id="present-count" class="text-3xl font-bold text-green-400">0</div>
+                <div class="text-xs text-slate-400">Hadir</div>
+            </div>
+            <div class="glass rounded-xl p-4 text-center">
+                <div id="late-count" class="text-3xl font-bold text-orange-400">0</div>
+                <div class="text-xs text-slate-400">Terlambat</div>
+            </div>
+        </div>
+
+        <!-- Recent Logs -->
+        <div class="flex-1 glass rounded-xl p-4 overflow-hidden flex flex-col">
+            <h3 class="font-semibold text-sm mb-3 flex items-center gap-2">
+                <i data-lucide="clock" class="w-4 h-4 text-blue-400"></i> Riwayat Absensi Terakhir
+            </h3>
+            <div id="recent-logs" class="flex-1 overflow-y-auto space-y-2">
+                <div class="text-center text-slate-500 text-sm py-8">Memuat...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // State
+        let mediaStream = null;
+        let isScanning = false;
+        let lastRecognition = null;
+        let recognitionCooldown = false;
+        let frameCount = 0;
+        let lastFpsUpdate = Date.now();
+        let fps = 0;
+
+        // Clock
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock-time').innerText = now.toLocaleTimeString('id-ID', { hour12: false });
+            document.getElementById('clock-date').innerText = now.toLocaleDateString('id-ID', {
+                weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+            });
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Camera Toggle
+        async function toggleCamera() {
+            if (mediaStream) {
+                stopCamera();
+            } else {
+                await startCamera();
+            }
+        }
+
+        async function startCamera() {
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'user', width: 640, height: 480 }
+                });
+                const video = document.getElementById('video');
+                video.srcObject = mediaStream;
+                video.classList.remove('hidden');
+                document.getElementById('camera-status').innerHTML = `
+                    <span class="w-2 h-2 bg-white rounded-full animate-pulse"></span> Kamera On
+                `;
+                document.getElementById('camera-status').classList.remove('bg-red-600');
+                document.getElementById('camera-status').classList.add('bg-green-600');
+                document.getElementById('cam-btn-text').innerText = 'Matikan Kamera';
+                isScanning = true;
+                requestAnimationFrame(processFrame);
+            } catch (err) {
+                console.error('Camera error:', err);
+                alert('Tidak dapat mengakses kamera. Pastikan izin kamera diberikan.');
+            }
+        }
+
+        function stopCamera() {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+            const video = document.getElementById('video');
+            video.srcObject = null;
+            document.getElementById('camera-status').innerHTML = `
+                <span class="w-2 h-2 bg-white rounded-full animate-pulse"></span> Kamera Off
+            `;
+            document.getElementById('camera-status').classList.add('bg-red-600');
+            document.getElementById('camera-status').classList.remove('bg-green-600');
+            document.getElementById('cam-btn-text').innerText = 'Hidupkan Kamera';
+            isScanning = false;
+        }
+
+        // Process Video Frames
+        async function processFrame() {
+            if (!isScanning || recognitionCooldown) {
+                if (isScanning) requestAnimationFrame(processFrame);
+                return;
+            }
+
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+
+            // FPS calculation
+            frameCount++;
+            const now = Date.now();
+            if (now - lastFpsUpdate >= 1000) {
+                fps = frameCount;
+                frameCount = 0;
+                lastFpsUpdate = now;
+                document.getElementById('fps-counter').innerText = `FPS: ${fps}`;
+            }
+
+            // Process every 10 frames to reduce server load
+            if (frameCount % 10 === 0) {
+                await verifyFace();
+            }
+
+            if (isScanning) requestAnimationFrame(processFrame);
+        }
+
+        // Verify Face
+        async function verifyFace() {
+            const video = document.getElementById('video');
+            if (video.readyState !== 4) return;
+
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                canvas.getContext('2d').drawImage(video, 0, 0);
+
+                const imageData = canvas.toDataURL('image/jpeg', 0.6);
+
+                const res = await fetch('/api/attendance/verify-face', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image_base64: imageData })
+                });
+
+                const data = await res.json();
+
+                if (data.status === 'matched' && data.student_id !== lastRecognition) {
+                    lastRecognition = data.student_id;
+                    recognitionCooldown = true;
+
+                    showResult(data);
+                    playSound('success');
+                    triggerConfetti();
+
+                    setTimeout(() => {
+                        recognitionCooldown = false;
+                    }, 3000);
+
+                    // Refresh stats
+                    fetchStats();
+                    fetchRecentLogs();
+                }
+            } catch (err) {
+                console.error('Verification error:', err);
+            }
+        }
+
+        // Show Result
+        function showResult(data) {
+            const card = document.getElementById('result-card');
+            const nameEl = document.getElementById('result-name');
+            const classEl = document.getElementById('result-class');
+            const statusEl = document.getElementById('result-status');
+            const timeEl = document.getElementById('result-time');
+            const photoEl = document.getElementById('result-photo');
+
+            nameEl.innerText = data.name || 'Unknown';
+            classEl.innerText = data.class_name || '';
+            timeEl.innerHTML = `<div class="text-4xl font-bold mono text-blue-400">${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</div><p class="text-xs text-slate-500">Waktu Absensi</p>`;
+
+            // Status styling
+            if (data.message && data.message.includes('Terlambat')) {
+                statusEl.innerText = 'TERLAMBAT';
+                statusEl.className = 'mt-2 px-4 py-1 bg-orange-500/20 text-orange-400 rounded-full inline-block font-medium';
+            } else {
+                statusEl.innerText = 'HADIR';
+                statusEl.className = 'mt-2 px-4 py-1 bg-green-500/20 text-green-400 rounded-full inline-block font-medium';
+            }
+
+            // Photo
+            if (data.photo) {
+                photoEl.innerHTML = `<img src="/assets/photos/${data.photo}" class="w-full h-full object-cover">`;
+            }
+
+            card.classList.remove('hidden');
+            card.classList.add('animate-scaleIn');
+            lucide.createIcons();
+
+            setTimeout(() => {
+                card.classList.add('hidden');
+                lastRecognition = null;
+            }, 5000);
+        }
+
+        // Fetch Stats
+        async function fetchStats() {
+            try {
+                const res = await fetch('/api/attendance/today-stats');
+                const data = await res.json();
+                document.getElementById('present-count').innerText = data.present_students || 0;
+                document.getElementById('late-count').innerText = data.late_students || 0;
+            } catch (err) {
+                console.error('Stats error:', err);
+            }
+        }
+
+        // Fetch Recent Logs
+        async function fetchRecentLogs() {
+            try {
+                const res = await fetch('/api/attendance/recent-logs');
+                const logs = await res.json();
+                const container = document.getElementById('recent-logs');
+
+                if (logs && logs.length > 0) {
+                    container.innerHTML = logs.slice(0, 10).map(log => {
+                        let statusColor = 'bg-green-500';
+                        let statusBg = 'bg-green-500/20';
+                        let statusText = 'text-green-400';
+                        if (log.status === 'Terlambat') {
+                            statusColor = 'bg-orange-500';
+                            statusBg = 'bg-orange-500/20';
+                            statusText = 'text-orange-400';
+                        }
+                        return `
+                            <div class="flex items-center gap-3 p-2 rounded-lg bg-white/5 hover:bg-white/10 transition">
+                                <div class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center overflow-hidden">
+                                    ${log.photo ? `<img src="/assets/photos/${log.photo}" class="w-full h-full object-cover">` : '<i data-lucide="user" class="w-5 h-5 text-slate-400"></i>'}
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium">${log.name}</p>
+                                    <p class="text-xs text-slate-400">${log.time}</p>
+                                </div>
+                                <span class="px-2 py-1 ${statusBg} ${statusText} text-xs font-medium rounded-full">${log.status}</span>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    container.innerHTML = '<div class="text-center text-slate-500 text-sm py-8">Belum ada data absensi</div>';
+                }
+                lucide.createIcons();
+            } catch (err) {
+                console.error('Logs error:', err);
+            }
+        }
+
+        // Audio
+        function playSound(type) {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            if (type === 'success') {
+                osc.frequency.value = 1000;
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.1);
+                setTimeout(() => {
+                    const osc2 = audioCtx.createOscillator();
+                    osc2.connect(gainNode);
+                    osc2.frequency.value = 1500;
+                    osc2.start();
+                    osc2.stop(audioCtx.currentTime + 0.1);
+                }, 150);
+            }
+        }
+
+        // Confetti
+        function triggerConfetti() {
+            confetti({
+                particleCount: 50,
+                angle: 60,
+                spread: 55,
+                origin: { x: 0 },
+                colors: ['#3b82f6', '#8b5cf6', '#06b6d4']
+            });
+            confetti({
+                particleCount: 50,
+                angle: 120,
+                spread: 55,
+                origin: { x: 1 },
+                colors: ['#3b82f6', '#8b5cf6', '#06b6d4']
+            });
+        }
+
+        // Auto-start camera
+        startCamera();
+        fetchStats();
+        fetchRecentLogs();
+        setInterval(fetchStats, 30000);
+        setInterval(fetchRecentLogs, 10000);
+    </script>
+</body>
+</html>
