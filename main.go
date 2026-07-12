@@ -3342,8 +3342,8 @@ func main() {
 	admin.POST("/attendance/settings", handler.UpdateAttendanceSettings(db))
 
 	// Prayer Routes
-	admin.GET("/prayer/attendance", app.PrayerAttendanceHandler)
-	admin.GET("/prayer/report", handler.GetStudentCalendar(db))
+	admin.GET("/prayer/attendance", handler.PrayerAttendance(db))
+	admin.GET("/prayer/report", handler.PrayerReport(db))
 
 	// Student/Staff Calendar Routes
 	admin.GET("/student/calendar", handler.GetStudentCalendar(db))
@@ -3355,7 +3355,7 @@ func main() {
 	admin.GET("/report/monthly", handler.ExportAttendance(db))
 
 	// Prayer Routes
-	e.GET("/api/attendance/prayer-logs", app.PrayerLogsListHandler)
+	e.GET("/api/attendance/prayer-logs", handler.PrayerLogs(db))
 
 	// Face Recognition Attendance API
 	e.POST("/api/attendance/verify-face", app.VerifyFaceAttendanceHandler)

@@ -10,6 +10,16 @@ import (
 	qrcode "github.com/skip2/go-qrcode"
 )
 
+type PrayerLog struct {
+	ID         int    `json:"id"`
+	RFID       string `json:"rfid_uid"`
+	Name       string `json:"name"`
+	ClassName  string `json:"class_name"`
+	PrayerType string `json:"prayer_type"`
+	Timestamp  string `json:"timestamp"`
+	Date       string `json:"date"`
+}
+
 func GenerateQR(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		rfid := c.QueryParam("rfid")
@@ -336,6 +346,133 @@ func BulkPrayerAttendance(db *sql.DB) echo.HandlerFunc {
 
 		return c.JSON(http.StatusOK, map[string]string{"message": "Data presensi sholat berhasil disimpan"})
 	}
+}
+
+func PrayerAttendance(db *sql.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		rfid := c.QueryParam("rfid")
+		if rfid == "" {
+			return c.JSON(http.StatusBadRequest, map[string]string{"message": "RFID kosong"})
+		}
+
+		var name, className string
+		var classNameNull sql.NullString
+		err := db.QueryRow(`
+			SELECT s.name, c.name
+			FROM students s
+			LEFT JOIN classes c ON s.class_id = c.id
+			WHERE s.rfid_uid=?`, rfid).Scan(&name, &classNameNull)
+
+		if err != nil {
+			return c.JSON(http.StatusNotFound, map[string]string{"message": "Kartu tidak dikenali"})
+		}
+		className = classNameNull.String
+
+		now := time.Now()
+		timeStr := now.Format("15:04")
+		dateStr := now.Format("2006-01-02")
+		timestamp := now.Format("2006-01-02 15:04:05")
+
+		prayerSettings := getSettingsMap(db, "dzuhur_start", "dzuhur_end", "ashar_start", "ashar_end")
+
+		dzStart := prayerSettings["dzuhur_start"]
+		dzEnd := prayerSettings["dzuhur_end"]
+		asStart := prayerSettings["ashar_start"]
+		asEnd := prayerSettings["ashar_end"]
+
+		if dzStart == "" {
+			dzStart = "11:30"
+		}
+		if dzEnd == "" {
+			dzEnd = "13:00"
+		}
+		if asStart == "" {
+			asStart = "15:00"
+		}
+		if asEnd == "" {
+			asEnd = "16:00"
+		}
+
+		prayerType := ""
+
+		if timeStr >= dzStart && timeStr <= dzEnd {
+			prayerType = "Dzuhur"
+		} else if timeStr >= asStart && timeStr <= asEnd {
+			prayerType = "Ashar"
+		} else {
+			return c.JSON(http.StatusBadRequest, map[string]string{"message": "Bukan waktu sholat"})
+		}
+
+		var count int
+		db.QueryRow("SELECT COUNT(*) FROM prayer_logs WHERE rfid_uid=? AND date=? AND prayer_type=?", rfid, dateStr, prayerType).Scan(&count)
+		if count > 0 {
+			return c.JSON(http.StatusOK, map[string]string{"status": "duplicate", "message": "Sudah absen sholat " + prayerType, "name": name})
+		}
+
+		_, err = db.Exec("INSERT INTO prayer_logs (rfid_uid, name, class_name, prayer_type, timestamp, date) VALUES (?, ?, ?, ?, ?, ?)",
+			rfid, name, className, prayerType, timestamp, dateStr)
+
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+		}
+
+		return c.JSON(http.StatusOK, map[string]string{
+			"status":      "success",
+			"message":     "Absen Sholat " + prayerType + " Berhasil",
+			"name":        name,
+			"prayer_type": prayerType,
+			"time":        timeStr,
+		})
+	}
+}
+
+func PrayerLogs(db *sql.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		rows, err := db.Query("SELECT id, rfid_uid, name, class_name, prayer_type, timestamp, date FROM prayer_logs ORDER BY id DESC LIMIT 100")
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+		}
+		defer rows.Close()
+
+		type PrayerLogEntry struct {
+			ID         int    `json:"id"`
+			RFID       string `json:"rfid_uid"`
+			Name       string `json:"name"`
+			ClassName  string `json:"class_name"`
+			PrayerType string `json:"prayer_type"`
+			Timestamp  string `json:"timestamp"`
+			Date       string `json:"date"`
+		}
+
+		var logs []PrayerLogEntry
+		for rows.Next() {
+			var l PrayerLogEntry
+			var className sql.NullString
+			rows.Scan(&l.ID, &l.RFID, &l.Name, &className, &l.PrayerType, &l.Timestamp, &l.Date)
+			l.ClassName = className.String
+			logs = append(logs, l)
+		}
+
+		if logs == nil {
+			logs = []PrayerLogEntry{}
+		}
+
+		return c.JSON(http.StatusOK, logs)
+	}
+}
+
+func getSettingsMap(db *sql.DB, keys ...string) map[string]string {
+	result := make(map[string]string)
+	for _, key := range keys {
+		result[key] = getSetting(db, key)
+	}
+	return result
+}
+
+func getSetting(db *sql.DB, key string) string {
+	var value string
+	db.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key=?", key).Scan(&value)
+	return value
 }
 
 func PrayerReport(db *sql.DB) echo.HandlerFunc {
