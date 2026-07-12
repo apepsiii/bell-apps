@@ -3332,7 +3332,7 @@ func main() {
 	admin.PUT("/settings/school", handler.UpdateSchoolSettings(db))
 
 	// WhatsApp Logs
-	admin.GET("/wa-logs", app.GetWhatsAppLogsHandler)
+	admin.GET("/wa-logs", handler.GetWhatsAppLogs(db))
 
 	// Attendance Routes
 	admin.POST("/attendance/manual", app.ManualAttendanceHandler)
