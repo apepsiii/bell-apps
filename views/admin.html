@@ -604,7 +604,7 @@
                                     <tr>
                                         <th class="px-6 py-4 w-10">
                                             <input type="checkbox" id="select-all-students"
-                                                onchange="toggleSelectAll(this)"
+                                                onchange="toggleSelectAllStudents(this)"
                                                 class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
                                         </th>
                                         <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider">Foto</th>
@@ -3653,10 +3653,10 @@
                         tbody.innerHTML = students.map(s => `
                         <tr class="hover:bg-slate-100 transition-colors">
                             <td class="px-3 py-2 border-b">
-                                <input type="checkbox" class="promote-checkbox rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" value="${s.ID}" onchange="updatePromoteCount()">
+                                <input type="checkbox" class="promote-checkbox rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" value="${s.id}" onchange="updatePromoteCount()">
                             </td>
-                            <td class="px-3 py-2 border-b font-mono text-xs text-slate-600">${s.NIS}</td>
-                            <td class="px-3 py-2 border-b font-medium text-slate-700">${s.Name}</td>
+                            <td class="px-3 py-2 border-b font-mono text-xs text-slate-600">${s.nis}</td>
+                            <td class="px-3 py-2 border-b font-medium text-slate-700">${s.name}</td>
                         </tr>
                     `).join('');
                     } else {
