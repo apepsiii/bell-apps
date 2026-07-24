@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"database/sql"
 	"embed"
@@ -11,9 +10,9 @@ import (
 	"html/template"
 	"io"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -25,21 +24,9 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	_ "modernc.org/sqlite"
 
+	"belsekolah/internal/config"
 	"belsekolah/internal/handler"
 	"belsekolah/internal/repository"
-)
-
-// --- CONFIGURATION ---
-const (
-	DBPath      = "./database.db"
-	UploadPath  = "public/assets/audio"
-	PhotoPath   = "public/assets/photos"
-	SignagePath = "public/assets/signage"
-	AdminUser   = "admin"
-	AdminPass   = "admin123"
-	CookieName  = "session_token"
-	SecretKey   = "admin-secret-key-123"
-	AppVersion  = "v1.2.1"
 )
 
 // --- DRY HELPER FUNCTIONS ---
@@ -87,14 +74,11 @@ func queryOrEmpty(db *sql.DB, query string, args ...interface{}) *sql.Rows {
 	return rows
 }
 
-//go:embed views/*.html views/mobile/*.html
+//go:embed views/*.html views/mobile/*.html views/student/*.html
 var viewsFS embed.FS
 
-//go:embed setup.sh
-var setupScript string
-
-//go:embed setup_nginx.sh
-var setupNginxScript string
+//go:embed config.yaml
+var configYAML []byte
 
 // --- STRUCTS & MODELS ---
 
@@ -162,6 +146,7 @@ type Student struct {
 	ID          int
 	RFID        string
 	NIS         string
+	NIS_Siswa   string
 	Name        string
 	ParentPhone string
 	ParentName  string
@@ -283,6 +268,9 @@ type DashboardData struct {
 	ChartStatus      string
 	ChartArrival     string
 
+	// Leaderboard Data
+	Leaderboard []LeaderboardItem
+
 	Stats struct {
 		TotalSchedules  int
 		NextBell        string
@@ -294,6 +282,13 @@ type DashboardData struct {
 		InactiveStudents int
 	}
 	AppVersion string
+}
+
+type LeaderboardItem struct {
+	ID        int    `json:"id"`
+	Name      string `json:"name"`
+	ClassName string `json:"class_name"`
+	Points    int    `json:"points"`
 }
 
 // Report Data Structures
@@ -514,10 +509,10 @@ func (a *App) LoginHandler(c echo.Context) error {
 	username := c.FormValue("username")
 	password := c.FormValue("password")
 
-	if username == AdminUser && password == AdminPass {
+	if username == config.GetAdminUser() && password == config.GetAdminPass() {
 		cookie := new(http.Cookie)
-		cookie.Name = CookieName
-		cookie.Value = SecretKey
+		cookie.Name = config.GetCookieName()
+		cookie.Value = config.GetSecretKey()
 		cookie.Path = "/"
 		cookie.Expires = time.Now().Add(24 * time.Hour)
 		cookie.HttpOnly = true
@@ -530,7 +525,7 @@ func (a *App) LoginHandler(c echo.Context) error {
 
 func (a *App) LogoutHandler(c echo.Context) error {
 	cookie := new(http.Cookie)
-	cookie.Name = CookieName
+	cookie.Name = config.GetCookieName()
 	cookie.Value = ""
 	cookie.Path = "/"
 	cookie.MaxAge = -1
@@ -602,19 +597,20 @@ func (a *App) DashboardHandler(c echo.Context) error {
 
 	// 3. Students (Join Classes) - Only active students for attendance
 	rowsStudent, _ := a.DB.Query(`
-		SELECT s.id, s.rfid_uid, s.nis, s.name, s.parent_phone, s.class_id, c.name, s.photo, s.birthday, s.status
+		SELECT s.id, s.rfid_uid, s.nis, s.nis_siswa, s.name, s.parent_phone, s.class_id, c.name, s.photo, s.birthday, s.status
 		FROM students s
 		LEFT JOIN classes c ON s.class_id = c.id
 		ORDER BY s.name ASC`)
 	var students []Student
 	for rowsStudent.Next() {
 		var s Student
-		var className, photo sql.NullString
+		var className, photo, nisSiswa sql.NullString
 		var birthday sql.NullString
-		rowsStudent.Scan(&s.ID, &s.RFID, &s.NIS, &s.Name, &s.ParentPhone, &s.ClassID, &className, &photo, &birthday, &s.Status)
+		rowsStudent.Scan(&s.ID, &s.RFID, &s.NIS, &nisSiswa, &s.Name, &s.ParentPhone, &s.ClassID, &className, &photo, &birthday, &s.Status)
 		s.ClassName = className.String
 		s.Photo = photo.String
 		s.Birthday = birthday.String
+		s.NIS_Siswa = nisSiswa.String
 		if s.Status == "" {
 			s.Status = "active"
 		}
@@ -727,6 +723,29 @@ func (a *App) DashboardHandler(c echo.Context) error {
 		announcements = append(announcements, ann)
 	}
 	rowsAnn.Close()
+
+	// 4. Leaderboard (Top 10 Students by Points)
+	rowsLB, _ := a.DB.Query(`
+		SELECT s.id, s.name, COALESCE(c.name, '-') as class_name, COALESCE(SUM(sp.points_change), 0) as total_points
+		FROM students s
+		LEFT JOIN classes c ON s.class_id = c.id
+		LEFT JOIN student_points sp ON s.id = sp.student_id
+		WHERE s.status = 'active'
+		GROUP BY s.id
+		ORDER BY total_points DESC
+		LIMIT 10`)
+	var leaderboard []LeaderboardItem
+	for rowsLB.Next() {
+		var lb LeaderboardItem
+		var className sql.NullString
+		rowsLB.Scan(&lb.ID, &lb.Name, &className, &lb.Points)
+		lb.ClassName = className.String
+		leaderboard = append(leaderboard, lb)
+	}
+	rowsLB.Close()
+	if leaderboard == nil {
+		leaderboard = []LeaderboardItem{}
+	}
 
 	// --- CHARTS DATA GENERATION ---
 
@@ -865,7 +884,8 @@ func (a *App) DashboardHandler(c echo.Context) error {
 		ChartWeeklyClass:   string(jsonChart1),
 		ChartStatus:        string(jsonChart2),
 		ChartArrival:       string(jsonChart3),
-		AppVersion:         AppVersion,
+		Leaderboard:        leaderboard,
+		AppVersion:         config.AppVersion,
 	}
 	data.Stats.TotalSchedules = len(schedules)
 	data.Stats.NextBell = a.GetNextBell()
@@ -942,8 +962,8 @@ func (a *App) UploadAudioHandler(c echo.Context) error {
 	}
 	defer src.Close()
 
-	os.MkdirAll(UploadPath, 0755)
-	dstPath := filepath.Join(UploadPath, filepath.Base(file.Filename))
+	os.MkdirAll(config.GetUploadPath(), 0755)
+	dstPath := filepath.Join(config.GetUploadPath(), filepath.Base(file.Filename))
 
 	dst, err := os.Create(dstPath)
 	if err != nil {
@@ -976,7 +996,7 @@ func (a *App) DeleteAudioHandler(c echo.Context) error {
 	var fileName string
 	err := a.DB.QueryRow("SELECT file_name FROM audio_files WHERE id=?", id).Scan(&fileName)
 	if err == nil {
-		os.Remove(filepath.Join(UploadPath, fileName))
+		os.Remove(filepath.Join(config.GetUploadPath(), fileName))
 	}
 
 	// 2. Hapus dari DB
@@ -1083,6 +1103,7 @@ func (a *App) DeleteClassHandler(c echo.Context) error {
 func (a *App) AddStudentHandler(c echo.Context) error {
 	rfid := c.FormValue("rfid_uid")
 	nis := c.FormValue("nis")
+	nisSiswa := c.FormValue("nis_siswa")
 	name := c.FormValue("name")
 	phone := FormatPhone(c.FormValue("parent_phone")) // Format HP
 	classID := c.FormValue("class_id")
@@ -1095,10 +1116,10 @@ func (a *App) AddStudentHandler(c echo.Context) error {
 		src, err := file.Open()
 		if err == nil {
 			defer src.Close()
-			os.MkdirAll(PhotoPath, 0755)
+			os.MkdirAll(config.GetPhotoPath(), 0755)
 			ext := filepath.Ext(file.Filename)
 			newFilename := fmt.Sprintf("%s_%s%s", nis, time.Now().Format("20060102150405"), ext) // NIS_Timestamp.jpg
-			dstPath := filepath.Join(PhotoPath, newFilename)
+			dstPath := filepath.Join(config.GetPhotoPath(), newFilename)
 			dst, err := os.Create(dstPath)
 			if err == nil {
 				defer dst.Close()
@@ -1108,7 +1129,7 @@ func (a *App) AddStudentHandler(c echo.Context) error {
 		}
 	}
 
-	_, err = a.DB.Exec("INSERT INTO students (rfid_uid, nis, name, parent_phone, class_id, photo, birthday) VALUES (?, ?, ?, ?, ?, ?, ?)", rfid, nis, name, phone, classID, photoFile, birthday)
+	_, err = a.DB.Exec("INSERT INTO students (rfid_uid, nis, nis_siswa, name, parent_phone, class_id, photo, birthday, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active')", rfid, nis, nisSiswa, name, phone, classID, photoFile, birthday)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Gagal (Mungkin RFID/NIS duplikat): " + err.Error()})
 	}
@@ -1118,6 +1139,7 @@ func (a *App) UpdateStudentHandler(c echo.Context) error {
 	id := c.Param("id")
 	rfid := c.FormValue("rfid_uid")
 	nis := c.FormValue("nis")
+	nisSiswa := c.FormValue("nis_siswa")
 	name := c.FormValue("name")
 	phone := FormatPhone(c.FormValue("parent_phone"))
 	classID := c.FormValue("class_id")
@@ -1130,22 +1152,22 @@ func (a *App) UpdateStudentHandler(c echo.Context) error {
 		src, err := file.Open()
 		if err == nil {
 			defer src.Close()
-			os.MkdirAll(PhotoPath, 0755)
+			os.MkdirAll(config.GetPhotoPath(), 0755)
 			ext := filepath.Ext(file.Filename)
 			newFilename := fmt.Sprintf("%s_%s%s", nis, time.Now().Format("20060102150405"), ext)
-			dstPath := filepath.Join(PhotoPath, newFilename)
+			dstPath := filepath.Join(config.GetPhotoPath(), newFilename)
 			dst, err := os.Create(dstPath)
 			if err == nil {
 				defer dst.Close()
 				io.Copy(dst, src)
 
 				// Update with photo
-				_, err = a.DB.Exec("UPDATE students SET rfid_uid=?, nis=?, name=?, parent_phone=?, class_id=?, photo=?, birthday=? WHERE id=?", rfid, nis, name, phone, classID, newFilename, birthday, id)
+				_, err = a.DB.Exec("UPDATE students SET rfid_uid=?, nis=?, nis_siswa=?, name=?, parent_phone=?, class_id=?, photo=?, birthday=? WHERE id=?", rfid, nis, nisSiswa, name, phone, classID, newFilename, birthday, id)
 			}
 		}
 	} else {
 		// No new photo, keep old
-		_, err = a.DB.Exec("UPDATE students SET rfid_uid=?, nis=?, name=?, parent_phone=?, class_id=?, birthday=? WHERE id=?", rfid, nis, name, phone, classID, birthday, id)
+		_, err = a.DB.Exec("UPDATE students SET rfid_uid=?, nis=?, nis_siswa=?, name=?, parent_phone=?, class_id=?, birthday=? WHERE id=?", rfid, nis, nisSiswa, name, phone, classID, birthday, id)
 	}
 
 	if err != nil {
@@ -2060,7 +2082,7 @@ func (a *App) TestWAHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Token API belum disetting"})
 	}
 
-	msg := "Test Koneksi SmartBell: Berhasil terhubung!"
+	msg := "Test Koneksi SMK NIBA Super Apps: Berhasil terhubung!"
 	resp, err := a.SendOneSenderMessage(target, msg, wa["onesender_api_token"], wa["onesender_api_url"], "individual", wa["wa_image_link"])
 
 	if err != nil {
@@ -2074,22 +2096,36 @@ func (a *App) TestWAHandler(c echo.Context) error {
 // Endpoint: /api/attendance/record?rfid=...
 func (a *App) RecordAttendanceHandler(c echo.Context) error {
 	rfid := c.QueryParam("rfid")
+	// QR-card path: the ID-card QR encodes the student id, not the RFID.
+	// Resolve it to the student's rfid_uid so the rest of the handler works.
 	if rfid == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{"message": "RFID kosong"})
+		studentID := c.QueryParam("student_id")
+		if studentID == "" {
+			return c.JSON(http.StatusBadRequest, map[string]string{"message": "RFID kosong"})
+		}
+		err := a.DB.QueryRow("SELECT rfid_uid FROM students WHERE id=?", studentID).Scan(&rfid)
+		if err != nil {
+			return c.JSON(http.StatusNotFound, map[string]string{"message": "Siswa tidak ditemukan"})
+		}
 	}
 
 	// 1. Identify User
 	var name, userType, photo, identityNo, className string
 	var photoNull, classNameNull sql.NullString
+	var studentStatus string
 
 	// Try Student first
 	err := a.DB.QueryRow(`
-		SELECT s.name, s.photo, s.nis, c.name 
+		SELECT s.name, s.photo, s.nis, c.name, s.status
 		FROM students s 
 		LEFT JOIN classes c ON s.class_id = c.id 
-		WHERE s.rfid_uid=?`, rfid).Scan(&name, &photoNull, &identityNo, &classNameNull)
+		WHERE s.rfid_uid=?`, rfid).Scan(&name, &photoNull, &identityNo, &classNameNull, &studentStatus)
 
 	if err == nil {
+		// Reject inactive students
+		if studentStatus == "inactive" {
+			return c.JSON(http.StatusForbidden, map[string]string{"message": "Akun tidak aktif. Hubungi admin.", "name": name})
+		}
 		userType = "Siswa"
 		photo = photoNull.String
 		className = classNameNull.String
@@ -2167,12 +2203,64 @@ func (a *App) RecordAttendanceHandler(c echo.Context) error {
 		}
 	}
 
-	// 3. Record
+	// 2b. Calculate Points for Students
+	var pointsChange int
+	var pointDescription string
+	if userType == "Siswa" {
+		// Parse arrival time
+		arrivalTime, _ := time.Parse("2006-01-02 15:04:05", fmt.Sprintf("2026-01-01 %s:05", timeStr))
+
+		switch status {
+		case "Datang":
+			// Base +20, bonus if before 06:30
+			pointsChange = 20
+			bonusCutoff := time.Date(2026, 1, 1, 6, 30, 0, 0, time.Local)
+			if arrivalTime.Before(bonusCutoff) {
+				minutesEarly := int(bonusCutoff.Sub(arrivalTime).Minutes())
+				bonus := minutesEarly * 1 // 1 point per minute early
+				pointsChange += bonus
+				pointDescription = fmt.Sprintf("Hadir Tepat Waktu (+20) + Bonus Early (%d menit × 1 = +%d)", minutesEarly, bonus)
+			} else {
+				pointDescription = "Hadir Tepat Waktu (+20)"
+			}
+		case "Terlambat":
+			pointsChange = -10
+			pointDescription = "Terlambat (-10)"
+		case "Pulang":
+			// Check if early departure (before scheduled end)
+			depEndTime, _ := time.Parse("15:04", depEnd)
+			arrDepTime, _ := time.Parse("15:04", timeStr)
+			if arrDepTime.Before(depEndTime) {
+				pointsChange = -10
+				pointDescription = "Pulang Cepat (-10)"
+			} else {
+				pointsChange = 0
+				pointDescription = "Pulang Tepat Waktu (+0)"
+			}
+		}
+	}
+
+	// 3. Record Attendance
 	_, err = a.DB.Exec("INSERT INTO attendance_logs (rfid_uid, user_name, user_type, status, method, timestamp, date) VALUES (?, ?, ?, ?, 'RFID', ?, ?)",
 		rfid, name, userType, status, timestamp, dateStr)
 
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+	}
+
+	// 3b. Record Point Transaction for Students
+	if userType == "Siswa" && pointsChange != 0 {
+		// Get student ID
+		var studentID int
+		a.DB.QueryRow("SELECT id FROM students WHERE rfid_uid=?", rfid).Scan(&studentID)
+		if studentID > 0 {
+			_, err = a.DB.Exec("INSERT INTO student_points (student_id, points_change, description, recorded_by) VALUES (?, ?, ?, ?)",
+				studentID, pointsChange, pointDescription, "System-Auto")
+			if err != nil {
+				// Log error but don't fail the attendance
+				log.Printf("Failed to record point: %v", err)
+			}
+		}
 	}
 
 	// Send Broadcast (WA) Only for Students
@@ -2253,7 +2341,8 @@ func (a *App) RecordAttendanceHandler(c echo.Context) error {
 		}()
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
+	// Return response with points info
+	response := map[string]interface{}{
 		"status":      "success",
 		"message":     "Absen " + status + " Berhasil",
 		"name":        name,
@@ -2262,7 +2351,15 @@ func (a *App) RecordAttendanceHandler(c echo.Context) error {
 		"photo":       photo,
 		"identity_no": identityNo, // NIS or NIP
 		"class_name":  className,  // Class name for students
-	})
+	}
+
+	// Add points info for students
+	if userType == "Siswa" && pointsChange != 0 {
+		response["points"] = pointsChange
+		response["point_description"] = pointDescription
+	}
+
+	return c.JSON(http.StatusOK, response)
 }
 
 // API for Face Recognition Attendance
@@ -2414,9 +2511,9 @@ func (a *App) VerifyFaceAttendanceHandler(c echo.Context) error {
 func (a *App) TodayStatsHandler(c echo.Context) error {
 	dateStr := time.Now().Format("2006-01-02")
 
-	// Count students
+	// Count students (only active ones are tracked for attendance)
 	var totalStudents, presentStudents, lateStudents int
-	a.DB.QueryRow("SELECT COUNT(*) FROM students").Scan(&totalStudents)
+	a.DB.QueryRow("SELECT COUNT(*) FROM students WHERE status='active'").Scan(&totalStudents)
 	a.DB.QueryRow("SELECT COUNT(DISTINCT rfid_uid) FROM attendance_logs WHERE date=? AND user_type='Siswa' AND status='Datang'", dateStr).Scan(&presentStudents)
 	a.DB.QueryRow("SELECT COUNT(DISTINCT rfid_uid) FROM attendance_logs WHERE date=? AND user_type='Siswa' AND status='Terlambat'", dateStr).Scan(&lateStudents)
 
@@ -2532,6 +2629,47 @@ func (a *App) SyncHandler(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, schedules)
+}
+
+func (a *App) PublicLeaderboardHandler(c echo.Context) error {
+	rows, err := a.DB.Query(`
+		SELECT s.id, s.name, COALESCE(c.name, '-') as class_name, COALESCE(SUM(sp.points_change), 0) as total_points
+		FROM students s
+		LEFT JOIN classes c ON s.class_id = c.id
+		LEFT JOIN student_points sp ON s.id = sp.student_id
+		WHERE s.status = 'active'
+		GROUP BY s.id
+		ORDER BY total_points DESC
+		LIMIT 20
+	`)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+	defer rows.Close()
+
+	type LeaderboardEntry struct {
+		ID        int    `json:"id"`
+		Name      string `json:"name"`
+		ClassName string `json:"class_name"`
+		Points   int    `json:"points"`
+	}
+
+	var entries []LeaderboardEntry
+	for rows.Next() {
+		var e LeaderboardEntry
+		var className sql.NullString
+		if err := rows.Scan(&e.ID, &e.Name, &className, &e.Points); err != nil {
+			continue
+		}
+		e.ClassName = className.String
+		entries = append(entries, e)
+	}
+
+	if entries == nil {
+		entries = []LeaderboardEntry{}
+	}
+
+	return c.JSON(http.StatusOK, entries)
 }
 
 func (a *App) ScanPageHandler(c echo.Context) error {
@@ -2735,6 +2873,96 @@ func (a *App) checkBirthdayGreetings() {
 	}
 }
 
+// --- ALPHA TRACKING SCHEDULER ---
+func (a *App) StartAlphaTrackerScheduler() {
+	log.Println("📋 Starting Alpha Tracker Scheduler...")
+	ticker := time.NewTicker(1 * time.Hour)
+
+	go func() {
+		for {
+			now := time.Now()
+			// Run at 15:00 (3 PM) daily
+			if now.Hour() == 15 && now.Minute() == 0 {
+				a.markAlphaStudents()
+			}
+			<-ticker.C
+		}
+	}()
+}
+
+func (a *App) markAlphaStudents() {
+	today := time.Now().Format("2006-01-02")
+
+	// Get all active students
+	rows, err := a.DB.Query(`
+		SELECT s.id, s.name, s.rfid_uid, c.name, s.parent_phone
+		FROM students s
+		LEFT JOIN classes c ON s.class_id = c.id
+		WHERE s.status = 'active'
+	`)
+	if err != nil {
+		log.Printf("Alpha tracking error: %v", err)
+		return
+	}
+	defer rows.Close()
+
+	type studentInfo struct {
+		ID           int
+		Name         string
+		RFID         string
+		ClassName    string
+		ParentPhone  string
+	}
+
+	var students []studentInfo
+	for rows.Next() {
+		var s studentInfo
+		var className, parentPhone sql.NullString
+		rows.Scan(&s.ID, &s.Name, &s.RFID, &className, &parentPhone)
+		s.ClassName = className.String
+		s.ParentPhone = parentPhone.String
+		students = append(students, s)
+	}
+
+	alphaCount := 0
+	for _, s := range students {
+		// Check if student has any attendance today
+		var count int
+		a.DB.QueryRow(`
+			SELECT COUNT(*) FROM attendance_logs
+			WHERE rfid_uid = ? AND date = ? AND user_type = 'Siswa'
+		`, s.RFID, today).Scan(&count)
+
+		if count == 0 {
+			// Mark as Alpha
+			_, err = a.DB.Exec(`
+				INSERT INTO attendance_logs (rfid_uid, user_name, user_type, status, method, timestamp, date)
+				VALUES (?, ?, 'Siswa', 'Alpha', 'System-Auto', ?, ?)
+			`, s.RFID, s.Name, time.Now().Format("2006-01-02 15:00:00"), today)
+			if err != nil {
+				log.Printf("Failed to mark alpha for %s: %v", s.Name, err)
+				continue
+			}
+
+			// Add -20 points
+			_, err = a.DB.Exec(`
+				INSERT INTO student_points (student_id, points_change, description, recorded_by)
+				VALUES (?, -20, 'Alpha/Tidak Hadir (-20)', 'System-Auto')
+			`, s.ID)
+			if err != nil {
+				log.Printf("Failed to add alpha points for %s: %v", s.Name, err)
+			}
+
+			alphaCount++
+			log.Printf("📋 Marked as Alpha: %s (%s)", s.Name, s.ClassName)
+		}
+	}
+
+	if alphaCount > 0 {
+		log.Printf("📋 Alpha tracking complete: %d students marked as Alpha", alphaCount)
+	}
+}
+
 // --- MAIN ---
 
 func migrate(db *sql.DB) {
@@ -2864,6 +3092,19 @@ func migrate(db *sql.DB) {
 }
 
 func main() {
+	// Load config: embedded config.yaml is the default; an on-disk config.yaml
+	// (if present) overrides it so operators can customize without rebuilding.
+	if err := config.Load(configYAML); err != nil {
+		log.Fatalf("Failed to initialize config: %v", err)
+	}
+
+	// Initialize structured logging (slog -> stdout + logs/app.log) before
+	// any component starts, so DB connection and startup errors are persisted.
+	if err := config.InitLogging(config.GetLogDir()); err != nil {
+		log.Fatalf("Failed to init logging: %v", err)
+	}
+	slog.Info("starting SMK NIBA Super Apps", "version", config.AppVersion)
+
 	app := &App{}
 
 	db := repository.InitDB()
@@ -2873,6 +3114,7 @@ func main() {
 	// Start the scheduler
 	app.StartAnnouncementScheduler()
 	app.StartBirthdayScheduler()
+	app.StartAlphaTrackerScheduler()
 
 	e := echo.New()
 	e.Use(middleware.Logger())
@@ -2906,7 +3148,7 @@ func main() {
 
 	e.GET("/", func(c echo.Context) error { return c.Render(http.StatusOK, "index.html", nil) })
 	e.GET("/login", func(c echo.Context) error {
-		if cookie, err := c.Cookie(CookieName); err == nil && cookie.Value == SecretKey {
+		if cookie, err := c.Cookie(config.GetCookieName()); err == nil && cookie.Value == config.GetSecretKey() {
 			return c.Redirect(http.StatusSeeOther, "/admin")
 		}
 		return c.Render(http.StatusOK, "login.html", nil)
@@ -2919,11 +3161,15 @@ func main() {
 	e.POST("/api/login", handler.Login())
 	e.POST("/api/logout", handler.Logout())
 	e.GET("/api/sync", app.SyncHandler)
+	e.GET("/api/leaderboard", app.PublicLeaderboardHandler)
+
+	// Public Point Rules API (for student claim submission)
+	e.GET("/api/point-rules", handler.GetPointRulesV2(db))
 
 	admin := e.Group("/admin", func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			cookie, err := c.Cookie(CookieName)
-			if err != nil || cookie.Value != SecretKey {
+			cookie, err := c.Cookie(config.GetCookieName())
+			if err != nil || cookie.Value != config.GetSecretKey() {
 				return c.Redirect(http.StatusSeeOther, "/login")
 			}
 			return next(c)
@@ -2963,6 +3209,7 @@ func main() {
 	admin.POST("/class/add", handler.AddClass(db))
 	admin.POST("/class/update/:id", handler.UpdateClass(db))
 	admin.DELETE("/class/:id", handler.DeleteClass(db))
+	admin.GET("/classes/json", handler.GetClassesJSON(db))
 
 	// Students
 	admin.POST("/student/add", handler.AddStudent(db))
@@ -2973,9 +3220,14 @@ func main() {
 	admin.POST("/student/import-json", handler.ImportStudentsJSON(db))
 	admin.POST("/students/delete-multiple", handler.BulkDeleteStudents(db))
 	admin.GET("/students/json", handler.GetStudentsJSON(db))
+	admin.GET("/idcard", func(c echo.Context) error {
+		return c.Render(http.StatusOK, "idcard.html", nil)
+	})
 	admin.POST("/students/promote", handler.PromoteStudents(db))
 	admin.POST("/students/bulk-status", handler.BulkUpdateStudentStatus(db))
 	admin.GET("/student/:id", handler.StudentProfile(db))
+	admin.GET("/student/idcard/:id", handler.GetStudentIDCard(db))
+	admin.GET("/students/idcard", handler.GetAllStudentsForIDCard(db))
 	admin.GET("/staff/:id", handler.StaffProfile(db))
 	admin.GET("/face/register/:id", handler.FaceRegisterPage(db))
 
@@ -3005,6 +3257,19 @@ func main() {
 	admin.GET("/points/student/:id", handler.GetStudentPointProfile(db))
 	admin.POST("/points/transaction", handler.AddPointTransaction(db))
 	admin.GET("/points/leaderboard", handler.GetLeaderboard(db))
+	admin.GET("/points/student-profile", func(c echo.Context) error {
+		return c.Render(http.StatusOK, "student_point_profile.html", nil)
+	})
+
+	// Point Claims API
+	admin.GET("/point-rules-v2", handler.GetPointRulesV2(db))
+	admin.POST("/point-claims", handler.SubmitPointClaim(db))
+	admin.GET("/point-claims", handler.GetPointClaims(db))
+	admin.POST("/point-claims/:id/approve", handler.ApprovePointClaim(db))
+	admin.POST("/point-claims/:id/reject", handler.RejectPointClaim(db))
+	admin.GET("/point-claims-page", func(c echo.Context) error {
+		return c.Render(http.StatusOK, "admin_point_claims.html", nil)
+	})
 
 	// Reward System API
 	admin.GET("/point-rewards", handler.GetPointRewards(db))
@@ -3075,6 +3340,59 @@ func main() {
 	operatorAPI.PUT("/profile", handler.UpdateOperatorProfile(db))
 	operatorAPI.PUT("/password", handler.ChangeOperatorPassword(db))
 
+	// ===== STUDENT PORTAL ROUTES (Mobile-First) =====
+
+	serveStudentPage := func(name string) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			data, err := viewsFS.ReadFile("views/student/" + name)
+			if err != nil {
+				c.Logger().Errorf("Failed to read student page %s: %v", name, err)
+				return c.String(http.StatusNotFound, "Page not found")
+			}
+			return c.HTMLBlob(http.StatusOK, data)
+		}
+	}
+
+	// Public Login Page (redirect to dashboard if already logged in)
+	e.GET("/student/login", func(c echo.Context) error {
+		if cookie, err := c.Cookie(handler.StudentSessionCookie); err == nil && cookie.Value != "" {
+			var sid string
+			if db.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key = ?",
+				"student_session_"+cookie.Value).Scan(&sid) == nil {
+				return c.Redirect(http.StatusSeeOther, "/student/app")
+			}
+		}
+		return serveStudentPage("login.html")(c)
+	})
+
+	// Authentication API
+	e.POST("/api/student/login", handler.StudentLogin(db))
+	e.POST("/api/student/logout", handler.StudentLogout(db))
+
+	// Protected Student Pages
+	studentPages := e.Group("/student")
+	studentPages.Use(handler.StudentAuth(db))
+
+	studentPages.GET("", func(c echo.Context) error {
+		return c.Redirect(http.StatusSeeOther, "/student/app")
+	})
+	studentPages.GET("/app", serveStudentPage("app.html"))
+	studentPages.GET("/dashboard", serveStudentPage("app.html"))
+	studentPages.GET("/presensi", serveStudentPage("app.html"))
+	studentPages.GET("/qr", serveStudentPage("app.html"))
+	studentPages.GET("/profil", serveStudentPage("app.html"))
+
+	// Protected Student API
+	studentAPI := e.Group("/api/student")
+	studentAPI.Use(handler.StudentAuth(db))
+
+	studentAPI.GET("/dashboard", handler.GetStudentDashboard(db))
+	studentAPI.GET("/profile", handler.GetStudentPortalProfile(db))
+	studentAPI.PUT("/pin", handler.ChangeStudentPIN(db))
+	studentAPI.GET("/qrcard", handler.GetMyQRCard(db))
+	studentAPI.GET("/calendar", handler.GetMyCalendar(db))
+	studentAPI.GET("/points", handler.GetMyPoints(db))
+
 	// QR Code Generation (can be used by admin too)
 	admin.GET("/qr-generate", handler.GenerateQR(db))
 
@@ -3096,11 +3414,11 @@ func main() {
 	admin.POST("/attendance/manual", app.ManualAttendanceHandler)
 	admin.GET("/attendance/daily", handler.GetDailyAttendance(db))
 	admin.POST("/attendance/bulk", handler.BulkAttendance(db))
-	admin.GET("/attendance/record", app.RecordAttendanceHandler)
 	admin.POST("/attendance/settings", handler.UpdateAttendanceSettings(db))
 
-	// Prayer Routes
-	admin.GET("/prayer/attendance", handler.PrayerAttendance(db))
+	// Prayer Routes (admin manual input)
+	admin.GET("/prayer/attendance", handler.GetPrayerAttendance(db))
+	admin.POST("/prayer/attendance", handler.BulkPrayerAttendance(db))
 	admin.GET("/prayer/report", handler.PrayerReport(db))
 
 	// Student/Staff Calendar Routes
@@ -3108,12 +3426,18 @@ func main() {
 	admin.GET("/staff/calendar", handler.GetStaffCalendar(db))
 
 	// Report Routes
-	admin.GET("/report/daily", handler.ExportAttendance(db))
-	admin.GET("/report/weekly", handler.ExportAttendance(db))
-	admin.GET("/report/monthly", handler.ExportAttendance(db))
+	admin.GET("/report/daily", handler.DailyReport(db))
+	admin.GET("/report/weekly", handler.WeeklyReport(db))
+	admin.GET("/report/monthly", handler.MonthlyReport(db))
 
 	// Prayer Routes
 	e.GET("/api/attendance/prayer-logs", handler.PrayerLogs(db))
+
+	// Public Attendance API (used by /scan kiosk — no auth)
+	e.GET("/api/attendance/record", app.RecordAttendanceHandler)
+	e.GET("/api/attendance/prayer", app.PrayerAttendanceHandler)
+	e.GET("/api/attendance/today-stats", app.TodayStatsHandler)
+	e.GET("/api/attendance/recent-logs", app.RecentLogsHandler)
 
 	// Face Recognition Attendance API
 	e.POST("/api/attendance/verify-face", app.VerifyFaceAttendanceHandler)
@@ -3124,100 +3448,43 @@ func main() {
 	// Port Configuration
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = config.GetServerPort()
 	}
-	e.Logger.Fatal(e.Start(":" + port))
-}
-
-func runWizard() {
-	fmt.Println("=========================================")
-	fmt.Println("   SmartBell All-in-One Wizard 🚀        ")
-	fmt.Println("=========================================")
-
-	if os.Getuid() != 0 {
-		fmt.Println("❌ Harap jalankan dengan sudo (sudo ./bell_linux wizard)")
-		os.Exit(1)
-	}
-
-	reader := bufio.NewReader(os.Stdin)
-
-	// Detect Executable Name
-	exePath, err := os.Executable()
-	if err != nil {
-		fmt.Println("❌ Gagal mendeteksi nama file aplikasi.")
-		return
-	}
-	exeName := filepath.Base(exePath)
-
-	for {
-		fmt.Println("\nPilih menu:")
-		fmt.Println("1) Install Baru (Fresh Install)")
-		fmt.Println("2) Update Aplikasi (Update Service ke File Ini)")
-		fmt.Println("3) Setup Domain & SSL")
-		fmt.Println("4) Keluar")
-		fmt.Print("Masukkan pilihan: ")
-
-		choice, _ := reader.ReadString('\n')
-		choice = strings.TrimSpace(choice)
-
-		switch choice {
-		case "1", "2":
-			// Option 2 now also runs setup to update the service to point to THIS file
-			if choice == "2" {
-				fmt.Println("--- Update Service Systemd ---")
-			} else {
-				fmt.Println("--- Menjalankan Installer ---")
-			}
-			runScript(setupScript, "setup.sh", exeName)
-		case "3":
-			fmt.Println("--- Setup Domain & SSL ---")
-			runScript(setupNginxScript, "setup_nginx.sh")
-		case "4":
-			fmt.Println("Bye! 👋")
-			return
-		default:
-			fmt.Println("Pilihan tidak valid.")
-		}
-	}
-}
-
-func runScript(content, name string, args ...string) {
-	// Write to temp file
-	tmpFile := "/tmp/" + name
-	err := os.WriteFile(tmpFile, []byte(content), 0755)
-	if err != nil {
-		fmt.Printf("❌ Gagal membuat script sementara: %v\n", err)
-		return
-	}
-	// Run it
-	cmd := exec.Command("bash", append([]string{tmpFile}, args...)...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	if err := cmd.Run(); err != nil {
-		fmt.Printf("❌ Script error: %v\n", err)
-	}
-	// Cleanup
-	os.Remove(tmpFile)
+	host := config.GetServerHost()
+	e.Logger.Printf("Starting SMK NIBA Super Apps server on %s:%s", host, port)
+	e.Logger.Fatal(e.Start(host + ":" + port))
 }
 
 func (a *App) PrayerAttendanceHandler(c echo.Context) error {
 	rfid := c.QueryParam("rfid")
+	// QR-card path: resolve student_id -> rfid_uid (ID-card QR encodes the id).
 	if rfid == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{"message": "RFID kosong"})
+		studentID := c.QueryParam("student_id")
+		if studentID == "" {
+			return c.JSON(http.StatusBadRequest, map[string]string{"message": "RFID kosong"})
+		}
+		err := a.DB.QueryRow("SELECT rfid_uid FROM students WHERE id=?", studentID).Scan(&rfid)
+		if err != nil {
+			return c.JSON(http.StatusNotFound, map[string]string{"message": "Siswa tidak ditemukan"})
+		}
 	}
 
 	// 1. Identify User (Students Only)
-	var name, className_res string
+	var name, className_res, studentStatus string
 	var classNameNull sql.NullString
 	err := a.DB.QueryRow(`
-		SELECT s.name, c.name 
+		SELECT s.name, c.name, s.status
 		FROM students s 
 		LEFT JOIN classes c ON s.class_id = c.id 
-		WHERE s.rfid_uid=?`, rfid).Scan(&name, &classNameNull)
+		WHERE s.rfid_uid=?`, rfid).Scan(&name, &classNameNull, &studentStatus)
 
 	if err != nil {
 		return c.JSON(http.StatusNotFound, map[string]string{"message": "Kartu tidak dikenali"})
+	}
+
+	// Reject inactive students
+	if studentStatus == "inactive" {
+		return c.JSON(http.StatusForbidden, map[string]string{"message": "Akun tidak aktif. Hubungi admin.", "name": name})
 	}
 	className_res = classNameNull.String
 

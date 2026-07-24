@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Masuk — SMK NIBA Super Apps</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        primary: '#0B57C2',
+                        primaryDark: '#084091',
+                        primaryLight: '#4EA6E9',
+                        bgSoft: '#F3F8FF',
+                        textPrimary: '#1E293B',
+                        textSecondary: '#64748B'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { -webkit-tap-highlight-color: transparent; }
+        body {
+            background: linear-gradient(160deg, #E8F1FC 0%, #D6E8FB 100%);
+            min-height: 100vh;
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px 16px;
+            -webkit-font-smoothing: antialiased;
+        }
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+            background: #FFFFFF;
+            border-radius: 28px;
+            box-shadow: 0 20px 60px -15px rgba(11, 87, 194, 0.25);
+            overflow: hidden;
+        }
+        .brand-header {
+            background: linear-gradient(135deg, #0B57C2 0%, #1565D8 100%);
+            padding: 32px 28px 36px;
+            text-align: center;
+            position: relative;
+        }
+        .brand-header::after {
+            content: '';
+            position: absolute;
+            bottom: -1px; left: 0; right: 0; height: 28px;
+            background: #FFFFFF;
+            border-top-left-radius: 28px;
+            border-top-right-radius: 28px;
+        }
+        .logo-badge {
+            width: 64px; height: 64px;
+            background: rgba(255,255,255,0.18);
+            border: 2px solid rgba(255,255,255,0.35);
+            border-radius: 20px;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 14px;
+            backdrop-filter: blur(4px);
+        }
+        .form-body { padding: 24px 28px 28px; }
+        .field-label {
+            font-size: 13px; font-weight: 600; color: #475569;
+            margin-bottom: 7px; display: block;
+        }
+        .input-shell {
+            display: flex; align-items: center;
+            background: #F8FAFC;
+            border: 1.5px solid #E2E8F0;
+            border-radius: 14px;
+            transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+        }
+        .input-shell:focus-within {
+            border-color: #0B57C2;
+            background: #FFFFFF;
+            box-shadow: 0 0 0 4px rgba(11, 87, 194, 0.12);
+        }
+        .input-shell .lead-icon {
+            padding-left: 14px; color: #94A3B8; font-size: 20px;
+        }
+        .input-shell input {
+            flex: 1;
+            border: none; outline: none; background: transparent;
+            padding: 14px 14px; font-size: 15px; color: #1E293B;
+            font-family: 'Inter', sans-serif;
+            border-radius: 14px;
+        }
+        .input-shell input::placeholder { color: #94A3B8; }
+        .reveal-btn {
+            padding-right: 12px; color: #94A3B8; cursor: pointer;
+            display: flex; align-items: center; font-size: 20px;
+            background: none; border: none;
+        }
+        .reveal-btn:active { transform: scale(0.9); }
+        .login-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #0B57C2 0%, #1565D8 100%);
+            color: #FFFFFF; border: none;
+            border-radius: 14px; padding: 15px;
+            font-size: 16px; font-weight: 700;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            box-shadow: 0 8px 20px -6px rgba(11, 87, 194, 0.5);
+            transition: transform 0.12s, box-shadow 0.12s, opacity 0.12s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .login-btn:active { transform: scale(0.98); }
+        .login-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+        .error-box {
+            background: #FEF2F2; border: 1px solid #FECACA;
+            color: #DC2626; border-radius: 12px;
+            padding: 11px 14px; font-size: 13px; font-weight: 500;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .shake { animation: shake 0.4s ease; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+        .spinner { width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <!-- Brand Header -->
+        <div class="brand-header">
+            <div class="logo-badge">
+                <i class="ph-fill ph-graduation-cap text-white" style="font-size: 32px;"></i>
+            </div>
+            <h1 style="color:#fff; font-size:22px; font-weight:800; letter-spacing:0.5px; margin:0;">SMK NIBA</h1>
+            <p style="color:rgba(255,255,255,0.85); font-size:11px; font-weight:600; letter-spacing:2px; text-transform:uppercase; margin:2px 0 0;">Super Apps</p>
+        </div>
+
+        <!-- Form -->
+        <div class="form-body">
+            <h2 style="font-size:19px; font-weight:700; color:#1E293B; margin:0 0 4px;">Selamat Datang 👋</h2>
+            <p style="font-size:13px; color:#64748B; margin:0 0 22px;">Masuk ke portal siswa untuk melihat presensi &amp; poin.</p>
+
+            <form id="loginForm" novalidate>
+                <div style="margin-bottom:16px;">
+                    <label class="field-label" for="nis">NIS / NISN</label>
+                    <div class="input-shell">
+                        <i class="ph ph-identification-card lead-icon"></i>
+                        <input type="text" id="nis" inputmode="numeric" autocomplete="off" placeholder="Masukkan NIS atau NISN" required>
+                    </div>
+                </div>
+
+                <div style="margin-bottom:18px;">
+                    <label class="field-label" for="pin">PIN</label>
+                    <div class="input-shell">
+                        <i class="ph ph-lock-key lead-icon"></i>
+                        <input type="password" id="pin" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="Masukkan PIN" required>
+                        <button type="button" class="reveal-btn" onclick="togglePin()" aria-label="Tampilkan PIN">
+                            <i class="ph ph-eye-slash" id="togglePinIcon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="errorBox" class="error-box" style="display:none; margin-bottom:16px;">
+                    <i class="ph ph-warning-circle" style="font-size:18px;"></i>
+                    <span id="errorText"></span>
+                </div>
+
+                <button type="submit" id="loginBtn" class="login-btn">
+                    <span id="btnText">Masuk</span>
+                    <span id="btnSpinner" class="spinner" style="display:none;"></span>
+                </button>
+            </form>
+
+            <p style="text-align:center; font-size:12px; color:#94A3B8; margin:18px 0 0;">
+                PIN default: <b style="color:#0B57C2;">123456</b> — segera ubah di menu Profil
+            </p>
+        </div>
+    </div>
+
+    <p style="position:fixed; bottom:12px; left:0; right:0; text-align:center; font-size:11px; color:#94A3B8;">&copy; 2026 SMK NIBA Super Apps</p>
+
+    <script>
+        const form = document.getElementById('loginForm');
+        const nisEl = document.getElementById('nis');
+        const pinEl = document.getElementById('pin');
+        const errorBox = document.getElementById('errorBox');
+        const errorText = document.getElementById('errorText');
+        const btn = document.getElementById('loginBtn');
+        const btnText = document.getElementById('btnText');
+        const btnSpinner = document.getElementById('btnSpinner');
+
+        window.addEventListener('load', () => nisEl.focus());
+
+        nisEl.addEventListener('input', () => {
+            nisEl.value = nisEl.value.replace(/[^0-9]/g, '');
+            if (nisEl.value.length >= 6) pinEl.focus();
+        });
+        pinEl.addEventListener('input', () => {
+            pinEl.value = pinEl.value.replace(/[^0-9]/g, '');
+        });
+
+        function togglePin() {
+            const i = document.getElementById('togglePinIcon');
+            if (pinEl.type === 'password') {
+                pinEl.type = 'text';
+                i.classList.replace('ph-eye-slash', 'ph-eye');
+            } else {
+                pinEl.type = 'password';
+                i.classList.replace('ph-eye', 'ph-eye-slash');
+            }
+        }
+
+        function showError(msg) {
+            errorText.textContent = msg;
+            errorBox.style.display = 'flex';
+            errorBox.classList.remove('shake');
+            void errorBox.offsetWidth;
+            errorBox.classList.add('shake');
+        }
+        function hideError() { errorBox.style.display = 'none'; }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideError();
+
+            const nis = nisEl.value.trim();
+            const pin = pinEl.value.trim();
+            if (!nis) { showError('NIS / NISN wajib diisi'); nisEl.focus(); return; }
+            if (!pin) { showError('PIN wajib diisi'); pinEl.focus(); return; }
+
+            btn.disabled = true;
+            btnText.style.display = 'none';
+            btnSpinner.style.display = 'block';
+
+            const fd = new FormData();
+            fd.set('nis', nis);
+            fd.set('pin', pin);
+
+            try {
+                const r = await fetch('/api/student/login', { method: 'POST', body: fd });
+                const d = await r.json();
+                if (r.ok) {
+                    btnText.textContent = 'Berhasil...';
+                    window.location.href = '/student/app';
+                } else {
+                    showError(d.message || 'NIS atau PIN salah');
+                    btn.disabled = false;
+                    btnText.style.display = 'block';
+                    btnSpinner.style.display = 'none';
+                    pinEl.value = '';
+                    pinEl.focus();
+                }
+            } catch {
+                showError('Tidak dapat terhubung ke server. Coba lagi.');
+                btn.disabled = false;
+                btnText.style.display = 'block';
+                btnSpinner.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

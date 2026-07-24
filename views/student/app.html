@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SMK NIBA Super Apps</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        brand: { blue: '#0B57C2', dark: '#084091', light: '#4EA6E9', bg: '#F3F8FF' },
+                        text: { main: '#1E293B', muted: '#64748B', light: '#FFFFFF' },
+                        ui: { white: '#FFFFFF', gray50: '#F8FAFC', gray100: '#F1F5F9', border: '#E2E8F0', success: '#22C55E', danger: '#EF4444', warning: '#EAB308' }
+                    },
+                    boxShadow: {
+                        soft: '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        nav: '0 -4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        icon: '0 4px 10px rgba(11, 87, 194, 0.15)',
+                        qr: '0 10px 40px -10px rgba(11, 87, 194, 0.3)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #E2E8F0; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; font-family: 'Inter', sans-serif; }
+        .mobile-container { width: 100%; max-width: 414px; height: 100vh; background-color: #F3F8FF; position: relative; display: flex; flex-direction: column; overflow-x: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
+        @media (min-width: 640px) { .mobile-container { height: 90vh; max-height: 896px; border-radius: 40px; border: 8px solid #FFFFFF; overflow: hidden; } }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .view-section { display: none; animation: fadeIn 0.3s ease-out forwards; }
+        .view-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .top-header { background: linear-gradient(180deg, #0B57C2 0%, #1565D8 100%); border-bottom-left-radius: 40px; border-bottom-right-radius: 40px; padding-bottom: 50px; position: relative; z-index: 10; }
+        .top-header-small { background: linear-gradient(180deg, #0B57C2 0%, #1565D8 100%); border-bottom-left-radius: 30px; border-bottom-right-radius: 30px; padding-bottom: 30px; position: relative; z-index: 10; }
+        .menu-card, .content-card-overlap { margin-top: -40px; z-index: 20; position: relative; }
+        .menu-icon-btn { background: linear-gradient(135deg, #F0F7FF 0%, #E0EFFF 100%); transition: transform 0.1s ease-in-out; }
+        .menu-icon-btn:active { transform: scale(0.95); }
+        .qris-btn-container { position: absolute; top: -24px; left: 50%; transform: translateX(-50%); background-color: white; border-radius: 50%; padding: 8px; box-shadow: 0 -4px 10px rgba(0,0,0,0.05); z-index: 40; }
+        .qris-btn { background: linear-gradient(135deg, #4EA6E9 0%, #0B57C2 100%); color: white; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(11, 87, 194, 0.4); transition: transform 0.2s, box-shadow 0.2s; }
+        .qris-btn.active-tab { box-shadow: 0 0 0 4px rgba(78, 166, 233, 0.3); transform: scale(1.05); }
+        .qris-btn:active { transform: scale(0.9); }
+        .calendar-day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; position: relative; }
+        .calendar-day:hover { background-color: #F1F5F9; }
+        .calendar-day.active-day { background-color: #0B57C2; color: white; box-shadow: 0 4px 10px rgba(11, 87, 194, 0.3); }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; position: absolute; bottom: 6px; border: 1px solid white; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        .animate-pulse-slow { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        .scan-line { position: absolute; width: 100%; height: 4px; background: rgba(78, 166, 233, 0.8); box-shadow: 0 0 10px rgba(78, 166, 233, 0.8); top: 0; left: 0; animation: scan 2.5s infinite linear; }
+        @keyframes scan { 0% { top: 0; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
+        .skeleton { background: linear-gradient(90deg, #e8f3ee 0%, #f0f5f2 50%, #e8f3ee 100%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 12px; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    </style>
+</head>
+<body class="text-text-main">
+
+<div class="mobile-container">
+    <main class="flex-grow overflow-y-auto hide-scrollbar pb-24 relative" id="main-content">
+
+        <!-- VIEW: HOME -->
+        <div id="view-home" class="view-section active">
+            <div class="top-header pt-12 px-6 text-white text-center">
+                <div class="flex justify-between items-center mb-6">
+                    <button id="homeAvatarBtn" onclick="switchTab('profil')" class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm overflow-hidden border border-white/30">
+                        <img id="homeAvatar" src="" alt="" class="w-full h-full object-cover hidden">
+                        <i id="homeAvatarIcon" class="ph ph-user text-xl"></i>
+                    </button>
+                    <div class="flex flex-col items-center">
+                        <h1 class="text-2xl font-bold tracking-wide">SMK NIBA</h1>
+                        <span class="text-xs font-semibold tracking-wider uppercase opacity-90">Super Apps</span>
+                    </div>
+                    <button id="notifBtn" class="relative w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors" onclick="switchTab('info')">
+                        <i class="ph ph-bell text-xl"></i>
+                        <span id="notifDot" class="hidden absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-brand-blue animate-pulse-slow"></span>
+                    </button>
+                </div>
+
+                <!-- Points -->
+                <div class="mb-4">
+                    <p class="text-sm text-brand-light font-medium mb-1">Total Poin Siswa</p>
+                    <div class="flex items-center justify-center gap-2">
+                        <h2 class="text-4xl font-bold tracking-tight" id="balanceAmount">--</h2>
+                        <span class="text-sm font-semibold mt-2 text-brand-light">Pts</span>
+                        <button onclick="toggleBalance()" class="text-brand-light hover:text-white transition-colors ml-1 mt-1">
+                            <i class="ph ph-eye text-xl" id="balanceEyeIcon"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-4">
+                <div class="menu-card bg-white rounded-3xl p-6 shadow-soft">
+                    <div class="grid grid-cols-4 gap-y-6 gap-x-2">
+                        <button class="flex flex-col items-center gap-2 group" onclick="switchTab('presensi')">
+                            <div class="w-14 h-14 rounded-2xl menu-icon-btn flex items-center justify-center relative overflow-hidden">
+                                <div class="absolute -bottom-2 -right-2 w-8 h-8 bg-blue-100 rounded-full opacity-50"></div>
+                                <i class="ph-fill ph-calendar-check text-2xl text-brand-blue z-10 group-hover:scale-110 transition-transform"></i>
+                            </div>
+                            <span class="text-[11px] font-medium text-text-main text-center leading-tight">Presensi</span>
+                        </button>
+                        <button class="flex flex-col items-center gap-2 group opacity-40 cursor-not-allowed">
+                            <div class="w-14 h-14 rounded-2xl menu-icon-btn flex items-center justify-center relative overflow-hidden">
+                                <div class="absolute -top-2 -left-2 w-8 h-8 bg-indigo-100 rounded-full opacity-50"></div>
+                                <i class="ph-fill ph-calendar text-2xl text-indigo-500 z-10"></i>
+                            </div>
+                            <span class="text-[11px] font-medium text-text-muted text-center leading-tight">Jadwal</span>
+                        </button>
+                        <button class="flex flex-col items-center gap-2 group opacity-40 cursor-not-allowed">
+                            <div class="w-14 h-14 rounded-2xl menu-icon-btn flex items-center justify-center relative overflow-hidden">
+                                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-orange-100 rounded-full opacity-50"></div>
+                                <i class="ph-fill ph-books text-2xl text-orange-500 z-10"></i>
+                            </div>
+                            <span class="text-[11px] font-medium text-text-muted text-center leading-tight">Tugas</span>
+                        </button>
+                        <button class="flex flex-col items-center gap-2 group opacity-40 cursor-not-allowed">
+                            <div class="w-14 h-14 rounded-2xl menu-icon-btn flex items-center justify-center">
+                                <i class="ph-fill ph-graduation-cap text-2xl text-yellow-500"></i>
+                            </div>
+                            <span class="text-[11px] font-medium text-text-muted text-center leading-tight">Nilai</span>
+                        </button>
+                        <button class="flex flex-col items-center gap-2 group opacity-40 cursor-not-allowed">
+                            <div class="w-14 h-14 rounded-2xl menu-icon-btn flex items-center justify-center">
+                                <i class="ph-fill ph-storefront text-2xl text-green-500"></i>
+                            </div>
+                            <span class="text-[11px] font-medium text-text-muted text-center leading-tight">E-Kantin</span>
+                        </button>
+                        <button class="flex flex-col items-center gap-2 group opacity-40 cursor-not-allowed">
+                            <div class="w-14 h-14 rounded-2xl menu-icon-btn flex items-center justify-center">
+                                <i class="ph-fill ph-book-open text-2xl text-cyan-600"></i>
+                            </div>
+                            <span class="text-[11px] font-medium text-text-muted text-center leading-tight">E-Perpus</span>
+                        </button>
+                        <button class="flex flex-col items-center gap-2 group opacity-40 cursor-not-allowed">
+                            <div class="w-14 h-14 rounded-2xl menu-icon-btn flex items-center justify-center">
+                                <i class="ph-fill ph-basketball text-2xl text-purple-500"></i>
+                            </div>
+                            <span class="text-[11px] font-medium text-text-muted text-center leading-tight">Ekskul</span>
+                        </button>
+                        <button class="flex flex-col items-center gap-2 group opacity-40 cursor-not-allowed">
+                            <div class="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center border border-gray-100">
+                                <i class="ph-bold ph-dots-three text-2xl text-text-muted"></i>
+                            </div>
+                            <span class="text-[11px] font-medium text-text-muted text-center leading-tight">Lainnya</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kehadiran Hari Ini -->
+            <div class="mt-6 px-4">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-sm font-bold text-brand-dark">Kehadiran Hari Ini</h3>
+                    <span id="todayDateBadge" class="text-xs font-semibold px-2 py-1 bg-blue-100 text-brand-blue rounded-lg">Hari ini</span>
+                </div>
+                <div class="bg-white rounded-2xl border border-ui-border p-4 shadow-sm">
+                    <div class="flex relative">
+                        <div class="absolute left-1/2 top-0 bottom-0 w-px bg-ui-border transform -translate-x-1/2"></div>
+                        <div class="w-1/2 pr-4 flex flex-col items-center justify-center text-center">
+                            <div id="todayInStatus" class="flex items-center gap-1 text-ui-success mb-1"><i class="ph-bold ph-sign-in"></i><span class="text-xs font-medium text-text-muted">Jam Masuk</span></div>
+                            <p id="todayInTime" class="text-lg font-bold text-text-main">--:-- <span class="text-xs font-normal text-text-muted">WIB</span></p>
+                            <span id="todayInLabel" class="text-[10px] font-medium text-text-muted bg-gray-100 px-2 py-0.5 rounded mt-1 hidden">Belum Waktunya</span>
+                        </div>
+                        <div class="w-1/2 pl-4 flex flex-col items-center justify-center text-center">
+                            <div class="flex items-center gap-1 text-text-muted mb-1"><i class="ph-bold ph-sign-out"></i><span class="text-xs font-medium text-text-muted">Jam Pulang</span></div>
+                            <p id="todayOutTime" class="text-lg font-bold text-text-muted">--:-- <span class="text-xs font-normal">WIB</span></p>
+                            <span id="todayOutLabel" class="text-[10px] font-medium text-text-muted bg-gray-100 px-2 py-0.5 rounded mt-1">Belum Waktunya</span>
+                        </div>
+                    </div>
+                    <div id="holidayNoteHome" class="hidden mt-3 text-xs text-text-muted italic text-center pt-2 border-t border-gray-100"></div>
+                </div>
+            </div>
+
+            <!-- Riwayat Poin -->
+            <div class="mt-6 px-4 mb-6">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-sm font-bold text-brand-dark">Riwayat Poin Terakhir</h3>
+                </div>
+                <div id="pointHistoryList" class="bg-white rounded-2xl border border-ui-border p-4 shadow-sm flex flex-col gap-4">
+                    <div class="text-center py-4 text-sm text-text-muted">Memuat...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW: PRESENSI -->
+        <div id="view-presensi" class="view-section">
+            <div class="top-header-small pt-12 px-6 text-white text-center flex flex-col items-center">
+                <h2 class="text-xl font-bold tracking-wide">Riwayat Presensi</h2>
+                <p class="text-sm text-brand-light mt-1 mb-6">Pantau kehadiranmu setiap hari</p>
+            </div>
+            <div class="px-4 content-card-overlap">
+                <div class="bg-white rounded-3xl p-5 shadow-soft border border-ui-border">
+                    <div class="flex justify-between items-center mb-6">
+                        <button onclick="prevMonth()" class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-text-muted hover:bg-gray-100"><i class="ph-bold ph-caret-left"></i></button>
+                        <h3 class="font-bold text-text-main text-lg" id="calendar-month-year">Juli 2026</h3>
+                        <button onclick="nextMonth()" class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-text-muted hover:bg-gray-100"><i class="ph-bold ph-caret-right"></i></button>
+                    </div>
+                    <div class="grid grid-cols-7 gap-1 mb-2 text-center text-xs font-semibold text-text-muted">
+                        <div>Min</div><div>Sen</div><div>Sel</div><div>Rab</div><div>Kam</div><div>Jum</div><div>Sab</div>
+                    </div>
+                    <div id="calendar-grid" class="grid grid-cols-7 gap-y-2 gap-x-1"></div>
+                    <div class="flex flex-wrap justify-center gap-3 mt-6 pt-4 border-t border-gray-100">
+                        <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-green-500"></span><span class="text-xs text-text-muted font-medium">Hadir</span></div>
+                        <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span><span class="text-xs text-text-muted font-medium">Terlambat</span></div>
+                        <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span><span class="text-xs text-text-muted font-medium">Izin</span></div>
+                        <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-orange-500"></span><span class="text-xs text-text-muted font-medium">Sakit</span></div>
+                        <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-red-500"></span><span class="text-xs text-text-muted font-medium">Alpa</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="px-4 mt-6 mb-6">
+                <h3 class="text-sm font-bold text-brand-dark mb-3">Detail Kehadiran</h3>
+                <div id="attendance-detail" class="bg-white rounded-2xl border border-ui-border p-5 shadow-sm text-center">
+                    <div class="w-12 h-12 rounded-full bg-blue-50 text-brand-blue flex items-center justify-center mx-auto mb-3">
+                        <i class="ph-fill ph-calendar-check text-2xl"></i>
+                    </div>
+                    <p class="font-semibold text-text-main mb-1">Pilih Tanggal</p>
+                    <p class="text-xs text-text-muted">Ketuk tanggal di kalender untuk melihat detail.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW: QR SISWA -->
+        <div id="view-qr" class="view-section">
+            <div class="bg-gradient-to-b from-brand-blue to-brand-dark min-h-[400px] pt-12 px-6 rounded-b-[40px] text-white flex flex-col items-center">
+                <h2 class="text-xl font-bold tracking-wide mb-1">Kartu Pelajar Digital</h2>
+                <p class="text-sm text-brand-light text-center px-4">Tunjukkan QR Code ini ke mesin pemindai di gerbang sekolah untuk absensi.</p>
+            </div>
+            <div class="px-6 -mt-60 relative z-20 mb-8">
+                <div id="qrCardContainer" class="bg-white rounded-3xl p-6 shadow-qr flex flex-col items-center relative overflow-hidden border border-gray-100">
+                    <div class="absolute top-0 left-0 w-full h-24 bg-blue-50 opacity-50 z-0 rounded-t-3xl"></div>
+                    <div id="qrLoading" class="relative z-10 flex flex-col items-center mb-6">
+                        <div class="skeleton w-16 h-16 rounded-full mb-3"></div>
+                        <div class="skeleton w-32 h-5 rounded mb-2"></div>
+                        <div class="skeleton w-24 h-4 rounded mb-3"></div>
+                        <div class="skeleton w-48 h-48 rounded-xl"></div>
+                    </div>
+                    <div id="qrContent" class="hidden relative z-10 flex flex-col items-center mb-6">
+                        <img id="qrPhoto" src="" alt="" class="w-16 h-16 rounded-full border-4 border-white shadow-sm mb-3 object-cover hidden">
+                        <div id="qrPhotoPlaceholder" class="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mb-3"><i class="ph ph-user text-2xl text-brand-blue"></i></div>
+                        <h3 id="qrName" class="font-bold text-text-main text-lg text-center leading-tight"></h3>
+                        <p id="qrNis" class="text-sm text-text-muted font-medium"></p>
+                        <span id="qrStatus" class="mt-2 px-3 py-1 bg-green-100 text-green-700 text-[10px] font-bold rounded-full uppercase tracking-wider">Aktif</span>
+                    </div>
+                    <div id="qrImageWrap" class="relative w-48 h-48 bg-white border-2 border-gray-100 rounded-xl p-2 shadow-inner z-10 flex items-center justify-center overflow-hidden">
+                        <div class="scan-line z-20"></div>
+                        <img id="qrImage" src="" alt="QR Code" class="w-full h-full hidden">
+                        <div id="qrPlaceholder" class="w-full h-full flex items-center justify-center"><i class="ph ph-qr-code text-4xl text-gray-300"></i></div>
+                    </div>
+                    <div id="qrActions" class="hidden mt-6 flex gap-3 w-full z-10">
+                        <button onclick="downloadQR()" class="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-50 text-brand-blue text-sm font-semibold transition active:scale-[0.98]">
+                            <i class="ph ph-download-simple"></i>Unduh
+                        </button>
+                        <button onclick="shareQR()" class="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gray-50 text-text-main text-sm font-semibold transition active:scale-[0.98]">
+                            <i class="ph ph-share-network"></i>Bagikan
+                        </button>
+                    </div>
+                    <div class="mt-4 flex items-center gap-2 text-text-muted text-xs font-medium bg-gray-50 px-4 py-2 rounded-lg z-10">
+                        <i class="ph ph-arrows-clockwise text-brand-blue"></i>
+                        Otomatis diperbarui dalam <span class="font-bold text-brand-blue">30s</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW: INFO (Pengumuman) -->
+        <div id="view-info" class="view-section">
+            <div class="top-header-small pt-12 px-6 text-white text-center">
+                <h2 class="text-xl font-bold tracking-wide mb-6">Pusat Informasi</h2>
+            </div>
+            <div class="px-4 content-card-overlap flex flex-col gap-4" id="infoList">
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-ui-border text-center py-8">
+                    <i class="ph ph-megaphone text-3xl text-text-muted mb-2"></i>
+                    <p class="text-sm text-text-muted">Memuat pengumuman...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW: PROFIL -->
+        <div id="view-profil" class="view-section">
+            <div class="pt-12 px-6 pb-6 bg-white flex flex-col items-center border-b border-gray-100">
+                <div id="profPhotoCont" class="w-24 h-24 rounded-full bg-blue-100 overflow-hidden shadow-md mb-4 flex items-center justify-center">
+                    <img id="profPhotoImg" src="" alt="" class="w-full h-full object-cover hidden">
+                    <i id="profPhotoIcon" class="ph ph-user text-3xl text-brand-blue"></i>
+                </div>
+                <h2 id="profName" class="text-xl font-bold text-text-main">Memuat...</h2>
+                <p id="profClass" class="text-sm text-text-muted mb-4">-</p>
+            </div>
+            <div class="p-4 flex flex-col gap-2">
+                <div class="w-full bg-white p-4 rounded-xl flex justify-between items-center shadow-sm border border-gray-50">
+                    <div class="flex items-center gap-3"><i class="ph ph-identification-card text-xl text-text-muted"></i><span class="text-sm"><b>NIS:</b> <span id="profNIS" class="font-mono">-</span></span></div>
+                </div>
+                <div class="w-full bg-white p-4 rounded-xl flex justify-between items-center shadow-sm border border-gray-50">
+                    <div class="flex items-center gap-3"><i class="ph ph-cake text-xl text-text-muted"></i><span class="text-sm"><b>Lahir:</b> <span id="profBirthday">-</span></span></div>
+                </div>
+                <div class="w-full bg-white p-4 rounded-xl flex justify-between items-center shadow-sm border border-gray-50">
+                    <div class="flex items-center gap-3"><i class="ph ph-user-circle text-xl text-text-muted"></i><span class="text-sm"><b>Wali:</b> <span id="profParent">-</span></span></div>
+                </div>
+                <div class="w-full bg-white p-4 rounded-xl flex justify-between items-center shadow-sm border border-gray-50">
+                    <div class="flex items-center gap-3"><i class="ph ph-phone text-xl text-text-muted"></i><span class="text-sm"><b>HP Wali:</b> <span id="profPhone" class="font-mono">-</span></span></div>
+                </div>
+
+                <!-- Ganti PIN -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-50 mt-2">
+                    <div class="flex items-center gap-2 mb-3">
+                        <i class="ph ph-lock-key text-xl text-brand-blue"></i>
+                        <span class="font-semibold text-sm text-text-main">Ganti PIN</span>
+                    </div>
+                    <form id="pinForm" class="space-y-2">
+                        <input type="password" id="oldPin" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="PIN Lama" required inputmode="numeric" maxlength="8" autocomplete="off">
+                        <input type="password" id="newPin" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="PIN Baru (4-8 digit)" required inputmode="numeric" maxlength="8" autocomplete="off">
+                        <input type="password" id="confirmPin" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Konfirmasi PIN Baru" required inputmode="numeric" maxlength="8" autocomplete="off">
+                        <div id="pinError" class="hidden bg-red-50 border border-red-200 text-red-600 px-3 py-2 rounded-xl text-xs"></div>
+                        <div id="pinSuccess" class="hidden bg-blue-50 border border-blue-200 text-brand-blue px-3 py-2 rounded-xl text-xs font-semibold"></div>
+                        <button type="submit" id="pinBtn" class="w-full bg-primary hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl text-sm transition-all active:scale-[0.98]">
+                            <span id="pinBtnText">Simpan PIN Baru</span>
+                            <span id="pinBtnSpinner" class="hidden"><svg class="animate-spin h-4 w-4 mx-auto" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg></span>
+                        </button>
+                    </form>
+                </div>
+
+                <button onclick="doLogout()" class="w-full bg-white p-4 rounded-xl flex justify-center items-center shadow-sm border border-gray-50 mt-4 text-red-500 active:bg-red-50 transition-colors">
+                    <div class="flex items-center gap-3"><i class="ph ph-sign-out text-xl"></i><span class="font-bold text-sm">Keluar</span></div>
+                </button>
+            </div>
+        </div>
+
+        <div class="h-6"></div>
+    </main>
+
+    <nav class="bg-white border-t border-ui-border rounded-t-[30px] px-6 py-2 shadow-nav relative z-30 flex-shrink-0">
+        <div class="qris-btn-container">
+            <button id="nav-qr" class="qris-btn" onclick="switchTab('qr')" aria-label="QR Siswa">
+                <i class="ph-bold ph-qr-code text-3xl"></i>
+            </button>
+        </div>
+        <div class="flex justify-between items-end pb-3 pt-2">
+            <button id="nav-home" class="nav-item flex flex-col items-center w-16 gap-1 group" onclick="switchTab('home')">
+                <div class="p-1 rounded-xl bg-brand-bg text-brand-blue transition-colors"><i class="ph-fill ph-house text-2xl nav-icon"></i></div>
+                <span class="text-[10px] font-bold text-brand-blue nav-text">Beranda</span>
+            </button>
+            <button id="nav-presensi" class="nav-item flex flex-col items-center w-16 gap-1 group" onclick="switchTab('presensi')">
+                <div class="p-1 text-text-muted group-hover:text-brand-blue transition-colors rounded-xl"><i class="ph ph-calendar-check text-2xl nav-icon"></i></div>
+                <span class="text-[10px] font-medium text-text-muted group-hover:text-brand-blue transition-colors nav-text">Presensi</span>
+            </button>
+            <div class="w-16"><div class="h-8"></div><span class="text-[10px] font-bold text-brand-blue text-center block w-full mt-1" id="qr-label">QR Siswa</span></div>
+            <button id="nav-info" class="nav-item flex flex-col items-center w-16 gap-1 group" onclick="switchTab('info')">
+                <div class="p-1 text-text-muted group-hover:text-brand-blue transition-colors rounded-xl relative"><i class="ph ph-megaphone text-2xl nav-icon"></i><span id="infoNotifDot" class="hidden absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></span></div>
+                <span class="text-[10px] font-medium text-text-muted group-hover:text-brand-blue transition-colors nav-text">Info</span>
+            </button>
+            <button id="nav-profil" class="nav-item flex flex-col items-center w-16 gap-1 group" onclick="switchTab('profil')">
+                <div class="p-1 text-text-muted group-hover:text-brand-blue transition-colors rounded-xl"><i class="ph ph-user-circle text-2xl nav-icon"></i></div>
+                <span class="text-[10px] font-medium text-text-muted group-hover:text-brand-blue transition-colors nav-text">Profil</span>
+            </button>
+        </div>
+    </nav>
+</div>
+
+<script>
+// ===== STATE =====
+let dashboardData = null;
+let isBalanceVisible = true;
+const actualBalance = "0";
+let calMonth = new Date().getMonth() + 1;
+let calYear = new Date().getFullYear();
+let calendarData = {};
+let calStats = {};
+
+// ===== INIT =====
+window.addEventListener('DOMContentLoaded', () => {
+    const path = window.location.pathname;
+    let initial = 'home';
+    if (path.includes('/presensi')) initial = 'presensi';
+    else if (path.includes('/qr')) initial = 'qr';
+    else if (path.includes('/profil')) initial = 'profil';
+    else if (path.includes('/info')) initial = 'info';
+
+    loadDashboard().then(() => {
+        switchTab(initial);
+        if (initial === 'presensi') loadCalendar();
+        if (initial === 'qr') loadQRCard();
+    });
+});
+
+// ===== NAVIGATION =====
+function switchTab(tabName) {
+    document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-' + tabName).classList.add('active');
+
+    document.querySelectorAll('.nav-item').forEach(item => {
+        const ic = item.querySelector('div');
+        const icon = item.querySelector('.nav-icon');
+        const txt = item.querySelector('.nav-text');
+        ic.classList.remove('bg-brand-bg', 'text-brand-blue'); ic.classList.add('text-text-muted');
+        icon.classList.remove('ph-fill'); icon.classList.add('ph');
+        txt.classList.remove('font-bold', 'text-brand-blue'); txt.classList.add('font-medium', 'text-text-muted');
+    });
+
+    document.getElementById('nav-qr').classList.remove('active-tab');
+    const ql = document.getElementById('qr-label');
+    ql.className = 'text-[10px] font-bold text-text-muted text-center block w-full mt-1';
+
+    if (tabName === 'qr') {
+        document.getElementById('nav-qr').classList.add('active-tab');
+        const l = document.getElementById('qr-label');
+        l.classList.replace('text-text-muted', 'text-brand-blue');
+        l.classList.add('font-bold');
+        loadQRCard();
+    } else {
+        const sel = document.getElementById('nav-' + tabName);
+        if (sel) {
+            const ic = sel.querySelector('div'), icon = sel.querySelector('.nav-icon'), txt = sel.querySelector('.nav-text');
+            ic.classList.remove('text-text-muted'); ic.classList.add('bg-brand-bg', 'text-brand-blue');
+            icon.classList.remove('ph'); icon.classList.add('ph-fill');
+            txt.classList.remove('font-medium', 'text-text-muted'); txt.classList.add('font-bold', 'text-brand-blue');
+        }
+    }
+
+    document.getElementById('main-content').scrollTop = 0;
+
+    if (tabName === 'presensi' && Object.keys(calendarData).length === 0) loadCalendar();
+}
+
+// ===== DASHBOARD / HOME =====
+async function loadDashboard() {
+    try {
+        const r = await fetch('/api/student/dashboard');
+        if (!r.ok) throw new Error('Unauthorized');
+        dashboardData = await r.json();
+
+        // Avatar on home header
+        if (dashboardData.student && dashboardData.student.photo) {
+            document.getElementById('homeAvatar').src = dashboardData.student.photo;
+            document.getElementById('homeAvatar').classList.remove('hidden');
+            document.getElementById('homeAvatarIcon').classList.add('hidden');
+        }
+
+        // Points
+        document.getElementById('balanceAmount').textContent = dashboardData.points || '0';
+
+        // Today attendance
+        renderTodayAttendance(dashboardData.today || {});
+
+        // Point history
+        renderPointHistory(dashboardData.point_history || []);
+
+        // Announcements count badge
+        if (dashboardData.announcements && dashboardData.announcements.length > 0) {
+            document.getElementById('notifDot').classList.remove('hidden');
+            document.getElementById('infoNotifDot').classList.remove('hidden');
+        }
+
+        // Profile data cache
+        if (dashboardData.student) {
+            const s = dashboardData.student;
+            document.getElementById('profName').textContent = s.name || '-';
+            document.getElementById('profClass').textContent = s['class'] ? ('NIS: ' + s.nis + ' | Kelas: ' + s['class']) : '-';
+            document.getElementById('profNIS').textContent = s.nis || '-';
+            document.getElementById('profBirthday').textContent = s.birthday || '-';
+            document.getElementById('profParent').textContent = s.parent_name || '-';
+            document.getElementById('profPhone').textContent = s.parent_phone || '-';
+            if (s.photo) {
+                document.getElementById('profPhotoImg').src = s.photo;
+                document.getElementById('profPhotoImg').classList.remove('hidden');
+                document.getElementById('profPhotoIcon').classList.add('hidden');
+            }
+        }
+
+        // Info announcements
+        renderAnnouncements(dashboardData.announcements || []);
+
+        // Default PIN toast
+        if (dashboardData.using_default_pin) {
+            setTimeout(() => showToast('Ganti PIN default Anda di halaman Profil'), 1500);
+        }
+    } catch(e) {
+        console.error(e);
+        window.location.href = '/student/login';
+    }
+}
+
+function renderTodayAttendance(today) {
+    const dateEl = document.getElementById('todayDateBadge');
+    if (today.date) {
+        const d = new Date(today.date);
+        const days = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+        dateEl.textContent = days[d.getDay()] + ', ' + d.getDate() + '/' + (d.getMonth()+1);
+    }
+
+    const inTime = document.getElementById('todayInTime');
+    const outTime = document.getElementById('todayOutTime');
+    const inLabel = document.getElementById('todayInLabel');
+    const outLabel = document.getElementById('todayOutLabel');
+
+    if (today.status === 'Hadir' || today.status === 'Terlambat') {
+        inTime.innerHTML = (today.time_in || '--:--') + ' <span class="text-xs font-normal text-text-main">WIB</span>';
+        inTime.className = 'text-lg font-bold text-text-main';
+        inLabel.textContent = today.status === 'Terlambat' ? 'Terlambat' : 'Tepat Waktu';
+        inLabel.className = today.status === 'Terlambat'
+            ? 'text-[10px] font-medium text-yellow-600 bg-yellow-50 px-2 py-0.5 rounded mt-1'
+            : 'text-[10px] font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded mt-1';
+        inLabel.classList.remove('hidden');
+    } else {
+        inTime.innerHTML = '--:-- <span class="text-xs font-normal text-text-muted">WIB</span>';
+        inTime.className = 'text-lg font-bold text-text-muted';
+        inLabel.classList.add('hidden');
+    }
+
+    if (today.time_out) {
+        outTime.innerHTML = today.time_out + ' <span class="text-xs font-normal text-text-main">WIB</span>';
+        outTime.className = 'text-lg font-bold text-text-main';
+        outLabel.classList.add('hidden');
+    } else {
+        outTime.innerHTML = '--:-- <span class="text-xs font-normal">WIB</span>';
+        outLabel.classList.remove('hidden');
+    }
+
+    if (today.holiday_name) {
+        const hn = document.getElementById('holidayNoteHome');
+        hn.textContent = 'Libur: ' + today.holiday_name;
+        hn.classList.remove('hidden');
+    }
+}
+
+function renderPointHistory(history) {
+    const container = document.getElementById('pointHistoryList');
+    if (!history || history.length === 0) {
+        container.innerHTML = '<div class="text-center py-4 text-sm text-text-muted">Belum ada riwayat poin</div>';
+        return;
+    }
+    let html = '';
+    history.slice(0, 5).forEach(h => {
+        const icon = h.points > 0 ? 'ph-check-circle' : 'ph-minus-circle';
+        const color = h.points > 0 ? 'ui-success' : 'ui-danger';
+        html += '<div class="flex justify-between items-center pb-3 border-b border-gray-100 last:border-0">' +
+            '<div class="flex items-center gap-3">' +
+            '<div class="w-10 h-10 rounded-full bg-' + (h.points > 0 ? 'green-100 text-green-600' : 'red-100 text-red-500') + ' flex items-center justify-center">' +
+            '<i class="ph-fill ' + icon + ' text-xl"></i></div>' +
+            '<div><p class="text-sm font-bold text-text-main">' + (h.description || '-') + '</p>' +
+            '<p class="text-xs text-text-muted">' + (h.date || '') + '</p></div></div>' +
+            '<span class="text-sm font-bold text-' + (h.points > 0 ? 'ui-success' : 'ui-danger') + '">' +
+            (h.points > 0 ? '+' : '') + h.points + ' Pts</span></div>';
+    });
+    container.innerHTML = html;
+}
+
+function renderAnnouncements(announcements) {
+    const container = document.getElementById('infoList');
+    if (!announcements || announcements.length === 0) {
+        container.innerHTML = '<div class="bg-white p-4 rounded-2xl shadow-sm border border-ui-border text-center py-8">' +
+            '<i class="ph ph-megaphone text-3xl text-text-muted mb-2"></i>' +
+            '<p class="text-sm text-text-muted">Belum ada pengumuman</p></div>';
+        return;
+    }
+    let html = '';
+    announcements.forEach(a => {
+        html += '<div class="bg-white p-4 rounded-2xl shadow-sm border border-ui-border flex gap-4 items-start">' +
+            '<div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-brand-blue flex-shrink-0">' +
+            '<i class="ph-fill ph-megaphone text-xl"></i></div>' +
+            '<div><span class="text-[10px] font-bold text-brand-blue uppercase">Pengumuman</span>' +
+            '<h4 class="font-bold text-text-main text-sm mb-1">' + (a.title || '-') + '</h4>' +
+            '<p class="text-xs text-text-muted line-clamp-2">' + (a.message || '') + '</p></div></div>';
+    });
+    container.innerHTML = html;
+}
+
+// ===== BALANCE TOGGLE =====
+function toggleBalance() {
+    const el = document.getElementById('balanceAmount');
+    const ic = document.getElementById('balanceEyeIcon');
+    isBalanceVisible = !isBalanceVisible;
+    el.textContent = isBalanceVisible ? (dashboardData ? dashboardData.points : '0') : '****';
+    ic.classList.toggle('ph-eye', !isBalanceVisible);
+    ic.classList.toggle('ph-eye-slash', isBalanceVisible);
+}
+
+// ===== CALENDAR =====
+async function loadCalendar() {
+    const pad = n => n < 10 ? '0'+n : ''+n;
+    try {
+        const r = await fetch('/api/student/calendar?month=' + pad(calMonth) + '&year=' + calYear);
+        if (!r.ok) throw new Error('Unauthorized');
+        const d = await r.json();
+        calendarData = d.calendar || {};
+        calStats = d.stats || {};
+        renderCalendarGrid();
+    } catch(e) {
+        if (e.message === 'Unauthorized') window.location.href = '/student/login';
+    }
+}
+
+function renderCalendarGrid() {
+    const grid = document.getElementById('calendar-grid');
+    grid.innerHTML = '';
+    const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+    document.getElementById('calendar-month-year').textContent = months[calMonth - 1] + ' ' + calYear;
+
+    const firstDay = new Date(calYear, calMonth - 1, 1).getDay();
+    const daysInMonth = new Date(calYear, calMonth, 0).getDate();
+    const today = new Date();
+    const isCurrent = calMonth === today.getMonth() + 1 && calYear === today.getFullYear();
+    const todayDay = today.getDate();
+
+    for (let i = 0; i < firstDay; i++) grid.appendChild(document.createElement('div'));
+
+    let todayCell = null;
+    for (let day = 1; day <= daysInMonth; day++) {
+        const cell = document.createElement('div');
+        cell.className = 'calendar-day';
+        cell.textContent = day;
+
+        const logs = calendarData[day] || [];
+        if (logs.length > 0) {
+            const statuses = logs.map(l => l.Status);
+            let dotColor = '';
+            // Priority: Alpha (red) > Terlambat (yellow) > Sakit/Izin (orange/blue) > Hadir (green)
+            if (statuses.indexOf('Alpha') >= 0) dotColor = '#EF4444';
+            else if (statuses.indexOf('Terlambat') >= 0) dotColor = '#EAB308';
+            else if (statuses.indexOf('Sakit') >= 0) dotColor = '#F97316';
+            else if (statuses.indexOf('Izin') >= 0) dotColor = '#3B82F6';
+            else if (statuses.indexOf('Datang') >= 0 || statuses.indexOf('Hadir') >= 0) dotColor = '#22C55E';
+            if (dotColor) {
+                const dot = document.createElement('div');
+                dot.className = 'status-dot'; dot.style.backgroundColor = dotColor;
+                cell.appendChild(dot);
+            }
+        }
+
+        if (isCurrent && day === todayDay) { cell.classList.add('border', 'border-brand-blue', 'text-brand-blue'); todayCell = cell; }
+
+        cell.onclick = () => {
+            document.querySelectorAll('.calendar-day').forEach(el => el.classList.remove('active-day'));
+            cell.classList.add('active-day');
+            showAttendanceDetail(day, logs);
+        };
+        grid.appendChild(cell);
+    }
+    if (todayCell) todayCell.click();
+}
+
+function showAttendanceDetail(day, logs) {
+    const dc = document.getElementById('attendance-detail');
+    const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+    const df = day + ' ' + months[calMonth - 1] + ' ' + calYear;
+
+    if (!logs || logs.length === 0) {
+        dc.innerHTML = '<div class="w-10 h-10 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center mx-auto mb-2">' +
+            '<i class="ph ph-calendar-blank text-xl"></i></div>' +
+            '<p class="font-bold text-text-main">' + df + '</p>' +
+            '<p class="text-sm text-text-muted mt-1">Tidak ada rekam kehadiran.</p>';
+        return;
+    }
+
+    // Find check-in (Datang/Hadir/Terlambat/Sakit/Izin) and check-out (Keluar/Pulang) by status
+    const checkIn = logs.find(l => ['Datang','Hadir','Terlambat','Sakit','Izin'].includes(l.Status));
+    const checkOut = logs.find(l => ['Keluar','Pulang'].includes(l.Status));
+
+    // Determine display status (prioritize meaningful statuses)
+    let displayStatus = logs[0].Status;
+    const priority = ['Terlambat', 'Sakit', 'Izin', 'Alpha', 'Datang', 'Hadir', 'Keluar', 'Pulang'];
+    for (const p of priority) {
+        if (logs.some(l => l.Status === p)) { displayStatus = p; break; }
+    }
+
+    let statusColor, statusIcon, statusText;
+    const st = displayStatus;
+    if (st === 'Hadir' || st === 'Datang') { statusColor = 'text-green-600 bg-green-50'; statusIcon = 'ph-check-circle'; statusText = 'Hadir'; }
+    else if (st === 'Terlambat') { statusColor = 'text-yellow-600 bg-yellow-50'; statusIcon = 'ph-clock'; statusText = 'Terlambat'; }
+    else if (st === 'Sakit') { statusColor = 'text-orange-600 bg-orange-50'; statusIcon = 'ph-file-text'; statusText = 'Sakit'; }
+    else if (st === 'Izin') { statusColor = 'text-blue-600 bg-blue-50'; statusIcon = 'ph-file-text'; statusText = 'Izin'; }
+    else if (st === 'Alpha') { statusColor = 'text-red-600 bg-red-50'; statusIcon = 'ph-x-circle'; statusText = 'Alpa'; }
+    else { statusColor = 'text-gray-600 bg-gray-100'; statusIcon = 'ph-minus'; statusText = st; }
+
+    dc.innerHTML =
+        '<div class="flex justify-between items-center mb-4 pb-3 border-b border-gray-100">' +
+        '<span class="font-bold text-text-main">' + df + '</span>' +
+        '<span class="px-2 py-1 rounded text-xs font-bold flex items-center gap-1 ' + statusColor + '">' +
+        '<i class="ph-fill ' + statusIcon + '"></i> ' + statusText + '</span></div>' +
+        '<div class="flex"><div class="w-1/2 flex flex-col items-center">' +
+        '<span class="text-xs text-text-muted mb-1">Jam Masuk</span>' +
+        '<span class="font-bold text-lg text-text-main">' + (checkIn ? (checkIn.Time || '--:--') : '--:--') + '</span></div>' +
+        '<div class="w-px bg-gray-200"></div>' +
+        '<div class="w-1/2 flex flex-col items-center">' +
+        '<span class="text-xs text-text-muted mb-1">Jam Pulang</span>' +
+        '<span class="font-bold text-lg text-text-main">' + (checkOut ? (checkOut.Time || '--:--') : '--:--') + '</span></div></div>';
+}
+
+function prevMonth() { calMonth--; if (calMonth < 1) { calMonth = 12; calYear--; } loadCalendar(); }
+function nextMonth() { calMonth++; if (calMonth > 12) { calMonth = 1; calYear++; } loadCalendar(); }
+
+// ===== QR CARD =====
+async function loadQRCard() {
+    try {
+        const r = await fetch('/api/student/qrcard');
+        if (!r.ok) throw new Error(r.status === 401 ? 'Unauthorized' : 'Failed');
+        const d = await r.json();
+
+        document.getElementById('qrLoading').classList.add('hidden');
+        document.getElementById('qrContent').classList.remove('hidden');
+        document.getElementById('qrActions').classList.remove('hidden');
+
+        document.getElementById('qrName').textContent = d.name || '-';
+        document.getElementById('qrNis').textContent = 'NIS: ' + (d.nis || '-');
+
+        if (d.qr_image) {
+            document.getElementById('qrImage').src = d.qr_image;
+            document.getElementById('qrImage').classList.remove('hidden');
+            document.getElementById('qrPlaceholder').classList.add('hidden');
+        }
+
+        if (d.photo) {
+            document.getElementById('qrPhoto').src = d.photo;
+            document.getElementById('qrPhoto').classList.remove('hidden');
+            document.getElementById('qrPhotoPlaceholder').classList.add('hidden');
+        }
+    } catch(e) {
+        document.getElementById('qrLoading').innerHTML =
+            '<div class="relative z-10 flex flex-col items-center text-center">' +
+            '<i class="ph ph-warning-circle text-3xl text-red-400 mb-2"></i>' +
+            '<p class="text-sm text-text-muted">Gagal memuat kartu digital</p></div>';
+        if (e.message === 'Unauthorized') window.location.href = '/student/login';
+    }
+}
+
+function downloadQR() {
+    const img = document.getElementById('qrImage');
+    if (!img.src) return;
+    const a = document.createElement('a'); a.href = img.src; a.download = 'kartu-digital.png'; a.click();
+}
+
+function shareQR() {
+    const img = document.getElementById('qrImage');
+    if (!img.src) return;
+    if (navigator.share) {
+        fetch(img.src).then(r => r.blob()).then(blob => {
+            navigator.share({ title: 'Kartu Digital SMK NIBA', files: [new File([blob], 'kartu-digital.png', {type:'image/png'})] }).catch(()=>{});
+        }).catch(()=>{});
+    } else { downloadQR(); }
+}
+
+// ===== PIN CHANGE =====
+document.getElementById('pinForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const oldPin = document.getElementById('oldPin').value.trim();
+    const newPin = document.getElementById('newPin').value.trim();
+    const confirm = document.getElementById('confirmPin').value.trim();
+
+    document.getElementById('pinError').classList.add('hidden');
+    document.getElementById('pinSuccess').classList.add('hidden');
+
+    if (newPin !== confirm) { showPinErr('PIN baru dan konfirmasi tidak cocok'); return; }
+    if (!/^\d{4,8}$/.test(newPin)) { showPinErr('PIN harus 4-8 digit angka'); return; }
+
+    const btn = document.getElementById('pinBtn');
+    btn.disabled = true;
+    document.getElementById('pinBtnText').classList.add('hidden');
+    document.getElementById('pinBtnSpinner').classList.remove('hidden');
+
+    try {
+        const r = await fetch('/api/student/pin', {
+            method: 'PUT',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({old_pin: oldPin, new_pin: newPin})
+        });
+        const d = await r.json();
+        if (r.ok) {
+            document.getElementById('pinSuccess').textContent = d.message || 'PIN berhasil diubah';
+            document.getElementById('pinSuccess').classList.remove('hidden');
+            document.getElementById('oldPin').value = ''; document.getElementById('newPin').value = ''; document.getElementById('confirmPin').value = '';
+        } else { showPinErr(d.message || 'Gagal mengubah PIN'); }
+    } catch { showPinErr('Terjadi kesalahan koneksi'); }
+    finally { btn.disabled = false; document.getElementById('pinBtnText').classList.remove('hidden'); document.getElementById('pinBtnSpinner').classList.add('hidden'); }
+});
+
+function showPinErr(msg) { document.getElementById('pinError').textContent = msg; document.getElementById('pinError').classList.remove('hidden'); }
+
+// ===== LOGOUT =====
+async function doLogout() {
+    await fetch('/api/student/logout', { method: 'POST' });
+    window.location.href = '/student/login';
+}
+
+// ===== TOAST =====
+function showToast(msg) {
+    const t = document.createElement('div');
+    t.className = 'fixed top-4 left-4 right-4 bg-gray-800 text-white px-4 py-3 rounded-xl text-sm font-semibold text-center shadow-lg z-50 animate-[fadeIn_0.3s_ease-out]';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+}
+</script>
+</body>
+</html>
