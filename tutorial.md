@@ -1,4 +1,4 @@
-# Panduan Deployment SmartBell (Single Binary) 🚀
+# Panduan Deployment SMK NIBA Super Apps (Single Binary) 🚀
 
 Dokumen ini menjelaskan cara deployment menggunakan **satu file aplikasi saja**.
 Semua script setup dan tampilan HTML sudah menyatu di dalam file `bell_linux`.
@@ -66,5 +66,5 @@ Menu yang tersedia:
 Aplikasi berjalan otomatis. Cek log dengan:
 
 ```bash
-sudo journalctl -u smartbell -f
+sudo journalctl -u SMK NIBA Super Apps -f
 ```

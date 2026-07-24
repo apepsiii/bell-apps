@@ -54,6 +54,7 @@ type Student struct {
 	ID          int
 	RFID        string
 	NIS         string
+	NIS_Siswa   string
 	Name        string
 	ParentPhone string
 	ParentName  string
@@ -61,6 +62,7 @@ type Student struct {
 	ClassName   string
 	Photo       string
 	Birthday    string
+	Status      string
 }
 
 type Staff struct {

@@ -9,56 +9,175 @@
         <script src="https://unpkg.com/lucide@latest"></script>
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+        <script>
+            // Tailwind theme extension: map Islamic palette onto Tailwind color tokens
+            // so existing `blue-600`, `slate-*` utility classes inherit the new look
+            // without touching every markup line.
+            tailwind.config = {
+                theme: {
+                    extend: {
+                        colors: {
+                            // Remap the default `blue` scale to the Islamic emerald palette so
+                            // every existing `blue-*` / `hover:text-blue-600` class across the
+                            // 4400-line admin markup inherits the new theme without markup edits.
+                            blue: {
+                                50: '#E8F3EE', 100: '#D1E7DD', 200: '#A3CFBB',
+                                300: '#7BB59C', 400: '#3E9B73', 500: '#1A7A4C',
+                                600: '#0F5132', 700: '#0A3D26', 800: '#072E1C', 900: '#062418'
+                            },
+                            // Also soften green (status cards) toward the same family.
+                            green: {
+                                50: '#E8F3EE', 100: '#D1E7DD', 200: '#A3CFBB',
+                                500: '#1A7A4C', 600: '#0F5132', 700: '#0A3D26'
+                            },
+                            gold: { 50: '#F5EEDC', 400: '#D4AF37', 500: '#C9A227', 600: '#A88419' },
+                            cream: '#FAF7F0',
+                            ink: '#1A2E25',
+                            // Slate stays as neutral but tinted slightly warm-neutral.
+                            slate: {
+                                50: '#FAF7F0', 100: '#F1ECE0', 200: '#E4DCC9',
+                                300: '#C9BFA8', 400: '#8A8270', 500: '#6B6354',
+                                600: '#4A4438', 700: '#332F26', 800: '#1F1C16', 900: '#121009'
+                            }
+                        },
+                        fontFamily: {
+                            sans: ['Inter', 'system-ui', 'sans-serif'],
+                            arabic: ['Amiri', 'serif'],
+                            mono: ['JetBrains Mono', 'monospace']
+                        },
+                        boxShadow: {
+                            'soft': '0 1px 2px rgba(15, 81, 50, 0.04), 0 8px 24px rgba(15, 81, 50, 0.06)',
+                            'card': '0 1px 3px rgba(15, 81, 50, 0.05), 0 10px 30px rgba(15, 81, 50, 0.08)'
+                        }
+                    }
+                }
+            }
+        </script>
         <style>
+            body {
+                font-family: 'Inter', system-ui, sans-serif;
+                -webkit-font-smoothing: antialiased;
+                background-color: #FAF7F0;
+                color: #1A2E25;
+            }
+
             .page-section {
                 display: none;
-                animation: fadeIn 0.3s ease-in-out;
+                animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
             }
-
-            .page-section.active {
-                display: block;
-            }
+            .page-section.active { display: block; }
 
             @keyframes fadeIn {
-                from {
-                    opacity: 0;
-                    transform: translateY(10px);
-                }
-
-                to {
-                    opacity: 1;
-                    transform: translateY(0);
-                }
+                from { opacity: 0; transform: translateY(8px); }
+                to { opacity: 1; transform: translateY(0); }
             }
 
+            /* === NAV: recolor blue-600 accents to emerald via the existing classes === */
             .active-nav {
-                background-color: #eff6ff;
-                color: #2563eb;
-                border-right: 3px solid #2563eb;
+                background-color: #E8F3EE;
+                color: #0F5132;
+                border-right: 3px solid #0F5132;
             }
+            .nav-item { transition: color .15s ease, background-color .15s ease; }
+            .nav-item:hover { color: #0F5132; }
+
+            /* Recolor the blue logo block to emerald */
+            .brand-logo {
+                background-color: #0F5132;
+            }
+
+            /* === CARDS: refined minimalism ===
+               Override the common admin card pattern `bg-white p-6 rounded-xl border border-slate-200 shadow-sm`
+               by targeting the exact class combo on divs. Keeps markup untouched. */
+            .card-mod {
+                background: #FFFFFF;
+                border: 1px solid rgba(15, 81, 50, 0.08);
+                border-radius: 16px;
+                box-shadow: 0 1px 2px rgba(15, 81, 50, 0.04), 0 8px 24px rgba(15, 81, 50, 0.06);
+            }
+
+            /* Soft section heading accent */
+            .section-title {
+                color: #0F5132;
+                letter-spacing: -0.01em;
+            }
+
+            /* Pills / badges recolor */
+            .pill-emerald { background-color: #E8F3EE; color: #0F5132; }
+            .pill-gold { background-color: #F5EEDC; color: #A88419; }
+
+            /* Buttons: primary emerald */
+            .btn-emerald {
+                background-color: #0F5132;
+                color: #FAF7F0;
+                border-radius: 10px;
+                font-weight: 600;
+                transition: background-color .15s ease, transform .1s ease;
+            }
+            .btn-emerald:hover { background-color: #0A3D26; }
+            .btn-emerald:active { transform: translateY(1px); }
+
+            /* Status dot pulse (online indicator) */
+            @keyframes status-pulse {
+                0%, 100% { transform: scale(1); opacity: 1; }
+                50% { transform: scale(1.3); opacity: .7; }
+            }
+            .status-dot { animation: status-pulse 1.8s ease-in-out infinite; }
+
+            /* Dropdown refinement */
+            .dropdown-panel {
+                background: #FFFFFF;
+                border: 1px solid rgba(15, 81, 50, 0.1);
+                border-radius: 12px;
+                box-shadow: 0 8px 30px rgba(15, 81, 50, 0.12);
+            }
+
+            /* Table header refinement */
+            thead.bg-slate-50 { background-color: #F5EEDC !important; }
+            thead.bg-slate-50 th { color: #0A3D26 !important; }
+
+            /* Scrollbar */
+            ::-webkit-scrollbar { width: 8px; height: 8px; }
+            ::-webkit-scrollbar-track { background: transparent; }
+            ::-webkit-scrollbar-thumb { background: rgba(15, 81, 50, 0.18); border-radius: 4px; }
+            ::-webkit-scrollbar-thumb:hover { background: rgba(15, 81, 50, 0.3); }
 
             .swal2-popup {
                 font-family: 'Inter', system-ui, sans-serif !important;
+                border-radius: 16px !important;
+            }
+
+            /* Islamic geometric accent for the header brand */
+            .brand-mark::before {
+                content: '۞';
+                color: #D4AF37;
+                font-size: 0.7rem;
+                margin-right: 0.4rem;
+                opacity: 0.7;
             }
         </style>
     </head>
 
-    <body class="bg-slate-50 text-slate-800 font-sans">
+    <body class="bg-cream text-ink font-sans">
 
         <div class="flex flex-col h-screen overflow-hidden">
 
 
 
             <!-- TOP NAVIGATION -->
-            <header class="bg-white border-b border-slate-200 z-30 relative">
+            <header class="bg-white border-b border-blue-900/10 z-30 relative">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div class="flex justify-between h-16">
                         <!-- LOGO & BRAND -->
                         <div class="flex items-center gap-3">
-                            <div class="bg-blue-600 p-2 rounded-lg text-white">
+                            <div class="brand-logo p-2 rounded-lg text-amber-300">
                                 <i data-lucide="bell-ring" class="w-6 h-6"></i>
                             </div>
-                            <h1 class="font-bold text-xl tracking-tight text-slate-800">SmartBell</h1>
+                            <div>
+                                <h1 class="font-bold text-xl tracking-tight text-blue-700 brand-mark">SMK NIBA Super Apps</h1>
+                                <p class="text-[10px] uppercase tracking-widest text-blue-900/40 font-semibold -mt-0.5">Admin Panel</p>
+                            </div>
                         </div>
 
                         <!-- DESKTOP NAV -->
@@ -126,6 +245,10 @@
                                         PDF</button>
                                     <button onclick="navigateMenu('announcements', this)" id="nav-announcements"
                                         class="nav-item w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">Pengumuman</button>
+                                    <button onclick="window.open('/admin/idcard', '_blank')"
+                                        class="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2">
+                                        <i data-lucide="credit-card" class="w-4 h-4"></i> Kartu Siswa
+                                    </button>
                                 </div>
                             </div>
 
@@ -153,8 +276,8 @@
                         <!-- RIGHT ACTIONS -->
                         <div class="flex items-center gap-4">
                             <div
-                                class="hidden md:flex items-center gap-2 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">
-                                <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Sistem Online
+                                class="hidden md:flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold">
+                                <span class="w-2 h-2 bg-blue-500 rounded-full status-dot"></span> Sistem Online
                             </div>
 
                             <div class="relative group">
@@ -232,30 +355,31 @@
                     <section id="dashboard" class="page-section active">
                         <div class="flex justify-between items-end mb-6">
                             <div>
-                                <h2 class="text-2xl font-bold text-slate-800">Ringkasan</h2>
+                                <h2 class="text-2xl font-bold section-title">Ringkasan</h2>
+                                <p class="text-sm text-emerald-900/50 mt-0.5">Selamat datang kembali, Administrator</p>
                             </div>
                             <div class="text-right">
                                 <p class="text-xl font-mono font-bold text-blue-600" id="server-clock">00:00:00</p>
                             </div>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                            <div class="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-xl shadow-sm">
-                                <p class="text-sm text-green-100">Siswa Aktif</p>
-                                <h3 class="text-2xl font-bold text-white">{{.Stats.ActiveStudents}}</h3>
-                                <p class="text-xs text-green-200 mt-1">Dari total {{.Stats.TotalStudents}} siswa</p>
+                            <div class="bg-blue-600 p-6 rounded-2xl shadow-soft">
+                                <p class="text-sm text-blue-100">Siswa Aktif</p>
+                                <h3 class="text-3xl font-bold text-white mt-1">{{.Stats.ActiveStudents}}</h3>
+                                <p class="text-xs text-blue-200/80 mt-1">Dari total {{.Stats.TotalStudents}} siswa</p>
                             </div>
-                            <div class="bg-gradient-to-br from-red-500 to-red-600 p-6 rounded-xl shadow-sm">
-                                <p class="text-sm text-red-100">Siswa Tidak Aktif</p>
-                                <h3 class="text-2xl font-bold text-white">{{.Stats.InactiveStudents}}</h3>
-                                <p class="text-xs text-red-200 mt-1">Alumni/mundur</p>
+                            <div class="bg-gold-500 p-6 rounded-2xl shadow-soft">
+                                <p class="text-sm text-gold-50">Siswa Tidak Aktif</p>
+                                <h3 class="text-3xl font-bold text-white mt-1">{{.Stats.InactiveStudents}}</h3>
+                                <p class="text-xs text-gold-50/80 mt-1">Alumni/mundur</p>
                             </div>
-                            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                                <p class="text-sm text-slate-500">Total Guru/Staff</p>
-                                <h3 class="text-2xl font-bold">{{.Stats.TotalStaff}}</h3>
+                            <div class="bg-white p-6 rounded-2xl border border-blue-900/8 shadow-soft">
+                                <p class="text-sm text-blue-900/50">Total Guru/Staff</p>
+                                <h3 class="text-3xl font-bold text-blue-700 mt-1">{{.Stats.TotalStaff}}</h3>
                             </div>
-                            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                                <p class="text-sm text-slate-500">Bel Berikutnya</p>
-                                <h3 class="text-lg font-bold truncate">{{.Stats.NextBell}}</h3>
+                            <div class="bg-white p-6 rounded-2xl border border-blue-900/8 shadow-soft">
+                                <p class="text-sm text-blue-900/50">Bel Berikutnya</p>
+                                <h3 class="text-lg font-bold text-blue-700 truncate mt-1">{{.Stats.NextBell}}</h3>
                             </div>
                         </div>
 
@@ -288,6 +412,69 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- LEADERBOARD SECTION -->
+                        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="font-bold text-slate-700 flex items-center gap-2">
+                                    <i data-lucide="trophy" class="w-5 h-5 text-yellow-500"></i>
+                                    Papan Poin Siswa
+                                </h3>
+                                <a href="/admin/points/leaderboard" class="text-sm text-blue-600 hover:text-blue-700">Lihat Semua</a>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left">
+                                    <thead class="bg-slate-50 border-b">
+                                        <tr>
+                                            <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase">#</th>
+                                            <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase">Nama</th>
+                                            <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase">Kelas</th>
+                                            <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase text-right">Poin</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100" id="leaderboard-body">
+                                        {{range .Leaderboard}}
+                                        <tr class="hover:bg-slate-50 transition">
+                                            <td class="px-4 py-3">
+                                                <span class="text-slate-400">-</span>
+                                            </td>
+                                            <td class="px-4 py-3 font-medium text-slate-700">{{.Name}}</td>
+                                            <td class="px-4 py-3 text-slate-500 text-sm">{{.ClassName}}</td>
+                                            <td class="px-4 py-3 text-right">
+                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-sm font-bold {{if gt .Points 0}}bg-green-100 text-green-700{{else if lt .Points 0}}bg-red-100 text-red-700{{else}}bg-slate-100 text-slate-600{{end}}">
+                                                    {{.Points}}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        {{else}}
+                                        <tr>
+                                            <td colspan="4" class="px-4 py-8 text-center text-slate-400">Belum ada data poin</td>
+                                        </tr>
+                                        {{end}}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <script>
+                            // Add rank numbers to leaderboard after page load
+                            document.addEventListener('DOMContentLoaded', function() {
+                                const tbody = document.getElementById('leaderboard-body');
+                                if (tbody) {
+                                    const rows = tbody.querySelectorAll('tr');
+                                    rows.forEach((row, index) => {
+                                        const firstCell = row.querySelector('td:first-child');
+                                        if (firstCell && !firstCell.querySelector('span.text-slate-400')?.textContent.includes('-')) return;
+                                        const medals = ['🥇', '🥈', '🥉'];
+                                        if (index < 3) {
+                                            firstCell.innerHTML = '<span class="font-bold">' + medals[index] + '</span>';
+                                        } else {
+                                            firstCell.innerHTML = '<span class="text-slate-400">' + (index + 1) + '</span>';
+                                        }
+                                    });
+                                }
+                            });
+                        </script>
                     </section>
 
                     <!-- 2. JADWAL -->
@@ -610,21 +797,29 @@
                                         <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider">Foto</th>
                                         <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider cursor-pointer hover:bg-slate-100 transition select-none group"
                                             onclick="sortTable(2)">
-                                            <div class="flex items-center gap-1">NIS <i data-lucide="arrow-up-down"
+                                            <div class="flex items-center gap-1">ID Card Number <i data-lucide="arrow-up-down"
                                                     class="w-3 h-3 opacity-0 group-hover:opacity-50"></i></div>
                                         </th>
                                         <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider cursor-pointer hover:bg-slate-100 transition select-none group"
                                             onclick="sortTable(3)">
-                                            <div class="flex items-center gap-1">Nama <i data-lucide="arrow-up-down"
+                                            <div class="flex items-center gap-1">NIS Siswa <i data-lucide="arrow-up-down"
                                                     class="w-3 h-3 opacity-0 group-hover:opacity-50"></i></div>
                                         </th>
                                         <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider cursor-pointer hover:bg-slate-100 transition select-none group"
                                             onclick="sortTable(4)">
+                                            <div class="flex items-center gap-1">Nama <i data-lucide="arrow-up-down"
+                                                    class="w-3 h-3 opacity-0 group-hover:opacity-50"></i></div>
+                                        </th>
+                                        <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider cursor-pointer hover:bg-slate-100 transition select-none group"
+                                            onclick="sortTable(5)">
                                             <div class="flex items-center gap-1">Kelas <i data-lucide="arrow-up-down"
                                                     class="w-3 h-3 opacity-0 group-hover:opacity-50"></i></div>
                                         </th>
-                                        <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider">RFID UID</th>
-                                        <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider">Status</th>
+                                        <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider cursor-pointer hover:bg-slate-100 transition select-none group"
+                                            onclick="sortTable(6)">
+                                            <div class="flex items-center gap-1">Status <i data-lucide="arrow-up-down"
+                                                    class="w-3 h-3 opacity-0 group-hover:opacity-50"></i></div>
+                                        </th>
                                         <th class="px-6 py-4 text-right">Aksi</th>
                                     </tr>
                                 </thead>
@@ -645,14 +840,13 @@
                                             </div>{{end}}
                                         </td>
                                         <td class="px-6 py-4 text-sm font-mono text-slate-600">{{.NIS}}</td>
+                                        <td class="px-6 py-4 text-sm font-mono text-slate-600">{{.NIS_Siswa}}</td>
                                         <td class="px-6 py-4 text-sm font-medium student-name text-slate-800">
                                             {{.Name}}<br><span class="text-xs text-slate-400 font-normal">Ortu:
                                                 {{.ParentPhone}}</span></td>
                                         <td class="px-6 py-4 text-sm text-slate-500 student-class"><span
                                                 class="bg-blue-50 text-blue-600 px-2 py-1 rounded text-xs font-medium">{{.ClassName}}</span>
                                         </td>
-                                        <td class="px-6 py-4 text-xs font-mono bg-slate-50 text-slate-500 rounded">
-                                            {{.RFID}}</td>
                                         <td class="px-6 py-4">
                                             {{if eq .Status "active"}}
                                             <span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-medium">Aktif</span>
@@ -672,7 +866,7 @@
                                                 <i data-lucide="user" class="w-3 h-3"></i> Profil
                                             </a>
                                             <button
-                                                onclick="editStudent('{{.ID}}', '{{.RFID}}', '{{.NIS}}', '{{.Name}}', '{{.ParentPhone}}', '{{.ClassID}}', '{{.Photo}}', '{{.Birthday}}', '{{.Status}}')"
+                                                onclick="editStudent('{{.ID}}', '{{.RFID}}', '{{.NIS}}', '{{.NIS_Siswa}}', '{{.Name}}', '{{.ParentPhone}}', '{{.ClassID}}', '{{.Photo}}', '{{.Birthday}}', '{{.Status}}')"
                                                 class="text-blue-600 hover:bg-blue-50 p-2 rounded transition"><i
                                                     data-lucide="edit-2" class="w-4 h-4"></i></button>
                                             <button onclick="deleteItem('student', {{.ID}})"
@@ -1003,12 +1197,51 @@
                             class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 hidden">
                             <div class="flex justify-between items-center mb-4">
                                 <h3 class="text-lg font-semibold">Preview Laporan</h3>
-                                <button onclick="closePreview()" class="text-slate-500 hover:text-slate-700">
-                                    <i data-lucide="x" class="w-5 h-5"></i>
-                                </button>
+                                <div class="flex items-center gap-2">
+                                    <!-- WhatsApp report actions -->
+                                    <button onclick="generateWhatsAppReport()" id="btn-wa-report"
+                                        class="hidden bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5">
+                                        <i data-lucide="message-circle" class="w-3.5 h-3.5"></i> Salin Laporan WA
+                                    </button>
+                                    <button onclick="openWhatsAppModal()" id="btn-wa-modal"
+                                        class="hidden bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5">
+                                        <i data-lucide="share-2" class="w-3.5 h-3.5"></i> Opsi Laporan WA
+                                    </button>
+                                    <button onclick="closePreview()" class="text-slate-500 hover:text-slate-700">
+                                        <i data-lucide="x" class="w-5 h-5"></i>
+                                    </button>
+                                </div>
                             </div>
                             <div id="reportPreviewContent" class="overflow-x-auto">
                                 <!-- Preview content will be loaded here -->
+                            </div>
+                        </div>
+
+                        <!-- WhatsApp Report Modal -->
+                        <div id="modal-wa-report" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+                            <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="text-lg font-bold flex items-center gap-2">
+                                        <i data-lucide="message-circle" class="w-5 h-5 text-green-600"></i>
+                                        Laporan WhatsApp
+                                    </h3>
+                                    <button onclick="closeModal('modal-wa-report')" class="text-slate-400 hover:text-slate-600">
+                                        <i data-lucide="x" class="w-5 h-5"></i>
+                                    </button>
+                                </div>
+                                <p class="text-xs text-slate-500 mb-3">Salin teks di bawah, lalu paste ke grup WhatsApp wali kelas.</p>
+                                <textarea id="wa-report-text" readonly
+                                    class="w-full h-64 border border-slate-200 rounded-lg p-3 text-sm font-mono bg-slate-50 resize-none focus:outline-none"></textarea>
+                                <div class="flex gap-2 mt-4">
+                                    <button onclick="copyWhatsAppReport()"
+                                        class="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2">
+                                        <i data-lucide="copy" class="w-4 h-4"></i> Salin ke Clipboard
+                                    </button>
+                                    <button onclick="closeModal('modal-wa-report')"
+                                        class="px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100">
+                                        Tutup
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </section>
@@ -1191,13 +1424,13 @@
                                         <thead class="bg-slate-50 border-b">
                                             <tr>
                                                 <th class="px-6 py-3 w-10">
-                                                    <input type="checkbox" onchange="toggleAllPrayer(this)"
+                                                    <input type="checkbox" id="prayer-select-all" onchange="toggleAllPrayer(this)"
                                                         class="rounded text-blue-600 focus:ring-blue-500">
+                                                </th>
+                                                <th class="px-6 py-3 text-xs font-bold uppercase text-slate-500">Status
                                                 </th>
                                                 <th class="px-6 py-3 text-xs font-bold uppercase text-slate-500">Nama
                                                     Siswa</th>
-                                                <th class="px-6 py-3 text-xs font-bold uppercase text-slate-500">Status
-                                                </th>
                                             </tr>
                                         </thead>
                                         <tbody id="prayer-manual-tbody" class="divide-y divide-slate-100">
@@ -1208,6 +1441,25 @@
                                         </tbody>
                                     </table>
                                 </div>
+
+                                <!-- Bulk Action Toolbar -->
+                                <div id="prayer-bulk-toolbar" class="hidden mt-3 flex flex-wrap items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                    <span class="text-xs font-bold uppercase tracking-wider text-slate-500 mr-2">Aksi Massal:</span>
+                                    <button type="button" onclick="setBulkPrayerStatus('Hadir')"
+                                        class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded inline-flex items-center gap-1">
+                                        <i data-lucide="check-check" class="w-3.5 h-3.5"></i> Semua Hadir
+                                    </button>
+                                    <button type="button" onclick="setBulkPrayerStatus('PMS')"
+                                        class="bg-pink-600 hover:bg-pink-700 text-white text-xs font-semibold px-3 py-1.5 rounded inline-flex items-center gap-1">
+                                        <i data-lucide="users" class="w-3.5 h-3.5"></i> Semua PMS
+                                    </button>
+                                    <button type="button" onclick="setBulkPrayerStatus('')"
+                                        class="bg-slate-500 hover:bg-slate-600 text-white text-xs font-semibold px-3 py-1.5 rounded inline-flex items-center gap-1">
+                                        <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reset
+                                    </button>
+                                    <span class="text-xs text-slate-500 ml-auto">Hanya siswa yang tercentang</span>
+                                </div>
+
                                 <div class="mt-4 text-right">
                                     <button onclick="submitPrayerAttendance()"
                                         class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded font-bold shadow-lg flex items-center gap-2 ml-auto">
@@ -1615,12 +1867,14 @@
                             name="rfid_uid" id="stu-rfid" required placeholder="Tempel Kartu..."
                             class="w-full border rounded p-2 bg-yellow-50 focus:bg-white"></div>
                     <div class="grid grid-cols-2 gap-4">
-                        <div><label class="text-sm font-medium">NIS</label><input type="text" name="nis" id="stu-nis"
+                        <div><label class="text-sm font-medium">ID Card Number</label><input type="text" name="nis" id="stu-nis"
                                 required class="w-full border rounded p-2"></div>
-                        <div><label class="text-sm font-medium">Kelas</label><select name="class_id" id="stu-class"
+                        <div><label class="text-sm font-medium">NIS Siswa</label><input type="text" name="nis_siswa" id="stu-nis-siswa"
+                                class="w-full border rounded p-2"></div>
+                    </div>
+                    <div><label class="text-sm font-medium">Kelas</label><select name="class_id" id="stu-class"
                                 class="w-full border rounded p-2">{{range .Classes}}<option value="{{.ID}}">{{.Name}}
                                 </option>{{end}}</select></div>
-                    </div>
                     <div><label class="text-sm font-medium">Nama Lengkap</label><input type="text" name="name"
                             id="stu-name" required class="w-full border rounded p-2"></div>
                     <div><label class="text-sm font-medium">No. HP Ortu</label><input type="text" name="parent_phone"
@@ -2634,7 +2888,12 @@
             }
 
             // Display preview data
+            // Cache last preview data so the WhatsApp report generator can reuse it
+            // without re-fetching from the server.
+            let lastReportData = null;
+
             function displayPreview(data) {
+                lastReportData = data;
                 const previewDiv = document.getElementById('reportPreview');
                 const contentDiv = document.getElementById('reportPreviewContent');
 
@@ -2691,7 +2950,113 @@
 
                 contentDiv.innerHTML = html;
                 previewDiv.classList.remove('hidden');
+
+                // Show WhatsApp report actions (only meaningful for student reports)
+                const showWA = data.Type === 'student';
+                document.getElementById('btn-wa-report').classList.toggle('hidden', !showWA);
+                document.getElementById('btn-wa-modal').classList.toggle('hidden', !showWA);
+
                 lucide.createIcons();
+            }
+
+            // --- WhatsApp Report Generator ---
+            // Builds a WhatsApp-ready text summary from the cached preview data.
+            // Output includes: class name (or "Semua Kelas"), homeroom placeholder,
+            // counts of present / absent / late, and a list of absent students.
+            function buildWhatsAppReportText() {
+                if (!lastReportData) return '';
+                const d = lastReportData;
+
+                // Determine class label
+                const classSelect = document.getElementById('reportClassFilter');
+                let classLabel = 'Semua Kelas';
+                if (classSelect && classSelect.value) {
+                    classLabel = classSelect.options[classSelect.selectedIndex].text;
+                }
+
+                const present = d.TotalPresent || 0;
+                const late = d.TotalLate || 0;
+                const sick = d.TotalSick || 0;
+                const permission = d.TotalPermission || 0;
+                const absent = d.TotalAbsent || 0;
+                const total = d.TotalRecords || 0;
+
+                // Collect names of absent/missing students (no present status)
+                const absentees = [];
+                if (d.Records && d.Records.length > 0) {
+                    d.Records.forEach(r => {
+                        // For daily reports: status "Tidak Hadir" or empty means absent.
+                        // For weekly/monthly: use AbsentCount if available.
+                        const isDailyAbsent = (!r.Status || r.Status === 'Tidak Hadir') && r.PresentCount === undefined;
+                        const isPeriodAbsent = (r.PresentCount !== undefined) && r.PresentCount === 0;
+                        if (isDailyAbsent || isPeriodAbsent) {
+                            absentees.push(r.Name);
+                        }
+                    });
+                }
+
+                const lines = [];
+                lines.push('📋 *LAPORAN PRESENSI SISWA*');
+                lines.push('');
+                lines.push(`🏫 Kelas   : ${classLabel}`);
+                lines.push(`👤 Wali    : ___________________`);
+                lines.push(`📅 Periode : ${d.Period || '-'}`);
+                lines.push('');
+                lines.push(`📊 *Ringkasan:*`);
+                lines.push(`• Jumlah Siswa : ${total}`);
+                lines.push(`• Hadir        : ${present}`);
+                lines.push(`• Terlambat    : ${late}`);
+                lines.push(`• Sakit        : ${sick}`);
+                lines.push(`• Izin         : ${permission}`);
+                lines.push(`• Tidak Hadir  : ${absent}`);
+                lines.push('');
+
+                if (absentees.length > 0) {
+                    lines.push(`📛 *Daftar Tidak Hadir:*`);
+                    absentees.forEach((n, i) => lines.push(`${i + 1}. ${n}`));
+                    lines.push('');
+                }
+
+                lines.push(`_Dibuat via SMK NIBA Super Apps_${new Date().toLocaleString('id-ID')}`);
+
+                return lines.join('\n');
+            }
+
+            function generateWhatsAppReport() {
+                const text = buildWhatsAppReportText();
+                if (!text) {
+                    Swal.fire('Info', 'Belum ada data laporan. Klik Preview dulu.', 'info');
+                    return;
+                }
+                const ta = document.getElementById('wa-report-text');
+                ta.value = text;
+                openModal('modal-wa-report');
+                lucide.createIcons();
+            }
+
+            // Alias so the modal header button works the same way.
+            function openWhatsAppModal() {
+                generateWhatsAppReport();
+            }
+
+            async function copyWhatsAppReport() {
+                const ta = document.getElementById('wa-report-text');
+                if (!ta.value) return;
+                try {
+                    await navigator.clipboard.writeText(ta.value);
+                    Swal.fire({
+                        toast: true, position: 'top-end', icon: 'success',
+                        title: 'Tersalin! Paste ke WhatsApp.', showConfirmButton: false, timer: 2000
+                    });
+                } catch (e) {
+                    // Fallback for older browsers / non-secure context
+                    ta.select();
+                    document.execCommand('copy');
+                    Swal.fire({
+                        toast: true, position: 'top-end', icon: 'success',
+                        title: 'Tersalin! Paste ke WhatsApp.', showConfirmButton: false, timer: 2000
+                    });
+                }
             }
 
             // Close preview
@@ -3041,10 +3406,11 @@
                 document.getElementById('cls-wa').value = waGroup;
                 openModal('modal-class');
             }
-            function editStudent(id, rfid, nis, name, phone, classId, photo, birthday, status) {
+            function editStudent(id, rfid, nis, nisSiswa, name, phone, classId, photo, birthday, status) {
                 document.getElementById('student-form').action = `/admin/student/update/${id}`;
                 document.getElementById('stu-rfid').value = rfid;
                 document.getElementById('stu-nis').value = nis;
+                document.getElementById('stu-nis-siswa').value = nisSiswa || '';
                 document.getElementById('stu-name').value = name;
                 document.getElementById('stu-phone').value = phone;
                 document.getElementById('stu-class').value = classId;
@@ -3251,7 +3617,8 @@
                     const res = await fetch('/api/attendance/prayer-logs');
                     if (!res.ok) throw new Error("Gagal mengambil data");
 
-                    const logs = await res.json();
+                    const _plResp = await res.json();
+                    const logs = Array.isArray(_plResp) ? _plResp : (_plResp.logs || []);
                     tbody.innerHTML = '';
 
                     if (logs.length === 0) {
@@ -3516,7 +3883,8 @@
                     const res = await fetch('/api/attendance/prayer-logs');
                     if (!res.ok) throw new Error("Gagal mengambil data");
 
-                    const logs = await res.json();
+                    const _plResp = await res.json();
+                    const logs = Array.isArray(_plResp) ? _plResp : (_plResp.logs || []);
                     tbody.innerHTML = '';
 
                     if (logs.length === 0) {
@@ -3998,6 +4366,12 @@
                 const date = document.getElementById('prayer-manual-date').value;
                 const type = document.getElementById('prayer-manual-type').value;
                 const tbody = document.getElementById('prayer-manual-tbody');
+                const toolbar = document.getElementById('prayer-bulk-toolbar');
+                const selectAll = document.getElementById('prayer-select-all');
+
+                // Hide bulk toolbar + reset select-all whenever we (re)load
+                if (toolbar) toolbar.classList.add('hidden');
+                if (selectAll) selectAll.checked = false;
 
                 if (!classID || !date || !type) {
                     tbody.innerHTML = '<tr><td colspan="3" class="px-6 py-8 text-center text-slate-500">Pilih Kelas, Tanggal, dan Waktu Sholat terlebih dahulu</td></tr>';
@@ -4017,6 +4391,9 @@
 
                     tbody.innerHTML = data.map(s => `
                         <tr class="hover:bg-slate-50 border-b last:border-0 transition-colors" data-student-id="${s.id}">
+                            <td class="px-6 py-3 text-center">
+                                <input type="checkbox" class="prayer-check rounded text-blue-600 focus:ring-blue-500" ${s.status ? 'checked' : ''}>
+                            </td>
                             <td class="px-6 py-3">
                                 <div class="flex items-center gap-4">
                                     <label class="flex items-center gap-1 cursor-pointer">
@@ -4039,16 +4416,22 @@
                                     </label>
                                 </div>
                             </td>
-                            <td class="px-6 py-3 font-medium text-slate-700">${s.name}</td>
                             <td class="px-6 py-3 text-xs">
-                                ${s.status === 'Hadir'
-                            ? `<span class="bg-green-100 text-green-700 px-2 py-1 rounded font-bold">Hadir</span>`
-                            : (s.status === 'PMS'
-                                ? `<span class="bg-pink-100 text-pink-700 px-2 py-1 rounded font-bold">PMS</span>`
-                                : `<span class="bg-slate-100 text-slate-500 px-2 py-1 rounded">Belum</span>`)}
+                                <div class="flex items-center gap-2">
+                                    <span class="font-medium text-slate-700">${s.name}</span>
+                                    ${s.status === 'Hadir'
+                                ? `<span class="bg-green-100 text-green-700 px-2 py-1 rounded font-bold">Hadir</span>`
+                                : (s.status === 'PMS'
+                                    ? `<span class="bg-pink-100 text-pink-700 px-2 py-1 rounded font-bold">PMS</span>`
+                                    : `<span class="bg-slate-100 text-slate-500 px-2 py-1 rounded">Belum</span>`)}
+                                </div>
                             </td>
                         </tr>
                     `).join('');
+
+                    // Show bulk toolbar now that data is loaded
+                    if (toolbar) toolbar.classList.remove('hidden');
+                    lucide.createIcons();
 
                 } catch (err) {
                     console.error(err);
@@ -4057,7 +4440,39 @@
             }
 
             function toggleAllPrayer(source) {
-                document.querySelectorAll('.prayer-check').forEach(cb => cb.checked = source.checked);
+                const checked = source.checked;
+                document.querySelectorAll('#prayer-manual-tbody .prayer-check').forEach(cb => {
+                    cb.checked = checked;
+                    cb.closest('tr').classList.toggle('bg-blue-50/50', checked);
+                });
+            }
+
+            // Bulk-set the radio status for all CHECKED rows only.
+            // If no rows are checked, applies to all rows (so "Semua Hadir" still works
+            // even when the user hasn't ticked the master checkbox).
+            function setBulkPrayerStatus(status) {
+                const rows = document.querySelectorAll('#prayer-manual-tbody tr[data-student-id]');
+                if (rows.length === 0) return;
+
+                let checkedRows = [];
+                rows.forEach(row => {
+                    const cb = row.querySelector('.prayer-check');
+                    if (cb && cb.checked) checkedRows.push(row);
+                });
+
+                const targets = checkedRows.length > 0 ? checkedRows : Array.from(rows);
+                targets.forEach(row => {
+                    const id = row.getAttribute('data-student-id');
+                    const radios = row.querySelectorAll(`input[name="p_status_${id}"]`);
+                    radios.forEach(r => {
+                        if (r.value === status) {
+                            r.checked = true;
+                        } else if (status === '') {
+                            // "Reset" = select the empty-value radio (Belum)
+                            if (r.value === '') r.checked = true;
+                        }
+                    });
+                });
             }
 
             async function submitPrayerAttendance() {
@@ -4067,13 +4482,20 @@
 
                 if (!classID || !date || !type) return;
 
-                const rows = document.querySelectorAll('#prayer-manual-tbody tr');
+                // Only include rows whose checkbox is ticked AND have a non-empty
+                // status radio (Hadir/PMS). Unchecked rows are treated as "remove"
+                // by the backend (it deletes their prayer_log for this date/type).
+                const rows = document.querySelectorAll('#prayer-manual-tbody tr[data-student-id]');
                 const students = [];
                 rows.forEach(row => {
                     const id = parseInt(row.getAttribute('data-student-id'));
-                    const radio = row.querySelector(`input[name="p_status_${id}"]:checked`);
+                    if (!id) return;
+                    const cb = row.querySelector('.prayer-check');
+                    // Skip unchecked rows — backend will clear their record.
+                    if (!cb || !cb.checked) return;
 
-                    if (id && radio && radio.value) {
+                    const radio = row.querySelector(`input[name="p_status_${id}"]:checked`);
+                    if (radio && radio.value) {
                         students.push({ id: id, status: radio.value });
                     }
                 });

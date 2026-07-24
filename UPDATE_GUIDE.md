@@ -1,4 +1,4 @@
-# Update Guide untuk SmartBell v1.2.0
+# Update Guide untuk SMK NIBA Super Apps v1.2.0
 
 ## Cara Update Aplikasi di Armbian
 
@@ -9,13 +9,13 @@
 bash build_arm.sh
 ```
 
-Ini akan menghasilkan file: `smartbell_v1_2_0_DDMMYY_arm64`
+Ini akan menghasilkan file: `SMK NIBA Super Apps_v1_2_0_DDMMYY_arm64`
 
 ### 2. Upload ke Server Armbian
 
 ```bash
 # Upload file binary ke server
-scp smartbell_v1_2_0_*_arm64 user@server-ip:/home/user/
+scp SMK NIBA Super Apps_v1_2_0_*_arm64 user@server-ip:/home/user/
 ```
 
 ### 3. Jalankan Deploy Wizard
@@ -39,9 +39,9 @@ Pilih menu (masukkan angka): 2
 
 Script akan otomatis:
 
-- ✅ Menghentikan service smartbell
-- ✅ Mencari file binary terbaru (`smartbell_v*_arm64`)
-- ✅ Copy ke `/opt/smartbell/bell_linux`
+- ✅ Menghentikan service SMK NIBA Super Apps
+- ✅ Mencari file binary terbaru (`SMK NIBA Super Apps_v*_arm64`)
+- ✅ Copy ke `/opt/SMK NIBA Super Apps/bell_linux`
 - ✅ Set permission executable
 - ✅ Restart service
 - ✅ Verifikasi status
@@ -57,7 +57,7 @@ Pastikan file binary sudah diupload ke direktori yang sama dengan `deploy.sh`
 Cek log dengan:
 
 ```bash
-sudo journalctl -u smartbell -n 20
+sudo journalctl -u SMK NIBA Super Apps -n 20
 ```
 
 ### Permission denied
@@ -74,11 +74,11 @@ sudo bash deploy.sh
 2. Cek status service:
 
 ```bash
-sudo systemctl status smartbell
+sudo systemctl status SMK NIBA Super Apps
 ```
 
 3. Cek log real-time:
 
 ```bash
-sudo journalctl -u smartbell -f
+sudo journalctl -u SMK NIBA Super Apps -f
 ```

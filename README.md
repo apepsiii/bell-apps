@@ -1,4 +1,4 @@
-# SmartBell
+# SMK NIBA Super Apps
 
 Sistem manajemen sekolah lengkap untuk SMK dengan fitur absensi RFID, face recognition, dan bell otomatisasi.
 

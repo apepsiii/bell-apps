@@ -1,0 +1,6 @@
+# Auto-detect text files and normalize line endings to LF on checkout
+* text=auto eol=lf
+
+# Force LF for shell scripts (prevents CRLF breaking bash on Linux VPS)
+*.sh text eol=lf
+*.bat text eol=crlf

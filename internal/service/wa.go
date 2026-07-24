@@ -96,7 +96,7 @@ func (s *WhatsAppService) Test(target string) (string, error) {
 	}
 
 	client := onesender.NewClient(apiURL, token)
-	resp, err := client.SendTextMessage(target, "individual", "Test Koneksi SmartBell: Berhasil terhubung!")
+	resp, err := client.SendTextMessage(target, "individual", "Test Koneksi SMK NIBA Super Apps: Berhasil terhubung!")
 	if err != nil {
 		s.logMessage(target, "Test Koneksi", "failed", err.Error())
 		return "", err

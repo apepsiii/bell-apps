@@ -9,10 +9,10 @@ bell_arm64
 smartbell*
 *.pdb
 
-# Database (Local data)
-*.db
-database.db
-database.db-journal
+# Build artifacts (cross-compiled binaries + deploy folders)
+smartbell_v*_linux_*
+deploy_*/
+dist/
 
 # Database (Local data)
 *.db
@@ -25,7 +25,18 @@ public/assets/audio/*
 public/assets/photos/*
 !public/assets/photos/.gitkeep
 
+# Logs (runtime, keep dir via .gitkeep)
+logs/*
+!logs/.gitkeep
+
+# Config (contains secrets)
+config.yaml
+
+# Context (design references, not source)
+context/
+
 # System
 .DS_Store
 Thumbs.db
 tmp/
+progress.md

@@ -1,4 +1,4 @@
-# SmartBell Refactoring Plan
+# SMK NIBA Super Apps Refactoring Plan
 
 ## Current State (After Refactoring)
 

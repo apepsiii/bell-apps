@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -140,12 +141,19 @@ func SeedPointRules(db *sql.DB) {
 	}
 
 	for _, r := range rules {
+		// point_rules table schema: (id, category, name, points, description).
+		// The rule code/tier are kept in the struct for reference only and are
+		// folded into the description so the seed still carries that context.
+		fullDesc := r.description
+		if r.code != "" || r.tier != "" {
+			fullDesc = fmt.Sprintf("[%s | %s] %s", r.code, r.tier, r.description)
+		}
 		if config.IsMySQL() {
-			db.Exec(`INSERT IGNORE INTO point_rules (code, category, name, description, points, tier) VALUES (?, ?, ?, ?, ?, ?)`,
-				r.code, r.category, r.name, r.description, r.points, r.tier)
+			db.Exec(`INSERT IGNORE INTO point_rules (category, name, points, description) VALUES (?, ?, ?, ?)`,
+				r.category, r.name, r.points, fullDesc)
 		} else {
-			db.Exec(`INSERT OR IGNORE INTO point_rules (code, category, name, description, points, tier) VALUES (?, ?, ?, ?, ?, ?)`,
-				r.code, r.category, r.name, r.description, r.points, r.tier)
+			db.Exec(`INSERT OR IGNORE INTO point_rules (category, name, points, description) VALUES (?, ?, ?, ?)`,
+				r.category, r.name, r.points, fullDesc)
 		}
 	}
 }
@@ -159,6 +167,184 @@ func RunMigrations(db *sql.DB) {
 }
 
 func runSQLiteMigrations(db *sql.DB) {
+	// === Core schema: create all tables IF NOT EXISTS ===
+	// This runs on every startup and is idempotent. Schema matches the
+	// production DB so a fresh deployment bootstraps correctly.
+	schema := []string{
+		`CREATE TABLE IF NOT EXISTS schedules (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			time TEXT,
+			label TEXT,
+			audio_file TEXT
+		)`,
+		`CREATE TABLE IF NOT EXISTS audio_files (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			file_name TEXT,
+			display_name TEXT
+		)`,
+		`CREATE TABLE IF NOT EXISTS majors (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT
+		)`,
+		`CREATE TABLE IF NOT EXISTS classes (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT,
+			major_id INTEGER,
+			wa_group_id TEXT DEFAULT ''
+		)`,
+		`CREATE TABLE IF NOT EXISTS students (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			rfid_uid TEXT UNIQUE,
+			nis TEXT,
+			name TEXT,
+			parent_phone TEXT,
+			class_id INTEGER,
+			photo TEXT DEFAULT '',
+			parent_name TEXT DEFAULT '',
+			birthday TEXT DEFAULT '',
+			status TEXT DEFAULT 'active',
+			nis_siswa TEXT DEFAULT '',
+			password TEXT DEFAULT ''
+		)`,
+		`CREATE TABLE IF NOT EXISTS staff (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			rfid_uid TEXT UNIQUE,
+			nip TEXT,
+			name TEXT,
+			phone TEXT,
+			role TEXT
+		)`,
+		`CREATE TABLE IF NOT EXISTS attendance_logs (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			rfid_uid TEXT,
+			user_name TEXT,
+			user_type TEXT,
+			status TEXT,
+			timestamp DATETIME,
+			date DATE,
+			method TEXT DEFAULT 'RFID'
+		)`,
+		`CREATE TABLE IF NOT EXISTS attendance_settings (
+			setting_key TEXT PRIMARY KEY,
+			setting_value TEXT,
+			point_claim_enabled TEXT DEFAULT 'true'
+		)`,
+		`CREATE TABLE IF NOT EXISTS prayer_logs (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			rfid_uid TEXT,
+			name TEXT,
+			class_name TEXT,
+			prayer_type TEXT,
+			timestamp DATETIME,
+			date DATE,
+			status TEXT DEFAULT 'Hadir',
+			recorded_by TEXT DEFAULT 'RFID'
+		)`,
+		`CREATE TABLE IF NOT EXISTS whatsapp_logs (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			target TEXT,
+			message TEXT,
+			status TEXT,
+			response TEXT,
+			timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS student_points (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			student_id INTEGER,
+			rule_id INTEGER,
+			reward_id INTEGER,
+			points_change INTEGER,
+			description TEXT,
+			timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+			recorded_by TEXT
+		)`,
+		`CREATE TABLE IF NOT EXISTS devices (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT,
+			ip_address TEXT,
+			status TEXT,
+			last_sync TEXT
+		)`,
+		`CREATE TABLE IF NOT EXISTS announcements (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			title TEXT,
+			message TEXT,
+			audio_file TEXT,
+			scheduled_at DATETIME,
+			played_at DATETIME,
+			status TEXT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS holidays (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			date TEXT NOT NULL,
+			name TEXT NOT NULL,
+			type TEXT,
+			description TEXT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS school_settings (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			setting_key TEXT UNIQUE NOT NULL,
+			setting_value TEXT
+		)`,
+		`CREATE TABLE IF NOT EXISTS operators (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			username TEXT UNIQUE NOT NULL,
+			password TEXT NOT NULL,
+			name TEXT NOT NULL,
+			phone TEXT,
+			photo TEXT,
+			is_active BOOLEAN DEFAULT 1,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS running_texts (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			content TEXT,
+			is_active BOOLEAN DEFAULT 1
+		)`,
+		`CREATE TABLE IF NOT EXISTS signage_media (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			filename TEXT,
+			file_type TEXT,
+			duration INTEGER DEFAULT 10,
+			is_active BOOLEAN DEFAULT 1
+		)`,
+		`CREATE TABLE IF NOT EXISTS point_rules (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			category TEXT,
+			name TEXT,
+			points INTEGER,
+			description TEXT
+		)`,
+		`CREATE TABLE IF NOT EXISTS point_claims (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			student_id INTEGER NOT NULL,
+			rule_id INTEGER NOT NULL,
+			description TEXT,
+			evidence TEXT,
+			status TEXT DEFAULT 'pending',
+			submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			reviewed_at DATETIME,
+			reviewed_by INTEGER,
+			FOREIGN KEY(student_id) REFERENCES students(id),
+			FOREIGN KEY(rule_id) REFERENCES point_rules(id)
+		)`,
+		`CREATE TABLE IF NOT EXISTS point_rewards (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT,
+			points_cost INTEGER,
+			stock INTEGER,
+			description TEXT
+		)`,
+	}
+	for _, ddl := range schema {
+		if _, err := db.Exec(ddl); err != nil {
+			log.Printf("schema create warning: %v", err)
+		}
+	}
+
+	// === Column additions for legacy DBs ===
 	migrations := []struct {
 		table  string
 		column string
@@ -172,36 +358,9 @@ func runSQLiteMigrations(db *sql.DB) {
 		{"students", "birthday", "ALTER TABLE students ADD COLUMN birthday TEXT DEFAULT ''"},
 		{"students", "status", "ALTER TABLE students ADD COLUMN status TEXT DEFAULT 'active'"},
 		{"students", "nis_siswa", "ALTER TABLE students ADD COLUMN nis_siswa TEXT DEFAULT ''"},
+		{"students", "password", "ALTER TABLE students ADD COLUMN password TEXT DEFAULT ''"},
 		{"attendance_settings", "point_claim_enabled", "ALTER TABLE attendance_settings ADD COLUMN point_claim_enabled TEXT DEFAULT 'true'"},
 	}
-
-	// Create tables if not exist
-	db.Exec(`
-		CREATE TABLE IF NOT EXISTS point_rules (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			code TEXT NOT NULL,
-			category TEXT NOT NULL,
-			name TEXT NOT NULL,
-			description TEXT,
-			points INTEGER NOT NULL,
-			tier TEXT NOT NULL,
-			is_active INTEGER DEFAULT 1
-		)`)
-
-	db.Exec(`
-		CREATE TABLE IF NOT EXISTS point_claims (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			student_id INTEGER NOT NULL,
-			rule_id INTEGER NOT NULL,
-			description TEXT,
-			evidence TEXT,
-			status TEXT DEFAULT 'pending',
-			submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-			reviewed_at DATETIME,
-			reviewed_by INTEGER,
-			FOREIGN KEY(student_id) REFERENCES students(id),
-			FOREIGN KEY(rule_id) REFERENCES point_rules(id)
-		)`)
 
 	for _, m := range migrations {
 		var colCount int
@@ -213,6 +372,182 @@ func runSQLiteMigrations(db *sql.DB) {
 }
 
 func runMySQLMigrations(db *sql.DB) {
+	// === Core schema: create all tables IF NOT EXISTS (MySQL syntax) ===
+	schema := []string{
+		`CREATE TABLE IF NOT EXISTS schedules (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			time VARCHAR(10),
+			label VARCHAR(255),
+			audio_file VARCHAR(255)
+		)`,
+		`CREATE TABLE IF NOT EXISTS audio_files (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			file_name VARCHAR(255),
+			display_name VARCHAR(255)
+		)`,
+		`CREATE TABLE IF NOT EXISTS majors (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			name VARCHAR(255)
+		)`,
+		`CREATE TABLE IF NOT EXISTS classes (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			name VARCHAR(255),
+			major_id INT,
+			wa_group_id VARCHAR(255) DEFAULT ''
+		)`,
+		`CREATE TABLE IF NOT EXISTS students (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			rfid_uid VARCHAR(100) UNIQUE,
+			nis VARCHAR(50),
+			name VARCHAR(255),
+			parent_phone VARCHAR(30),
+			class_id INT,
+			photo VARCHAR(255) DEFAULT '',
+			parent_name VARCHAR(255) DEFAULT '',
+			birthday VARCHAR(20) DEFAULT '',
+			status VARCHAR(20) DEFAULT 'active',
+			nis_siswa VARCHAR(50) DEFAULT '',
+			password VARCHAR(255) DEFAULT ''
+		)`,
+		`CREATE TABLE IF NOT EXISTS staff (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			rfid_uid VARCHAR(100) UNIQUE,
+			nip VARCHAR(50) UNIQUE,
+			name VARCHAR(255),
+			phone VARCHAR(30),
+			role VARCHAR(50)
+		)`,
+		`CREATE TABLE IF NOT EXISTS attendance_logs (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			rfid_uid VARCHAR(100),
+			user_name VARCHAR(255),
+			user_type VARCHAR(20),
+			status VARCHAR(30),
+			timestamp DATETIME,
+			date DATE,
+			method VARCHAR(50) DEFAULT 'RFID'
+		)`,
+		`CREATE TABLE IF NOT EXISTS attendance_settings (
+			setting_key VARCHAR(100) PRIMARY KEY,
+			setting_value TEXT,
+			point_claim_enabled VARCHAR(10) DEFAULT 'true'
+		)`,
+		`CREATE TABLE IF NOT EXISTS prayer_logs (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			rfid_uid VARCHAR(100),
+			name VARCHAR(255),
+			class_name VARCHAR(255),
+			prayer_type VARCHAR(20),
+			timestamp DATETIME,
+			date DATE,
+			status VARCHAR(50) DEFAULT 'Hadir',
+			recorded_by VARCHAR(50) DEFAULT 'RFID'
+		)`,
+		`CREATE TABLE IF NOT EXISTS whatsapp_logs (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			target VARCHAR(30),
+			message TEXT,
+			status VARCHAR(20),
+			response TEXT,
+			timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS student_points (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			student_id INT,
+			rule_id INT,
+			reward_id INT,
+			points_change INT,
+			description TEXT,
+			timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+			recorded_by VARCHAR(50)
+		)`,
+		`CREATE TABLE IF NOT EXISTS devices (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			name VARCHAR(255),
+			ip_address VARCHAR(50),
+			status VARCHAR(20),
+			last_sync VARCHAR(50)
+		)`,
+		`CREATE TABLE IF NOT EXISTS announcements (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			title VARCHAR(255),
+			message TEXT,
+			audio_file VARCHAR(255),
+			scheduled_at DATETIME,
+			played_at DATETIME,
+			status VARCHAR(20),
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS holidays (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			date DATE NOT NULL,
+			name VARCHAR(255) NOT NULL,
+			type VARCHAR(50),
+			description TEXT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS school_settings (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			setting_key VARCHAR(100) UNIQUE NOT NULL,
+			setting_value TEXT
+		)`,
+		`CREATE TABLE IF NOT EXISTS operators (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			username VARCHAR(100) UNIQUE NOT NULL,
+			password VARCHAR(255) NOT NULL,
+			name VARCHAR(255) NOT NULL,
+			phone VARCHAR(30),
+			photo VARCHAR(255),
+			is_active TINYINT DEFAULT 1,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS running_texts (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			content TEXT,
+			is_active TINYINT DEFAULT 1
+		)`,
+		`CREATE TABLE IF NOT EXISTS signage_media (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			filename VARCHAR(255),
+			file_type VARCHAR(20),
+			duration INT DEFAULT 10,
+			is_active TINYINT DEFAULT 1
+		)`,
+		`CREATE TABLE IF NOT EXISTS point_rules (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			category VARCHAR(100),
+			name VARCHAR(255),
+			points INT,
+			description TEXT
+		)`,
+		`CREATE TABLE IF NOT EXISTS point_claims (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			student_id INT NOT NULL,
+			rule_id INT NOT NULL,
+			description TEXT,
+			evidence TEXT,
+			status VARCHAR(20) DEFAULT 'pending',
+			submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			reviewed_at DATETIME,
+			reviewed_by INT,
+			FOREIGN KEY(student_id) REFERENCES students(id),
+			FOREIGN KEY(rule_id) REFERENCES point_rules(id)
+		)`,
+		`CREATE TABLE IF NOT EXISTS point_rewards (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			name VARCHAR(255),
+			points_cost INT,
+			stock INT,
+			description TEXT
+		)`,
+	}
+	for _, ddl := range schema {
+		if _, err := db.Exec(ddl); err != nil {
+			log.Printf("schema create warning: %v", err)
+		}
+	}
+
+	// === Column additions for legacy DBs ===
 	migrations := []struct {
 		table  string
 		column string
@@ -226,36 +561,9 @@ func runMySQLMigrations(db *sql.DB) {
 		{"students", "birthday", "ALTER TABLE students ADD COLUMN birthday VARCHAR(20) DEFAULT ''"},
 		{"students", "status", "ALTER TABLE students ADD COLUMN status VARCHAR(20) DEFAULT 'active'"},
 		{"students", "nis_siswa", "ALTER TABLE students ADD COLUMN nis_siswa VARCHAR(50) DEFAULT ''"},
+		{"students", "password", "ALTER TABLE students ADD COLUMN password VARCHAR(255) DEFAULT ''"},
 		{"attendance_settings", "point_claim_enabled", "ALTER TABLE attendance_settings ADD COLUMN point_claim_enabled VARCHAR(10) DEFAULT 'true'"},
 	}
-
-	// Create tables if not exist for MySQL
-	db.Exec(`
-		CREATE TABLE IF NOT EXISTS point_rules (
-			id INT PRIMARY KEY AUTO_INCREMENT,
-			code VARCHAR(20) NOT NULL,
-			category VARCHAR(50) NOT NULL,
-			name VARCHAR(255) NOT NULL,
-			description TEXT,
-			points INT NOT NULL,
-			tier VARCHAR(50) NOT NULL,
-			is_active INT DEFAULT 1
-		)`)
-
-	db.Exec(`
-		CREATE TABLE IF NOT EXISTS point_claims (
-			id INT PRIMARY KEY AUTO_INCREMENT,
-			student_id INT NOT NULL,
-			rule_id INT NOT NULL,
-			description TEXT,
-			evidence TEXT,
-			status VARCHAR(20) DEFAULT 'pending',
-			submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-			reviewed_at DATETIME,
-			reviewed_by INT,
-			FOREIGN KEY(student_id) REFERENCES students(id),
-			FOREIGN KEY(rule_id) REFERENCES point_rules(id)
-		)`)
 
 	for _, m := range migrations {
 		var colCount int

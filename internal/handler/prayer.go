@@ -202,7 +202,7 @@ func GetPrayerAttendance(db *sql.DB) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, map[string]string{"message": "Parameter tidak lengkap"})
 		}
 
-		rows, err := db.Query("SELECT id, name, rfid_uid FROM students WHERE class_id = ? ORDER BY name", classID)
+		rows, err := db.Query("SELECT id, name, rfid_uid FROM students WHERE class_id = ? AND status = 'active' ORDER BY name", classID)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
 		}
@@ -428,6 +428,14 @@ func PrayerAttendance(db *sql.DB) echo.HandlerFunc {
 
 func PrayerLogs(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		// Today's distinct jamaah count (active students only) for the sidebar stat.
+		today := time.Now().Format("2006-01-02")
+		var totalJamaah int
+		db.QueryRow(`SELECT COUNT(DISTINCT pl.rfid_uid)
+			FROM prayer_logs pl
+			JOIN students s ON pl.rfid_uid = s.rfid_uid
+			WHERE pl.date = ? AND s.status = 'active'`, today).Scan(&totalJamaah)
+
 		rows, err := db.Query("SELECT id, rfid_uid, name, class_name, prayer_type, timestamp, date FROM prayer_logs ORDER BY id DESC LIMIT 100")
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
@@ -457,7 +465,10 @@ func PrayerLogs(db *sql.DB) echo.HandlerFunc {
 			logs = []PrayerLogEntry{}
 		}
 
-		return c.JSON(http.StatusOK, logs)
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"logs":          logs,
+			"total_jamaah":  totalJamaah,
+		})
 	}
 }
 
@@ -501,7 +512,7 @@ func PrayerReport(db *sql.DB) echo.HandlerFunc {
 		studentMap := make(map[string]*StudentPrayerReport)
 		var studentsOrder []string
 
-		rows, err := db.Query("SELECT id, name, rfid_uid FROM students WHERE class_id = ? ORDER BY name", classID)
+		rows, err := db.Query("SELECT id, name, rfid_uid FROM students WHERE class_id = ? AND status = 'active' ORDER BY name", classID)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
 		}

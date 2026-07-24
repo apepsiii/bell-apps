@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validasi Klaim Poin - SMK NIBA Super Apps</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .page-section { display: none; animation: fadeIn 0.3s ease-in-out; }
+        .page-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans">
+
+    <div class="flex h-screen overflow-hidden">
+
+        <!-- SIDEBAR -->
+        <aside class="w-64 bg-white border-r border-slate-200 flex flex-col">
+            <div class="p-6 border-b border-slate-100 flex items-center gap-3">
+                <div class="bg-blue-600 p-2 rounded-lg text-white">
+                    <i data-lucide="bell-ring" class="w-6 h-6"></i>
+                </div>
+                <h1 class="font-bold text-xl tracking-tight">SMK NIBA Super Apps</h1>
+            </div>
+
+            <nav class="flex-1 p-4 space-y-1">
+                <button onclick="switchPage('dashboard')" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg text-slate-600 hover:bg-slate-50 transition">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5"></i> Dashboard
+                </button>
+                <button onclick="switchPage('pending')" class="nav-item active-nav w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg bg-blue-50 text-blue-600 border-r-3 border-blue-600 transition">
+                    <i data-lucide="clipboard-check" class="w-5 h-5"></i> Klaim Poin
+                </button>
+            </nav>
+
+            <div class="p-4 border-t border-slate-100">
+                <button onclick="window.location.href='/admin'" class="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-slate-600 rounded-lg hover:bg-slate-50 transition">
+                    <i data-lucide="arrow-left" class="w-5 h-5"></i> Kembali ke Admin
+                </button>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="flex-1 flex flex-col h-screen overflow-y-auto">
+            <header class="bg-white border-b border-slate-200 p-4 flex justify-between items-center sticky top-0 z-10">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-800">Validasi Klaim Poin Siswa</h2>
+                    <p class="text-sm text-slate-500">Periksa dan setujui/tolak klaim bukti kegiatan siswa</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="loadClaims('pending')" class="px-4 py-2 text-sm font-medium rounded-lg bg-yellow-100 text-yellow-700 hover:bg-yellow-200 transition">
+                        <i data-lucide="clock" class="w-4 h-4 inline"></i> Pending
+                    </button>
+                    <button onclick="loadClaims('approved')" class="px-4 py-2 text-sm font-medium rounded-lg bg-green-100 text-green-700 hover:bg-green-200 transition">
+                        <i data-lucide="check-circle" class="w-4 h-4 inline"></i> Approved
+                    </button>
+                    <button onclick="loadClaims('rejected')" class="px-4 py-2 text-sm font-medium rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition">
+                        <i data-lucide="x-circle" class="w-4 h-4 inline"></i> Rejected
+                    </button>
+                </div>
+            </header>
+
+            <div class="p-6">
+                <!-- Stats -->
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                    <div class="bg-white rounded-xl border p-4">
+                        <div class="text-3xl font-bold text-yellow-500" id="stat-pending">0</div>
+                        <div class="text-sm text-slate-500">Menunggu</div>
+                    </div>
+                    <div class="bg-white rounded-xl border p-4">
+                        <div class="text-3xl font-bold text-green-500" id="stat-approved">0</div>
+                        <div class="text-sm text-slate-500">Disetujui</div>
+                    </div>
+                    <div class="bg-white rounded-xl border p-4">
+                        <div class="text-3xl font-bold text-red-500" id="stat-rejected">0</div>
+                        <div class="text-sm text-slate-500">Ditolak</div>
+                    </div>
+                </div>
+
+                <!-- Claims List -->
+                <div class="bg-white rounded-xl border overflow-hidden">
+                    <table class="w-full">
+                        <thead class="bg-slate-50 border-b">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Siswa</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Kode</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Kegiatan</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Poin</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Tanggal</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Status</th>
+                                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="claims-body" class="divide-y">
+                            <tr>
+                                <td colspan="7" class="px-4 py-8 text-center text-slate-400">Memuat...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Evidence Modal -->
+    <div id="modal-evidence" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl max-w-lg w-full p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-lg">Bukti Kegiatan</h3>
+                <button onclick="closeEvidenceModal()" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div id="evidence-content" class="space-y-3">
+                <!-- Dynamic content -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        let currentFilter = 'pending';
+
+        async function loadStats() {
+            try {
+                const [pending, approved, rejected] = await Promise.all([
+                    fetch('/admin/point-claims?status=pending').then(r => r.json()),
+                    fetch('/admin/point-claims?status=approved').then(r => r.json()),
+                    fetch('/admin/point-claims?status=rejected').then(r => r.json())
+                ]);
+                document.getElementById('stat-pending').textContent = pending.length || 0;
+                document.getElementById('stat-approved').textContent = approved.length || 0;
+                document.getElementById('stat-rejected').textContent = rejected.length || 0;
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function loadClaims(status) {
+            currentFilter = status;
+            const tbody = document.getElementById('claims-body');
+            tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-slate-400">Memuat...</td></tr>';
+
+            try {
+                const res = await fetch(`/admin/point-claims?status=${status}`);
+                const claims = await res.json();
+
+                if (claims.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-slate-400">Tidak ada data</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = claims.map(c => `
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-4 py-3">
+                            <div class="font-medium">${c.student_name}</div>
+                            <div class="text-xs text-slate-400">${c.class_name}</div>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="font-mono text-xs bg-slate-100 px-2 py-1 rounded">${c.rule_code}</span>
+                        </td>
+                        <td class="px-4 py-3 text-sm">${c.rule_name}</td>
+                        <td class="px-4 py-3">
+                            <span class="font-bold ${c.points > 0 ? 'text-green-600' : 'text-red-600'}">+${c.points}</span>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-slate-500">${formatDate(c.submitted_at)}</td>
+                        <td class="px-4 py-3">
+                            ${getStatusBadge(c.status)}
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            ${c.evidence ? `<button onclick="showEvidence('${c.evidence.replace(/'/g, "\\'")}')" class="text-blue-600 hover:text-blue-800 text-sm">Lihat Bukti</button>` : ''}
+                            ${c.status === 'pending' ? `
+                                <button onclick="approveClaim(${c.id})" class="text-green-600 hover:text-green-800 ml-2">Setuju</button>
+                                <button onclick="rejectClaim(${c.id})" class="text-red-600 hover:text-red-800 ml-2">Tolak</button>
+                            ` : ''}
+                        </td>
+                    </tr>
+                `).join('');
+
+                lucide.createIcons();
+            } catch (err) {
+                console.error(err);
+                tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-red-400">Gagal memuat data</td></tr>';
+            }
+        }
+
+        function getStatusBadge(status) {
+            const badges = {
+                'pending': '<span class="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">Pending</span>',
+                'approved': '<span class="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">Disetujui</span>',
+                'rejected': '<span class="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">Ditolak</span>'
+            };
+            return badges[status] || status;
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const d = new Date(dateStr);
+            return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+
+        function showEvidence(evidence) {
+            const content = document.getElementById('evidence-content');
+            content.innerHTML = `<img src="${evidence}" class="max-w-full rounded-lg border" alt="Bukti">`;
+            document.getElementById('modal-evidence').classList.remove('hidden');
+        }
+
+        function closeEvidenceModal() {
+            document.getElementById('modal-evidence').classList.add('hidden');
+        }
+
+        async function approveClaim(id) {
+            if (!confirm('Setujui klaim poin ini?')) return;
+
+            try {
+                const res = await fetch(`/admin/point-claims/${id}/approve`, { method: 'POST' });
+                const data = await res.json();
+
+                if (res.ok) {
+                    Swal.fire('Berhasil', 'Klaim poin disetujui', 'success');
+                    loadClaims(currentFilter);
+                    loadStats();
+                } else {
+                    Swal.fire('Gagal', data.message, 'error');
+                }
+            } catch (err) {
+                Swal.fire('Error', 'Terjadi kesalahan sistem', 'error');
+            }
+        }
+
+        async function rejectClaim(id) {
+            if (!confirm('Tolak klaim poin ini?')) return;
+
+            try {
+                const res = await fetch(`/admin/point-claims/${id}/reject`, { method: 'POST' });
+                const data = await res.json();
+
+                if (res.ok) {
+                    Swal.fire('Berhasil', 'Klaim poin ditolak', 'success');
+                    loadClaims(currentFilter);
+                    loadStats();
+                } else {
+                    Swal.fire('Gagal', data.message, 'error');
+                }
+            } catch (err) {
+                Swal.fire('Error', 'Terjadi kesalahan sistem', 'error');
+            }
+        }
+
+        function switchPage(page) {
+            // For future expansion
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStats();
+            loadClaims('pending');
+        });
+    </script>
+</body>
+</html>

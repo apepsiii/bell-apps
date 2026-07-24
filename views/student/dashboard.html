@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Beranda — SMK NIBA Super Apps</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --emerald: #0F5132;
+            --emerald-light: #1A7A4C;
+            --emerald-soft: #E8F3EE;
+            --gold: #C9A227;
+            --gold-soft: #F5EEDC;
+            --cream: #FAF7F0;
+            --ink: #1A2E25;
+            --muted: #6B7F76;
+        }
+        * { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        body { background: var(--cream); color: var(--ink); padding-bottom: 80px; }
+        .card {
+            background: #FFFFFF;
+            border: 1px solid rgba(15,81,50,0.08);
+            border-radius: 18px;
+            box-shadow: 0 1px 3px rgba(15,81,50,0.04);
+        }
+        .bottom-nav {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: #FFFFFF;
+            border-top: 1px solid rgba(15,81,50,0.08);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            height: 64px;
+            z-index: 50;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .nav-item {
+            display: flex; flex-direction: column; align-items: center;
+            color: var(--muted); font-size: 11px; font-weight: 500;
+            transition: color 0.15s; gap: 3px;
+        }
+        .nav-item.active { color: var(--emerald); }
+        .nav-qr {
+            position: relative; top: -14px;
+            width: 48px; height: 48px;
+            background: var(--emerald);
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            color: #FFFFFF;
+            box-shadow: 0 4px 12px rgba(15,81,50,0.3);
+        }
+        .skeleton { background: linear-gradient(90deg, #e8f3ee 0%, #f0f5f2 50%, #e8f3ee 100%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 12px; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+        .status-hadir { background: var(--emerald-soft); color: var(--emerald); }
+        .status-terlambat { background: var(--gold-soft); color: #8B6914; }
+        .status-belum { background: #F3F4F6; color: #6B7280; }
+    </style>
+</head>
+<body>
+    <div class="px-5 pt-6 pb-4">
+        <div class="flex items-center gap-3 mb-5">
+            <div id="avatarSkel" class="skeleton w-11 h-11 rounded-full"></div>
+            <div id="avatarImg" class="hidden w-11 h-11 rounded-full bg-emerald-100 overflow-hidden"><img id="photoEl" src="" alt="" class="w-full h-full object-cover"></div>
+            <div>
+                <div id="greetingSkel" class="skeleton w-36 h-5 mb-1.5"></div>
+                <div id="greetingEl" class="hidden text-[var(--muted)] text-xs uppercase tracking-widest font-semibold"></div>
+                <div id="nameSkel" class="skeleton w-48 h-7"></div>
+                <div id="nameEl" class="hidden text-[var(--ink)] text-xl font-bold -mt-0.5"></div>
+            </div>
+        </div>
+
+        <!-- Today's Status Card -->
+        <div class="card p-5 mb-4">
+            <div id="todayLoading" class="space-y-3"><div class="skeleton w-20 h-4"></div><div class="skeleton w-full h-16"></div></div>
+            <div id="todayEl" class="hidden">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs uppercase tracking-widest font-semibold text-[var(--muted)]">Presensi Hari Ini</span>
+                    <span id="todayDate" class="text-xs font-mono text-[var(--muted)]"></span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span id="todayBadge" class="status-badge"></span>
+                    <div id="todayTimes" class="flex gap-4 text-sm">
+                        <div id="timeInBox" class="hidden"><span class="text-[var(--muted)] text-xs">Masuk</span><div class="font-mono font-semibold text-[var(--ink)]" id="timeInVal"></div></div>
+                        <div id="timeOutBox" class="hidden"><span class="text-[var(--muted)] text-xs">Pulang</span><div class="font-mono font-semibold text-[var(--ink)]" id="timeOutVal"></div></div>
+                    </div>
+                </div>
+                <div id="holidayNote" class="hidden mt-2 text-xs text-[var(--muted)] italic"></div>
+            </div>
+        </div>
+
+        <!-- Points & Next Bell Row -->
+        <div class="grid grid-cols-2 gap-3 mb-4">
+            <div class="card p-4 text-center">
+                <div id="pointsLoading"><div class="skeleton w-10 h-10 mx-auto rounded-full mb-2"></div><div class="skeleton w-12 h-4 mx-auto"></div></div>
+                <div id="pointsEl" class="hidden">
+                    <div class="w-10 h-10 mx-auto mb-1 rounded-full bg-[var(--emerald-soft)] flex items-center justify-center"><i data-lucide="star" class="w-5 h-5 text-[var(--gold)]"></i></div>
+                    <div id="pointsVal" class="text-2xl font-bold font-mono text-[var(--emerald)]"></div>
+                    <div class="text-[11px] text-[var(--muted)] font-medium">Poin</div>
+                </div>
+            </div>
+            <div class="card p-4 text-center">
+                <div id="bellLoading"><div class="skeleton w-24 h-4 mx-auto mb-1"></div><div class="skeleton w-16 h-6 mx-auto"></div></div>
+                <div id="bellEl" class="hidden">
+                    <div class="w-10 h-10 mx-auto mb-1 rounded-full bg-[var(--gold-soft)] flex items-center justify-center"><i data-lucide="bell" class="w-5 h-5 text-[var(--gold)]"></i></div>
+                    <div id="bellTime" class="text-lg font-bold font-mono text-[var(--ink)]"></div>
+                    <div id="bellLabel" class="text-[11px] text-[var(--muted)] font-medium truncate"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Month Stats -->
+        <div class="card p-4 mb-4">
+            <div id="monthLoading"><div class="skeleton w-24 h-4 mb-3"></div><div class="flex gap-3"><div class="skeleton flex-1 h-14 rounded-xl"></div><div class="skeleton flex-1 h-14 rounded-xl"></div><div class="skeleton flex-1 h-14 rounded-xl"></div></div></div>
+            <div id="monthEl" class="hidden">
+                <span class="text-xs uppercase tracking-widest font-semibold text-[var(--muted)]">Bulan Ini</span>
+                <div class="flex gap-2 mt-3 text-center text-xs">
+                    <div class="flex-1 py-2 rounded-xl bg-[var(--emerald-soft)]"><div id="statPresent" class="font-bold text-[var(--emerald)] text-lg font-mono">0</div>Hadir</div>
+                    <div class="flex-1 py-2 rounded-xl bg-[var(--gold-soft)]"><div id="statLate" class="font-bold text-[#8B6914] text-lg font-mono">0</div>Terlambat</div>
+                    <div class="flex-1 py-2 rounded-xl bg-red-50"><div id="statAlpa" class="font-bold text-red-500 text-lg font-mono">0</div>S/I/A</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Announcements -->
+        <div id="annSection" class="mb-4">
+            <span class="text-xs uppercase tracking-widest font-semibold text-[var(--muted)] px-1">Pengumuman</span>
+            <div id="annLoading" class="mt-2 space-y-2"><div class="skeleton w-full h-20 rounded-xl"></div></div>
+            <div id="annEmpty" class="hidden card p-4 text-center text-sm text-[var(--muted)]">Belum ada pengumuman</div>
+            <div id="annList" class="hidden mt-2 space-y-2"></div>
+        </div>
+
+        <div class="text-center text-xs text-[var(--muted)] mt-4 pb-2">&copy; 2026 SMK NIBA Super Apps</div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="/student/dashboard" class="nav-item active"><i data-lucide="home" class="w-5 h-5"></i>Beranda</a>
+        <a href="/student/presensi" class="nav-item"><i data-lucide="calendar-check" class="w-5 h-5"></i>Presensi</a>
+        <a href="/student/qr" class="nav-qr"><i data-lucide="qr-code" class="w-6 h-6"></i></a>
+        <a href="/student/profil" class="nav-item"><i data-lucide="user" class="w-5 h-5"></i>Profil</a>
+    </nav>
+
+    <script>
+        lucide.createIcons();
+
+        function show(id) { document.getElementById(id).classList.remove('hidden'); }
+        function hide(id) { document.getElementById(id).classList.add('hidden'); }
+
+        function formatDate(d) {
+            const days = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+            const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
+            const dt = new Date(d);
+            return days[dt.getDay()] + ', ' + dt.getDate() + ' ' + months[dt.getMonth()] + ' ' + dt.getFullYear();
+        }
+
+        async function load() {
+            try {
+                const r = await fetch('/api/student/dashboard');
+                if (!r.ok) throw new Error('Unauthorized');
+                const d = await r.json();
+
+                // Student info
+                hide('avatarSkel'); hide('greetingSkel'); hide('nameSkel');
+                document.getElementById('greetingEl').textContent = 'Assalamualaikum';
+                document.getElementById('nameEl').textContent = d.student.name;
+                show('greetingEl'); show('nameEl');
+
+                if (d.student.photo) {
+                    hide('avatarSkel');
+                    document.getElementById('photoEl').src = d.student.photo;
+                    show('avatarImg');
+                } else {
+                    hide('avatarSkel');
+                    var av = document.getElementById('avatarImg');
+                    av.innerHTML = '<div class="w-full h-full bg-emerald-100 flex items-center justify-center"><i data-lucide="user" class="w-6 h-6 text-emerald-600"></i></div>';
+                    show('avatarImg');
+                }
+
+                // Today
+                hide('todayLoading'); show('todayEl');
+                document.getElementById('todayDate').textContent = formatDate(d.today.date);
+                var badge = document.getElementById('todayBadge');
+                switch(d.today.status) {
+                    case 'Hadir': badge.className = 'status-badge status-hadir'; badge.innerHTML = '<i data-lucide="check-circle" class="w-4 h-4"></i>Hadir'; break;
+                    case 'Terlambat': badge.className = 'status-badge status-terlambat'; badge.innerHTML = '<i data-lucide="clock" class="w-4 h-4"></i>Terlambat'; break;
+                    default: badge.className = 'status-badge status-belum'; badge.innerHTML = '<i data-lucide="minus-circle" class="w-4 h-4"></i>Belum Presensi';
+                }
+                if (d.today.time_in) { show('timeInBox'); document.getElementById('timeInVal').textContent = d.today.time_in; }
+                if (d.today.time_out) { show('timeOutBox'); document.getElementById('timeOutVal').textContent = d.today.time_out; }
+                if (d.today.holiday_name) { show('holidayNote'); document.getElementById('holidayNote').textContent = 'Libur: ' + d.today.holiday_name; }
+
+                // Points
+                hide('pointsLoading'); show('pointsEl');
+                document.getElementById('pointsVal').textContent = d.points;
+
+                // Next Bell
+                hide('bellLoading');
+                if (d.next_bell) {
+                    show('bellEl');
+                    document.getElementById('bellTime').textContent = d.next_bell.time;
+                    document.getElementById('bellLabel').textContent = d.next_bell.label;
+                }
+
+                // Month stats
+                hide('monthLoading'); show('monthEl');
+                document.getElementById('statPresent').textContent = d.month.present;
+                document.getElementById('statLate').textContent = d.month.late;
+                document.getElementById('statAlpa').textContent = d.month.sick + d.month.permission + d.month.alpha;
+
+                // Announcements
+                hide('annLoading');
+                if (!d.announcements || d.announcements.length === 0) {
+                    show('annEmpty');
+                } else {
+                    show('annList');
+                    var html = '';
+                    d.announcements.forEach(function(a) {
+                        html += '<div class="card p-3"><div class="text-sm font-semibold text-[var(--ink)]">' + a.title + '</div><div class="text-xs text-[var(--muted)] mt-1">' + a.message + '</div></div>';
+                    });
+                    document.getElementById('annList').innerHTML = html;
+                }
+
+                // Default PIN reminder
+                if (d.using_default_pin) {
+                    var toast = document.createElement('div');
+                    toast.className = 'fixed top-4 left-4 right-4 bg-[var(--gold)] text-[#8B6914] px-4 py-3 rounded-xl text-sm font-semibold text-center shadow-lg z-50';
+                    toast.innerHTML = 'Ganti PIN default Anda di halaman <a href="/student/profil" class="underline">Profil</a>';
+                    document.body.appendChild(toast);
+                    setTimeout(function(){ toast.remove(); }, 8000);
+                }
+
+                lucide.createIcons();
+            } catch(e) {
+                console.error(e);
+                window.location.href = '/student/login';
+            }
+        }
+
+        load();
+    </script>
+</body>
+</html>

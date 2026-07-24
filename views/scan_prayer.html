@@ -1,413 +1,508 @@
 <!DOCTYPE html>
 <html lang="id">
 
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Absensi Sholat</title>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <script src="https://unpkg.com/lucide@latest"></script>
-        <style>
-            @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap');
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Absensi Sholat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --emerald: #0F5132;
+            --emerald-light: #1A7A4C;
+            --emerald-soft: #E8F3EE;
+            --gold: #C9A227;
+            --gold-soft: #F5EEDC;
+            --cream: #FAF7F0;
+            --ink: #1A2E25;
+            --muted: #6B7F76;
+        }
 
-            body {
-                font-family: 'Inter', sans-serif;
-            }
+        * { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+        .font-arabic { font-family: 'Amiri', serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
 
-            .mono {
-                font-family: 'JetBrains Mono', monospace;
-            }
+        body {
+            background-color: var(--cream);
+            color: var(--ink);
+        }
 
-            /* Glassmorphism */
-            .glass {
-                background: rgba(255, 255, 255, 0.05);
-                backdrop-filter: blur(10px);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-            }
+        /* Subtle Islamic geometric pattern overlay */
+        .islamic-pattern {
+            background-color: var(--cream);
+            background-image:
+                radial-gradient(circle at 50% 50%, transparent 20%, var(--cream) 21%),
+                radial-gradient(circle at 0% 50%, rgba(15, 81, 50, 0.03) 20%, transparent 21%),
+                radial-gradient(circle at 100% 50%, rgba(15, 81, 50, 0.03) 20%, transparent 21%),
+                radial-gradient(circle at 50% 0%, rgba(15, 81, 50, 0.03) 20%, transparent 21%),
+                radial-gradient(circle at 50% 100%, rgba(15, 81, 50, 0.03) 20%, transparent 21%);
+            background-size: 48px 48px;
+        }
 
-            /* Animations */
-            @keyframes scaleIn {
-                from {
-                    transform: scale(0.8);
-                    opacity: 0;
-                }
+        /* Eight-point star divider */
+        .star-divider::before, .star-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(to right, transparent, var(--gold), transparent);
+        }
+        .star-divider { display: flex; align-items: center; gap: 1rem; }
 
-                to {
-                    transform: scale(1);
-                    opacity: 1;
-                }
-            }
+        /* Cards */
+        .card {
+            background: #FFFFFF;
+            border: 1px solid rgba(15, 81, 50, 0.08);
+            border-radius: 20px;
+            box-shadow: 0 1px 2px rgba(15, 81, 50, 0.04), 0 8px 24px rgba(15, 81, 50, 0.06);
+        }
+        .card-soft {
+            background: var(--emerald-soft);
+            border: 1px solid rgba(15, 81, 50, 0.1);
+            border-radius: 16px;
+        }
 
-            .animate-scaleIn {
-                animation: scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-            }
+        /* Soft pulse for idle */
+        @keyframes soft-pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.03); opacity: 0.85; }
+        }
+        .soft-pulse { animation: soft-pulse 2.4s ease-in-out infinite; }
 
-            /* Pulse ring */
-            .pulse-ring {
-                animation: pulse 2s infinite;
-            }
+        @keyframes ring-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(15, 81, 50, 0.25); }
+            70% { box-shadow: 0 0 0 24px rgba(15, 81, 50, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(15, 81, 50, 0); }
+        }
+        .ring-pulse { animation: ring-pulse 2.4s ease-out infinite; }
 
-            @keyframes pulse {
+        /* Scale-in animation */
+        @keyframes scaleIn {
+            from { transform: scale(0.92); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .animate-scaleIn { animation: scaleIn 0.45s cubic-bezier(0.16, 1, 0.3, 1); }
 
-                0%,
-                100% {
-                    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-                }
+        /* Tabs */
+        .tab-active {
+            background: var(--emerald);
+            color: #FFFFFF;
+        }
+        .tab-inactive {
+            color: var(--muted);
+        }
 
-                50% {
-                    box-shadow: 0 0 0 20px rgba(16, 185, 129, 0);
-                }
-            }
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(15, 81, 50, 0.2); border-radius: 3px; }
 
-            /* Islamic Pattern Background */
-            .bg-islamic {
-                background-color: #064e3b;
-                background-image:
-                    radial-gradient(circle at 100% 100%, rgba(255, 255, 255, 0.05) 15%, transparent 16%),
-                    radial-gradient(circle at 0 0, rgba(255, 255, 255, 0.05) 15%, transparent 16%),
-                    radial-gradient(circle at 100% 0, rgba(255, 255, 255, 0.05) 15%, transparent 16%),
-                    radial-gradient(circle at 0 100%, rgba(255, 255, 255, 0.05) 15%, transparent 16%);
-                background-size: 60px 60px;
-            }
-        </style>
-    </head>
+        /* Prayer time chip */
+        .prayer-chip {
+            transition: all 0.25s ease;
+        }
+        .prayer-chip-active {
+            background: var(--emerald);
+            color: #FFFFFF;
+            border-color: var(--emerald);
+        }
+    </style>
+</head>
 
-    <body class="bg-islamic text-white h-screen overflow-hidden flex transition-all duration-700" id="main-body">
+<body class="islamic-pattern h-screen overflow-hidden flex">
 
-        <!-- Statistics Sidebar -->
-        <div class="w-80 p-6 glass border-r border-white/10 flex flex-col gap-4">
+    <!-- Sidebar -->
+    <aside class="w-80 flex flex-col border-r border-emerald-900/8 bg-white/60 backdrop-blur-sm">
+        <!-- Brand -->
+        <div class="px-6 pt-6 pb-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-emerald-900 flex items-center justify-center">
+                    <i data-lucide="moon" class="w-5 h-5 text-amber-300"></i>
+                </div>
+                <div>
+                    <h1 class="font-arabic text-xl text-emerald-900 leading-none">الصلاة</h1>
+                    <p class="text-[10px] uppercase tracking-widest text-emerald-900/50 font-semibold mt-0.5">Absensi Sholat</p>
+                </div>
+            </div>
+        </div>
 
-            <!-- Mode Switcher -->
-            <div class="flex p-1 bg-black/20 rounded-lg mb-2">
+        <!-- Mode Switcher -->
+        <div class="px-6 mb-5">
+            <div class="flex p-1 bg-emerald-900/5 rounded-xl">
                 <a href="/scan" id="btn-mode-presence"
-                    class="flex-1 py-2 text-center text-xs font-bold rounded-md transition-all text-slate-400 hover:text-white">
+                    class="flex-1 py-2 text-center text-xs font-semibold rounded-lg tab-inactive transition-colors hover:text-emerald-900">
                     PRESENSI
                 </a>
                 <a href="/scan-sholat" id="btn-mode-prayer"
-                    class="flex-1 py-2 text-center text-xs font-bold rounded-md transition-all bg-white text-emerald-900 shadow-md">
+                    class="flex-1 py-2 text-center text-xs font-semibold rounded-lg tab-active transition-colors">
                     SHOLAT
                 </a>
             </div>
+        </div>
 
-            <div class="text-center mb-4">
-                <h2 class="text-xl font-bold mb-1">Jadwal Sholat</h2>
-                <p id="stats-date" class="text-sm text-slate-400 mono"></p>
-            </div>
-
-            <!-- Prayer Time Highlight -->
-            <div class="glass rounded-2xl p-6 text-center border-emerald-500/30">
-                <div class="w-20 h-20 mx-auto mb-3 bg-emerald-500/20 rounded-full flex items-center justify-center">
-                    <i data-lucide="moon" class="w-10 h-10 text-emerald-400"></i>
+        <!-- Next Prayer Highlight -->
+        <div class="px-6 mb-5">
+            <p class="text-[11px] uppercase tracking-widest text-emerald-900/50 font-semibold mb-2">Sholat Berikutnya</p>
+            <div class="card-soft p-5 text-center">
+                <div class="w-14 h-14 mx-auto mb-3 rounded-full bg-emerald-900 flex items-center justify-center">
+                    <i data-lucide="sunrise" class="w-6 h-6 text-amber-300" id="prayer-icon"></i>
                 </div>
-                <h3 id="next-prayer-name" class="text-2xl font-bold text-emerald-400">DZUHUR</h3>
-                <p id="next-prayer-time" class="text-lg font-mono mt-1">12:00 WIB</p>
-                <p class="text-xs text-slate-400 mt-2">Waktu sholat berikutnya</p>
-            </div>
-
-            <!-- Stats Cards -->
-            <div class="grid grid-cols-1 gap-3">
-                <div class="glass rounded-xl p-4 flex items-center justify-between">
-                    <div>
-                        <div class="text-xs text-slate-400">Total Jamaah</div>
-                        <div id="prayer-count" class="text-2xl font-bold text-emerald-400">0</div>
-                    </div>
-                    <div class="w-10 h-10 bg-emerald-500/10 rounded-lg flex items-center justify-center">
-                        <i data-lucide="users" class="w-5 h-5 text-emerald-400"></i>
-                    </div>
-                </div>
-            </div>
-
-            <div class="glass rounded-xl p-4 mt-auto">
-                <p class="text-xs text-center text-emerald-200/60 italic">
-                    "Sesungguhnya shalat itu adalah fardhu yang ditentukan waktunya atas orang-orang yang beriman."
-                </p>
-                <p class="text-[10px] text-center text-emerald-200/40 mt-1">(QS. An-Nisa: 103)</p>
+                <h3 id="next-prayer-name" class="text-2xl font-bold text-emerald-900 tracking-wide">DZUHUR</h3>
+                <p id="next-prayer-time" class="text-base font-mono text-emerald-900/70 mt-1">12:00 WIB</p>
             </div>
         </div>
 
-        <!-- Main Content -->
-        <div class="flex-1 flex flex-col">
-            <!-- Clock Header -->
-            <div class="p-6 text-right">
-                <div id="clock-time" class="text-5xl font-black mono tracking-wider">00:00:00</div>
-                <div id="clock-date" class="text-slate-400 font-medium text-lg mt-1">Senin, 1 Januari 2025</div>
+        <!-- Stats -->
+        <div class="px-6 mb-5">
+            <p class="text-[11px] uppercase tracking-widest text-emerald-900/50 font-semibold mb-2">Statistik Hari Ini</p>
+            <div class="card p-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-lg bg-emerald-900/5 flex items-center justify-center">
+                            <i data-lucide="users" class="w-4 h-4 text-emerald-900"></i>
+                        </div>
+                        <span class="text-sm font-medium text-ink/80">Total Jamaah</span>
+                    </div>
+                    <span id="prayer-count" class="text-2xl font-bold text-emerald-900 font-mono">0</span>
+                </div>
             </div>
+        </div>
 
-            <!-- Main Card -->
-            <div class="flex-1 flex items-center justify-center p-6">
-                <div class="w-full max-w-2xl">
-                    <h1
-                        class="text-4xl font-bold mb-2 text-center bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent transition-all duration-500">
-                        ABSENSI SHOLAT
-                    </h1>
-                    <p class="text-slate-400 mb-8 text-center" id="subtitle-msg">Silakan tempel kartu untuk mencatat
-                        kehadiran sholat</p>
+        <!-- Date -->
+        <div class="px-6 mb-4">
+            <p class="text-[11px] uppercase tracking-widest text-emerald-900/50 font-semibold mb-2">Hari Ini</p>
+            <p id="stats-date" class="text-sm font-mono text-emerald-900/80"></p>
+        </div>
 
-                    <!-- Hidden Input -->
-                    <input type="text" id="rfid-input" class="opacity-0 absolute top-0 left-0 w-0 h-0"
-                        autocomplete="off" autofocus>
+        <!-- Ayat footer -->
+        <div class="mt-auto px-6 pb-6">
+            <div class="star-divider mb-3">
+                <span class="text-amber-600 text-xs">۞</span>
+            </div>
+            <p class="font-arabic text-center text-emerald-900/80 text-lg leading-relaxed">
+                إِنَّ الصَّلَاةَ كَانَتْ عَلَى الْمُؤْمِنِينَ كِتَابًا مَّوْقُوتًا
+            </p>
+            <p class="text-[11px] text-center text-emerald-900/50 italic mt-2 leading-relaxed">
+                "Sesungguhnya shalat itu adalah kewajiban yang ditentukan waktunya atas orang-orang yang beriman."
+            </p>
+            <p class="text-[10px] text-center text-emerald-900/40 mt-1 font-semibold">QS. An-Nisa: 103</p>
+        </div>
+    </aside>
 
-                    <!-- Status Card -->
-                    <div id="status-card" class="glass rounded-3xl p-12 shadow-2xl transition-all duration-300">
+    <!-- Main -->
+    <main class="flex-1 flex flex-col">
+        <!-- Clock Header -->
+        <header class="flex justify-between items-center px-10 pt-8 pb-4">
+            <div>
+                <p class="text-[11px] uppercase tracking-widest text-emerald-900/50 font-semibold mb-1">Terminal Absensi Sholat</p>
+                <h2 class="text-2xl font-bold text-emerald-900">Masjid Sekolah</h2>
+            </div>
+            <div class="text-right">
+                <div id="clock-time" class="text-4xl font-mono font-bold text-emerald-900 tracking-tight tabular-nums">00:00:00</div>
+                <div id="clock-date" class="text-sm text-emerald-900/60 font-medium mt-1">Senin, 1 Januari 2025</div>
+            </div>
+        </header>
 
-                        <!-- Idle State -->
-                        <div id="state-idle">
+        <!-- Status Card -->
+        <div class="flex-1 flex items-center justify-center px-10">
+            <div class="w-full max-w-xl">
+                <input type="text" id="rfid-input" class="opacity-0 absolute top-0 left-0 w-0 h-0"
+                    autocomplete="off" autofocus>
+
+                <div id="status-card" class="card p-14 text-center transition-all duration-300">
+
+                    <!-- Idle State -->
+                    <div id="state-idle">
+                        <div class="relative w-36 h-36 mx-auto mb-8">
+                            <div class="absolute inset-0 rounded-full bg-emerald-900/5 ring-pulse"></div>
                             <div id="icon-container"
-                                class="w-40 h-40 bg-emerald-500/20 rounded-full mx-auto flex items-center justify-center mb-6 pulse-ring transition-colors duration-500">
-                                <i data-lucide="scan-line" class="w-20 h-20 text-emerald-400" id="icon-idle"></i>
+                                class="relative w-36 h-36 bg-emerald-900 rounded-full mx-auto flex items-center justify-center soft-pulse">
+                                <i data-lucide="scan-line" class="w-14 h-14 text-amber-300" id="icon-idle"></i>
                             </div>
-                            <h2 class="text-3xl font-bold text-center">Menunggu Kartu...</h2>
                         </div>
+                        <h2 class="text-2xl font-bold text-emerald-900 mb-2">Tempelkan Kartu</h2>
+                        <p class="text-emerald-900/50 text-sm" id="subtitle-msg">Dekatkan kartu RFID ke reader untuk mencatat kehadiran sholat</p>
+                    </div>
 
-                        <!-- Loading State -->
-                        <div id="state-loading" class="hidden">
-                            <div class="w-40 h-40 mx-auto mb-6 flex items-center justify-center">
-                                <div
-                                    class="w-20 h-20 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin">
-                                </div>
-                            </div>
-                            <h2 class="text-3xl font-bold text-center text-emerald-400">Memproses...</h2>
+                    <!-- Loading State -->
+                    <div id="state-loading" class="hidden">
+                        <div class="w-20 h-20 mx-auto mb-8 flex items-center justify-center">
+                            <div class="w-16 h-16 border-[3px] border-emerald-900/15 border-t-emerald-900 rounded-full animate-spin"></div>
                         </div>
+                        <h2 class="text-2xl font-bold text-emerald-900">Memproses...</h2>
+                    </div>
 
-                        <!-- Success State -->
-                        <div id="state-success" class="hidden">
+                    <!-- Success State -->
+                    <div id="state-success" class="hidden">
+                        <div class="relative w-32 h-32 mx-auto mb-6">
+                            <div class="absolute inset-0 rounded-full bg-emerald-900/8"></div>
                             <div id="photo-container"
-                                class="w-40 h-40 bg-green-500/20 rounded-full mx-auto flex items-center justify-center mb-6 border-4 border-green-500 overflow-hidden">
-                                <i data-lucide="check" class="w-20 h-20 text-green-500" id="default-icon"></i>
+                                class="relative w-32 h-32 rounded-full mx-auto flex items-center justify-center overflow-hidden border-4 border-emerald-900">
+                                <i data-lucide="check" class="w-14 h-14 text-amber-300" id="default-icon"></i>
                                 <img id="student-photo" src="" class="w-full h-full object-cover hidden">
                             </div>
-                            <h2 id="success-name" class="text-5xl font-black text-center mb-3">NAMA SISWA</h2>
-                            <div class="flex items-center justify-center gap-4 mb-4">
-                                <span id="success-identity" class="text-lg text-slate-300 mono"></span>
-                                <span id="success-class"
-                                    class="px-3 py-1 bg-emerald-500/20 text-emerald-300 rounded-lg text-sm font-medium"></span>
-                            </div>
-                            <div class="inline-block px-6 py-3 rounded-xl bg-green-500/20 text-green-400 font-bold text-2xl uppercase tracking-wider mx-auto block text-center"
-                                id="success-status">
-                                BERHASIL
-                            </div>
-                            <p class="text-slate-400 mt-6 mono text-center text-xl" id="success-time">07:05:00</p>
                         </div>
-
-                        <!-- Error State -->
-                        <div id="state-error" class="hidden">
-                            <div
-                                class="w-40 h-40 bg-red-500/20 rounded-full mx-auto flex items-center justify-center mb-6 border-4 border-red-500">
-                                <i data-lucide="x" class="w-20 h-20 text-red-500"></i>
-                            </div>
-                            <h2 id="error-title" class="text-4xl font-bold text-center mb-3">GAGAL</h2>
-                            <p id="error-msg" class="text-red-400 text-lg text-center">Silakan hubungi Admin</p>
+                        <h2 id="success-name" class="text-4xl font-bold text-emerald-900 mb-3">NAMA SISWA</h2>
+                        <div class="flex items-center justify-center gap-3 mb-5">
+                            <span id="success-identity" class="text-sm font-mono text-emerald-900/60 bg-emerald-900/5 px-3 py-1 rounded-lg"></span>
+                            <span id="success-class"
+                                class="text-sm font-semibold text-amber-700 bg-amber-50 px-3 py-1 rounded-lg"></span>
                         </div>
-
+                        <div class="inline-block px-6 py-2.5 rounded-full bg-emerald-900 text-amber-300 font-semibold text-sm uppercase tracking-widest"
+                            id="success-status">
+                            TERCATAT
+                        </div>
+                        <p class="text-emerald-900/40 mt-5 font-mono text-sm" id="success-time">07:05:00</p>
                     </div>
 
-                    <!-- Recent Logs -->
-                    <div class="mt-8">
-                        <h3 class="text-lg font-bold mb-4 text-center text-emerald-200">Terakhir Scan Sholat</h3>
-                        <div id="recent-logs" class="grid grid-cols-5 gap-3">
-                            <!-- Loading state -->
-                            <div class="col-span-5 text-center text-slate-500 text-sm">Memuat...</div>
+                    <!-- Error State -->
+                    <div id="state-error" class="hidden">
+                        <div class="w-32 h-32 mx-auto mb-6 rounded-full bg-red-50 flex items-center justify-center border-4 border-red-200">
+                            <i data-lucide="x" class="w-14 h-14 text-red-500"></i>
                         </div>
+                        <h2 id="error-title" class="text-3xl font-bold text-emerald-900 mb-2">GAGAL</h2>
+                        <p id="error-msg" class="text-red-500 text-base">Silakan hubungi Admin</p>
+                    </div>
+
+                </div>
+
+                <!-- Recent Logs -->
+                <div class="mt-8">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-semibold text-emerald-900/70 flex items-center gap-2">
+                            <i data-lucide="history" class="w-4 h-4"></i>
+                            Terakhir Tercatat
+                        </h3>
+                        <span class="text-[11px] text-emerald-900/40">Update otomatis</span>
+                    </div>
+                    <div id="recent-logs" class="grid grid-cols-5 gap-3">
+                        <div class="col-span-5 text-center text-emerald-900/40 text-sm py-6">Memuat...</div>
                     </div>
                 </div>
             </div>
         </div>
+    </main>
 
-        <script>
-            lucide.createIcons();
+    <script>
+        lucide.createIcons();
 
-            // --- Clock ---
-            function updateClock() {
-                const now = new Date();
-                document.getElementById('clock-time').innerText = now.toLocaleTimeString('id-ID', { hour12: false });
-                document.getElementById('clock-date').innerText = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-                document.getElementById('stats-date').innerText = now.toLocaleDateString('id-ID');
-            }
-            setInterval(updateClock, 1000);
-            updateClock();
+        // --- Clock ---
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock-time').innerText = now.toLocaleTimeString('id-ID', { hour12: false });
+            document.getElementById('clock-date').innerText = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+            document.getElementById('stats-date').innerText = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
 
-            // --- Determine Next Prayer (Logic placeholder) ---
-            function updateNextPrayer() {
-                const now = new Date();
-                const hour = now.getHours();
-                // Simple logic: < 15:00 = Dzuhur, else Ashar
-                const titleEl = document.getElementById('next-prayer-name');
-                const timeEl = document.getElementById('next-prayer-time');
+        // --- Next Prayer ---
+        function updateNextPrayer() {
+            const now = new Date();
+            const hour = now.getHours();
+            const titleEl = document.getElementById('next-prayer-name');
+            const timeEl = document.getElementById('next-prayer-time');
+            const iconEl = document.getElementById('prayer-icon');
 
-                if (titleEl && timeEl) {
-                    if (hour < 15) {
-                        titleEl.innerText = "DZUHUR";
-                        timeEl.innerText = "12:00 WIB";
-                    } else {
-                        titleEl.innerText = "ASHAR";
-                        timeEl.innerText = "15:15 WIB";
-                    }
+            if (titleEl && timeEl) {
+                if (hour < 12) {
+                    titleEl.innerText = "DZUHUR";
+                    timeEl.innerText = "12:00 WIB";
+                } else if (hour < 15) {
+                    titleEl.innerText = "ASHAR";
+                    timeEl.innerText = "15:15 WIB";
+                } else if (hour < 18) {
+                    titleEl.innerText = "MAGHRIB";
+                    timeEl.innerText = "18:00 WIB";
+                } else {
+                    titleEl.innerText = "ISYA";
+                    timeEl.innerText = "19:00 WIB";
                 }
             }
-            updateNextPrayer();
-
-
-            // --- Recent Logs (Prayer Only) ---
-            async function fetchPrayerLogs() {
-                try {
-                    const res = await fetch('/api/attendance/prayer-logs');
-                    const logs = await res.json();
-
-                    const container = document.getElementById('recent-logs');
-                    container.innerHTML = '';
-
-                    if (logs && logs.length > 0) {
-                        // Take first 5
-                        const recent = logs.slice(0, 5);
-
-                        // Update total count locally based on list length or fetch separte stats
-                        // document.getElementById('prayer-count').innerText = logs.length; // Approximate
-
-                        recent.forEach(log => {
-                            const card = document.createElement('div');
-                            card.className = 'glass rounded-xl p-3 text-center transition-all hover:scale-105 border-emerald-500/20';
-
-                            // Parse timestamp 2024-01-01 12:00:00
-                            let timeOnly = log.timestamp.split(' ')[1] || log.timestamp;
-                            if (timeOnly.length > 5) timeOnly = timeOnly.substring(0, 5);
-
-                            const name = log.name || 'Siswa';
-
-                            card.innerHTML = `
-                                <div class="w-16 h-16 mx-auto mb-2 rounded-full overflow-hidden bg-emerald-900 flex items-center justify-center border-2 border-emerald-500/30">
-                                     <i data-lucide="user" class="w-8 h-8 text-emerald-400"></i>
-                                </div>
-                                <p class="text-xs font-bold text-white truncate">${name}</p>
-                                <p class="text-xs text-emerald-400 font-medium">${log.prayer_type}</p>
-                                <p class="text-xs text-slate-400 mono">${timeOnly}</p>
-                            `;
-                            container.appendChild(card);
-                        });
-                        lucide.createIcons();
-
-                        // Update simple count
-                        document.getElementById('prayer-count').innerText = logs.length;
-
-                    } else {
-                        container.innerHTML = '<div class="col-span-5 text-center text-slate-500 text-sm">Belum ada data</div>';
-                    }
-                } catch (err) {
-                    console.error('Failed to fetch prayer logs:', err);
-                }
+            if (iconEl) {
+                const icons = { 'DZUHUR': 'sun', 'ASHAR': 'sun', 'MAGHRIB': 'sunset', 'ISYA': 'moon' };
+                const name = titleEl ? titleEl.innerText : '';
+                iconEl.setAttribute('data-lucide', icons[name] || 'sun');
+                lucide.createIcons();
             }
+        }
+        updateNextPrayer();
+        setInterval(updateNextPrayer, 60000);
 
-            // Fetch recent logs on load and every 10s
-            fetchPrayerLogs();
-            setInterval(fetchPrayerLogs, 10000);
+        // --- Recent Prayer Logs ---
+        async function fetchPrayerLogs() {
+            try {
+                const res = await fetch('/api/attendance/prayer-logs');
+                const _resp = await res.json();
+                // New shape: { logs, total_jamaah }. Fallback to array for backward compat.
+                const logs = Array.isArray(_resp) ? _resp : (_resp.logs || []);
+                const totalJamaah = Array.isArray(_resp) ? null : _resp.total_jamaah;
 
-            // --- RFID Handling ---
-            const input = document.getElementById('rfid-input');
-            const card = document.getElementById('status-card');
+                const container = document.getElementById('recent-logs');
+                container.innerHTML = '';
 
-            document.addEventListener('click', () => input.focus());
-            input.addEventListener('blur', () => setTimeout(() => input.focus(), 100));
+                if (logs && logs.length > 0) {
+                    const recent = logs.slice(0, 5);
 
-            input.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    const rfid = input.value.trim();
-                    if (rfid) processRFID(rfid);
-                    input.value = '';
+                    recent.forEach(log => {
+                        const card = document.createElement('div');
+                        card.className = 'card p-4 text-center hover:shadow-md transition-shadow';
+
+                        let timeOnly = log.timestamp.split(' ')[1] || log.timestamp;
+                        if (timeOnly.length > 5) timeOnly = timeOnly.substring(0, 5);
+
+                        const name = log.name || 'Siswa';
+                        const photo = log.photo || '';
+
+                        card.innerHTML = `
+                            <div class="w-14 h-14 mx-auto mb-3 rounded-full overflow-hidden bg-emerald-900/5 flex items-center justify-center border border-emerald-900/10">
+                                ${photo ?
+                                    `<img src="/assets/photos/${photo}" class="w-full h-full object-cover">` :
+                                    `<i data-lucide="user" class="w-6 h-6 text-emerald-900/40"></i>`
+                                }
+                            </div>
+                            <p class="text-xs font-semibold text-emerald-900 truncate">${name}</p>
+                            <p class="text-[11px] text-amber-600 font-medium mt-0.5">${log.prayer_type}</p>
+                            <p class="text-[11px] text-emerald-900/40 font-mono mt-0.5">${timeOnly}</p>
+                        `;
+                        container.appendChild(card);
+                    });
+                    lucide.createIcons();
+                } else {
+                    container.innerHTML = '<div class="col-span-5 text-center text-emerald-900/40 text-sm py-6">Belum ada data</div>';
                 }
+
+                // Update "Total Jamaah" with today's distinct count from backend.
+                // Only count when the backend provides it; otherwise hide a stale number.
+                const countEl = document.getElementById('prayer-count');
+                if (totalJamaah !== null && totalJamaah !== undefined) {
+                    countEl.innerText = totalJamaah;
+                } else if (logs && logs.length > 0) {
+                    countEl.innerText = logs.length;
+                } else {
+                    countEl.innerText = '0';
+                }
+            } catch (err) {
+                console.error('Failed to fetch prayer logs:', err);
+            }
+        }
+
+        fetchPrayerLogs();
+        setInterval(fetchPrayerLogs, 10000);
+
+        // --- RFID Handling ---
+        const input = document.getElementById('rfid-input');
+
+        document.addEventListener('click', () => input.focus());
+        input.addEventListener('blur', () => setTimeout(() => input.focus(), 100));
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const rfid = input.value.trim();
+                if (rfid) processRFID(rfid);
+                input.value = '';
+            }
+        });
+
+        function showState(state) {
+            ['state-idle', 'state-loading', 'state-success', 'state-error'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
             });
+            const el = document.getElementById(state);
+            el.classList.remove('hidden');
+            el.classList.add('animate-scaleIn');
+        }
 
-            function showState(state) {
-                ['state-idle', 'state-loading', 'state-success', 'state-error'].forEach(id => {
-                    document.getElementById(id).classList.add('hidden');
-                });
-                const el = document.getElementById(state);
-                el.classList.remove('hidden');
-                el.classList.add('animate-scaleIn');
-            }
+        async function processRFID(uid) {
+            showState('state-loading');
 
-            async function processRFID(uid) {
-                showState('state-loading');
+            try {
+                const res = await fetch(`/api/attendance/prayer?rfid=${encodeURIComponent(uid)}`);
+                const data = await res.json();
 
-                try {
-                    const res = await fetch(`/api/attendance/prayer?rfid=${encodeURIComponent(uid)}`);
-                    const data = await res.json();
+                if (res.ok && data.status !== 'duplicate') {
+                    document.getElementById('success-name').innerText = data.name;
+                    document.getElementById('success-identity').innerText = data.prayer_type || '';
+                    document.getElementById('success-class').innerText = data.time || '';
 
-                    if (res.ok && data.status !== 'duplicate') {
-                        // SUCCESS
-                        document.getElementById('success-name').innerText = data.name;
-                        document.getElementById('success-identity').innerText = data.prayer_type || '';
-                        document.getElementById('success-class').innerText = data.time || '';
+                    document.getElementById('success-status').innerText = data.message;
+                    document.getElementById('success-time').innerText = new Date().toLocaleTimeString('id-ID');
 
-                        document.getElementById('success-status').innerText = data.message;
-                        document.getElementById('success-time').innerText = new Date().toLocaleTimeString('id-ID');
+                    const imgEl = document.getElementById('student-photo');
+                    const iconEl = document.getElementById('default-icon');
 
-                        // Show Photo (Prayer API might not return photo yet, use placeholder logic if needed)
-                        const imgEl = document.getElementById('student-photo');
-                        const iconEl = document.getElementById('default-icon');
-
-                        // Assuming API doesn't return photo yet, default to icon
+                    if (data.photo) {
+                        imgEl.src = "/assets/photos/" + data.photo;
+                        imgEl.classList.remove('hidden');
+                        iconEl.classList.add('hidden');
+                    } else {
                         imgEl.classList.add('hidden');
                         iconEl.classList.remove('hidden');
-
-                        // Style
-                        const statusEl = document.getElementById('success-status');
-                        statusEl.className = "inline-block px-6 py-3 rounded-xl bg-emerald-500/20 text-emerald-400 font-bold text-2xl uppercase tracking-wider mx-auto block text-center";
-
-                        playSound('success');
-                        showState('state-success');
-
-                        // Refresh logs
-                        setTimeout(() => fetchPrayerLogs(), 1000);
-
-                    } else if (data.status === 'duplicate') {
-                        document.getElementById('error-title').innerText = "SUDAH ABSEN!";
-                        document.getElementById('error-msg').innerText = `${data.name} sudah sholat ${data.prayer_type}.`;
-                        showState('state-error');
-                        playSound('error');
-                    } else {
-                        document.getElementById('error-title').innerText = "GAGAL";
-                        document.getElementById('error-msg').innerText = data.message || "Kartu tidak valid";
-                        showState('state-error');
-                        playSound('error');
                     }
-                } catch (err) {
-                    console.error(err);
-                    document.getElementById('error-title').innerText = "ERROR SISTEM";
-                    document.getElementById('error-msg').innerText = "Koneksi ke server terputus";
+
+                    const statusEl = document.getElementById('success-status');
+                    statusEl.className = "inline-block px-6 py-2.5 rounded-full bg-emerald-900 text-amber-300 font-semibold text-sm uppercase tracking-widest";
+
+                    playSound('success');
+                    showState('state-success');
+
+                    setTimeout(() => fetchPrayerLogs(), 1000);
+
+                } else if (data.status === 'duplicate') {
+                    document.getElementById('error-title').innerText = "SUDAH TERCATAT";
+                    document.getElementById('error-msg').innerText = `${data.name} sudah sholat ${data.prayer_type}.`;
+                    showState('state-error');
+                    playSound('error');
+                } else if (res.status === 403) {
+                    document.getElementById('error-title').innerText = "AKUN TIDAK AKTIF";
+                    document.getElementById('error-msg').innerText = data.message || "Akun tidak aktif. Hubungi admin.";
+                    showState('state-error');
+                    playSound('error');
+                } else {
+                    document.getElementById('error-title').innerText = "GAGAL";
+                    document.getElementById('error-msg').innerText = data.message || "Kartu tidak valid";
                     showState('state-error');
                     playSound('error');
                 }
-
-                // Reset to Idle after 3 seconds
-                setTimeout(() => {
-                    showState('state-idle');
-                    lucide.createIcons();
-                }, 3000);
+            } catch (err) {
+                console.error(err);
+                document.getElementById('error-title').innerText = "ERROR SISTEM";
+                document.getElementById('error-msg').innerText = "Koneksi ke server terputus";
+                showState('state-error');
+                playSound('error');
             }
 
-            // --- Audio Feedback ---
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            setTimeout(() => {
+                showState('state-idle');
+                lucide.createIcons();
+            }, 3000);
+        }
 
-            function playSound(type) {
-                if (type === 'success') {
-                    playBeep(1000, 0.1);
-                    setTimeout(() => playBeep(1500, 0.1), 150);
-                } else {
-                    playBeep(300, 0.5, 'sawtooth');
-                }
-            }
+        // --- Audio Feedback ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-            function playBeep(freq, duration, type = 'sine') {
-                const osc = audioCtx.createOscillator();
-                const gainNode = audioCtx.createGain();
-                osc.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-                osc.frequency.value = freq;
-                osc.type = type;
-                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                osc.start();
-                osc.stop(audioCtx.currentTime + duration);
+        function playSound(type) {
+            if (type === 'success') {
+                playBeep(1000, 0.1);
+                setTimeout(() => playBeep(1500, 0.1), 150);
+            } else {
+                playBeep(300, 0.5, 'sawtooth');
             }
-        </script>
-    </body>
+        }
+
+        function playBeep(freq, duration, type = 'sine') {
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            osc.frequency.value = freq;
+            osc.type = type;
+            gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+    </script>
+</body>
 
 </html>

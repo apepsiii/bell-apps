@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kartu Siswa - SMK NIBA Super Apps</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media print {
+            @page { size: portrait; margin: 0; }
+            body { margin: 0; padding: 0; }
+            .no-print { display: none !important; }
+            .page-break { page-break-after: always; }
+        }
+        .id-card {
+            width: 5.4cm;
+            height: 8.5cm;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        @media print {
+            .id-card {
+                border: 1px solid #000;
+                width: 5.4cm;
+                height: 8.5cm;
+                margin: 0;
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen p-4">
+    <!-- Header -->
+    <div class="max-w-4xl mx-auto mb-6 no-print">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-800">Kartu Siswa</h1>
+                <p class="text-slate-500">Cetak kartu ID dengan QR Code</p>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="printCards()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                    </svg>
+                    Cetak Semua
+                </button>
+                <button onclick="window.close()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium">
+                    Tutup
+                </button>
+            </div>
+        </div>
+
+        <!-- Filter -->
+        <div class="mt-4 bg-white p-4 rounded-lg shadow-sm">
+            <div class="flex gap-4 items-end">
+                <div class="flex-1">
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Filter Kelas</label>
+                    <select id="filter-class" onchange="loadStudents()" class="w-full border rounded-lg px-3 py-2">
+                        <option value="">Semua Kelas</option>
+                    </select>
+                </div>
+                <button onclick="loadStudents()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                    Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cards Container -->
+    <div class="max-w-4xl mx-auto">
+        <div id="cards-container" class="grid grid-cols-2 md:grid-cols-3 gap-4 justify-items-center">
+            <!-- Loading state -->
+            <div class="col-span-full text-center py-12 text-slate-500">
+                Memuat...
+            </div>
+        </div>
+    </div>
+
+    <!-- Template for individual card -->
+    <template id="card-template">
+        <div class="id-card bg-white flex flex-col">
+            <!-- Header: title + school -->
+            <div class="px-3 pt-3 pb-2 bg-blue-600 text-white">
+                <div class="text-[9px] uppercase tracking-wider opacity-80">Kartu Identitas Siswa</div>
+                <div class="text-[11px] font-bold">SMK NIBA Business School</div>
+            </div>
+            <!-- Student info -->
+            <div class="px-3 pt-2 pb-1">
+                <div class="text-[13px] font-semibold text-slate-800 leading-tight student-name"></div>
+                <div class="text-[10px] text-slate-500 mt-0.5">
+                    <span class="student-class"></span>
+                </div>
+            </div>
+            <!-- QR Code fills the rest of the card -->
+            <div class="flex-1 flex items-center justify-center bg-slate-50 p-2 min-h-0">
+                <img class="qr-image w-full h-full object-contain" src="" alt="QR Code">
+            </div>
+            <!-- Footer hint -->
+            <div class="text-[8px] text-center text-slate-400 py-1">
+                Scan QR Code untuk presensi
+            </div>
+        </div>
+    </template>
+
+    <script>
+        // Load classes for filter
+        async function loadClasses() {
+            try {
+                const res = await fetch('/admin/classes/json');
+                const classes = await res.json();
+                const select = document.getElementById('filter-class');
+                classes.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.textContent = c.name;
+                    select.appendChild(opt);
+                });
+            } catch (err) {
+                console.error('Failed to load classes:', err);
+            }
+        }
+
+        // Load students and render cards
+        async function loadStudents() {
+            const container = document.getElementById('cards-container');
+            const classID = document.getElementById('filter-class').value;
+            const url = classID ? `/admin/students/idcard?class_id=${classID}` : '/admin/students/idcard';
+
+            container.innerHTML = '<div class="w-full text-center py-12 text-slate-500">Memuat...</div>';
+
+            try {
+                const res = await fetch(url);
+                const students = await res.json();
+
+                if (students.length === 0) {
+                    container.innerHTML = '<div class="w-full text-center py-12 text-slate-500">Tidak ada siswa</div>';
+                    return;
+                }
+
+                container.innerHTML = '';
+                const template = document.getElementById('card-template');
+
+                students.forEach((s, index) => {
+                    const card = template.content.cloneNode(true);
+                    card.querySelector('.student-name').textContent = s.name;
+                    card.querySelector('.student-class').textContent = s.class;
+                    card.querySelector('.qr-image').src = s.qr_image;
+
+                    const wrapper = document.createElement('div');
+                    wrapper.appendChild(card);
+                    // Page break every 4 cards (2 cols x 2 rows per A4 portrait page)
+                    if (index > 0 && index % 4 === 0) {
+                        wrapper.classList.add('page-break');
+                    }
+                    container.appendChild(wrapper);
+                });
+            } catch (err) {
+                console.error('Failed to load students:', err);
+                container.innerHTML = '<div class="w-full text-center py-12 text-red-500">Gagal memuat data</div>';
+            }
+        }
+
+        // Print all cards
+        function printCards() {
+            window.print();
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadClasses().then(() => loadStudents());
+        });
+    </script>
+</body>
+</html>

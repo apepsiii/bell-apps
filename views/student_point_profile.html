@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profil Poin Siswa - SMK NIBA Super Apps</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .page-section { display: none; animation: fadeIn 0.3s ease-in-out; }
+        .page-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+        .history-item { animation: slideIn 0.3s ease-out; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans">
+
+    <div class="max-w-4xl mx-auto p-6">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-8">
+            <div class="flex items-center gap-4">
+                <button onclick="window.close()" class="p-2 hover:bg-slate-100 rounded-lg transition">
+                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                </button>
+                <div>
+                    <h1 class="text-2xl font-bold">Profil Poin Siswa</h1>
+                    <p class="text-slate-500 text-sm">History dan statistik poin</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-sm text-slate-400">Tahun Ajaran</span>
+                <select id="year-filter" onchange="loadData()" class="border rounded-lg px-3 py-1.5 text-sm">
+                    <option value="">Semua</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Student Info Card -->
+        <div id="student-info" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6 hidden">
+            <div class="flex items-center gap-6">
+                <div class="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden">
+                    <img id="student-photo" src="" class="w-full h-full object-cover hidden">
+                    <i data-lucide="user" class="w-10 h-10 text-blue-400" id="student-photo-placeholder"></i>
+                </div>
+                <div class="flex-1">
+                    <h2 id="student-name" class="text-2xl font-bold text-slate-800"></h2>
+                    <p id="student-class" class="text-slate-500"></p>
+                    <p id="student-nis" class="text-sm text-slate-400 font-mono"></p>
+                </div>
+                <div class="text-center">
+                    <div id="total-points" class="text-5xl font-black text-yellow-500">0</div>
+                    <p class="text-sm text-slate-400 uppercase tracking-wider">Total Poin</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="grid grid-cols-4 gap-4 mb-6">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 text-center">
+                <div id="stat-hadir" class="text-3xl font-bold text-green-500">0</div>
+                <p class="text-xs text-slate-400 uppercase">Hadir</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 text-center">
+                <div id="stat-terlambat" class="text-3xl font-bold text-orange-500">0</div>
+                <p class="text-xs text-slate-400 uppercase">Terlambat</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 text-center">
+                <div id="stat-alpha" class="text-3xl font-bold text-red-500">0</div>
+                <p class="text-xs text-slate-400 uppercase">Alpha</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 text-center">
+                <div id="stat-ranking" class="text-3xl font-bold text-blue-500">#-</div>
+                <p class="text-xs text-slate-400 uppercase">Ranking</p>
+            </div>
+        </div>
+
+        <!-- History Section -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold">Riwayat Poin</h3>
+                <span id="history-count" class="text-sm text-slate-400">0 aktivitas</span>
+            </div>
+
+            <div id="history-list" class="space-y-3 max-h-96 overflow-y-auto">
+                <div class="text-center py-8 text-slate-400">
+                    <i data-lucide="loader-2" class="w-8 h-8 mx-auto animate-spin"></i>
+                    <p class="mt-2">Memuat...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const studentId = urlParams.get('id');
+
+        async function loadData() {
+            if (!studentId) {
+                document.getElementById('history-list').innerHTML = '<div class="text-center py-8 text-red-400">ID siswa tidak valid</div>';
+                return;
+            }
+
+            try {
+                // Load student profile
+                const profileRes = await fetch(`/admin/points/student/${studentId}`);
+                const profile = await profileRes.json();
+
+                if (profile.error || !profile.student) {
+                    document.getElementById('history-list').innerHTML = '<div class="text-center py-8 text-red-400">Siswa tidak ditemukan</div>';
+                    return;
+                }
+
+                // Update student info
+                document.getElementById('student-info').classList.remove('hidden');
+                document.getElementById('student-name').textContent = profile.student.name;
+                document.getElementById('student-class').textContent = profile.student.class;
+                document.getElementById('student-nis').textContent = 'NIS: ' + (profile.student.nis || '-');
+                document.getElementById('total-points').textContent = profile.total_points;
+
+                if (profile.student.photo) {
+                    document.getElementById('student-photo').src = '/assets/photos/' + profile.student.photo;
+                    document.getElementById('student-photo').classList.remove('hidden');
+                    document.getElementById('student-photo-placeholder').classList.add('hidden');
+                }
+
+                // Calculate stats from history
+                let hadir = 0, terlambat = 0, alpha = 0;
+                profile.history.forEach(h => {
+                    if (h.description.includes('Hadir Tepat Waktu')) hadir++;
+                    else if (h.description.includes('Terlambat')) terlambat++;
+                    else if (h.description.includes('Alpha')) alpha++;
+                });
+
+                document.getElementById('stat-hadir').textContent = hadir;
+                document.getElementById('stat-terlambat').textContent = terlambat;
+                document.getElementById('stat-alpha').textContent = alpha;
+
+                // Render history
+                const historyList = document.getElementById('history-list');
+                document.getElementById('history-count').textContent = profile.history.length + ' aktivitas';
+
+                if (profile.history.length === 0) {
+                    historyList.innerHTML = '<div class="text-center py-8 text-slate-400">Belum ada history</div>';
+                    lucide.createIcons();
+                    return;
+                }
+
+                historyList.innerHTML = profile.history.map(h => {
+                    const pointsColor = h.points_change >= 0 ? 'text-green-500' : 'text-red-500';
+                    const bgColor = h.points_change >= 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200';
+                    const icon = h.points_change >= 0 ? 'arrow-up' : 'arrow-down';
+                    const date = new Date(h.timestamp).toLocaleDateString('id-ID', {
+                        day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                    });
+
+                    return `
+                        <div class="history-item flex items-center gap-4 p-4 rounded-xl ${bgColor} border">
+                            <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center">
+                                <i data-lucide="${icon}" class="w-5 h-5 ${pointsColor}"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="font-medium text-slate-700">${h.description}</p>
+                                <p class="text-xs text-slate-400">${date}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-bold ${pointsColor}">${h.points_change >= 0 ? '+' : ''}${h.points_change}</p>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                lucide.createIcons();
+
+            } catch (err) {
+                console.error(err);
+                document.getElementById('history-list').innerHTML = '<div class="text-center py-8 text-red-400">Gagal memuat data</div>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadData);
+    </script>
+</body>
+</html>

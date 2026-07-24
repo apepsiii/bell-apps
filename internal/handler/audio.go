@@ -29,8 +29,8 @@ func UploadAudio(db *sql.DB) echo.HandlerFunc {
 		}
 		defer src.Close()
 
-		os.MkdirAll(config.UploadPath, 0755)
-		dstPath := filepath.Join(config.UploadPath, filepath.Base(file.Filename))
+		os.MkdirAll(config.GetUploadPath(), 0755)
+		dstPath := filepath.Join(config.GetUploadPath(), filepath.Base(file.Filename))
 
 		dst, err := os.Create(dstPath)
 		if err != nil {
@@ -66,7 +66,7 @@ func DeleteAudio(db *sql.DB) echo.HandlerFunc {
 		var fileName string
 		err := db.QueryRow("SELECT file_name FROM audio_files WHERE id=?", id).Scan(&fileName)
 		if err == nil {
-			os.Remove(filepath.Join(config.UploadPath, fileName))
+			os.Remove(filepath.Join(config.GetUploadPath(), fileName))
 		}
 
 		_, err = db.Exec("DELETE FROM audio_files WHERE id = ?", id)

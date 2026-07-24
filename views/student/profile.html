@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Profil — SMK NIBA Super Apps</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --emerald: #0F5132;
+            --emerald-light: #1A7A4C;
+            --emerald-soft: #E8F3EE;
+            --gold: #C9A227;
+            --gold-soft: #F5EEDC;
+            --cream: #FAF7F0;
+            --ink: #1A2E25;
+            --muted: #6B7F76;
+            --danger: #DC2626;
+        }
+        * { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        body { background: var(--cream); color: var(--ink); padding-bottom: 80px; }
+        .card {
+            background: #FFFFFF;
+            border: 1px solid rgba(15,81,50,0.08);
+            border-radius: 18px;
+            box-shadow: 0 1px 3px rgba(15,81,50,0.04);
+        }
+        .bottom-nav {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: #FFFFFF;
+            border-top: 1px solid rgba(15,81,50,0.08);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            height: 64px;
+            z-index: 50;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .nav-item {
+            display: flex; flex-direction: column; align-items: center;
+            color: var(--muted); font-size: 11px; font-weight: 500;
+            transition: color 0.15s; gap: 3px;
+        }
+        .nav-item.active { color: var(--emerald); }
+        .nav-qr {
+            position: relative; top: -14px;
+            width: 48px; height: 48px;
+            background: var(--emerald);
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            color: #FFFFFF;
+            box-shadow: 0 4px 12px rgba(15,81,50,0.3);
+        }
+        .skeleton { background: linear-gradient(90deg, #e8f3ee 0%, #f0f5f2 50%, #e8f3ee 100%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 12px; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        .input-field {
+            background: #F8FAF9;
+            border: 1.5px solid rgba(15,81,50,0.1);
+            border-radius: 14px;
+            padding: 14px 16px;
+            font-size: 16px;
+            width: 100%;
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: var(--emerald);
+            box-shadow: 0 0 0 3px rgba(15,81,50,0.1);
+        }
+        .btn-primary {
+            background: var(--emerald);
+            color: #FFFFFF;
+            border-radius: 14px;
+            padding: 12px 20px;
+            font-weight: 600;
+            font-size: 15px;
+            transition: all 0.2s;
+        }
+        .btn-primary:active { transform: scale(0.98); }
+        .btn-primary:disabled { opacity: 0.6; }
+        .btn-danger {
+            background: #FEF2F2;
+            color: var(--danger);
+            border-radius: 14px;
+            padding: 12px 20px;
+            font-weight: 600;
+            font-size: 15px;
+            border: 1px solid #FECACA;
+        }
+        .btn-danger:active { transform: scale(0.98); }
+        .profile-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(15,81,50,0.06);
+        }
+        .profile-row:last-child { border-bottom: none; }
+    </style>
+</head>
+<body>
+    <div class="px-5 pt-6 pb-4">
+        <h1 class="text-xl font-bold text-[var(--ink)] mb-5">Profil Saya</h1>
+
+        <!-- Profile Card -->
+        <div class="card p-5 mb-4">
+            <div id="profileLoading" class="space-y-4">
+                <div class="skeleton w-20 h-20 mx-auto rounded-full"></div>
+                <div class="skeleton w-40 h-6 mx-auto"></div>
+                <div class="skeleton w-24 h-4 mx-auto"></div>
+                <div class="skeleton w-full h-32"></div>
+            </div>
+            <div id="profileEl" class="hidden">
+                <div class="text-center mb-5">
+                    <div id="photoCont" class="w-20 h-20 mx-auto rounded-full bg-emerald-100 overflow-hidden mb-3">
+                        <img id="photoImg" src="" alt="" class="w-full h-full object-cover hidden">
+                        <div id="photoPh" class="w-full h-full flex items-center justify-center"><i data-lucide="user" class="w-8 h-8 text-emerald-500"></i></div>
+                    </div>
+                    <div id="dispName" class="text-lg font-bold text-[var(--ink)]"></div>
+                    <div id="dispClass" class="text-sm text-[var(--muted)]"></div>
+                </div>
+                <div>
+                    <div class="profile-row">
+                        <span class="text-sm text-[var(--muted)]">NIS</span>
+                        <span id="pNIS" class="text-sm font-semibold font-mono text-[var(--ink)]"></span>
+                    </div>
+                    <div id="rowNisSiswa" class="profile-row hidden">
+                        <span class="text-sm text-[var(--muted)]">NIS Siswa</span>
+                        <span id="pNisSiswa" class="text-sm font-semibold font-mono text-[var(--ink)]"></span>
+                    </div>
+                    <div class="profile-row">
+                        <span class="text-sm text-[var(--muted)]">Tanggal Lahir</span>
+                        <span id="pBirthday" class="text-sm font-semibold text-[var(--ink)]"></span>
+                    </div>
+                    <div class="profile-row">
+                        <span class="text-sm text-[var(--muted)]">Nama Wali</span>
+                        <span id="pParentName" class="text-sm font-semibold text-[var(--ink)]"></span>
+                    </div>
+                    <div class="profile-row">
+                        <span class="text-sm text-[var(--muted)]">No. HP Wali</span>
+                        <span id="pParentPhone" class="text-sm font-semibold font-mono text-[var(--ink)]"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Change PIN -->
+        <div class="card p-5 mb-4">
+            <div class="flex items-center gap-2 mb-4">
+                <i data-lucide="lock" class="w-5 h-5 text-[var(--emerald)]"></i>
+                <span class="font-semibold text-[var(--ink)]">Ganti PIN</span>
+            </div>
+            <form id="pinForm" class="space-y-3">
+                <input type="password" id="oldPin" class="input-field" placeholder="PIN Lama" required inputmode="numeric" maxlength="8" autocomplete="off">
+                <input type="password" id="newPin" class="input-field" placeholder="PIN Baru (4-8 digit)" required inputmode="numeric" maxlength="8" autocomplete="off">
+                <input type="password" id="confirmPin" class="input-field" placeholder="Konfirmasi PIN Baru" required inputmode="numeric" maxlength="8" autocomplete="off">
+                <div id="pinError" class="hidden bg-red-50 border border-red-200 text-red-600 px-3 py-2 rounded-xl text-sm"></div>
+                <div id="pinSuccess" class="hidden bg-[var(--emerald-soft)] border border-[rgba(15,81,50,0.15)] text-[var(--emerald)] px-3 py-2 rounded-xl text-sm font-semibold"></div>
+                <button type="submit" id="pinBtn" class="btn-primary w-full mt-1">
+                    <span id="pinBtnText">Simpan PIN Baru</span>
+                    <span id="pinBtnSpinner" class="hidden"><svg class="animate-spin h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg></span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Logout -->
+        <button id="logoutBtn" class="btn-danger w-full flex items-center justify-center gap-2">
+            <i data-lucide="log-out" class="w-5 h-5"></i>Keluar
+        </button>
+
+        <div class="text-center text-xs text-[var(--muted)] mt-6 pb-2">&copy; 2026 SMK NIBA Super Apps</div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="/student/dashboard" class="nav-item"><i data-lucide="home" class="w-5 h-5"></i>Beranda</a>
+        <a href="/student/presensi" class="nav-item"><i data-lucide="calendar-check" class="w-5 h-5"></i>Presensi</a>
+        <a href="/student/qr" class="nav-qr"><i data-lucide="qr-code" class="w-6 h-6"></i></a>
+        <a href="/student/profil" class="nav-item active"><i data-lucide="user" class="w-5 h-5"></i>Profil</a>
+    </nav>
+
+    <script>
+        lucide.createIcons();
+
+        // Load profile
+        async function loadProfile() {
+            try {
+                var r = await fetch('/api/student/profile');
+                if (!r.ok) throw new Error('Unauthorized');
+                var d = await r.json();
+
+                document.getElementById('profileLoading').classList.add('hidden');
+                document.getElementById('profileEl').classList.remove('hidden');
+
+                if (d.photo) {
+                    document.getElementById('photoPh').classList.add('hidden');
+                    document.getElementById('photoImg').src = d.photo;
+                    document.getElementById('photoImg').classList.remove('hidden');
+                } else {
+                    document.getElementById('photoPh').classList.remove('hidden');
+                    document.getElementById('photoImg').classList.add('hidden');
+                }
+
+                document.getElementById('dispName').textContent = d.name;
+                document.getElementById('dispClass').textContent = d['class'] || '-';
+                document.getElementById('pNIS').textContent = d.nis;
+                document.getElementById('pBirthday').textContent = d.birthday || '-';
+                document.getElementById('pParentName').textContent = d.parent_name || '-';
+                document.getElementById('pParentPhone').textContent = d.parent_phone || '-';
+
+                if (d.nis_siswa) {
+                    document.getElementById('rowNisSiswa').classList.remove('hidden');
+                    document.getElementById('pNisSiswa').textContent = d.nis_siswa;
+                }
+            } catch(e) {
+                if (e.message === 'Unauthorized') window.location.href = '/student/login';
+            }
+        }
+
+        // Change PIN handler
+        document.getElementById('pinForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            var oldPin = document.getElementById('oldPin').value.trim();
+            var newPin = document.getElementById('newPin').value.trim();
+            var confirm = document.getElementById('confirmPin').value.trim();
+
+            document.getElementById('pinError').classList.add('hidden');
+            document.getElementById('pinSuccess').classList.add('hidden');
+
+            if (newPin !== confirm) {
+                showPinError('PIN baru dan konfirmasi tidak cocok');
+                return;
+            }
+            if (!/^\d{4,8}$/.test(newPin)) {
+                showPinError('PIN baru harus 4-8 digit angka');
+                return;
+            }
+
+            var btn = document.getElementById('pinBtn');
+            btn.disabled = true;
+            document.getElementById('pinBtnText').classList.add('hidden');
+            document.getElementById('pinBtnSpinner').classList.remove('hidden');
+
+            try {
+                var r = await fetch('/api/student/pin', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ old_pin: oldPin, new_pin: newPin })
+                });
+                var d = await r.json();
+                if (r.ok) {
+                    document.getElementById('pinSuccess').textContent = d.message;
+                    document.getElementById('pinSuccess').classList.remove('hidden');
+                    document.getElementById('oldPin').value = '';
+                    document.getElementById('newPin').value = '';
+                    document.getElementById('confirmPin').value = '';
+                } else {
+                    showPinError(d.message || 'Gagal mengubah PIN');
+                }
+            } catch {
+                showPinError('Terjadi kesalahan koneksi');
+            } finally {
+                btn.disabled = false;
+                document.getElementById('pinBtnText').classList.remove('hidden');
+                document.getElementById('pinBtnSpinner').classList.add('hidden');
+            }
+        });
+
+        function showPinError(msg) {
+            document.getElementById('pinError').textContent = msg;
+            document.getElementById('pinError').classList.remove('hidden');
+        }
+
+        // Logout
+        document.getElementById('logoutBtn').addEventListener('click', async function() {
+            await fetch('/api/student/logout', { method: 'POST' });
+            window.location.href = '/student/login';
+        });
+
+        loadProfile();
+    </script>
+</body>
+</html>

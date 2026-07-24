@@ -47,3 +47,29 @@ func DeleteClass(db *sql.DB) echo.HandlerFunc {
 		return c.JSON(http.StatusOK, map[string]string{"status": "success", "message": "Kelas dihapus"})
 	}
 }
+
+func GetClassesJSON(db *sql.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		rows, err := db.Query("SELECT id, name FROM classes ORDER BY name ASC")
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+		}
+		defer rows.Close()
+
+		type ClassInfo struct {
+			ID   int    `json:"id"`
+			Name string `json:"name"`
+		}
+
+		var classes []ClassInfo
+		for rows.Next() {
+			var c ClassInfo
+			if err := rows.Scan(&c.ID, &c.Name); err != nil {
+				continue
+			}
+			classes = append(classes, c)
+		}
+
+		return c.JSON(http.StatusOK, classes)
+	}
+}

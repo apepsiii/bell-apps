@@ -8,6 +8,7 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"belsekolah/internal/config"
+	"belsekolah/pkg/qrcode"
 	"belsekolah/pkg/utils"
 )
 
@@ -15,6 +16,7 @@ func AddStudent(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		rfid := c.FormValue("rfid_uid")
 		nis := c.FormValue("nis")
+		nisSiswa := c.FormValue("nis_siswa")
 		name := c.FormValue("name")
 		phone := utils.FormatPhone(c.FormValue("parent_phone"))
 		classID := c.FormValue("class_id")
@@ -29,7 +31,7 @@ func AddStudent(db *sql.DB) echo.HandlerFunc {
 				defer src.Close()
 				ext := utils.GetPhotoExtension(file.Filename)
 				filename := utils.BuildPhotoFilename(nis, ext)
-				dstPath := filepath.Join(config.PhotoPath, filename)
+				dstPath := filepath.Join(config.GetPhotoPath(), filename)
 				if err := utils.SaveUploadedFile(src, dstPath); err == nil {
 					photoFile = filename
 				}
@@ -38,14 +40,14 @@ func AddStudent(db *sql.DB) echo.HandlerFunc {
 			capturedPhoto := c.FormValue("captured_photo")
 			if capturedPhoto != "" {
 				filename := utils.BuildPhotoFilename(nis, ".jpg")
-				dstPath := filepath.Join(config.PhotoPath, filename)
+				dstPath := filepath.Join(config.GetPhotoPath(), filename)
 				if err := utils.SaveBase64Image(capturedPhoto, dstPath); err == nil {
 					photoFile = filename
 				}
 			}
 		}
 
-		_, err = db.Exec("INSERT INTO students (rfid_uid, nis, name, parent_phone, class_id, photo, birthday, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'active')", rfid, nis, name, phone, classID, photoFile, birthday)
+		_, err = db.Exec("INSERT INTO students (rfid_uid, nis, nis_siswa, name, parent_phone, class_id, photo, birthday, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active')", rfid, nis, nisSiswa, name, phone, classID, photoFile, birthday)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Gagal (Mungkin RFID/NIS duplikat): " + err.Error()})
 		}
@@ -58,6 +60,7 @@ func UpdateStudent(db *sql.DB) echo.HandlerFunc {
 		id := c.Param("id")
 		rfid := c.FormValue("rfid_uid")
 		nis := c.FormValue("nis")
+		nisSiswa := c.FormValue("nis_siswa")
 		name := c.FormValue("name")
 		phone := utils.FormatPhone(c.FormValue("parent_phone"))
 		classID := c.FormValue("class_id")
@@ -72,10 +75,10 @@ func UpdateStudent(db *sql.DB) echo.HandlerFunc {
 				defer src.Close()
 				ext := utils.GetPhotoExtension(file.Filename)
 				filename := utils.BuildPhotoFilename(nis, ext)
-				dstPath := filepath.Join(config.PhotoPath, filename)
+				dstPath := filepath.Join(config.GetPhotoPath(), filename)
 				if err := utils.SaveUploadedFile(src, dstPath); err == nil {
 					photoFile = filename
-					db.Exec("UPDATE students SET rfid_uid=?, nis=?, name=?, parent_phone=?, class_id=?, photo=?, birthday=? WHERE id=?", rfid, nis, name, phone, classID, photoFile, birthday, id)
+					db.Exec("UPDATE students SET rfid_uid=?, nis=?, nis_siswa=?, name=?, parent_phone=?, class_id=?, photo=?, birthday=? WHERE id=?", rfid, nis, nisSiswa, name, phone, classID, photoFile, birthday, id)
 					return c.JSON(http.StatusOK, map[string]string{"status": "success", "message": "Data siswa diperbarui"})
 				}
 			}
@@ -83,16 +86,16 @@ func UpdateStudent(db *sql.DB) echo.HandlerFunc {
 			capturedPhoto := c.FormValue("captured_photo")
 			if capturedPhoto != "" {
 				filename := utils.BuildPhotoFilename(nis, ".jpg")
-				dstPath := filepath.Join(config.PhotoPath, filename)
+				dstPath := filepath.Join(config.GetPhotoPath(), filename)
 				if err := utils.SaveBase64Image(capturedPhoto, dstPath); err == nil {
 					photoFile = filename
-					db.Exec("UPDATE students SET rfid_uid=?, nis=?, name=?, parent_phone=?, class_id=?, photo=?, birthday=? WHERE id=?", rfid, nis, name, phone, classID, photoFile, birthday, id)
+					db.Exec("UPDATE students SET rfid_uid=?, nis=?, nis_siswa=?, name=?, parent_phone=?, class_id=?, photo=?, birthday=? WHERE id=?", rfid, nis, nisSiswa, name, phone, classID, photoFile, birthday, id)
 					return c.JSON(http.StatusOK, map[string]string{"status": "success", "message": "Data siswa diperbarui"})
 				}
 			}
 		}
 
-		_, err = db.Exec("UPDATE students SET rfid_uid=?, nis=?, name=?, parent_phone=?, class_id=?, birthday=? WHERE id=?", rfid, nis, name, phone, classID, birthday, id)
+		_, err = db.Exec("UPDATE students SET rfid_uid=?, nis=?, nis_siswa=?, name=?, parent_phone=?, class_id=?, birthday=? WHERE id=?", rfid, nis, nisSiswa, name, phone, classID, birthday, id)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
 		}
@@ -313,5 +316,103 @@ func BulkUpdateStudentStatus(db *sql.DB) echo.HandlerFunc {
 			"status":  "success",
 			"message": "Berhasil mengupdate status siswa",
 		})
+	}
+}
+
+func GetStudentIDCard(db *sql.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		id := c.Param("id")
+
+		var student struct {
+			ID        int
+			NIS       string
+			Name      string
+			ClassID   int
+			ClassName string
+			RFID      string
+		}
+
+		err := db.QueryRow(`
+			SELECT s.id, s.nis, s.name, s.class_id, c.name, s.rfid_uid
+			FROM students s
+			LEFT JOIN classes c ON s.class_id = c.id
+			WHERE s.id = ?
+		`, id).Scan(&student.ID, &student.NIS, &student.Name, &student.ClassID, &student.ClassName, &student.RFID)
+
+		if err != nil {
+			return c.JSON(http.StatusNotFound, map[string]string{"message": "Student not found"})
+		}
+
+		qrImage, err := qrcode.GenerateStudentCard(config.GetDomain(), student.RFID, student.ID, student.NIS, student.Name, student.ClassName)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to generate QR"})
+		}
+
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"id":        student.ID,
+			"nis":       student.NIS,
+			"name":      student.Name,
+			"class":     student.ClassName,
+			"rfid":      student.RFID,
+			"qr_image":  qrImage,
+		})
+	}
+}
+
+func GetAllStudentsForIDCard(db *sql.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		classID := c.QueryParam("class_id")
+
+		var query string
+		var args []interface{}
+
+		if classID != "" {
+			query = `
+				SELECT s.id, s.nis, s.name, COALESCE(c.name, '-') as class_name, s.rfid_uid
+				FROM students s
+				LEFT JOIN classes c ON s.class_id = c.id
+				WHERE s.class_id = ? AND s.status = 'active'
+				ORDER BY c.name, s.name
+			`
+			args = []interface{}{classID}
+		} else {
+			query = `
+				SELECT s.id, s.nis, s.name, COALESCE(c.name, '-') as class_name, s.rfid_uid
+				FROM students s
+				LEFT JOIN classes c ON s.class_id = c.id
+				WHERE s.status = 'active'
+				ORDER BY c.name, s.name
+			`
+		}
+
+		rows, err := db.Query(query, args...)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+		}
+		defer rows.Close()
+
+		type StudentCard struct {
+			ID      int    `json:"id"`
+			NIS     string `json:"nis"`
+			Name    string `json:"name"`
+			Class   string `json:"class"`
+			RFID    string `json:"rfid"`
+			QRImage string `json:"qr_image"`
+		}
+
+		var students []StudentCard
+		for rows.Next() {
+			var s StudentCard
+			if err := rows.Scan(&s.ID, &s.NIS, &s.Name, &s.Class, &s.RFID); err != nil {
+				continue
+			}
+			qrImage, err := qrcode.GenerateStudentCard(config.GetDomain(), s.RFID, s.ID, s.NIS, s.Name, s.Class)
+			if err == nil {
+				s.QRImage = qrImage
+			}
+			students = append(students, s)
+		}
+
+		return c.JSON(http.StatusOK, students)
 	}
 }

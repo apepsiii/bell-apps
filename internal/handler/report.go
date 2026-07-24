@@ -176,7 +176,7 @@ func queryDailyReport(db *sql.DB, date, reportType, classID string) ReportData {
 			LEFT JOIN classes c ON s.class_id = c.id
 			LEFT JOIN attendance_logs al ON s.rfid_uid = al.rfid_uid 
 			    AND DATE(al.timestamp) = ?
-			WHERE 1=1
+			WHERE s.status = 'active'
 		`
 		args = append(args, date)
 
@@ -269,7 +269,7 @@ func queryPeriodReport(db *sql.DB, startDate, endDate, reportType, classID strin
 			LEFT JOIN classes c ON s.class_id = c.id
 			LEFT JOIN attendance_logs al ON s.rfid_uid = al.rfid_uid 
 			    AND DATE(al.timestamp) BETWEEN ? AND ?
-			WHERE 1=1
+			WHERE s.status = 'active'
 		`
 		args = append(args, startDate, endDate)
 

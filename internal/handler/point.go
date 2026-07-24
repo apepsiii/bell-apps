@@ -36,11 +36,17 @@ type StudentPointLog struct {
 }
 
 type StudentPointProfile struct {
-	StudentID   int               `json:"student_id"`
-	Name        string            `json:"name"`
-	ClassName   string            `json:"class_name"`
+	Student     StudentInfo       `json:"student"`
 	TotalPoints int               `json:"total_points"`
 	History     []StudentPointLog `json:"history"`
+}
+
+type StudentInfo struct {
+	ID       int    `json:"id"`
+	Name     string `json:"name"`
+	Class    string `json:"class"`
+	NIS      string `json:"nis"`
+	Photo    string `json:"photo"`
 }
 
 func GetPointRules(db *sql.DB) echo.HandlerFunc {
@@ -99,25 +105,29 @@ func GetStudentPointProfile(db *sql.DB) echo.HandlerFunc {
 		studentID := c.Param("id")
 
 		var profile StudentPointProfile
-		var className sql.NullString
+		var className, nis, photo sql.NullString
+
 		err := db.QueryRow(`
-			SELECT s.id, s.name, c.name, COALESCE(SUM(sp.points_change), 0) as total
+			SELECT s.id, s.name, s.nis, s.photo, c.name, COALESCE(SUM(sp.points_change), 0) as total
 			FROM students s
 			LEFT JOIN classes c ON s.class_id = c.id
 			LEFT JOIN student_points sp ON s.id = sp.student_id
 			WHERE s.id = ?
 			GROUP BY s.id
-		`, studentID).Scan(&profile.StudentID, &profile.Name, &className, &profile.TotalPoints)
-		profile.ClassName = className.String
+		`, studentID).Scan(&profile.Student.ID, &profile.Student.Name, &nis, &photo, &className, &profile.TotalPoints)
 
 		if err != nil {
-			return c.JSON(http.StatusNotFound, map[string]string{"message": "Siswa tidak ditemukan"})
+			return c.JSON(http.StatusNotFound, map[string]string{"error": "Siswa tidak ditemukan"})
 		}
+
+		profile.Student.Class = className.String
+		profile.Student.NIS = nis.String
+		profile.Student.Photo = photo.String
 
 		rows, err := db.Query(`
 			SELECT id, student_id, rule_id, reward_id, points_change, description, timestamp, recorded_by
-			FROM student_points 
-			WHERE student_id = ? 
+			FROM student_points
+			WHERE student_id = ?
 			ORDER BY id DESC LIMIT 50`, studentID)
 
 		if err == nil {
@@ -344,5 +354,210 @@ func GetStudentByRFID(db *sql.DB) echo.HandlerFunc {
 		}
 
 		return c.JSON(http.StatusOK, student)
+	}
+}
+
+// --- POINT CLAIM TYPES ---
+type PointClaimRule struct {
+	ID          int    `json:"id"`
+	Code        string `json:"code"`
+	Category    string `json:"category"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Points      int    `json:"points"`
+	Tier        string `json:"tier"`
+}
+
+type PointClaim struct {
+	ID          int    `json:"id"`
+	StudentID   int    `json:"student_id"`
+	StudentName string `json:"student_name"`
+	ClassName   string `json:"class_name"`
+	RuleID      int    `json:"rule_id"`
+	RuleName    string `json:"rule_name"`
+	RuleCode    string `json:"rule_code"`
+	Points      int    `json:"points"`
+	Description string `json:"description"`
+	Evidence    string `json:"evidence"`
+	Status      string `json:"status"`
+	SubmittedAt string `json:"submitted_at"`
+	ReviewedAt  string `json:"reviewed_at"`
+}
+
+// GET /api/point-rules - Get all active point rules
+func GetPointRulesV2(db *sql.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		rows, err := db.Query(`
+			SELECT id, code, category, name, description, points, tier
+			FROM point_rules
+			WHERE is_active = 1
+			ORDER BY category, code
+		`)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+		}
+		defer rows.Close()
+
+		var rules []PointClaimRule
+		for rows.Next() {
+			var r PointClaimRule
+			if err := rows.Scan(&r.ID, &r.Code, &r.Category, &r.Name, &r.Description, &r.Points, &r.Tier); err != nil {
+				continue
+			}
+			rules = append(rules, r)
+		}
+
+		if rules == nil {
+			rules = []PointClaimRule{}
+		}
+		return c.JSON(http.StatusOK, rules)
+	}
+}
+
+// POST /api/point-claims - Submit a point claim
+func SubmitPointClaim(db *sql.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		type ClaimRequest struct {
+			StudentID   int    `json:"student_id"`
+			RuleID      int    `json:"rule_id"`
+			Description string `json:"description"`
+			Evidence    string `json:"evidence"`
+		}
+
+		var req ClaimRequest
+		if err := c.Bind(&req); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid request"})
+		}
+
+		if req.StudentID == 0 || req.RuleID == 0 {
+			return c.JSON(http.StatusBadRequest, map[string]string{"message": "Student ID and Rule ID required"})
+		}
+
+		_, err := db.Exec(`
+			INSERT INTO point_claims (student_id, rule_id, description, evidence, status)
+			VALUES (?, ?, ?, ?, 'pending')
+		`, req.StudentID, req.RuleID, req.Description, req.Evidence)
+
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to submit claim: " + err.Error()})
+		}
+
+		return c.JSON(http.StatusOK, map[string]string{"status": "success", "message": "Klaim poin berhasil disubmit untuk divalidasi"})
+	}
+}
+
+// GET /api/point-claims - Get pending claims (for admin)
+func GetPointClaims(db *sql.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		status := c.QueryParam("status") // pending, approved, rejected, all
+
+		query := `
+			SELECT pc.id, pc.student_id, s.name, COALESCE(c.name, '-') as class_name,
+				   pc.rule_id, pr.name, pr.code, pr.points,
+				   pc.description, pc.evidence, pc.status, pc.submitted_at, pc.reviewed_at
+			FROM point_claims pc
+			JOIN students s ON pc.student_id = s.id
+			JOIN point_rules pr ON pc.rule_id = pr.id
+		`
+
+		if status != "" && status != "all" {
+			query += " WHERE pc.status = ? ORDER BY pc.submitted_at DESC"
+			rows, err := db.Query(query, status)
+			if err != nil {
+				return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+			}
+			defer rows.Close()
+			return scanPointClaims(rows)
+		}
+
+		query += " ORDER BY pc.submitted_at DESC"
+		rows, err := db.Query(query)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+		}
+		defer rows.Close()
+		return scanPointClaims(rows)
+	}
+}
+
+func scanPointClaims(rows *sql.Rows) error {
+	var claims []PointClaim
+	for rows.Next() {
+		var pc PointClaim
+		var reviewedAt sql.NullString
+		if err := rows.Scan(&pc.ID, &pc.StudentID, &pc.StudentName, &pc.ClassName,
+			&pc.RuleID, &pc.RuleName, &pc.RuleCode, &pc.Points,
+			&pc.Description, &pc.Evidence, &pc.Status, &pc.SubmittedAt, &reviewedAt); err != nil {
+			continue
+		}
+		pc.ReviewedAt = reviewedAt.String
+		claims = append(claims, pc)
+	}
+	if claims == nil {
+		claims = []PointClaim{}
+	}
+	return nil
+}
+
+// POST /api/point-claims/:id/approve - Approve a claim
+func ApprovePointClaim(db *sql.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		id := c.Param("id")
+
+		// Get claim info first
+		var studentID, ruleID, points int
+		var ruleName string
+		err := db.QueryRow(`
+			SELECT pc.student_id, pc.rule_id, pr.points, pr.name
+			FROM point_claims pc
+			JOIN point_rules pr ON pc.rule_id = pr.id
+			WHERE pc.id = ?
+		`, id).Scan(&studentID, &ruleID, &points, &ruleName)
+
+		if err != nil {
+			return c.JSON(http.StatusNotFound, map[string]string{"message": "Klaim tidak ditemukan"})
+		}
+
+		// Update claim status
+		_, err = db.Exec(`
+			UPDATE point_claims
+			SET status = 'approved', reviewed_at = datetime('now')
+			WHERE id = ?
+		`, id)
+
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to approve claim"})
+		}
+
+		// Add points to student
+		_, err = db.Exec(`
+			INSERT INTO student_points (student_id, rule_id, points_change, description, recorded_by)
+			VALUES (?, ?, ?, ?, 'Admin-Claim')
+		`, studentID, ruleID, points, "Klaim Poin: "+ruleName)
+
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Claim approved but failed to add points: " + err.Error()})
+		}
+
+		return c.JSON(http.StatusOK, map[string]string{"status": "success", "message": "Klaim poin disetujui danpoin ditambahkan"})
+	}
+}
+
+// POST /api/point-claims/:id/reject - Reject a claim
+func RejectPointClaim(db *sql.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		id := c.Param("id")
+
+		_, err := db.Exec(`
+			UPDATE point_claims
+			SET status = 'rejected', reviewed_at = datetime('now')
+			WHERE id = ?
+		`, id)
+
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to reject claim"})
+		}
+
+		return c.JSON(http.StatusOK, map[string]string{"status": "success", "message": "Klaim poin ditolak"})
 	}
 }

@@ -1,4 +1,4 @@
-# SmartBell Face Recognition Microservice
+# SMK NIBA Super Apps Face Recognition Microservice
 
 Microservice untuk face encoding dan verification. Berbagi database dengan Go backend (MySQL/MariaDB).
 

@@ -184,13 +184,22 @@ func GetStudentCalendar(db *sql.DB) echo.HandlerFunc {
 			var status, ts, dateStr string
 			rows.Scan(&status, &ts, &dateStr)
 
-			t, _ := time.Parse("2006-01-02", dateStr)
 			timeOnly := ""
 			if len(ts) >= 16 {
 				timeOnly = ts[11:16]
 			}
 
-			calendarData[t.Day()] = append(calendarData[t.Day()], CalendarLog{Status: status, Time: timeOnly})
+			day := 0
+			if len(ts) >= 10 {
+				fmt.Sscanf(ts[8:10], "%d", &day)
+			}
+			if day == 0 && len(dateStr) >= 10 {
+				fmt.Sscanf(dateStr[8:10], "%d", &day)
+			}
+			if day == 0 {
+				continue
+			}
+			calendarData[day] = append(calendarData[day], CalendarLog{Status: status, Time: timeOnly})
 		}
 
 		totalPresent, totalLate, totalSick, totalPermission, totalAlpha := 0, 0, 0, 0, 0

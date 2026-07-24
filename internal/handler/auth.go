@@ -14,10 +14,10 @@ func Login() echo.HandlerFunc {
 		username := c.FormValue("username")
 		password := c.FormValue("password")
 
-		if username == config.AdminUser && password == config.AdminPass {
+		if username == config.GetAdminUser() && password == config.GetAdminPass() {
 			cookie := new(http.Cookie)
-			cookie.Name = config.CookieName
-			cookie.Value = config.SecretKey
+			cookie.Name = config.GetCookieName()
+			cookie.Value = config.GetSecretKey()
 			cookie.Path = "/"
 			cookie.Expires = time.Now().Add(24 * time.Hour)
 			cookie.HttpOnly = true
@@ -32,7 +32,7 @@ func Login() echo.HandlerFunc {
 func Logout() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		cookie := new(http.Cookie)
-		cookie.Name = config.CookieName
+		cookie.Name = config.GetCookieName()
 		cookie.Value = ""
 		cookie.Path = "/"
 		cookie.MaxAge = -1

@@ -43,7 +43,15 @@ func ImportStudents(db *sql.DB) echo.HandlerFunc {
 		rows.Close()
 
 		tx, _ := db.Begin()
-		successCount := 0
+		insertCount := 0
+		updateCount := 0
+
+		// Upsert: insert new students, update existing ones (matched by rfid_uid).
+		// This lets re-importing a CSV refresh name/phone/class instead of skipping.
+		query := `INSERT INTO students (rfid_uid, nis, name, parent_phone, class_id, status)
+			VALUES (?, ?, ?, ?, ?, 'active')
+			ON CONFLICT(rfid_uid) DO UPDATE SET
+			nis=excluded.nis, name=excluded.name, parent_phone=excluded.parent_phone, class_id=excluded.class_id`
 
 		for i, row := range records {
 			if i == 0 {
@@ -59,6 +67,10 @@ func ImportStudents(db *sql.DB) echo.HandlerFunc {
 			phone := utils.FormatPhone(row[3])
 			rfid := strings.TrimSpace(row[4])
 
+			if rfid == "" {
+				continue
+			}
+
 			var classID int
 			if id, ok := classMap[strings.ToUpper(classRaw)]; ok {
 				classID = id
@@ -66,14 +78,23 @@ func ImportStudents(db *sql.DB) echo.HandlerFunc {
 				fmt.Sscanf(classRaw, "%d", &classID)
 			}
 
-			_, err := tx.Exec("INSERT OR IGNORE INTO students (rfid_uid, nis, name, parent_phone, class_id) VALUES (?, ?, ?, ?, ?)", rfid, nis, name, phone, classID)
-			if err == nil {
-				successCount++
+			// Detect existing record so we can report inserts vs updates.
+			var existing int
+			tx.QueryRow("SELECT COUNT(*) FROM students WHERE rfid_uid=?", rfid).Scan(&existing)
+
+			_, err := tx.Exec(query, rfid, nis, name, phone, classID)
+			if err != nil {
+				continue
+			}
+			if existing > 0 {
+				updateCount++
+			} else {
+				insertCount++
 			}
 		}
 		tx.Commit()
 
-		return c.JSON(http.StatusOK, map[string]string{"status": "success", "message": fmt.Sprintf("Import berhasil (%d data)", successCount)})
+		return c.JSON(http.StatusOK, map[string]string{"status": "success", "message": fmt.Sprintf("Import berhasil (%d baru, %d diperbarui)", insertCount, updateCount)})
 	}
 }
 

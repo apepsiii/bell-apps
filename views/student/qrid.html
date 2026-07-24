@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kartu Digital — SMK NIBA Super Apps</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --emerald: #0F5132;
+            --emerald-light: #1A7A4C;
+            --emerald-soft: #E8F3EE;
+            --gold: #C9A227;
+            --gold-soft: #F5EEDC;
+            --cream: #FAF7F0;
+            --ink: #1A2E25;
+            --muted: #6B7F76;
+        }
+        * { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        body { background: var(--cream); color: var(--ink); padding-bottom: 80px; }
+        .card {
+            background: #FFFFFF;
+            border: 1px solid rgba(15,81,50,0.08);
+            border-radius: 18px;
+            box-shadow: 0 1px 3px rgba(15,81,50,0.04);
+        }
+        .bottom-nav {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: #FFFFFF;
+            border-top: 1px solid rgba(15,81,50,0.08);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            height: 64px;
+            z-index: 50;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .nav-item {
+            display: flex; flex-direction: column; align-items: center;
+            color: var(--muted); font-size: 11px; font-weight: 500;
+            transition: color 0.15s; gap: 3px;
+        }
+        .nav-item.active { color: var(--emerald); }
+        .nav-qr {
+            position: relative; top: -14px;
+            width: 48px; height: 48px;
+            background: var(--emerald);
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            color: #FFFFFF;
+            box-shadow: 0 4px 12px rgba(15,81,50,0.3);
+        }
+        .skeleton { background: linear-gradient(90deg, #e8f3ee 0%, #f0f5f2 50%, #e8f3ee 100%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 12px; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        .id-card {
+            background: linear-gradient(135deg, #FFFFFF 0%, #F8FAF9 100%);
+            border-radius: 20px;
+            border: 2px solid var(--emerald);
+            box-shadow: 0 4px 24px rgba(15,81,50,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        .id-card::before {
+            content: '';
+            position: absolute;
+            top: 0; right: 0;
+            width: 80px; height: 80px;
+            background: var(--emerald);
+            border-radius: 0 0 0 32px;
+            opacity: 0.08;
+        }
+    </style>
+</head>
+<body>
+    <div class="px-5 pt-6 pb-4">
+        <h1 class="text-xl font-bold text-[var(--ink)] mb-1">Kartu Digital</h1>
+        <p class="text-sm text-[var(--muted)] mb-5">Tunjukkan QR ini untuk presensi</p>
+
+        <div id="loading" class="space-y-3">
+            <div class="skeleton w-full h-96 rounded-2xl"></div>
+        </div>
+
+        <!-- ID Card -->
+        <div id="idCardEl" class="hidden id-card p-5 mb-4">
+            <div class="flex items-start gap-4 mb-4">
+                <div id="photoContainer" class="w-16 h-16 rounded-xl bg-emerald-100 overflow-hidden flex-shrink-0">
+                    <img id="photoImg" src="" alt="" class="w-full h-full object-cover hidden">
+                    <div id="photoPlaceholder" class="w-full h-full flex items-center justify-center"><i data-lucide="user" class="w-7 h-7 text-emerald-500"></i></div>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-xs text-[var(--muted)] font-medium">SMK NIBA Super Apps</div>
+                    <div id="idName" class="text-lg font-bold text-[var(--ink)] truncate"></div>
+                    <div class="flex items-center gap-2 mt-0.5">
+                        <span class="text-xs text-[var(--muted)]">NIS:</span>
+                        <span id="idNIS" class="text-sm font-mono font-semibold text-[var(--emerald)]"></span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-[var(--muted)]">Kelas:</span>
+                        <span id="idClass" class="text-sm font-semibold text-[var(--ink)]"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- QR Code -->
+            <div class="flex justify-center mb-3">
+                <div class="bg-white p-3 rounded-xl border border-[rgba(15,81,50,0.08)]">
+                    <img id="qrImage" src="" alt="QR Code" class="w-48 h-48">
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex gap-2">
+                <button onclick="downloadQR()" class="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[var(--emerald-soft)] text-[var(--emerald)] text-sm font-semibold transition active:scale-[0.98]">
+                    <i data-lucide="download" class="w-4 h-4"></i>Unduh
+                </button>
+                <button onclick="shareQR()" class="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[var(--gold-soft)] text-[#8B6914] text-sm font-semibold transition active:scale-[0.98]">
+                    <i data-lucide="share-2" class="w-4 h-4"></i>Bagikan
+                </button>
+            </div>
+        </div>
+
+        <!-- Error -->
+        <div id="errorEl" class="hidden card p-6 text-center text-sm text-red-600"></div>
+
+        <div class="text-center text-xs text-[var(--muted)] mt-6 pb-2">&copy; 2026 SMK NIBA Super Apps</div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="/student/dashboard" class="nav-item"><i data-lucide="home" class="w-5 h-5"></i>Beranda</a>
+        <a href="/student/presensi" class="nav-item"><i data-lucide="calendar-check" class="w-5 h-5"></i>Presensi</a>
+        <a href="/student/qr" class="nav-qr active-qr" style="background: var(--gold);"><i data-lucide="qr-code" class="w-6 h-6"></i></a>
+        <a href="/student/profil" class="nav-item"><i data-lucide="user" class="w-5 h-5"></i>Profil</a>
+    </nav>
+
+    <script>
+        lucide.createIcons();
+
+        async function loadQR() {
+            try {
+                var r = await fetch('/api/student/qrcard');
+                if (!r.ok) throw new Error(r.status === 401 ? 'Unauthorized' : 'Failed');
+                var d = await r.json();
+
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('idCardEl').classList.remove('hidden');
+
+                document.getElementById('idName').textContent = d.name;
+                document.getElementById('idNIS').textContent = d.nis;
+                document.getElementById('idClass').textContent = d['class']; // 'class' is JS keyword, use bracket
+
+                document.getElementById('qrImage').src = d.qr_image;
+            } catch(e) {
+                document.getElementById('loading').classList.add('hidden');
+                if (e.message === 'Unauthorized') {
+                    window.location.href = '/student/login';
+                } else {
+                    document.getElementById('errorEl').classList.remove('hidden');
+                    document.getElementById('errorEl').textContent = 'Gagal memuat kartu. Coba lagi nanti.';
+                }
+            }
+        }
+
+        function downloadQR() {
+            var img = document.getElementById('qrImage');
+            var a = document.createElement('a');
+            a.href = img.src;
+            a.download = 'kartu-digital.png';
+            a.click();
+        }
+
+        function shareQR() {
+            var img = document.getElementById('qrImage');
+            if (navigator.share) {
+                fetch(img.src)
+                    .then(function(r) { return r.blob(); })
+                    .then(function(blob) {
+                        navigator.share({
+                            title: 'Kartu Digital SMK NIBA',
+                            files: [new File([blob], 'kartu-digital.png', { type: 'image/png' })]
+                        }).catch(function(){});
+                    })
+                    .catch(function(){});
+            } else {
+                downloadQR();
+            }
+        }
+
+        loadQR();
+    </script>
+</body>
+</html>

@@ -2,7 +2,10 @@ package handler
 
 import (
 	"database/sql"
+	"fmt"
+	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -10,9 +13,51 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hegedustibor/htgo-tts"
 	"github.com/labstack/echo/v4"
 )
+
+// downloadTTSAudio fetches an MP3 from Google Translate TTS and saves it.
+// This replaces github.com/hegedustibor/htgo-tts which pulled in
+// github.com/hajimehoshi/oto/v2 — an audio-playback dep that fails to
+// cross-compile (GOOS=linux from Windows) because its platform-specific
+// context files are excluded by build tags. We only need the file-download
+// half of htgo-tts, so implement it inline.
+func downloadTTSAudio(text, lang, folder, fileName string) (string, error) {
+	if err := os.MkdirAll(folder, 0755); err != nil {
+		return "", err
+	}
+	f := filepath.Join(folder, fileName+".mp3")
+
+	// Skip download if already cached
+	if _, err := os.Stat(f); err == nil {
+		return f, nil
+	}
+
+	q := url.QueryEscape(text)
+	dlURL := fmt.Sprintf("http://translate.google.com/translate_tts?ie=UTF-8&total=1&idx=0&textlen=%d&client=tw-ob&q=%s&tl=%s", len([]rune(text)), q, lang)
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Get(dlURL)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("TTS download failed: HTTP %d", resp.StatusCode)
+	}
+
+	out, err := os.Create(f)
+	if err != nil {
+		return "", err
+	}
+	defer out.Close()
+
+	if _, err := io.Copy(out, resp.Body); err != nil {
+		return "", err
+	}
+	return f, nil
+}
 
 type Announcement struct {
 	ID          int          `json:"id"`
@@ -66,13 +111,13 @@ func CreateAnnouncement(db *sql.DB) echo.HandlerFunc {
 			baseFileName = baseFileName[:50]
 		}
 
-		speech := htgotts.Speech{Folder: "public/assets/audio", Language: "id"}
-		_, err := speech.CreateSpeechFile(message, baseFileName)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to create audio file: " + err.Error()})
-		}
+	speechFile, err := downloadTTSAudio(message, "id", "public/assets/audio", baseFileName)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to create audio file: " + err.Error()})
+	}
+	_ = speechFile
 
-		fileName := baseFileName + ".mp3"
+	fileName := baseFileName + ".mp3"
 
 		var scheduledAt sql.NullTime
 		if scheduledAtStr != "" {
