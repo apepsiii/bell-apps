@@ -301,6 +301,10 @@ func Register(e *echo.Echo, db *sql.DB, viewsFS embed.FS, app AppHandlers) {
 	admin.POST("/ai/test", handler.TestAIConnection(db))
 	admin.POST("/ai/generate-quest", handler.GenerateAIQuest(db))
 
+	// Backup & Restore
+	admin.GET("/backup", handler.BackupDatabase(db))
+	admin.POST("/restore", handler.RestoreDatabase(db))
+
 	// Port config
 	port := getEnv("PORT", config.GetServerPort())
 	host := config.GetServerHost()

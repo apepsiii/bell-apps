@@ -1708,6 +1708,59 @@
                     <section id="settings" class="page-section">
                         <h2 class="text-2xl font-bold text-slate-800 mb-6">Pengaturan Sistem</h2>
 
+                        <!-- Backup & Restore -->
+                        <div class="bg-white rounded-xl border shadow-sm p-6 mb-6">
+                            <h3 class="font-bold text-lg mb-4 text-slate-700 flex items-center gap-2">
+                                <i data-lucide="database" class="w-5 h-5 text-emerald-600"></i> Backup & Restore Data
+                            </h3>
+                            <p class="text-sm text-slate-500 mb-6">Backup mencakup database dan semua file media (foto siswa, audio). Hanya tersedia untuk SQLite.</p>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <!-- Backup -->
+                                <div class="border border-slate-200 rounded-xl p-5">
+                                    <div class="flex items-center gap-3 mb-3">
+                                        <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+                                            <i data-lucide="download" class="w-5 h-5 text-emerald-600"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-semibold text-slate-700">Backup Database</h4>
+                                            <p class="text-xs text-slate-500">Download semua data sebagai file .zip</p>
+                                        </div>
+                                    </div>
+                                    <button onclick="downloadBackup()"
+                                        class="w-full bg-emerald-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-emerald-700 transition text-sm flex items-center justify-center gap-2">
+                                        <i data-lucide="download-cloud" class="w-4 h-4"></i> Download Backup
+                                    </button>
+                                </div>
+
+                                <!-- Restore -->
+                                <div class="border border-slate-200 rounded-xl p-5">
+                                    <div class="flex items-center gap-3 mb-3">
+                                        <div class="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center">
+                                            <i data-lucide="upload" class="w-5 h-5 text-orange-600"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-semibold text-slate-700">Restore Database</h4>
+                                            <p class="text-xs text-slate-500">Pulihkan data dari file backup .zip</p>
+                                        </div>
+                                    </div>
+                                    <div class="space-y-3">
+                                        <input type="file" id="restore-file" accept=".zip"
+                                            class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm">
+                                        <button onclick="uploadRestore()"
+                                            class="w-full bg-orange-500 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-orange-600 transition text-sm flex items-center justify-center gap-2">
+                                            <i data-lucide="upload-cloud" class="w-4 h-4"></i> Restore Backup
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+                                <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5"></i>
+                                <p class="text-xs text-amber-700"><strong>Peringatan:</strong> Restore akan mengganti seluruh data yang ada. Pastikan backup yang diupload berasal dari aplikasi ini. Restart server diperlukan setelah restore.</p>
+                            </div>
+                        </div>
+
                         <!-- AI Settings -->
                         <div class="bg-white rounded-xl border shadow-sm p-6 mb-6">
                             <h3 class="font-bold text-lg mb-4 text-slate-700 flex items-center gap-2">
@@ -4208,6 +4261,74 @@
                     });
                 } catch (err) {
                     console.error("Error loading school settings:", err);
+                }
+            }
+
+            // --- BACKUP & RESTORE ---
+            function downloadBackup() {
+                Swal.fire({
+                    title: 'Membuat Backup...',
+                    text: 'Menyiapkan file backup database dan media',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+                const a = document.createElement('a');
+                a.href = '/admin/backup';
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => Swal.close(), 2000);
+            }
+
+            async function uploadRestore() {
+                const fileInput = document.getElementById('restore-file');
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    Swal.fire('Error', 'Pilih file backup .zip terlebih dahulu', 'error');
+                    return;
+                }
+
+                const result = await Swal.fire({
+                    title: 'Restore Database?',
+                    html: '<p class="text-sm text-slate-600">Seluruh data yang ada akan <strong class="text-red-600">diganti</strong> dengan data dari file backup.<br><br>Pastikan Anda sudah membuat backup data saat ini sebelum melanjutkan.</p>',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#EA580C',
+                    cancelButtonColor: '#64748B',
+                    confirmButtonText: 'Ya, Restore',
+                    cancelButtonText: 'Batal'
+                });
+
+                if (!result.isConfirmed) return;
+
+                Swal.fire({
+                    title: 'Mengupload & Restore...',
+                    text: 'Mohon tunggu, proses ini mungkin memerlukan beberapa saat',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+
+                const fd = new FormData();
+                fd.append('backup_file', fileInput.files[0]);
+
+                try {
+                    const res = await fetch('/admin/restore', { method: 'POST', body: fd });
+                    const data = await res.json();
+
+                    if (res.ok) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Restore Berhasil!',
+                            html: `<p>${data.message}</p>`,
+                            confirmButtonText: 'Reload Halaman',
+                        }).then(() => window.location.reload());
+                    } else {
+                        Swal.fire('Gagal', data.message || 'Restore gagal', 'error');
+                    }
+                } catch (err) {
+                    Swal.fire('Error', 'Gagal menghubungi server: ' + err.message, 'error');
+                } finally {
+                    fileInput.value = '';
                 }
             }
 
