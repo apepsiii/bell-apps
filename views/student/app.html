@@ -693,6 +693,7 @@ function switchTab(tabName) {
 
     if (tabName === 'presensi' && Object.keys(calendarData).length === 0) loadCalendar();
     if (tabName === 'english') loadEnglishTab();
+    if (tabName === 'poin') loadPoinPage();
 }
 
 // ===== DASHBOARD / HOME =====
@@ -1081,7 +1082,52 @@ function timeToMinutes(timeStr) {
     return parseInt(parts[0]) * 60 + parseInt(parts[1]);
 }
 
-// ===== POIN HISTORY FOR POIN PAGE =====
+// ===== POIN PAGE =====
+async function loadPoinPage() {
+    const container = document.getElementById('poinHistoryList');
+    container.innerHTML = '<div class="text-center py-6 text-sm text-text-muted">Memuat riwayat...</div>';
+
+    try {
+        const r = await fetch('/api/student/points');
+        if (!r.ok) throw new Error('Failed');
+        const d = await r.json();
+
+        // Update balance
+        document.getElementById('poinBalance').textContent = d.total_points ?? '0';
+
+        // Render history from API (uses points_change field)
+        const history = d.history || [];
+        if (!history || history.length === 0) {
+            container.innerHTML = '<div class="text-center py-6 text-sm text-text-muted">Belum ada riwayat poin</div>';
+            return;
+        }
+
+        let html = '';
+        history.forEach(h => {
+            const pts = h.points_change;
+            const isPositive = pts > 0;
+            const dateStr = h.timestamp ? h.timestamp.substring(0, 10) : '';
+            html += '<div class="flex justify-between items-center pb-3 border-b border-gray-100 last:border-0 last:pb-0">' +
+                '<div class="flex items-center gap-3">' +
+                '<div class="w-10 h-10 rounded-xl ' + (isPositive ? 'bg-green-100' : 'bg-red-100') + ' flex items-center justify-center flex-shrink-0">' +
+                '<i class="ph-fill ' + (isPositive ? 'ph-arrow-up' : 'ph-arrow-down') + ' text-lg ' + (isPositive ? 'text-green-600' : 'text-red-600') + '"></i>' +
+                '</div>' +
+                '<div class="flex-1 min-w-0">' +
+                '<p class="text-sm font-semibold text-text-main truncate">' + (h.description || '-') + '</p>' +
+                '<p class="text-xs text-text-muted mt-0.5">' + dateStr + '</p>' +
+                '</div>' +
+                '</div>' +
+                '<span class="text-base font-bold flex-shrink-0 ml-2 ' + (isPositive ? 'text-green-600' : 'text-red-600') + '">' +
+                (isPositive ? '+' : '') + pts + '</span>' +
+                '</div>';
+        });
+        container.innerHTML = html;
+    } catch (e) {
+        container.innerHTML = '<div class="text-center py-6 text-sm text-red-400">Gagal memuat riwayat</div>';
+    }
+}
+
+// ===== POIN HISTORY FOR POIN PAGE (from dashboard data) =====
 function renderPoinHistory(history) {
     const container = document.getElementById('poinHistoryList');
     if (!history || history.length === 0) {
@@ -1090,19 +1136,21 @@ function renderPoinHistory(history) {
     }
     let html = '';
     history.forEach(h => {
-        const isPositive = h.points > 0;
+        const pts = h.points_change ?? h.points ?? 0;
+        const isPositive = pts > 0;
+        const dateStr = h.timestamp ? h.timestamp.substring(0, 10) : (h.date || '');
         html += '<div class="flex justify-between items-center pb-3 border-b border-gray-100 last:border-0 last:pb-0">' +
             '<div class="flex items-center gap-3">' +
-            '<div class="w-10 h-10 rounded-xl ' + (isPositive ? 'bg-green-100' : 'bg-red-100') + ' flex items-center justify-center">' +
+            '<div class="w-10 h-10 rounded-xl ' + (isPositive ? 'bg-green-100' : 'bg-red-100') + ' flex items-center justify-center flex-shrink-0">' +
             '<i class="ph-fill ' + (isPositive ? 'ph-arrow-up' : 'ph-arrow-down') + ' text-lg ' + (isPositive ? 'text-green-600' : 'text-red-600') + '"></i>' +
             '</div>' +
-            '<div class="flex-1">' +
-            '<p class="text-sm font-semibold text-text-main">' + (h.description || '-') + '</p>' +
-            '<p class="text-xs text-text-muted mt-0.5">' + (h.date || '') + '</p>' +
+            '<div class="flex-1 min-w-0">' +
+            '<p class="text-sm font-semibold text-text-main truncate">' + (h.description || '-') + '</p>' +
+            '<p class="text-xs text-text-muted mt-0.5">' + dateStr + '</p>' +
             '</div>' +
             '</div>' +
-            '<span class="text-base font-bold ' + (isPositive ? 'text-green-600' : 'text-red-600') + '">' +
-            (isPositive ? '+' : '') + h.points + '</span>' +
+            '<span class="text-base font-bold flex-shrink-0 ml-2 ' + (isPositive ? 'text-green-600' : 'text-red-600') + '">' +
+            (isPositive ? '+' : '') + pts + '</span>' +
             '</div>';
     });
     container.innerHTML = html;
