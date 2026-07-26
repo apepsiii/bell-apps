@@ -3,187 +3,254 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Masuk — SMK NIBA Super Apps</title>
+    <title>Masuk — SMK NIBA</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: {
-                        primary: '#0B57C2',
-                        primaryDark: '#084091',
-                        primaryLight: '#4EA6E9',
-                        bgSoft: '#F3F8FF',
-                        textPrimary: '#1E293B',
-                        textSecondary: '#64748B'
-                    }
-                }
-            }
-        }
-    </script>
     <style>
-        * { -webkit-tap-highlight-color: transparent; }
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
         body {
-            background: linear-gradient(160deg, #E8F1FC 0%, #D6E8FB 100%);
-            min-height: 100vh;
-            margin: 0;
             font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            background: #0B57C2;
+            min-height: 100vh;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 20px 16px;
-            -webkit-font-smoothing: antialiased;
-        }
-        .login-card {
-            width: 100%;
-            max-width: 400px;
-            background: #FFFFFF;
-            border-radius: 28px;
-            box-shadow: 0 20px 60px -15px rgba(11, 87, 194, 0.25);
+            padding: 0;
+            margin: 0;
+            position: relative;
             overflow: hidden;
         }
-        .brand-header {
-            background: linear-gradient(135deg, #0B57C2 0%, #1565D8 100%);
-            padding: 32px 28px 36px;
-            text-align: center;
+
+        /* Background blobs */
+        .blob {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.25;
+            pointer-events: none;
+        }
+        .blob-1 { width: 400px; height: 400px; background: #60A5FA; top: -100px; right: -80px; }
+        .blob-2 { width: 300px; height: 300px; background: #1E40AF; bottom: -60px; left: -60px; }
+        .blob-3 { width: 200px; height: 200px; background: #93C5FD; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+
+        /* Card */
+        .card {
+            width: 100%;
+            max-width: 380px;
+            padding: 0 20px 32px;
             position: relative;
+            z-index: 10;
         }
-        .brand-header::after {
-            content: '';
-            position: absolute;
-            bottom: -1px; left: 0; right: 0; height: 28px;
-            background: #FFFFFF;
-            border-top-left-radius: 28px;
-            border-top-right-radius: 28px;
+
+        /* Logo area */
+        .logo-wrap {
+            text-align: center;
+            padding: 32px 0 28px;
         }
-        .logo-badge {
-            width: 64px; height: 64px;
-            background: rgba(255,255,255,0.18);
-            border: 2px solid rgba(255,255,255,0.35);
-            border-radius: 20px;
+        .logo-icon {
+            width: 72px; height: 72px;
+            background: rgba(255,255,255,0.15);
+            border: 1.5px solid rgba(255,255,255,0.3);
+            border-radius: 24px;
             display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 14px;
-            backdrop-filter: blur(4px);
+            margin: 0 auto 16px;
+            backdrop-filter: blur(8px);
         }
-        .form-body { padding: 24px 28px 28px; }
+        .logo-title {
+            font-size: 26px; font-weight: 900;
+            color: #fff;
+            letter-spacing: -0.5px;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+        .logo-sub {
+            font-size: 11px; font-weight: 600;
+            color: rgba(255,255,255,0.6);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        /* Form panel */
+        .panel {
+            background: #fff;
+            border-radius: 24px;
+            padding: 28px 24px 24px;
+            box-shadow: 0 32px 64px -16px rgba(0,0,0,0.35);
+        }
+        .panel-title {
+            font-size: 20px; font-weight: 800;
+            color: #0F172A;
+            margin: 0 0 4px;
+        }
+        .panel-sub {
+            font-size: 13px;
+            color: #64748B;
+            margin: 0 0 24px;
+            line-height: 1.5;
+        }
+
+        /* Input */
+        .field { margin-bottom: 14px; }
         .field-label {
-            font-size: 13px; font-weight: 600; color: #475569;
-            margin-bottom: 7px; display: block;
+            display: block;
+            font-size: 12px; font-weight: 600;
+            color: #475569;
+            margin-bottom: 6px;
+            letter-spacing: 0.3px;
         }
-        .input-shell {
+        .input-wrap {
             display: flex; align-items: center;
             background: #F8FAFC;
             border: 1.5px solid #E2E8F0;
             border-radius: 14px;
-            transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+            transition: all 0.15s;
         }
-        .input-shell:focus-within {
+        .input-wrap:focus-within {
             border-color: #0B57C2;
-            background: #FFFFFF;
-            box-shadow: 0 0 0 4px rgba(11, 87, 194, 0.12);
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(11,87,194,0.1);
         }
-        .input-shell .lead-icon {
-            padding-left: 14px; color: #94A3B8; font-size: 20px;
+        .input-icon {
+            width: 44px; display: flex; align-items: center; justify-content: center;
+            color: #94A3B8; font-size: 18px; flex-shrink: 0;
         }
-        .input-shell input {
-            flex: 1;
-            border: none; outline: none; background: transparent;
-            padding: 14px 14px; font-size: 15px; color: #1E293B;
+        .input-wrap input {
+            flex: 1; border: none; outline: none;
+            background: transparent;
+            padding: 13px 4px 13px 0;
+            font-size: 15px; color: #0F172A;
             font-family: 'Inter', sans-serif;
-            border-radius: 14px;
+            font-weight: 500;
         }
-        .input-shell input::placeholder { color: #94A3B8; }
-        .reveal-btn {
-            padding-right: 12px; color: #94A3B8; cursor: pointer;
-            display: flex; align-items: center; font-size: 20px;
-            background: none; border: none;
+        .input-wrap input::placeholder { color: #CBD5E1; font-weight: 400; }
+        .toggle-btn {
+            width: 44px; display: flex; align-items: center; justify-content: center;
+            color: #94A3B8; font-size: 18px; cursor: pointer;
+            background: none; border: none; flex-shrink: 0;
+            transition: color 0.15s;
         }
-        .reveal-btn:active { transform: scale(0.9); }
-        .login-btn {
+        .toggle-btn:active { transform: scale(0.9); }
+
+        /* Error */
+        .error-box {
+            display: none;
+            background: #FEF2F2;
+            border: 1px solid #FECACA;
+            border-radius: 12px;
+            padding: 10px 12px;
+            margin-bottom: 14px;
+            font-size: 13px;
+            color: #DC2626;
+            font-weight: 500;
+            align-items: center;
+            gap: 8px;
+        }
+        .shake { animation: shake 0.35s ease; }
+        @keyframes shake {
+            0%,100% { transform: translateX(0); }
+            20%,60% { transform: translateX(-5px); }
+            40%,80% { transform: translateX(5px); }
+        }
+
+        /* Button */
+        .btn-submit {
             width: 100%;
-            background: linear-gradient(135deg, #0B57C2 0%, #1565D8 100%);
-            color: #FFFFFF; border: none;
-            border-radius: 14px; padding: 15px;
-            font-size: 16px; font-weight: 700;
+            background: #0B57C2;
+            color: #fff;
+            border: none;
+            border-radius: 14px;
+            padding: 15px;
+            font-size: 15px;
+            font-weight: 700;
             font-family: 'Inter', sans-serif;
             cursor: pointer;
-            box-shadow: 0 8px 20px -6px rgba(11, 87, 194, 0.5);
-            transition: transform 0.12s, box-shadow 0.12s, opacity 0.12s;
+            margin-top: 6px;
             display: flex; align-items: center; justify-content: center; gap: 8px;
+            transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+            box-shadow: 0 4px 16px -4px rgba(11,87,194,0.5);
         }
-        .login-btn:active { transform: scale(0.98); }
-        .login-btn:disabled { opacity: 0.7; cursor: not-allowed; }
-        .error-box {
-            background: #FEF2F2; border: 1px solid #FECACA;
-            color: #DC2626; border-radius: 12px;
-            padding: 11px 14px; font-size: 13px; font-weight: 500;
-            display: flex; align-items: center; gap: 8px;
+        .btn-submit:hover { background: #0a4eaf; }
+        .btn-submit:active { transform: scale(0.98); }
+        .btn-submit:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
+
+        .spinner {
+            width: 18px; height: 18px;
+            border: 2.5px solid rgba(255,255,255,0.35);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
         }
-        .shake { animation: shake 0.4s ease; }
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            20%, 60% { transform: translateX(-6px); }
-            40%, 80% { transform: translateX(6px); }
-        }
-        .spinner { width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 20px 0 0;
+            font-size: 11px;
+            color: rgba(255,255,255,0.45);
+            font-weight: 500;
+            position: relative;
+            z-index: 10;
+        }
     </style>
 </head>
 <body>
-    <div class="login-card">
-        <!-- Brand Header -->
-        <div class="brand-header">
-            <div class="logo-badge">
-                <i class="ph-fill ph-graduation-cap text-white" style="font-size: 32px;"></i>
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+
+    <div class="card">
+        <!-- Logo -->
+        <div class="logo-wrap">
+            <div class="logo-icon">
+                <i class="ph-fill ph-graduation-cap" style="font-size:34px; color:#fff;"></i>
             </div>
-            <h1 style="color:#fff; font-size:22px; font-weight:800; letter-spacing:0.5px; margin:0;">SMK NIBA</h1>
-            <p style="color:rgba(255,255,255,0.85); font-size:11px; font-weight:600; letter-spacing:2px; text-transform:uppercase; margin:2px 0 0;">Super Apps</p>
+            <div class="logo-title">SMK NIBA</div>
+            <div class="logo-sub">Super Apps</div>
         </div>
 
-        <!-- Form -->
-        <div class="form-body">
-            <h2 style="font-size:19px; font-weight:700; color:#1E293B; margin:0 0 4px;">Selamat Datang 👋</h2>
-            <p style="font-size:13px; color:#64748B; margin:0 0 22px;">Masuk ke portal siswa untuk melihat presensi &amp; poin.</p>
+        <!-- Panel -->
+        <div class="panel">
+            <p class="panel-title">Selamat datang 👋</p>
+            <p class="panel-sub">Masukkan NIS dan PIN kamu untuk melanjutkan.</p>
 
             <form id="loginForm" novalidate>
-                <div style="margin-bottom:16px;">
+                <div class="field">
                     <label class="field-label" for="nis">NIS / NISN</label>
-                    <div class="input-shell">
-                        <i class="ph ph-identification-card lead-icon"></i>
-                        <input type="text" id="nis" inputmode="numeric" autocomplete="off" placeholder="Masukkan NIS atau NISN" required>
+                    <div class="input-wrap">
+                        <span class="input-icon"><i class="ph ph-identification-card"></i></span>
+                        <input type="text" id="nis" inputmode="numeric" autocomplete="off" placeholder="Nomor Induk Siswa" required>
                     </div>
                 </div>
 
-                <div style="margin-bottom:18px;">
+                <div class="field">
                     <label class="field-label" for="pin">PIN</label>
-                    <div class="input-shell">
-                        <i class="ph ph-lock-key lead-icon"></i>
-                        <input type="password" id="pin" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="Masukkan PIN" required>
-                        <button type="button" class="reveal-btn" onclick="togglePin()" aria-label="Tampilkan PIN">
+                    <div class="input-wrap">
+                        <span class="input-icon"><i class="ph ph-lock-simple"></i></span>
+                        <input type="password" id="pin" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="••••••" required>
+                        <button type="button" class="toggle-btn" onclick="togglePin()" aria-label="Tampilkan PIN">
                             <i class="ph ph-eye-slash" id="togglePinIcon"></i>
                         </button>
                     </div>
                 </div>
 
-                <div id="errorBox" class="error-box" style="display:none; margin-bottom:16px;">
-                    <i class="ph ph-warning-circle" style="font-size:18px;"></i>
+                <div id="errorBox" class="error-box">
+                    <i class="ph ph-warning-circle" style="font-size:16px; flex-shrink:0;"></i>
                     <span id="errorText"></span>
                 </div>
 
-                <button type="submit" id="loginBtn" class="login-btn">
+                <button type="submit" id="loginBtn" class="btn-submit">
                     <span id="btnText">Masuk</span>
                     <span id="btnSpinner" class="spinner" style="display:none;"></span>
                 </button>
             </form>
-
-
         </div>
     </div>
 
-    <p style="position:fixed; bottom:12px; left:0; right:0; text-align:center; font-size:11px; color:#94A3B8;">&copy; 2026 SMK NIBA Super Apps</p>
+    <p class="footer">&copy; 2026 SMK NIBA Super Apps</p>
 
     <script>
         const form = document.getElementById('loginForm');
@@ -247,6 +314,8 @@
                 const d = await r.json();
                 if (r.ok) {
                     btnText.textContent = 'Berhasil...';
+                    btnText.style.display = 'block';
+                    btnSpinner.style.display = 'none';
                     window.location.href = '/student/app';
                 } else {
                     showError(d.message || 'NIS atau PIN salah');
