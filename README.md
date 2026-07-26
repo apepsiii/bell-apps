@@ -1,132 +1,178 @@
 # SMK NIBA Super Apps
 
-Sistem manajemen sekolah lengkap untuk SMK dengan fitur absensi RFID, face recognition, dan bell otomatisasi.
+Sistem informasi sekolah terpadu untuk SMK berbasis web — menggabungkan absensi RFID, portal siswa mobile-first, gamifikasi bahasa Inggris, sistem poin, notifikasi WhatsApp, dan manajemen bel otomatis dalam satu platform.
 
-## Fitur
+---
 
-### Manajemen Akademik
-- **Siswa**: CRUD dengan foto, RFID, NIS, data orang tua
-- **Guru/Staff**: Manajemen guru dan tenaga kependidikan
-- **Kelas & Jurusan**: Pengaturan kelas dan jurusan
-- **Promosi Siswa**: Pindah kelas massal
+## Fitur Utama
 
-### Absensi
-- **RFID**: Check-in/Check-out otomatis via kartu RFID
-- **Manual**: Input absensi manual oleh admin
-- **Face Recognition**: Verifikasi wajah untuk absensi (via face_service)
-- **Sholat**: Pencatatan kehadiran siswa dalam sholat berjamaah
+### Absensi & Presensi
+- Check-in/Check-out otomatis via **RFID** dan **Face Recognition**
+- Presensi manual per siswa maupun bulk per kelas
+- Presensi sholat (Dzuhur & Ashar) dengan terminal scan terpisah
+- Laporan harian, mingguan, bulanan — tampil di browser & export PDF
+- Notifikasi WhatsApp real-time ke orang tua (via OneSender)
 
-### Bell Otomatis
-- **Jadwal Bell**: Atur jadwal bel dengan audio custom
-- **Pengumuman**: Jadwalkan pengumuman dengan audio
-- **Running Text**: Teks berjalan untuk display signage
-- **Media Signage**: Tampilkan gambar/video di display
+### Portal Siswa (Mobile-First SPA)
+- Login NIS + PIN, session 7 hari
+- Dashboard: rekap kehadiran, saldo poin, bel berikutnya, pengumuman
+- Kartu Pelajar Digital dengan QR Code (auto-refresh 30 detik)
+- Kalender kehadiran bulanan dengan status berwarna
+- Riwayat & saldo poin lengkap
+- Ganti PIN mandiri
 
-### Notifikasi & Komunikasi
-- **WhatsApp (OneSender)**: Kirim notifikasi absensi ke orang tua
-- **Grup WA Kelas**: Broadcast ke grup WhatsApp kelas
-- **Template Pesan**: Customizable message templates
-- **Ucapan Ulang Tahun**: Auto WhatsApp birthday greeting
+### English Daily Quest (Gamifikasi)
+- Quest harian: Written, Vocabulary, Quiz, Voice
+- **AI Quest Generator** — generate quest otomatis via API OpenAI-compatible
+- Submit setoran & review oleh guru (Approve/Reject + feedback)
+- Sistem streak, XP, dan badge otomatis
+- Leaderboard English
 
-### Sistem Poin
-- **Poin Prestasi**: Tambah poin untuk prestasi siswa
-- **Poin Pelanggaran**: Catat pelanggaran dan poin negatif
-- **Voucher/Reward**: Tukar poin dengan voucher
-- **Leaderboard**: Ranking siswa berdasarkan poin
+### Sistem Poin Siswa
+- Input poin prestasi & pelanggaran via aturan yang bisa dikustomisasi
+- Import aturan massal via CSV
+- Penukaran poin dengan reward (stok terkontrol)
+- Point Claims: siswa submit klaim, admin approve/reject
+- Riwayat transaksi lengkap dengan filter
+- Leaderboard poin terintegrasi dengan English XP
 
-### Pelaporan
-- **Export CSV**: Export data absensi harian/bulanan/custom
-- **Kalender Absensi**: View kalender per siswa/staff
-- **Statistik**: Grafik kehadiran mingguan
+### Manajemen Sekolah
+- CRUD Siswa (foto, RFID, NIS, data orang tua, status aktif/nonaktif)
+- Import siswa via CSV & JSON, bulk naik kelas
+- CRUD Guru/Staff, import CSV
+- Manajemen Kelas & Jurusan, WhatsApp Group ID per kelas
+- Kartu Pelajar (ID Card) printable dengan QR
 
-### IoT & Device
-- **Device Sync**: Sinkronisasi dengan device bell pintar
-- **API RFID**: Endpoint untuk reader RFID eksternal
-- **Dashboard Real-time**: Monitor kehadiran langsung
+### Bell & Audio
+- Jadwal bel dengan audio custom (MP3/WAV/OGG)
+- Library audio: upload, rename, preview, delete
+- Pengumuman TTS (teks ke suara) dengan penjadwalan
+
+### WhatsApp Integration
+- Integrasi OneSender: 6 template pesan (Hadir, Terlambat, Pulang, Staff Masuk, Staff Pulang, Ulang Tahun)
+- Auto-broadcast birthday greeting
+- Log pengiriman WA lengkap
+- Test koneksi WA dari dashboard
+
+### Pengaturan & Konfigurasi
+- Jam absensi masuk & pulang
+- Hari kerja aktif (Senin–Minggu)
+- Hari libur: CRUD + import nasional
+- **Pengaturan AI**: Base URL, API Key, Model, Test Koneksi
+- Pengenalan wajah (registrasi & verifikasi)
+
+### Dashboard Admin
+- Statistik real-time: siswa aktif/nonaktif, total staff, bel berikutnya
+- Grafik Chart.js: progress presensi mingguan, sebaran status, tren jam kedatangan
+- Papan Poin Siswa (leaderboard preview)
+- **Aktivitas Terbaru**: feed real-time kehadiran, transaksi poin, English, point claims, pengumuman
+
+---
 
 ## Tech Stack
 
-- **Backend**: Go 1.25+ dengan Echo framework
-- **Database**: SQLite
-- **Face Service**: Python dengan face_recognition library
-- **Frontend**: HTML/JavaScript (embedded templates)
-- **Notifications**: OneSender WhatsApp API
+| Layer | Teknologi |
+|-------|-----------|
+| Backend | Go 1.25+ + Echo v4 |
+| Database | SQLite (default) / MySQL |
+| Frontend | HTML + Tailwind CSS + Vanilla JS (embedded templates) |
+| PDF | gofpdf |
+| QR Code | go-qrcode |
+| WhatsApp | OneSender API |
+| Face Recognition | Python + face_recognition (microservice terpisah) |
+| AI Quest | OpenAI-compatible REST API |
+
+---
 
 ## Struktur Proyek
 
 ```
-├── cmd/                  # CLI tools
-├── internal/             # Internal packages
-│   ├── handler/          # HTTP handlers
-│   ├── repository/       # Database operations
-│   ├── models/           # Data models
-│   └── config/           # Configuration
-├── pkg/                  # Shared packages
-│   ├── pdf/              # PDF generation
-│   ├── qrcode/           # QR code generation
-│   ├── onesender/        # WhatsApp client
-│   └── utils/            # Utilities
-├── face_service/         # Python face recognition service
-├── migrations/           # Database migrations
-├── views/                # HTML templates
-│   └── mobile/           # Mobile operator pages
-└── public/               # Static files (audio, photos)
+bell-apps/
+├── main.go                      # Entry point & App struct
+├── config.yaml                  # Konfigurasi server & database
+├── internal/
+│   ├── handler/                 # HTTP handlers
+│   │   ├── activity.go          # Recent activity feed
+│   │   ├── ai_quest.go          # AI quest generation
+│   │   ├── ai_settings.go       # AI settings CRUD + test
+│   │   ├── announcement.go      # Announcements
+│   │   ├── attendance.go        # Attendance handlers
+│   │   ├── audio.go             # Audio library
+│   │   ├── auth.go              # Authentication
+│   │   ├── english.go           # English Daily Quest
+│   │   ├── face.go              # Face recognition
+│   │   ├── holiday.go           # Holiday management
+│   │   ├── point.go             # Point system
+│   │   ├── point_history.go     # Point transaction history
+│   │   ├── report.go            # Reports (PDF)
+│   │   ├── student.go           # Student CRUD
+│   │   ├── student_portal.go    # Student portal API
+│   │   ├── staff.go             # Staff CRUD
+│   │   ├── wa.go / wa_handler.go # WhatsApp integration
+│   │   └── ...
+│   ├── repository/
+│   │   └── db.go                # DB init, migrations, seeds
+│   ├── config/
+│   │   ├── config.go            # Config loader
+│   │   └── logging.go           # Structured logging
+│   └── router/
+│       └── router.go            # Route definitions
+├── pkg/
+│   ├── pdf/                     # PDF generation helpers
+│   ├── qrcode/                  # QR code helpers
+│   ├── onesender/               # WhatsApp client
+│   └── utils/                   # Utilities (phone format, file, photo)
+├── views/
+│   ├── admin.html               # Admin SPA (hash-based navigation)
+│   ├── student/
+│   │   ├── app.html             # Student portal SPA (mobile-first)
+│   │   └── login.html           # Student login
+│   ├── scan.html                # RFID scan terminal
+│   ├── scan_prayer.html         # Prayer scan terminal
+│   ├── idcard.html              # ID Card generator
+│   └── index.html               # Public leaderboard
+├── migrations/                  # SQL migration files
+├── face_service/                # Python face recognition microservice
+│   ├── main.py
+│   └── requirements.txt
+├── *_test.go                    # Integration tests (package main)
+└── FEATURE.md                   # Feature documentation
 ```
 
-## API Endpoints
+---
 
-### Public
-- `GET /` - Landing page
-- `GET /scan` - RFID scan page
-- `GET /scan-face` - Face recognition scan
-- `GET /scan-sholat` - Prayer attendance scan
+## Instalasi & Menjalankan
 
-### Authentication
-- `POST /api/login` - Admin login
-- `POST /api/logout` - Logout
+### Prasyarat
+- Go 1.21+
+- Python 3.8+ (hanya jika menggunakan face recognition)
 
-### Attendance (IoT)
-- `GET /api/attendance/record?rfid=...` - Record RFID attendance
-- `POST /api/attendance/verify-face` - Verify face for attendance
-- `GET /api/attendance/today-stats` - Today's statistics
-- `GET /api/attendance/recent-logs` - Recent attendance logs
-
-### Sync
-- `GET /api/sync` - Get schedules and announcements for device
-
-### Admin (require auth)
-- `GET /admin` - Dashboard
-- `POST /admin/student/*` - Student CRUD
-- `POST /admin/staff/*` - Staff CRUD
-- `POST /admin/schedule/*` - Schedule CRUD
-- `POST /admin/audio/*` - Audio file management
-- `GET /admin/point-rules` - Point rules
-- `POST /admin/points/transaction` - Add point transaction
-
-## Setup
-
-### Prerequisites
-- Go 1.25+
-- Python 3.8+ (untuk face_service)
-- SQLite
-
-### Build
+### 1. Clone & Build
 
 ```bash
-# ARM64 (untuk server)
-bash build_arm.sh
+git clone https://github.com/apepsiii/bell-apps.git
+cd bell-apps
 
-# Linux
-bash build_linux.sh
+# Build
+go build -o bell-apps .
+
+# Jalankan
+./bell-apps
 ```
 
-### Deploy
+Server berjalan di `http://localhost:8080` secara default.
+
+### 2. Build untuk deployment
 
 ```bash
-bash deploy.sh
+# Linux/ARM64 (Raspberry Pi, server ARM)
+GOOS=linux GOARCH=arm64 go build -o bell-apps-arm64 .
+
+# Linux AMD64
+GOOS=linux GOARCH=amd64 go build -o bell-apps-linux .
 ```
 
-### Face Service Setup
+### 3. Face Service (opsional)
 
 ```bash
 cd face_service
@@ -134,15 +180,103 @@ pip install -r requirements.txt
 python main.py
 ```
 
+---
+
 ## Konfigurasi
 
-Pengaturan tersedia di dashboard admin:
-- **Jam Absensi**: arrival_start, arrival_end, departure_start, departure_end
-- **WhatsApp**: OneSender API URL dan token
-- **Template WA**: Custom message templates dengan variabel {name}, {time}, {status}
-- **Jam Sholat**: dzuhur_start, dzuhur_end, ashar_start, ashar_end
-- **Hari Libur**: Pengaturan hari kerja dan holiday
+Saat pertama kali dijalankan, `config.yaml` akan dibuat otomatis. Edit sesuai kebutuhan:
+
+```yaml
+server:
+  host: "0.0.0.0"
+  port: "8080"
+
+database:
+  driver: "sqlite"   # atau "mysql"
+  path: "data.db"
+
+admin:
+  username: "admin"
+  password: "admin123"
+```
+
+Untuk MySQL:
+
+```yaml
+database:
+  driver: "mysql"
+  host: "localhost"
+  port: "3306"
+  name: "bellsekolah"
+  user: "root"
+  password: "yourpassword"
+```
+
+---
+
+## API Endpoints
+
+### Public
+| Method | Path | Deskripsi |
+|--------|------|-----------|
+| GET | `/` | Landing page / leaderboard publik |
+| GET | `/scan` | Terminal scan RFID |
+| GET | `/scan-sholat` | Terminal scan sholat |
+| GET | `/student/login` | Halaman login siswa |
+| GET | `/api/attendance/record` | Catat absensi RFID (`?rfid=`) |
+| GET | `/api/sync` | Sync jadwal & pengumuman ke device |
+
+### Student Portal (`/api/student/*`)
+| Method | Path | Deskripsi |
+|--------|------|-----------|
+| POST | `/api/student/login` | Login siswa |
+| GET | `/api/student/dashboard` | Data dashboard siswa |
+| GET | `/api/student/calendar` | Kalender kehadiran |
+| GET | `/api/student/qrcard` | Kartu QR digital |
+| GET | `/api/student/profile` | Profil siswa |
+| PUT | `/api/student/pin` | Ganti PIN |
+| GET | `/api/student/points` | Saldo & riwayat poin |
+| GET | `/api/student/english/quest` | Quest hari ini |
+| POST | `/api/student/english/submit` | Submit setoran |
+
+### Admin (`/admin/*`, require auth)
+| Method | Path | Deskripsi |
+|--------|------|-----------|
+| GET | `/admin` | Dashboard admin |
+| POST | `/admin/student/add` | Tambah siswa |
+| POST | `/admin/student/update/:id` | Edit siswa |
+| POST | `/admin/english/quest` | Buat quest |
+| POST | `/admin/ai/generate-quest` | Generate quest dengan AI |
+| POST | `/admin/ai/settings` | Simpan pengaturan AI |
+| POST | `/admin/ai/test` | Test koneksi AI |
+| GET | `/admin/points/leaderboard` | Leaderboard poin |
+| GET | `/admin/points/history` | Riwayat transaksi poin |
+| GET | `/admin/recent-activity` | Feed aktivitas terbaru |
+
+---
+
+## Pengaturan AI Quest Generator
+
+1. Buka **Admin → Pengaturan Sistem → Pengaturan AI**
+2. Isi:
+   - **Base URL**: endpoint OpenAI-compatible, contoh `https://api.openai.com/v1/chat/completions`
+   - **API Key**: API key provider
+   - **Model**: nama model, contoh `gpt-4o-mini`
+3. Klik **Test Koneksi** untuk verifikasi
+4. Buka **English Daily Quest → Buat Quest**, isi Topik, klik **Generate dengan AI**
+
+Mendukung provider: OpenAI, Groq, Together AI, Ollama (lokal), dan provider lain yang kompatibel dengan format OpenAI.
+
+---
+
+## Menjalankan Tests
+
+```bash
+go test ./... -v
+```
+
+---
 
 ## Lisensi
 
-MIT
+MIT License — bebas digunakan dan dimodifikasi.
