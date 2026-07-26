@@ -266,7 +266,6 @@
 
         nisEl.addEventListener('input', () => {
             nisEl.value = nisEl.value.replace(/[^0-9]/g, '');
-            if (nisEl.value.length >= 6) pinEl.focus();
         });
         pinEl.addEventListener('input', () => {
             pinEl.value = pinEl.value.replace(/[^0-9]/g, '');
