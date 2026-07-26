@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/labstack/echo/v4"
+	"golang.org/x/crypto/bcrypt"
 
 	"belsekolah/internal/config"
 	"belsekolah/pkg/qrcode"
@@ -18,9 +19,27 @@ func AddStudent(db *sql.DB) echo.HandlerFunc {
 		nis := c.FormValue("nis")
 		nisSiswa := c.FormValue("nis_siswa")
 		name := c.FormValue("name")
+		parentName := c.FormValue("parent_name")
 		phone := utils.FormatPhone(c.FormValue("parent_phone"))
 		classID := c.FormValue("class_id")
 		birthday := c.FormValue("birthday")
+		status := c.FormValue("status")
+		password := c.FormValue("password")
+
+		// Default status to active if not provided
+		if status == "" {
+			status = "active"
+		}
+
+		// Hash password if provided
+		var hashedPassword string
+		if password != "" {
+			hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+			if err != nil {
+				return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Gagal mengenkripsi password"})
+			}
+			hashedPassword = string(hash)
+		}
 
 		photoFile := ""
 
@@ -47,7 +66,7 @@ func AddStudent(db *sql.DB) echo.HandlerFunc {
 			}
 		}
 
-		_, err = db.Exec("INSERT INTO students (rfid_uid, nis, nis_siswa, name, parent_phone, class_id, photo, birthday, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active')", rfid, nis, nisSiswa, name, phone, classID, photoFile, birthday)
+		_, err = db.Exec("INSERT INTO students (rfid_uid, nis, nis_siswa, name, parent_name, parent_phone, class_id, photo, birthday, status, password) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", rfid, nis, nisSiswa, name, parentName, phone, classID, photoFile, birthday, status, hashedPassword)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Gagal (Mungkin RFID/NIS duplikat): " + err.Error()})
 		}
@@ -62,9 +81,22 @@ func UpdateStudent(db *sql.DB) echo.HandlerFunc {
 		nis := c.FormValue("nis")
 		nisSiswa := c.FormValue("nis_siswa")
 		name := c.FormValue("name")
+		parentName := c.FormValue("parent_name")
 		phone := utils.FormatPhone(c.FormValue("parent_phone"))
 		classID := c.FormValue("class_id")
 		birthday := c.FormValue("birthday")
+		status := c.FormValue("status")
+		password := c.FormValue("password")
+
+		// Hash password if provided
+		var hashedPassword string
+		if password != "" {
+			hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+			if err != nil {
+				return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Gagal mengenkripsi password"})
+			}
+			hashedPassword = string(hash)
+		}
 
 		photoFile := ""
 
@@ -78,7 +110,12 @@ func UpdateStudent(db *sql.DB) echo.HandlerFunc {
 				dstPath := filepath.Join(config.GetPhotoPath(), filename)
 				if err := utils.SaveUploadedFile(src, dstPath); err == nil {
 					photoFile = filename
-					db.Exec("UPDATE students SET rfid_uid=?, nis=?, nis_siswa=?, name=?, parent_phone=?, class_id=?, photo=?, birthday=? WHERE id=?", rfid, nis, nisSiswa, name, phone, classID, photoFile, birthday, id)
+					// Update with photo
+					if hashedPassword != "" {
+						db.Exec("UPDATE students SET rfid_uid=?, nis=?, nis_siswa=?, name=?, parent_name=?, parent_phone=?, class_id=?, photo=?, birthday=?, status=?, password=? WHERE id=?", rfid, nis, nisSiswa, name, parentName, phone, classID, photoFile, birthday, status, hashedPassword, id)
+					} else {
+						db.Exec("UPDATE students SET rfid_uid=?, nis=?, nis_siswa=?, name=?, parent_name=?, parent_phone=?, class_id=?, photo=?, birthday=?, status=? WHERE id=?", rfid, nis, nisSiswa, name, parentName, phone, classID, photoFile, birthday, status, id)
+					}
 					return c.JSON(http.StatusOK, map[string]string{"status": "success", "message": "Data siswa diperbarui"})
 				}
 			}
@@ -89,13 +126,23 @@ func UpdateStudent(db *sql.DB) echo.HandlerFunc {
 				dstPath := filepath.Join(config.GetPhotoPath(), filename)
 				if err := utils.SaveBase64Image(capturedPhoto, dstPath); err == nil {
 					photoFile = filename
-					db.Exec("UPDATE students SET rfid_uid=?, nis=?, nis_siswa=?, name=?, parent_phone=?, class_id=?, photo=?, birthday=? WHERE id=?", rfid, nis, nisSiswa, name, phone, classID, photoFile, birthday, id)
+					// Update with captured photo
+					if hashedPassword != "" {
+						db.Exec("UPDATE students SET rfid_uid=?, nis=?, nis_siswa=?, name=?, parent_name=?, parent_phone=?, class_id=?, photo=?, birthday=?, status=?, password=? WHERE id=?", rfid, nis, nisSiswa, name, parentName, phone, classID, photoFile, birthday, status, hashedPassword, id)
+					} else {
+						db.Exec("UPDATE students SET rfid_uid=?, nis=?, nis_siswa=?, name=?, parent_name=?, parent_phone=?, class_id=?, photo=?, birthday=?, status=? WHERE id=?", rfid, nis, nisSiswa, name, parentName, phone, classID, photoFile, birthday, status, id)
+					}
 					return c.JSON(http.StatusOK, map[string]string{"status": "success", "message": "Data siswa diperbarui"})
 				}
 			}
 		}
 
-		_, err = db.Exec("UPDATE students SET rfid_uid=?, nis=?, nis_siswa=?, name=?, parent_phone=?, class_id=?, birthday=? WHERE id=?", rfid, nis, nisSiswa, name, phone, classID, birthday, id)
+		// Update without photo
+		if hashedPassword != "" {
+			_, err = db.Exec("UPDATE students SET rfid_uid=?, nis=?, nis_siswa=?, name=?, parent_name=?, parent_phone=?, class_id=?, birthday=?, status=?, password=? WHERE id=?", rfid, nis, nisSiswa, name, parentName, phone, classID, birthday, status, hashedPassword, id)
+		} else {
+			_, err = db.Exec("UPDATE students SET rfid_uid=?, nis=?, nis_siswa=?, name=?, parent_name=?, parent_phone=?, class_id=?, birthday=?, status=? WHERE id=?", rfid, nis, nisSiswa, name, parentName, phone, classID, birthday, status, id)
+		}
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
 		}

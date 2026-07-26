@@ -47,6 +47,8 @@ func InitDB() *sql.DB {
 	RunMigrations(db)
 	SeedDefaultData(db)
 	SeedPointRules(db)
+	SeedEnglishBadges(db)
+	SeedAttendanceInsights(db)
 
 	return db
 }
@@ -337,6 +339,79 @@ func runSQLiteMigrations(db *sql.DB) {
 			stock INTEGER,
 			description TEXT
 		)`,
+		`CREATE TABLE IF NOT EXISTS attendance_insights (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			category TEXT NOT NULL,
+			message TEXT NOT NULL,
+			is_active INTEGER DEFAULT 1,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS english_quests (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			date TEXT NOT NULL UNIQUE,
+			title TEXT NOT NULL,
+			description TEXT,
+			quest_type TEXT NOT NULL DEFAULT 'written',
+			topic TEXT DEFAULT '',
+			vocabulary_words TEXT DEFAULT '',
+			quiz_question TEXT DEFAULT '',
+			quiz_choices TEXT DEFAULT '',
+			quiz_answer TEXT DEFAULT '',
+			xp_reward INTEGER DEFAULT 10,
+			created_by TEXT DEFAULT 'admin',
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS english_submissions (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			student_id INTEGER NOT NULL,
+			quest_id INTEGER NOT NULL,
+			quest_type TEXT NOT NULL,
+			content TEXT DEFAULT '',
+			audio_file TEXT DEFAULT '',
+			vocab_words TEXT DEFAULT '',
+			quiz_answer TEXT DEFAULT '',
+			xp_earned INTEGER DEFAULT 0,
+			status TEXT DEFAULT 'pending',
+			feedback TEXT DEFAULT '',
+			submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			reviewed_at DATETIME,
+			reviewed_by TEXT DEFAULT '',
+			FOREIGN KEY(student_id) REFERENCES students(id),
+			FOREIGN KEY(quest_id) REFERENCES english_quests(id)
+		)`,
+		`CREATE TABLE IF NOT EXISTS english_streaks (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			student_id INTEGER NOT NULL UNIQUE,
+			current_streak INTEGER DEFAULT 0,
+			longest_streak INTEGER DEFAULT 0,
+			total_xp INTEGER DEFAULT 0,
+			last_submit_date TEXT DEFAULT '',
+			FOREIGN KEY(student_id) REFERENCES students(id)
+		)`,
+		`CREATE TABLE IF NOT EXISTS english_badges (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			code TEXT NOT NULL UNIQUE,
+			name TEXT NOT NULL,
+			description TEXT,
+			icon TEXT DEFAULT '🏅',
+			condition_type TEXT NOT NULL,
+			condition_value INTEGER NOT NULL
+		)`,
+		`CREATE TABLE IF NOT EXISTS english_student_badges (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			student_id INTEGER NOT NULL,
+			badge_id INTEGER NOT NULL,
+			earned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE(student_id, badge_id),
+			FOREIGN KEY(student_id) REFERENCES students(id),
+			FOREIGN KEY(badge_id) REFERENCES english_badges(id)
+		)`,
+		`CREATE TABLE IF NOT EXISTS ai_settings (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			setting_key TEXT UNIQUE NOT NULL,
+			setting_value TEXT,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
 	}
 	for _, ddl := range schema {
 		if _, err := db.Exec(ddl); err != nil {
@@ -540,6 +615,72 @@ func runMySQLMigrations(db *sql.DB) {
 			stock INT,
 			description TEXT
 		)`,
+		`CREATE TABLE IF NOT EXISTS english_quests (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			date DATE NOT NULL UNIQUE,
+			title VARCHAR(255) NOT NULL,
+			description TEXT,
+			quest_type VARCHAR(50) NOT NULL DEFAULT 'written',
+			topic VARCHAR(255) DEFAULT '',
+			vocabulary_words TEXT DEFAULT '',
+			quiz_question TEXT DEFAULT '',
+			quiz_choices TEXT DEFAULT '',
+			quiz_answer VARCHAR(255) DEFAULT '',
+			xp_reward INT DEFAULT 10,
+			created_by VARCHAR(100) DEFAULT 'admin',
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS english_submissions (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			student_id INT NOT NULL,
+			quest_id INT NOT NULL,
+			quest_type VARCHAR(50) NOT NULL,
+			content TEXT DEFAULT '',
+			audio_file VARCHAR(255) DEFAULT '',
+			vocab_words TEXT DEFAULT '',
+			quiz_answer VARCHAR(255) DEFAULT '',
+			xp_earned INT DEFAULT 0,
+			status VARCHAR(20) DEFAULT 'pending',
+			feedback TEXT DEFAULT '',
+			submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			reviewed_at DATETIME,
+			reviewed_by VARCHAR(100) DEFAULT '',
+			FOREIGN KEY(student_id) REFERENCES students(id),
+			FOREIGN KEY(quest_id) REFERENCES english_quests(id)
+		)`,
+		`CREATE TABLE IF NOT EXISTS english_streaks (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			student_id INT NOT NULL UNIQUE,
+			current_streak INT DEFAULT 0,
+			longest_streak INT DEFAULT 0,
+			total_xp INT DEFAULT 0,
+			last_submit_date DATE DEFAULT NULL,
+			FOREIGN KEY(student_id) REFERENCES students(id)
+		)`,
+		`CREATE TABLE IF NOT EXISTS english_badges (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			code VARCHAR(50) NOT NULL UNIQUE,
+			name VARCHAR(255) NOT NULL,
+			description TEXT,
+			icon VARCHAR(10) DEFAULT '🏅',
+			condition_type VARCHAR(50) NOT NULL,
+			condition_value INT NOT NULL
+		)`,
+		`CREATE TABLE IF NOT EXISTS english_student_badges (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			student_id INT NOT NULL,
+			badge_id INT NOT NULL,
+			earned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE KEY(student_id, badge_id),
+			FOREIGN KEY(student_id) REFERENCES students(id),
+			FOREIGN KEY(badge_id) REFERENCES english_badges(id)
+		)`,
+		`CREATE TABLE IF NOT EXISTS ai_settings (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			setting_key VARCHAR(100) UNIQUE NOT NULL,
+			setting_value TEXT,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+		)`,
 	}
 	for _, ddl := range schema {
 		if _, err := db.Exec(ddl); err != nil {
@@ -640,4 +781,83 @@ func seedMySQLData(db *sql.DB) {
 	db.Exec("INSERT IGNORE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "wa_template_birthday", "🎂🎉 Selamat Ulang Tahun, {name}! 🎉🎂\n\nSemoga tahun ini dipenuhi kebahagiaan!")
 	db.Exec("INSERT IGNORE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "wa_image_birthday", "https://via.placeholder.com/300x300?text=Happy+Birthday")
 	db.Exec("INSERT IGNORE INTO school_settings (setting_key, setting_value) VALUES (?, ?)", "work_days", "1,2,3,4,5")
+}
+
+func SeedEnglishBadges(db *sql.DB) {
+	var count int
+	db.QueryRow("SELECT COUNT(*) FROM english_badges").Scan(&count)
+	if count > 0 {
+		return
+	}
+	badges := []struct {
+		code, name, desc, icon, condType string
+		condVal                          int
+	}{
+		{"first_submit", "First Step", "Submit setoran pertama", "🌱", "total_submissions", 1},
+		{"streak_3", "3-Day Streak", "3 hari berturut-turut", "🔥", "streak", 3},
+		{"streak_7", "Week Warrior", "7 hari berturut-turut", "⚡", "streak", 7},
+		{"streak_30", "Monthly Master", "30 hari berturut-turut", "👑", "streak", 30},
+		{"xp_100", "XP Hunter", "Kumpulkan 100 XP", "💎", "total_xp", 100},
+		{"xp_500", "XP Legend", "Kumpulkan 500 XP", "🏆", "total_xp", 500},
+		{"vocab_10", "Word Collector", "Submit 10 vocabulary", "📚", "vocab_submissions", 10},
+		{"quiz_10", "Quiz Champion", "Jawab 10 quiz dengan benar", "🎯", "quiz_correct", 10},
+		{"writing_10", "Writer", "Submit 10 tulisan", "✍️", "writing_submissions", 10},
+	}
+	for _, b := range badges {
+		db.Exec(`INSERT OR IGNORE INTO english_badges (code, name, description, icon, condition_type, condition_value) VALUES (?, ?, ?, ?, ?, ?)`,
+			b.code, b.name, b.desc, b.icon, b.condType, b.condVal)
+	}
+}
+
+func SeedAttendanceInsights(db *sql.DB) {
+	var count int
+	db.QueryRow("SELECT COUNT(*) FROM attendance_insights").Scan(&count)
+	if count > 0 {
+		return
+	}
+	
+	insights := []struct {
+		category string
+		message  string
+	}{
+		// Early messages
+		{"early", "Kamu lebih cepat {minutes} menit dari hari kemarin. Pertahankan! 🎉"},
+		{"early", "Hebat! Kamu datang {minutes} menit lebih awal. Good job! 👏"},
+		{"early", "Wow! {minutes} menit lebih cepat dari kemarin. Amazing! ⚡"},
+		{"early", "Keren! Hari ini kamu {minutes} menit lebih pagi. Keep going! 💪"},
+		{"early", "Luar biasa! Lebih cepat {minutes} menit. Disiplin sekali! 🌟"},
+		
+		// On time messages
+		{"ontime", "Tepat waktu seperti biasa. Keep it up! 💪"},
+		{"ontime", "Konsisten! Terus pertahankan kedisiplinanmu. 🌟"},
+		{"ontime", "Perfect timing! Kamu selalu on time. Excellent! ✨"},
+		{"ontime", "Disiplin adalah kunci kesuksesan. Great! 🎯"},
+		{"ontime", "Selalu tepat waktu, kamu memang bisa diandalkan! 💯"},
+		
+		// Late messages
+		{"late", "Kamu terlambat {minutes} menit hari ini. Besok lebih awal ya! ⏰"},
+		{"late", "Ayo, besok datang lebih pagi! Kamu bisa! 💪"},
+		{"late", "Terlambat {minutes} menit. Mari perbaiki besok! 🚀"},
+		{"late", "Besok coba berangkat lebih pagi ya. Semangat! ⚡"},
+		{"late", "Jangan sampai terlambat lagi. Kamu pasti bisa! 🎯"},
+		
+		// Sick messages
+		{"sick", "Semoga lekas sembuh ya! 🏥💚"},
+		{"sick", "Istirahat yang cukup dan jaga kesehatan. Get well soon! 🌈"},
+		{"sick", "Semoga cepat pulih dan bisa kembali sekolah. Stay strong! 💪"},
+		{"sick", "Jaga kesehatan dan minum obat teratur. Semoga cepat sehat! 🙏"},
+		{"sick", "Sakit memang tidak enak. Semoga segera sembuh! 💖"},
+		
+		// Permission messages
+		{"permission", "Ada keperluan hari ini. Semoga lancar! 🙏"},
+		{"permission", "Semoga urusannya berjalan lancar. 📝"},
+		{"permission", "Take care dan sampai jumpa besok! 👋"},
+		{"permission", "Semoga keperluan hari ini berjalan baik. See you! 🌟"},
+		{"permission", "Hati-hati di jalan. Sampai jumpa lagi! 🚗"},
+	}
+	
+	for _, ins := range insights {
+		db.Exec(`INSERT INTO attendance_insights (category, message, is_active) VALUES (?, ?, 1)`,
+			ins.category, ins.message)
+	}
 }

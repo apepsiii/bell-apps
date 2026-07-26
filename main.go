@@ -15,18 +15,18 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 	_ "modernc.org/sqlite"
 
 	"belsekolah/internal/config"
-	"belsekolah/internal/handler"
 	"belsekolah/internal/repository"
+	"belsekolah/internal/router"
 )
 
 // --- DRY HELPER FUNCTIONS ---
@@ -682,6 +682,11 @@ func (a *App) DashboardHandler(c echo.Context) error {
 		}
 	}
 
+	// Sort presentList by Time descending (newest arrival first)
+	sort.Slice(presentList, func(i, j int) bool {
+		return presentList[i].Time > presentList[j].Time
+	})
+
 	// Settings
 	rowsSet, _ := a.DB.Query("SELECT setting_key, setting_value FROM attendance_settings")
 	attSettings := make(map[string]string)
@@ -726,7 +731,8 @@ func (a *App) DashboardHandler(c echo.Context) error {
 
 	// 4. Leaderboard (Top 10 Students by Points)
 	rowsLB, _ := a.DB.Query(`
-		SELECT s.id, s.name, COALESCE(c.name, '-') as class_name, COALESCE(SUM(sp.points_change), 0) as total_points
+		SELECT s.id, s.name, COALESCE(c.name, '-') as class_name, 
+		       COALESCE(SUM(sp.points_change), 0) + COALESCE((SELECT total_xp FROM english_streaks es WHERE es.student_id = s.id), 0) as total_points
 		FROM students s
 		LEFT JOIN classes c ON s.class_id = c.id
 		LEFT JOIN student_points sp ON s.id = sp.student_id
@@ -833,12 +839,12 @@ func (a *App) DashboardHandler(c echo.Context) error {
 	})
 
 	// 3. Average Arrival Time (Weekly)
-	// SQLite Time calc
+	// SQLite Time calc - Include all present statuses (Datang, Hadir, Terlambat)
 	rowsChart3, _ := a.DB.Query(`
 		SELECT date, AVG(strftime('%H', timestamp) * 60 + strftime('%M', timestamp))
 		FROM attendance_logs
 		WHERE user_type = 'Siswa'
-		  AND (status = 'Datang' OR status = 'Terlambat')
+		  AND status IN ('Datang', 'Hadir', 'Terlambat')
 		  AND date >= ?
 		GROUP BY date
 		ORDER BY date ASC`, chartDates[0])
@@ -857,11 +863,12 @@ func (a *App) DashboardHandler(c echo.Context) error {
 	jsonChart3, _ := json.Marshal(map[string]interface{}{
 		"labels": chartDates,
 		"datasets": []map[string]interface{}{{
-			"label":           "Rata-rata Menit (dari 00:00)",
+			"label":           "Rata-rata Jam Kedatangan",
 			"data":            avgTimeData,
 			"borderColor":     "#8b5cf6",
 			"backgroundColor": "rgba(139, 92, 246, 0.2)",
 			"fill":            true,
+			"tension":         0.4,
 		}},
 	})
 
@@ -3117,342 +3124,9 @@ func main() {
 	app.StartAlphaTrackerScheduler()
 
 	e := echo.New()
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
+	router.Register(e, db, viewsFS, app)
 
-	// Custom Error Handler
-	e.HTTPErrorHandler = func(err error, c echo.Context) {
-		code := http.StatusInternalServerError
-		if he, ok := err.(*echo.HTTPError); ok {
-			code = he.Code
-		}
 
-		if code == http.StatusNotFound {
-			// Check if it's an API request
-			if strings.HasPrefix(c.Request().URL.Path, "/api") {
-				c.JSON(http.StatusNotFound, map[string]string{"message": "Not Found"})
-				return
-			}
-			// Render 404 page
-			if err := c.Render(http.StatusNotFound, "404.html", nil); err != nil {
-				c.Logger().Error(err)
-			}
-			return
-		}
-
-		e.DefaultHTTPErrorHandler(err, c)
-	}
-
-	e.Renderer = &Template{templates: template.Must(template.ParseFS(viewsFS, "views/*.html"))}
-	e.Static("/assets", "public/assets")
-
-	e.GET("/", func(c echo.Context) error { return c.Render(http.StatusOK, "index.html", nil) })
-	e.GET("/login", func(c echo.Context) error {
-		if cookie, err := c.Cookie(config.GetCookieName()); err == nil && cookie.Value == config.GetSecretKey() {
-			return c.Redirect(http.StatusSeeOther, "/admin")
-		}
-		return c.Render(http.StatusOK, "login.html", nil)
-	})
-	e.GET("/scan", handler.ScanPage(db))              // Public Scan Page (Presence)
-	e.GET("/scan-face", handler.ScanFacePage(db))    // Public Scan Page (Face Recognition)
-	e.GET("/scan-sholat", handler.ScanPrayerPage(db)) // Public Scan Page (Prayer)
-
-	// API Endpointsi
-	e.POST("/api/login", handler.Login())
-	e.POST("/api/logout", handler.Logout())
-	e.GET("/api/sync", app.SyncHandler)
-	e.GET("/api/leaderboard", app.PublicLeaderboardHandler)
-
-	// Public Point Rules API (for student claim submission)
-	e.GET("/api/point-rules", handler.GetPointRulesV2(db))
-
-	admin := e.Group("/admin", func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			cookie, err := c.Cookie(config.GetCookieName())
-			if err != nil || cookie.Value != config.GetSecretKey() {
-				return c.Redirect(http.StatusSeeOther, "/login")
-			}
-			return next(c)
-		}
-	})
-	admin.GET("", app.DashboardHandler)
-
-	// Announcement Routes
-	admin.GET("/announcements", handler.GetAnnouncements(db))
-	admin.POST("/announcement/add", handler.CreateAnnouncement(db))
-	admin.DELETE("/announcement/:id", handler.DeleteAnnouncement(db))
-	admin.POST("/announcement/play/:id", handler.PlayAnnouncement(db))
-
-	// Schedule Routes
-	admin.POST("/schedule/add", handler.AddSchedule(db))
-	admin.POST("/schedule/update/:id", handler.UpdateSchedule(db))
-	admin.DELETE("/schedule/:id", handler.DeleteSchedule(db))
-
-	// Audio Routes
-	admin.POST("/audio/upload", handler.UploadAudio(db))
-	admin.POST("/audio/rename/:id", handler.RenameAudio(db))
-	admin.DELETE("/audio/:id", handler.DeleteAudio(db))
-
-	// Device Routes
-	admin.POST("/device/add", handler.AddDevice(db))
-	admin.POST("/device/update/:id", handler.UpdateDevice(db))
-	admin.DELETE("/device/:id", handler.DeleteDevice(db))
-
-	// --- ACADEMIC ROUTES ---
-
-	// Majors
-	admin.POST("/major/add", handler.AddMajor(db))
-	admin.POST("/major/update/:id", handler.UpdateMajor(db))
-	admin.DELETE("/major/:id", handler.DeleteMajor(db))
-
-	// Classes
-	admin.POST("/class/add", handler.AddClass(db))
-	admin.POST("/class/update/:id", handler.UpdateClass(db))
-	admin.DELETE("/class/:id", handler.DeleteClass(db))
-	admin.GET("/classes/json", handler.GetClassesJSON(db))
-
-	// Students
-	admin.POST("/student/add", handler.AddStudent(db))
-	admin.POST("/student/update/:id", handler.UpdateStudent(db))
-	admin.POST("/student/status/:id", handler.UpdateStudentStatus(db))
-	admin.DELETE("/student/:id", handler.DeleteStudent(db))
-	admin.POST("/student/import", handler.ImportStudents(db))
-	admin.POST("/student/import-json", handler.ImportStudentsJSON(db))
-	admin.POST("/students/delete-multiple", handler.BulkDeleteStudents(db))
-	admin.GET("/students/json", handler.GetStudentsJSON(db))
-	admin.GET("/idcard", func(c echo.Context) error {
-		return c.Render(http.StatusOK, "idcard.html", nil)
-	})
-	admin.POST("/students/promote", handler.PromoteStudents(db))
-	admin.POST("/students/bulk-status", handler.BulkUpdateStudentStatus(db))
-	admin.GET("/student/:id", handler.StudentProfile(db))
-	admin.GET("/student/idcard/:id", handler.GetStudentIDCard(db))
-	admin.GET("/students/idcard", handler.GetAllStudentsForIDCard(db))
-	admin.GET("/staff/:id", handler.StaffProfile(db))
-	admin.GET("/face/register/:id", handler.FaceRegisterPage(db))
-
-	// Staff
-	admin.POST("/staff/add", handler.AddStaff(db))
-	admin.POST("/staff/update/:id", handler.UpdateStaff(db))
-	admin.DELETE("/staff/:id", handler.DeleteStaff(db))
-	admin.POST("/staff/import", handler.ImportStaff(db))
-
-	// Announcement routes
-	e.GET("/admin/announcements", handler.GetAnnouncements(db))
-	e.POST("/admin/announcement/add", handler.CreateAnnouncement(db))
-	e.DELETE("/admin/announcement/:id", handler.DeleteAnnouncement(db))
-	e.POST("/admin/announcement/play/:id", handler.PlayAnnouncement(db))
-
-	// Holiday routes
-	e.GET("/admin/holidays", handler.GetHolidays(db))
-	e.POST("/admin/holiday/add", handler.AddHoliday(db))
-	e.PUT("/admin/holiday/:id", handler.UpdateHoliday(db))
-	e.DELETE("/admin/holiday/:id", handler.DeleteHoliday(db))
-	e.POST("/admin/holidays/import-national", handler.ImportNationalHolidays(db))
-
-	// Student Point System API
-	admin.GET("/point-rules", handler.GetPointRules(db))
-	admin.POST("/point-rules/add", handler.AddPointRule(db))
-	admin.DELETE("/point-rules/:id", handler.DeletePointRule(db))
-	admin.GET("/points/student/:id", handler.GetStudentPointProfile(db))
-	admin.POST("/points/transaction", handler.AddPointTransaction(db))
-	admin.GET("/points/leaderboard", handler.GetLeaderboard(db))
-	admin.GET("/points/student-profile", func(c echo.Context) error {
-		return c.Render(http.StatusOK, "student_point_profile.html", nil)
-	})
-
-	// Point Claims API
-	admin.GET("/point-rules-v2", handler.GetPointRulesV2(db))
-	admin.POST("/point-claims", handler.SubmitPointClaim(db))
-	admin.GET("/point-claims", handler.GetPointClaims(db))
-	admin.POST("/point-claims/:id/approve", handler.ApprovePointClaim(db))
-	admin.POST("/point-claims/:id/reject", handler.RejectPointClaim(db))
-	admin.GET("/point-claims-page", func(c echo.Context) error {
-		return c.Render(http.StatusOK, "admin_point_claims.html", nil)
-	})
-
-	// Reward System API
-	admin.GET("/point-rewards", handler.GetPointRewards(db))
-	admin.POST("/point-rewards/add", handler.AddPointReward(db))
-	admin.DELETE("/point-rewards/:id", handler.DeletePointReward(db))
-	admin.POST("/points/redeem", handler.RedeemReward(db))
-
-	// ===== OPERATOR ROUTES (Mobile Prayer Management) =====
-
-	// Public Login Page
-	e.GET("/operator/login", func(c echo.Context) error {
-		data, err := viewsFS.ReadFile("views/mobile/login.html")
-		if err != nil {
-			c.Logger().Errorf("Failed to read login.html from embedded FS: %v", err)
-			return c.String(http.StatusNotFound, "Page not found: "+err.Error())
-		}
-		return c.HTMLBlob(http.StatusOK, data)
-	})
-
-	// Authentication API
-	e.POST("/api/operator/login", handler.OperatorLogin(db))
-	e.POST("/api/operator/logout", handler.OperatorLogout(db))
-
-	// Protected Operator Pages
-	operatorPages := e.Group("/operator")
-	operatorPages.Use(handler.OperatorAuth(db))
-
-	operatorPages.GET("/dashboard", func(c echo.Context) error {
-		data, err := viewsFS.ReadFile("views/mobile/dashboard.html")
-		if err != nil {
-			return c.String(http.StatusNotFound, "Page not found")
-		}
-		return c.HTMLBlob(http.StatusOK, data)
-	})
-	operatorPages.GET("/scan", func(c echo.Context) error {
-		data, err := viewsFS.ReadFile("views/mobile/scan.html")
-		if err != nil {
-			return c.String(http.StatusNotFound, "Page not found")
-		}
-		return c.HTMLBlob(http.StatusOK, data)
-	})
-	operatorPages.GET("/manual", func(c echo.Context) error {
-		data, err := viewsFS.ReadFile("views/mobile/manual.html")
-		if err != nil {
-			return c.String(http.StatusNotFound, "Page not found")
-		}
-		return c.HTMLBlob(http.StatusOK, data)
-	})
-	operatorPages.GET("/profile", func(c echo.Context) error {
-		data, err := viewsFS.ReadFile("views/mobile/profile.html")
-		if err != nil {
-			return c.String(http.StatusNotFound, "Page not found")
-		}
-		return c.HTMLBlob(http.StatusOK, data)
-	})
-
-	// Protected Operator API
-	operatorAPI := e.Group("/api/operator")
-	operatorAPI.Use(handler.OperatorAuth(db))
-
-	operatorAPI.GET("/prayer-stats", handler.GetOperatorPrayerStats(db))
-	operatorAPI.POST("/scan-qr", handler.ScanQR(db))
-	operatorAPI.GET("/classes", handler.GetClasses(db))
-	operatorAPI.GET("/recent-logs", handler.GetRecentPrayerLogs(db))
-	operatorAPI.GET("/students", handler.GetPrayerAttendance(db))
-	operatorAPI.POST("/prayer-attendance", handler.BulkPrayerAttendance(db))
-	operatorAPI.GET("/profile", handler.GetOperatorProfile(db))
-	operatorAPI.PUT("/profile", handler.UpdateOperatorProfile(db))
-	operatorAPI.PUT("/password", handler.ChangeOperatorPassword(db))
-
-	// ===== STUDENT PORTAL ROUTES (Mobile-First) =====
-
-	serveStudentPage := func(name string) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			data, err := viewsFS.ReadFile("views/student/" + name)
-			if err != nil {
-				c.Logger().Errorf("Failed to read student page %s: %v", name, err)
-				return c.String(http.StatusNotFound, "Page not found")
-			}
-			return c.HTMLBlob(http.StatusOK, data)
-		}
-	}
-
-	// Public Login Page (redirect to dashboard if already logged in)
-	e.GET("/student/login", func(c echo.Context) error {
-		if cookie, err := c.Cookie(handler.StudentSessionCookie); err == nil && cookie.Value != "" {
-			var sid string
-			if db.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key = ?",
-				"student_session_"+cookie.Value).Scan(&sid) == nil {
-				return c.Redirect(http.StatusSeeOther, "/student/app")
-			}
-		}
-		return serveStudentPage("login.html")(c)
-	})
-
-	// Authentication API
-	e.POST("/api/student/login", handler.StudentLogin(db))
-	e.POST("/api/student/logout", handler.StudentLogout(db))
-
-	// Protected Student Pages
-	studentPages := e.Group("/student")
-	studentPages.Use(handler.StudentAuth(db))
-
-	studentPages.GET("", func(c echo.Context) error {
-		return c.Redirect(http.StatusSeeOther, "/student/app")
-	})
-	studentPages.GET("/app", serveStudentPage("app.html"))
-	studentPages.GET("/dashboard", serveStudentPage("app.html"))
-	studentPages.GET("/presensi", serveStudentPage("app.html"))
-	studentPages.GET("/qr", serveStudentPage("app.html"))
-	studentPages.GET("/profil", serveStudentPage("app.html"))
-
-	// Protected Student API
-	studentAPI := e.Group("/api/student")
-	studentAPI.Use(handler.StudentAuth(db))
-
-	studentAPI.GET("/dashboard", handler.GetStudentDashboard(db))
-	studentAPI.GET("/profile", handler.GetStudentPortalProfile(db))
-	studentAPI.PUT("/pin", handler.ChangeStudentPIN(db))
-	studentAPI.GET("/qrcard", handler.GetMyQRCard(db))
-	studentAPI.GET("/calendar", handler.GetMyCalendar(db))
-	studentAPI.GET("/points", handler.GetMyPoints(db))
-
-	// QR Code Generation (can be used by admin too)
-	admin.GET("/qr-generate", handler.GenerateQR(db))
-
-	// Face Recognition Routes
-	admin.POST("/face/register", handler.RegisterFace(db))
-	admin.GET("/face/status", handler.GetFaceStatus(db))
-	admin.GET("/faces", handler.ListFaces(db))
-	admin.DELETE("/face/:student_id", handler.DeleteFace(db))
-	admin.POST("/face/verify", handler.VerifyFace(db))
-
-	// School Settings API
-	admin.GET("/settings/school", handler.GetSchoolSettings(db))
-	admin.PUT("/settings/school", handler.UpdateSchoolSettings(db))
-
-	// WhatsApp Logs
-	admin.GET("/wa-logs", handler.GetWhatsAppLogs(db))
-
-	// Attendance Routes
-	admin.POST("/attendance/manual", app.ManualAttendanceHandler)
-	admin.GET("/attendance/daily", handler.GetDailyAttendance(db))
-	admin.POST("/attendance/bulk", handler.BulkAttendance(db))
-	admin.POST("/attendance/settings", handler.UpdateAttendanceSettings(db))
-
-	// Prayer Routes (admin manual input)
-	admin.GET("/prayer/attendance", handler.GetPrayerAttendance(db))
-	admin.POST("/prayer/attendance", handler.BulkPrayerAttendance(db))
-	admin.GET("/prayer/report", handler.PrayerReport(db))
-
-	// Student/Staff Calendar Routes
-	admin.GET("/student/calendar", handler.GetStudentCalendar(db))
-	admin.GET("/staff/calendar", handler.GetStaffCalendar(db))
-
-	// Report Routes
-	admin.GET("/report/daily", handler.DailyReport(db))
-	admin.GET("/report/weekly", handler.WeeklyReport(db))
-	admin.GET("/report/monthly", handler.MonthlyReport(db))
-
-	// Prayer Routes
-	e.GET("/api/attendance/prayer-logs", handler.PrayerLogs(db))
-
-	// Public Attendance API (used by /scan kiosk — no auth)
-	e.GET("/api/attendance/record", app.RecordAttendanceHandler)
-	e.GET("/api/attendance/prayer", app.PrayerAttendanceHandler)
-	e.GET("/api/attendance/today-stats", app.TodayStatsHandler)
-	e.GET("/api/attendance/recent-logs", app.RecentLogsHandler)
-
-	// Face Recognition Attendance API
-	e.POST("/api/attendance/verify-face", app.VerifyFaceAttendanceHandler)
-
-	// Test WA Route
-	e.POST("/api/attendance/test-wa", handler.TestWA(db))
-
-	// Port Configuration
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = config.GetServerPort()
-	}
-	host := config.GetServerHost()
-	e.Logger.Printf("Starting SMK NIBA Super Apps server on %s:%s", host, port)
-	e.Logger.Fatal(e.Start(host + ":" + port))
 }
 
 func (a *App) PrayerAttendanceHandler(c echo.Context) error {

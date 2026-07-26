@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 )
@@ -166,6 +167,10 @@ func AddPointTransaction(db *sql.DB) echo.HandlerFunc {
 		studentID := c.FormValue("student_id")
 		ruleID := c.FormValue("rule_id")
 
+		if studentID == "" || ruleID == "" {
+			return c.JSON(http.StatusBadRequest, map[string]string{"message": "Siswa dan aturan harus dipilih"})
+		}
+
 		var points int
 		var desc string
 
@@ -179,7 +184,7 @@ func AddPointTransaction(db *sql.DB) echo.HandlerFunc {
 			VALUES (?, ?, ?, ?, ?)`, studentID, ruleID, points, desc, "Admin")
 
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Gagal menyimpan: " + err.Error()})
 		}
 
 		return c.JSON(http.StatusOK, map[string]string{"status": "success", "message": "Poin berhasil dicatat"})
@@ -188,11 +193,16 @@ func AddPointTransaction(db *sql.DB) echo.HandlerFunc {
 
 func GetLeaderboard(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		// Unified leaderboard: student_points (achievements/violations/redeems)
+		// PLUS english_streaks.total_xp so English Daily Quest progress is
+		// reflected even for submissions approved before the XP-mirroring fix.
 		rows, err := db.Query(`
-			SELECT s.id, s.name, c.name, COALESCE(SUM(sp.points_change), 0) as total_points
+			SELECT s.id, s.name, c.name,
+			       COALESCE(SUM(sp.points_change), 0) + COALESCE((SELECT total_xp FROM english_streaks es WHERE es.student_id = s.id), 0) AS total_points
 			FROM students s
 			LEFT JOIN classes c ON s.class_id = c.id
 			LEFT JOIN student_points sp ON s.id = sp.student_id
+			WHERE s.status = 'active'
 			GROUP BY s.id
 			ORDER BY total_points DESC
 			LIMIT 20
@@ -339,21 +349,88 @@ func GetStudentByRFID(db *sql.DB) echo.HandlerFunc {
 			ID        int    `json:"id"`
 			Name      string `json:"name"`
 			ClassName string `json:"class_name"`
+			Points    int    `json:"points"`
+			Photo     string `json:"photo"`
+			NIS       string `json:"nis"`
 		}
 
-		var className sql.NullString
+		var className, photo, nis sql.NullString
 		err := db.QueryRow(`
-			SELECT s.id, s.name, c.name 
-			FROM students s 
-			LEFT JOIN classes c ON s.class_id = c.id 
-			WHERE s.rfid_uid = ?`, rfid).Scan(&student.ID, &student.Name, &className)
-		student.ClassName = className.String
-
+			SELECT s.id, s.name, c.name, COALESCE(s.photo,''), COALESCE(s.nis,'')
+			FROM students s
+			LEFT JOIN classes c ON s.class_id = c.id
+			WHERE s.rfid_uid = ?`, rfid).Scan(&student.ID, &student.Name, &className, &photo, &nis)
 		if err != nil {
 			return c.JSON(http.StatusNotFound, map[string]string{"message": "Siswa tidak ditemukan"})
 		}
+		student.ClassName = className.String
+		student.Photo = photo.String
+		student.NIS = nis.String
+
+		// Fetch the current point balance separately so the unified total
+		// (student_points + english XP) is shown to the admin when scanning.
+		db.QueryRow(`SELECT COALESCE(SUM(points_change),0) FROM student_points WHERE student_id = ?`, student.ID).Scan(&student.Points)
+		var englishXP int
+		db.QueryRow("SELECT COALESCE(total_xp,0) FROM english_streaks WHERE student_id = ?", student.ID).Scan(&englishXP)
+		student.Points += englishXP
 
 		return c.JSON(http.StatusOK, student)
+	}
+}
+
+// SearchStudent looks up a student by RFID UID, NIS, NIS Siswa, or Name.
+// It powers the admin "Input Poin" / "Tukar Poin" search box so admins can
+// find students by typing NIS, card number, or name — not only by scanning.
+func SearchStudent(db *sql.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		q := strings.TrimSpace(c.QueryParam("q"))
+		if q == "" {
+			return c.JSON(http.StatusBadRequest, map[string]string{"message": "Query required"})
+		}
+
+		// Flexible LIKE search across the four common identifiers.
+		like := "%" + q + "%"
+		rows, err := db.Query(`
+			SELECT s.id, s.name, c.name, COALESCE(s.photo,''), COALESCE(s.nis,''), COALESCE(s.nis_siswa,''), COALESCE(s.rfid_uid,'')
+			FROM students s
+			LEFT JOIN classes c ON s.class_id = c.id
+			WHERE s.status = 'active'
+			  AND (s.rfid_uid LIKE ? OR s.nis LIKE ? OR s.nis_siswa LIKE ? OR s.name LIKE ?)
+			ORDER BY s.name ASC
+			LIMIT 20`, like, like, like, like)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+		}
+		defer rows.Close()
+
+		type Result struct {
+			ID        int    `json:"id"`
+			Name      string `json:"name"`
+			ClassName string `json:"class_name"`
+			Photo     string `json:"photo"`
+			NIS       string `json:"nis"`
+			NISSiswa  string `json:"nis_siswa"`
+			RFID      string `json:"rfid"`
+		}
+
+		var results []Result
+		for rows.Next() {
+			var r Result
+			var className, photo, nis, nisSiswa, rfid sql.NullString
+			if err := rows.Scan(&r.ID, &r.Name, &className, &photo, &nis, &nisSiswa, &rfid); err != nil {
+				continue
+			}
+			r.ClassName = className.String
+			r.Photo = photo.String
+			r.NIS = nis.String
+			r.NISSiswa = nisSiswa.String
+			r.RFID = rfid.String
+			results = append(results, r)
+		}
+		if results == nil {
+			results = []Result{}
+		}
+		return c.JSON(http.StatusOK, results)
 	}
 }
 
@@ -387,11 +464,13 @@ type PointClaim struct {
 // GET /api/point-rules - Get all active point rules
 func GetPointRulesV2(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		// The point_rules table schema is (id, category, name, points, description).
+		// There is no code/tier/is_active column — map to the available columns
+		// so the API contract (PointClaimRule) stays stable for clients.
 		rows, err := db.Query(`
-			SELECT id, code, category, name, description, points, tier
+			SELECT id, category, name, description, points
 			FROM point_rules
-			WHERE is_active = 1
-			ORDER BY category, code
+			ORDER BY category, name
 		`)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
@@ -401,9 +480,14 @@ func GetPointRulesV2(db *sql.DB) echo.HandlerFunc {
 		var rules []PointClaimRule
 		for rows.Next() {
 			var r PointClaimRule
-			if err := rows.Scan(&r.ID, &r.Code, &r.Category, &r.Name, &r.Description, &r.Points, &r.Tier); err != nil {
+			var desc string
+			if err := rows.Scan(&r.ID, &r.Category, &r.Name, &desc, &r.Points); err != nil {
 				continue
 			}
+			// Preserve the seed convention: description carries "[code | tier] ..." prefix.
+			// Try to parse it back; if it fails, just keep the raw description.
+			r.Description = desc
+			r.Code, r.Tier = ParseRuleCodeTier(desc)
 			rules = append(rules, r)
 		}
 
@@ -412,6 +496,25 @@ func GetPointRulesV2(db *sql.DB) echo.HandlerFunc {
 		}
 		return c.JSON(http.StatusOK, rules)
 	}
+}
+
+// ParseRuleCodeTier extracts the code and tier from a seeded description
+// formatted as "[CODE | TIER] rest of description". Returns empty strings
+// when the prefix is absent so callers can fall back to the raw description.
+func ParseRuleCodeTier(desc string) (code, tier string) {
+	if len(desc) < 2 || desc[0] != '[' {
+		return "", ""
+	}
+	end := strings.Index(desc, "]")
+	if end < 0 {
+		return "", ""
+	}
+	inner := desc[1:end]
+	sep := strings.Index(inner, " | ")
+	if sep < 0 {
+		return inner, ""
+	}
+	return strings.TrimSpace(inner[:sep]), strings.TrimSpace(inner[sep+3:])
 }
 
 // POST /api/point-claims - Submit a point claim

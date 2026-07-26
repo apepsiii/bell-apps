@@ -148,15 +148,16 @@ func GetStudentDashboard(db *sql.DB) echo.HandlerFunc {
 		studentID := studentIDFromCtx(c)
 
 		var (
-			rfid, nis, name, photo, password string
-			className                        sql.NullString
+			rfid, nis, name, photo, password, birthday, parentName, parentPhone string
+			className                                                            sql.NullString
 		)
 		err := db.QueryRow(`
-			SELECT s.rfid_uid, s.nis, s.name, COALESCE(s.photo,''), COALESCE(s.password,''), c.name
+			SELECT s.rfid_uid, s.nis, s.name, COALESCE(s.photo,''), COALESCE(s.password,''),
+			       COALESCE(s.birthday,''), COALESCE(s.parent_name,''), COALESCE(s.parent_phone,''), c.name
 			FROM students s
 			LEFT JOIN classes c ON s.class_id = c.id
 			WHERE s.id = ?`, studentID).
-			Scan(&rfid, &nis, &name, &photo, &password, &className)
+			Scan(&rfid, &nis, &name, &photo, &password, &birthday, &parentName, &parentPhone, &className)
 		if err != nil {
 			return c.JSON(http.StatusNotFound, map[string]string{"message": "Siswa tidak ditemukan"})
 		}
@@ -191,6 +192,16 @@ func GetStudentDashboard(db *sql.DB) echo.HandlerFunc {
 						timeIn = timeOnly
 					}
 					todayStatus = "Terlambat"
+				case "Sakit":
+					if timeIn == "" {
+						timeIn = timeOnly
+					}
+					todayStatus = "Sakit"
+				case "Izin":
+					if timeIn == "" {
+						timeIn = timeOnly
+					}
+					todayStatus = "Izin"
 				case "Pulang":
 					timeOut = timeOnly
 				}
@@ -203,10 +214,56 @@ func GetStudentDashboard(db *sql.DB) echo.HandlerFunc {
 			db.QueryRow("SELECT name FROM holidays WHERE date = ?", today).Scan(&holidayName)
 		}
 
-		// --- Total points ---
+		// --- Yesterday's attendance (for insight comparison) ---
+		yesterdayDate := now.AddDate(0, 0, -1).Format("2006-01-02")
+		yesterdayTimeIn, yesterdayStatus := "", "Belum Presensi"
+		yRows, err := db.Query(
+			"SELECT status, timestamp FROM attendance_logs WHERE rfid_uid = ? AND date = ? ORDER BY timestamp ASC",
+			rfid, yesterdayDate)
+		if err == nil {
+			defer yRows.Close()
+			for yRows.Next() {
+				var st, ts string
+				if yRows.Scan(&st, &ts) != nil {
+					continue
+				}
+				timeOnly := ""
+				if len(ts) >= 16 {
+					timeOnly = ts[11:16]
+				}
+				switch st {
+				case "Datang", "Hadir":
+					if yesterdayTimeIn == "" {
+						yesterdayTimeIn = timeOnly
+						yesterdayStatus = "Hadir"
+					}
+				case "Terlambat":
+					if yesterdayTimeIn == "" {
+						yesterdayTimeIn = timeOnly
+					}
+					yesterdayStatus = "Terlambat"
+				case "Sakit":
+					if yesterdayTimeIn == "" {
+						yesterdayTimeIn = timeOnly
+					}
+					yesterdayStatus = "Sakit"
+				case "Izin":
+					if yesterdayTimeIn == "" {
+						yesterdayTimeIn = timeOnly
+					}
+					yesterdayStatus = "Izin"
+				}
+			}
+		}
+
+		// --- Total points (unified: student_points + english XP) ---
 		totalPoints := 0
 		db.QueryRow("SELECT COALESCE(SUM(points_change),0) FROM student_points WHERE student_id = ?",
 			studentID).Scan(&totalPoints)
+		// Add English Daily Quest XP so the home balance reflects everything.
+		var englishXP int
+		db.QueryRow("SELECT COALESCE(total_xp,0) FROM english_streaks WHERE student_id = ?", studentID).Scan(&englishXP)
+		totalPoints += englishXP
 
 		// --- This month mini stats ---
 		month := now.Format("01")
@@ -277,19 +334,27 @@ func GetStudentDashboard(db *sql.DB) echo.HandlerFunc {
 
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"student": map[string]interface{}{
-				"id":    studentID,
-				"nis":   nis,
-				"name":  name,
-				"class": className.String,
-				"photo": photoURL,
+				"id":           studentID,
+				"nis":          nis,
+				"name":         name,
+				"class":        className.String,
+				"photo":        photoURL,
+				"birthday":     birthday,
+				"parent_name":  parentName,
+				"parent_phone": parentPhone,
 			},
-			"today": map[string]interface{}{
-				"date":         today,
-				"status":       todayStatus,
-				"time_in":      timeIn,
-				"time_out":     timeOut,
-				"holiday_name": holidayName,
-			},
+		"today": map[string]interface{}{
+			"date":         today,
+			"status":       todayStatus,
+			"time_in":      timeIn,
+			"time_out":     timeOut,
+			"holiday_name": holidayName,
+		},
+		"yesterday": map[string]interface{}{
+			"date":    yesterdayDate,
+			"status":  yesterdayStatus,
+			"time_in": yesterdayTimeIn,
+		},
 			"points":           totalPoints,
 			"month":            stats,
 			"next_bell":        nextBell,

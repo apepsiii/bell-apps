@@ -245,6 +245,10 @@
                                         PDF</button>
                                     <button onclick="navigateMenu('announcements', this)" id="nav-announcements"
                                         class="nav-item w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">Pengumuman</button>
+                                    <button onclick="navigateMenu('english', this)" id="nav-english"
+                                        class="nav-item w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2">
+                                        <i data-lucide="book-open" class="w-4 h-4"></i> English Quest
+                                    </button>
                                     <button onclick="window.open('/admin/idcard', '_blank')"
                                         class="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2">
                                         <i data-lucide="credit-card" class="w-4 h-4"></i> Kartu Siswa
@@ -420,7 +424,7 @@
                                     <i data-lucide="trophy" class="w-5 h-5 text-yellow-500"></i>
                                     Papan Poin Siswa
                                 </h3>
-                                <a href="/admin/points/leaderboard" class="text-sm text-blue-600 hover:text-blue-700">Lihat Semua</a>
+                                <a href="#points" onclick="navigateMenu('points', document.getElementById('nav-points'))" class="text-sm text-blue-600 hover:text-blue-700 cursor-pointer">Lihat Semua</a>
                             </div>
                             <div class="overflow-x-auto">
                                 <table class="w-full text-left">
@@ -456,6 +460,22 @@
                             </div>
                         </div>
 
+                        <!-- RECENT ACTIVITY SECTION -->
+                        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mt-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="font-bold text-slate-700 flex items-center gap-2">
+                                    <i data-lucide="activity" class="w-5 h-5 text-blue-500"></i>
+                                    Aktivitas Terbaru
+                                </h3>
+                                <button onclick="loadRecentActivity()" class="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                                    <i data-lucide="refresh-cw" class="w-3 h-3"></i> Refresh
+                                </button>
+                            </div>
+                            <div id="recent-activity-list" class="space-y-3 max-h-96 overflow-y-auto">
+                                <div class="text-center py-8 text-slate-400">Memuat aktivitas...</div>
+                            </div>
+                        </div>
+
                         <script>
                             // Add rank numbers to leaderboard after page load
                             document.addEventListener('DOMContentLoaded', function() {
@@ -473,7 +493,64 @@
                                         }
                                     });
                                 }
+                                
+                                // Load recent activity
+                                loadRecentActivity();
                             });
+
+                            async function loadRecentActivity() {
+                                const container = document.getElementById('recent-activity-list');
+                                container.innerHTML = '<div class="text-center py-8 text-slate-400">Memuat aktivitas...</div>';
+
+                                try {
+                                    const res = await fetch('/admin/recent-activity');
+                                    if (!res.ok) throw new Error('Failed to load');
+                                    const activities = await res.json();
+
+                                    if (!activities || activities.length === 0) {
+                                        container.innerHTML = '<div class="text-center py-8 text-slate-400">Belum ada aktivitas</div>';
+                                        return;
+                                    }
+
+                                    container.innerHTML = activities.map(act => {
+                                        const icons = {
+                                            'attendance': 'user-check',
+                                            'point': 'award',
+                                            'english': 'book-open',
+                                            'claim': 'check-circle',
+                                            'student': 'users',
+                                            'announcement': 'megaphone'
+                                        };
+                                        const colors = {
+                                            'attendance': 'text-green-600 bg-green-50',
+                                            'point': 'text-orange-600 bg-orange-50',
+                                            'english': 'text-purple-600 bg-purple-50',
+                                            'claim': 'text-blue-600 bg-blue-50',
+                                            'student': 'text-slate-600 bg-slate-50',
+                                            'announcement': 'text-pink-600 bg-pink-50'
+                                        };
+                                        const icon = icons[act.type] || 'activity';
+                                        const color = colors[act.type] || 'text-slate-600 bg-slate-50';
+                                        
+                                        return `
+                                            <div class="flex gap-3 items-start p-3 rounded-lg hover:bg-slate-50 transition">
+                                                <div class="flex-shrink-0 w-8 h-8 rounded-full ${color} flex items-center justify-center">
+                                                    <i data-lucide="${icon}" class="w-4 h-4"></i>
+                                                </div>
+                                                <div class="flex-1 min-w-0">
+                                                    <p class="text-sm text-slate-700">${act.description}</p>
+                                                    <p class="text-xs text-slate-500 mt-0.5">${act.time_ago}</p>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('');
+                                    
+                                    lucide.createIcons();
+                                } catch (err) {
+                                    console.error('Error loading activity:', err);
+                                    container.innerHTML = '<div class="text-center py-8 text-red-400">Gagal memuat aktivitas</div>';
+                                }
+                            }
                         </script>
                     </section>
 
@@ -1273,6 +1350,106 @@
                         </div>
                     </section>
 
+                    <!-- ENGLISH DAILY QUEST -->
+                    <section id="english" class="page-section">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-bold text-slate-800">English Daily Quest</h2>
+                            <span class="text-sm text-slate-500">Gamifikasi bahasa Inggris untuk siswa</span>
+                        </div>
+
+                        <!-- ENGLISH TABS -->
+                        <div class="flex gap-2 mb-4 border-b border-slate-200">
+                            <button onclick="engTab('quest')" id="eng-tab-quest" class="px-4 py-2 text-sm font-medium border-b-2 border-blue-600 text-blue-600">Buat Quest</button>
+                            <button onclick="engTab('review')" id="eng-tab-review" class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-slate-600 hover:text-slate-800">Review</button>
+                            <button onclick="engTab('leaderboard')" id="eng-tab-lb" class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-slate-600 hover:text-slate-800">Leaderboard</button>
+                            <button onclick="engTab('progress')" id="eng-tab-prog" class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-slate-600 hover:text-slate-800">Progress</button>
+                        </div>
+
+                        <!-- ENGLISH: CREATE QUEST -->
+                        <div id="eng-page-quest" class="eng-page">
+                            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 max-w-2xl">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="font-semibold text-slate-800">Buat Quest Harian</h3>
+                                    <button type="button" onclick="generateAIQuest()" class="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-purple-700 flex items-center gap-2">
+                                        <i data-lucide="sparkles" class="w-4 h-4"></i> Generate dengan AI
+                                    </button>
+                                </div>
+                                <form id="engQuestForm" class="grid grid-cols-2 gap-4">
+                                    <div><label class="block text-xs font-semibold text-slate-600 mb-1">Tanggal</label><input type="date" id="engDate" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" required></div>
+                                    <div><label class="block text-xs font-semibold text-slate-600 mb-1">Tipe</label><select id="engType" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" onchange="engToggleFields()">
+                                        <option value="written">Written</option><option value="vocabulary">Vocabulary</option><option value="quiz">Quiz</option><option value="voice">Voice</option>
+                                    </select></div>
+                                    <div class="col-span-2"><label class="block text-xs font-semibold text-slate-600 mb-1">Judul Quest</label><input type="text" id="engTitle" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" required></div>
+                                    <div class="col-span-2"><label class="block text-xs font-semibold text-slate-600 mb-1">Deskripsi</label><textarea id="engDesc" rows="2" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></textarea></div>
+                                    <div><label class="block text-xs font-semibold text-slate-600 mb-1">Topik</label><input type="text" id="engTopic" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></div>
+                                    <div><label class="block text-xs font-semibold text-slate-600 mb-1">XP Reward</label><input type="number" id="engXP" value="10" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></div>
+                                    <div id="engVocabField" class="col-span-2 hidden"><label class="block text-xs font-semibold text-slate-600 mb-1">Kata Vocabulary (pisah koma)</label><textarea id="engVocab" rows="2" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></textarea></div>
+                                    <div id="engQuizField" class="col-span-2 hidden">
+                                        <label class="block text-xs font-semibold text-slate-600 mb-1">Pertanyaan Quiz</label><input type="text" id="engQuizQ" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-2">
+                                        <label class="block text-xs font-semibold text-slate-600 mb-1">Pilihan (pisah dengan |)</label><input type="text" id="engQuizCh" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-2">
+                                        <label class="block text-xs font-semibold text-slate-600 mb-1">Jawaban Benar</label><input type="text" id="engQuizA" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm">
+                                    </div>
+                                    <div class="col-span-2"><button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700">Simpan Quest</button></div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- ENGLISH: REVIEW -->
+                        <div id="eng-page-review" class="eng-page hidden">
+                            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-4 flex gap-3 items-end flex-wrap">
+                                <div><label class="block text-xs font-semibold text-slate-600 mb-1">Tanggal</label><input type="date" id="engRDate" class="border border-slate-200 rounded-lg px-3 py-2 text-sm"></div>
+                                <div><label class="block text-xs font-semibold text-slate-600 mb-1">Status</label><select id="engRStatus" class="border border-slate-200 rounded-lg px-3 py-2 text-sm"><option value="">Semua</option><option value="pending" selected>Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select></div>
+                                <div><label class="block text-xs font-semibold text-slate-600 mb-1">Kelas</label><select id="engRClass" class="border border-slate-200 rounded-lg px-3 py-2 text-sm"><option value="">Semua</option></select></div>
+                                <button onclick="engLoadSubs()" class="bg-slate-100 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200">Filter</button>
+                            </div>
+                            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+                                <table class="w-full text-sm"><thead class="bg-slate-50 border-b"><tr>
+                                    <th class="px-4 py-3 text-left font-semibold text-slate-600">Siswa</th>
+                                    <th class="px-4 py-3 text-left font-semibold text-slate-600">Kelas</th>
+                                    <th class="px-4 py-3 text-left font-semibold text-slate-600">Tipe</th>
+                                    <th class="px-4 py-3 text-left font-semibold text-slate-600">Content</th>
+                                    <th class="px-4 py-3 text-left font-semibold text-slate-600">Waktu</th>
+                                    <th class="px-4 py-3 text-left font-semibold text-slate-600">Status</th>
+                                    <th class="px-4 py-3 text-center font-semibold text-slate-600">Aksi</th>
+                                </tr></thead><tbody id="engSubTable"></tbody></table>
+                            </div>
+                        </div>
+
+                        <!-- ENGLISH: LEADERBOARD -->
+                        <div id="eng-page-lb" class="eng-page hidden">
+                            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+                                <table class="w-full text-sm"><thead class="bg-slate-50 border-b"><tr>
+                                    <th class="px-4 py-3 text-center font-semibold text-slate-600 w-12">#</th>
+                                    <th class="px-4 py-3 text-left font-semibold text-slate-600">Nama</th>
+                                    <th class="px-4 py-3 text-left font-semibold text-slate-600">Kelas</th>
+                                    <th class="px-4 py-3 text-center font-semibold text-slate-600">Streak</th>
+                                    <th class="px-4 py-3 text-center font-semibold text-slate-600">XP</th>
+                                    <th class="px-4 py-3 text-center font-semibold text-slate-600">Badge</th>
+                                </tr></thead><tbody id="engLbTable"></tbody></table>
+                            </div>
+                        </div>
+
+                        <!-- ENGLISH: PROGRESS -->
+                        <div id="eng-page-prog" class="eng-page hidden">
+                            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-4 flex gap-3 items-end flex-wrap">
+                                <div><label class="block text-xs font-semibold text-slate-600 mb-1">Bulan</label><select id="engPMonth" class="border border-slate-200 rounded-lg px-3 py-2 text-sm"></select></div>
+                                <div><label class="block text-xs font-semibold text-slate-600 mb-1">Tahun</label><select id="engPYear" class="border border-slate-200 rounded-lg px-3 py-2 text-sm"></select></div>
+                                <div><label class="block text-xs font-semibold text-slate-600 mb-1">Kelas</label><select id="engPClass" class="border border-slate-200 rounded-lg px-3 py-2 text-sm"><option value="">Semua</option></select></div>
+                                <button onclick="engLoadProg()" class="bg-slate-100 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200">Tampilkan</button>
+                            </div>
+                            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+                                <table class="w-full text-sm"><thead class="bg-slate-50 border-b"><tr>
+                                    <th class="px-4 py-3 text-left font-semibold text-slate-600">Nama</th>
+                                    <th class="px-4 py-3 text-left font-semibold text-slate-600">Kelas</th>
+                                    <th class="px-4 py-3 text-center font-semibold text-slate-600">Streak</th>
+                                    <th class="px-4 py-3 text-center font-semibold text-slate-600">XP</th>
+                                    <th class="px-4 py-3 text-center font-semibold text-slate-600">Approved</th>
+                                    <th class="px-4 py-3 text-center font-semibold text-slate-600">Total</th>
+                                </tr></thead><tbody id="engProgTable"></tbody></table>
+                            </div>
+                        </div>
+                    </section>
+
                     <!-- DEVICES (EXISTING) -->
                     <section id="devices" class="page-section">
                         <!-- ... Perangkat code ... -->
@@ -1529,8 +1706,54 @@
 
                     <!-- 10. SCHOOL SETTINGS -->
                     <section id="settings" class="page-section">
-                        <h2 class="text-2xl font-bold text-slate-800 mb-6">Pengaturan Sekolah</h2>
+                        <h2 class="text-2xl font-bold text-slate-800 mb-6">Pengaturan Sistem</h2>
 
+                        <!-- AI Settings -->
+                        <div class="bg-white rounded-xl border shadow-sm p-6 mb-6">
+                            <h3 class="font-bold text-lg mb-4 text-slate-700 flex items-center gap-2">
+                                <i data-lucide="sparkles" class="w-5 h-5 text-purple-600"></i> Pengaturan AI Quest Generator
+                            </h3>
+                            <p class="text-sm text-slate-500 mb-4">Konfigurasikan API AI untuk generate quest English otomatis.</p>
+
+                            <form id="ai-settings-form" onsubmit="saveAISettings(event)">
+                                <div class="grid gap-4 mb-6">
+                                    <div>
+                                        <label class="block text-sm font-medium text-slate-700 mb-2">Base URL API</label>
+                                        <input type="url" id="ai_base_url" name="ai_base_url" 
+                                            class="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm"
+                                            placeholder="https://api.openai.com/v1/chat/completions">
+                                        <p class="text-xs text-slate-500 mt-1">Endpoint API yang kompatibel dengan format OpenAI</p>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-slate-700 mb-2">API Key</label>
+                                        <input type="password" id="ai_api_key" name="ai_api_key" 
+                                            class="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm"
+                                            placeholder="sk-...">
+                                        <p class="text-xs text-slate-500 mt-1">API Key untuk autentikasi</p>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-slate-700 mb-2">Model AI</label>
+                                        <input type="text" id="ai_model" name="ai_model" 
+                                            class="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm"
+                                            placeholder="gpt-4o-mini">
+                                        <p class="text-xs text-slate-500 mt-1">Nama model AI yang akan digunakan</p>
+                                    </div>
+                                </div>
+
+                                <div class="flex gap-3">
+                                    <button type="submit"
+                                        class="bg-purple-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-purple-700 transition">
+                                        Simpan Pengaturan AI
+                                    </button>
+                                    <button type="button" onclick="testAIConnection()"
+                                        class="bg-slate-100 text-slate-700 px-6 py-2 rounded-lg font-medium hover:bg-slate-200 transition">
+                                        Test Koneksi
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- School Settings -->
                         <div class="bg-white rounded-xl border shadow-sm p-6 mb-6">
                             <h3 class="font-bold text-lg mb-4 text-slate-700 flex items-center gap-2">
                                 <i data-lucide="calendar-days" class="w-5 h-5 text-blue-600"></i> Hari Kerja Sekolah
@@ -1606,6 +1829,8 @@
                             <button onclick="openPointTab('redeem', this)"
                                 class="point-tab-btn px-4 py-2 font-medium text-slate-500 hover:text-blue-600 transition-colors">Tukar
                                 Poin</button>
+                            <button onclick="openPointTab('history', this)"
+                                class="point-tab-btn px-4 py-2 font-medium text-slate-500 hover:text-blue-600 transition-colors">Riwayat</button>
                             <button onclick="openPointTab('master', this)"
                                 class="point-tab-btn px-4 py-2 font-medium text-slate-500 hover:text-blue-600 transition-colors">Master
                                 Data</button>
@@ -1634,18 +1859,17 @@
                             <div class="max-w-xl mx-auto bg-white rounded-xl border shadow-sm p-6">
                                 <h3 class="font-bold text-lg mb-4">Input Pelanggaran / Prestasi</h3>
                                 <div class="mb-4 p-3 bg-blue-50 text-blue-800 text-sm rounded">
-                                    Scan kartu siswa, lalu pilih aturan poin yang sesuai.
+                                    Cari siswa berdasarkan Nama, NIS, atau Nomor Kartu, lalu pilih aturan poin.
                                 </div>
                                 <form onsubmit="submitPointTransaction(event)" class="space-y-4">
-                                    <div>
-                                        <label class="block text-sm font-medium mb-1">Siswa</label>
-                                        <div class="flex gap-2">
-                                            <input type="text" id="point-student-rfid" placeholder="Scan Kartu..."
-                                                class="border rounded-lg p-2.5 flex-1 bg-yellow-50 focus:bg-white transition-colors"
-                                                oninput="findStudentByRFID(this.value, 'input')" autocomplete="off"
-                                                autofocus>
-                                            <input type="text" id="point-student-id" hidden name="student_id">
-                                        </div>
+                                    <div class="relative">
+                                        <label class="block text-sm font-medium mb-1">Cari Siswa</label>
+                                        <input type="text" id="point-student-search" placeholder="Ketik nama, NIS, atau nomor kartu..."
+                                            class="border rounded-lg p-2.5 w-full bg-yellow-50 focus:bg-white transition-colors"
+                                            oninput="searchStudentForPoints(this.value, 'input')" autocomplete="off">
+                                        <input type="text" id="point-student-id" hidden name="student_id">
+                                        <div id="point-student-results-input"
+                                            class="hidden absolute z-50 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto"></div>
                                         <div id="point-student-preview-input"
                                             class="text-sm font-bold mt-2 text-blue-600 min-h-[20px]"></div>
                                     </div>
@@ -1670,14 +1894,14 @@
                             <div class="max-w-xl mx-auto bg-white rounded-xl border shadow-sm p-6">
                                 <h3 class="font-bold text-lg mb-4">Penukaran Poin (Reward)</h3>
                                 <form onsubmit="submitRedeem(event)" class="space-y-4">
-                                    <div>
-                                        <label class="block text-sm font-medium mb-1">Siswa</label>
-                                        <div class="flex gap-2">
-                                            <input type="text" id="redeem-student-rfid" placeholder="Scan Kartu..."
-                                                class="border rounded-lg p-2.5 flex-1 bg-yellow-50 focus:bg-white transition-colors"
-                                                oninput="findStudentByRFID(this.value, 'redeem')" autocomplete="off">
-                                            <input type="text" id="redeem-student-id" hidden name="student_id">
-                                        </div>
+                                    <div class="relative">
+                                        <label class="block text-sm font-medium mb-1">Cari Siswa</label>
+                                        <input type="text" id="redeem-student-search" placeholder="Ketik nama, NIS, atau nomor kartu..."
+                                            class="border rounded-lg p-2.5 w-full bg-yellow-50 focus:bg-white transition-colors"
+                                            oninput="searchStudentForPoints(this.value, 'redeem')" autocomplete="off">
+                                        <input type="text" id="redeem-student-id" hidden name="student_id">
+                                        <div id="point-student-results-redeem"
+                                            class="hidden absolute z-50 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto"></div>
                                         <div class="flex justify-between items-center mt-2">
                                             <div id="point-student-preview-redeem"
                                                 class="text-sm font-bold text-blue-600 min-h-[20px]"></div>
@@ -1701,6 +1925,67 @@
                             </div>
                         </div>
 
+                        <!-- Tab: Riwayat -->
+                        <div id="point-history" class="point-tab-content hidden">
+                            <div class="bg-white rounded-xl border shadow-sm p-6">
+                                <h3 class="font-bold text-lg mb-4">Riwayat Transaksi Poin</h3>
+                                
+                                <!-- Filter -->
+                                <div class="flex gap-3 mb-4 flex-wrap items-end">
+                                    <div class="flex-1 min-w-[200px]">
+                                        <label class="block text-sm font-medium mb-1">Cari Siswa (opsional)</label>
+                                        <input type="text" id="history-student-search" 
+                                            placeholder="Nama, NIS, atau nomor kartu..."
+                                            class="border rounded-lg p-2 w-full text-sm"
+                                            oninput="searchStudentForHistory(this.value)">
+                                        <input type="hidden" id="history-student-id">
+                                        <div id="history-student-results" class="hidden absolute z-50 mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto w-80"></div>
+                                        <div id="history-student-preview" class="text-xs text-blue-600 mt-1"></div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium mb-1">Tipe</label>
+                                        <select id="history-type" class="border rounded-lg p-2 text-sm">
+                                            <option value="">Semua</option>
+                                            <option value="positive">Penambahan (+)</option>
+                                            <option value="negative">Pengurangan (-)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium mb-1">Limit</label>
+                                        <select id="history-limit" class="border rounded-lg p-2 text-sm">
+                                            <option value="50">50</option>
+                                            <option value="100" selected>100</option>
+                                            <option value="200">200</option>
+                                            <option value="500">500</option>
+                                        </select>
+                                    </div>
+                                    <button onclick="loadPointHistory()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">
+                                        Tampilkan
+                                    </button>
+                                    <button onclick="clearHistoryFilter()" class="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200">
+                                        Reset
+                                    </button>
+                                </div>
+
+                                <!-- Table -->
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-sm">
+                                        <thead class="bg-slate-50 border-b">
+                                            <tr>
+                                                <th class="px-4 py-3 text-left font-semibold text-slate-600">Waktu</th>
+                                                <th class="px-4 py-3 text-left font-semibold text-slate-600">Siswa</th>
+                                                <th class="px-4 py-3 text-left font-semibold text-slate-600">Kelas</th>
+                                                <th class="px-4 py-3 text-left font-semibold text-slate-600">Deskripsi</th>
+                                                <th class="px-4 py-3 text-right font-semibold text-slate-600">Poin</th>
+                                                <th class="px-4 py-3 text-left font-semibold text-slate-600">Oleh</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="history-table"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Tab: Master Data -->
                         <div id="point-master" class="point-tab-content hidden">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1708,9 +1993,15 @@
                                 <div>
                                     <div class="flex justify-between items-center mb-4">
                                         <h4 class="font-bold text-slate-700">Aturan (Prestasi/Pelanggaran)</h4>
-                                        <button onclick="openAddRuleModal()"
-                                            class="text-xs bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-200 font-medium">+
-                                            Tambah Aturan</button>
+                                        <div class="flex gap-2">
+                                            <button onclick="openImportRulesModal()"
+                                                class="text-xs bg-green-100 text-green-700 px-3 py-1.5 rounded-lg hover:bg-green-200 font-medium flex items-center gap-1">
+                                                <i data-lucide="upload" class="w-3 h-3"></i> Import
+                                            </button>
+                                            <button onclick="openAddRuleModal()"
+                                                class="text-xs bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-200 font-medium">+
+                                                Tambah Aturan</button>
+                                        </div>
                                     </div>
                                     <div class="bg-white border rounded-xl shadow-sm h-96 overflow-y-auto">
                                         <table class="w-full text-sm">
@@ -1763,6 +2054,7 @@
                                 </div>
                             </div>
                         </div>
+                    </section>
 
                 </div>
             </main>
@@ -1877,10 +2169,23 @@
                                 </option>{{end}}</select></div>
                     <div><label class="text-sm font-medium">Nama Lengkap</label><input type="text" name="name"
                             id="stu-name" required class="w-full border rounded p-2"></div>
-                    <div><label class="text-sm font-medium">No. HP Ortu</label><input type="text" name="parent_phone"
-                            id="stu-phone" required placeholder="08..." class="w-full border rounded p-2"></div>
-                    <div><label class="text-sm font-medium">Tanggal Lahir</label><input type="date" name="birthday"
-                            id="stu-birthday" class="w-full border rounded p-2"></div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="text-sm font-medium">Nama Orang Tua</label><input type="text" name="parent_name"
+                                id="stu-parent-name" class="w-full border rounded p-2"></div>
+                        <div><label class="text-sm font-medium">No. HP Ortu</label><input type="text" name="parent_phone"
+                                id="stu-phone" required placeholder="08..." class="w-full border rounded p-2"></div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="text-sm font-medium">Tanggal Lahir</label><input type="date" name="birthday"
+                                id="stu-birthday" class="w-full border rounded p-2"></div>
+                        <div><label class="text-sm font-medium">Status</label><select name="status" id="stu-status"
+                                class="w-full border rounded p-2">
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select></div>
+                    </div>
+                    <div><label class="text-sm font-medium">Password Portal Siswa</label><input type="password" name="password"
+                            id="stu-password" placeholder="Kosongkan jika tidak diubah" class="w-full border rounded p-2"></div>
                     <div>
                         <label class="text-sm font-medium">Foto Siswa</label>
                         <div class="flex gap-3 items-start">
@@ -2556,6 +2861,7 @@
                     loadHolidays();
                 } else if (pageId === 'settings') {
                     loadSchoolSettings();
+                    loadAISettings();
                 }
             }
 
@@ -2959,67 +3265,153 @@
                 lucide.createIcons();
             }
 
-            // --- WhatsApp Report Generator ---
-            // Builds a WhatsApp-ready text summary from the cached preview data.
-            // Output includes: class name (or "Semua Kelas"), homeroom placeholder,
-            // counts of present / absent / late, and a list of absent students.
-            function buildWhatsAppReportText() {
-                if (!lastReportData) return '';
-                const d = lastReportData;
+            // --- WhatsApp Report Generator (NEW VERSION) ---
+            // Modular, clean implementation with clear separation of concerns
+            
+            // Helper: Extract time from ISO timestamp
+            function extractTime(isoTimestamp) {
+                if (!isoTimestamp || isoTimestamp === '' || isoTimestamp === '-') {
+                    return null;
+                }
+                // Extract HH:MM:SS from "2026-07-25T16:40:53Z"
+                if (isoTimestamp.length > 10 && isoTimestamp.includes('T')) {
+                    return isoTimestamp.substring(11, 19);
+                }
+                return isoTimestamp;
+            }
 
-                // Determine class label
+            // Helper: Categorize students by attendance status
+            function categorizeStudents(records) {
+                const present = [];
+                const sick = [];
+                const permission = [];
+                const absent = [];
+                
+                records.forEach(record => {
+                    const status = record.Status || '';
+                    const hasTime = record.Time && record.Time !== '' && record.Time !== '-';
+                    
+                    // Categorize based on status
+                    if (status === 'Hadir' || status === 'Datang' || status === 'Terlambat') {
+                        // Actually present - add to present list with time
+                        if (hasTime) {
+                            present.push({
+                                name: record.Name,
+                                time: extractTime(record.Time),
+                                status: status
+                            });
+                        }
+                    } else if (status === 'Sakit') {
+                        // Sick - separate category
+                        sick.push(record.Name);
+                    } else if (status === 'Izin') {
+                        // Permission - separate category
+                        permission.push(record.Name);
+                    } else {
+                        // Alpha / Tidak Hadir / empty status
+                        absent.push(record.Name);
+                    }
+                });
+                
+                return { present, sick, permission, absent };
+            }
+
+            // Helper: Build WhatsApp formatted text
+            function formatWhatsAppReport(data, classLabel, categories) {
+                const lines = [];
+                
+                // Header
+                lines.push('📋 *LAPORAN PRESENSI SISWA*');
+                lines.push('');
+                lines.push(`🏫 Kelas   : ${classLabel}`);
+                lines.push(`👤 Wali    : ___________________`);
+                lines.push(`📅 Periode : ${data.Period || '-'}`);
+                lines.push('');
+                
+                // Summary statistics
+                lines.push('📊 *Ringkasan:*');
+                lines.push(`• Jumlah Siswa : ${data.TotalRecords || 0}`);
+                lines.push(`• Hadir        : ${data.TotalPresent || 0}`);
+                lines.push(`• Terlambat    : ${data.TotalLate || 0}`);
+                lines.push(`• Sakit        : ${data.TotalSick || 0}`);
+                lines.push(`• Izin         : ${data.TotalPermission || 0}`);
+                lines.push(`• Tidak Hadir  : ${data.TotalAbsent || 0}`);
+                lines.push('');
+                
+                // Present students list with arrival time
+                if (categories.present.length > 0) {
+                    lines.push('✅ *Daftar Siswa Hadir:*');
+                    categories.present.forEach((student, index) => {
+                        lines.push(`${index + 1}. ${student.name} : (${student.time || '-'})`);
+                    });
+                    lines.push('');
+                }
+                
+                // Not present students with reasons
+                const notPresentTotal = categories.sick.length + categories.permission.length + categories.absent.length;
+                
+                if (notPresentTotal > 0) {
+                    lines.push('📛 *Daftar Tidak Hadir:*');
+                    let counter = 1;
+                    
+                    // Sick students
+                    categories.sick.forEach((name) => {
+                        lines.push(`${counter}. ${name} : Sakit`);
+                        counter++;
+                    });
+                    
+                    // Permission students
+                    categories.permission.forEach((name) => {
+                        lines.push(`${counter}. ${name} : Izin`);
+                        counter++;
+                    });
+                    
+                    // Absent students (Alpha)
+                    categories.absent.forEach((name) => {
+                        lines.push(`${counter}. ${name} : Alpha`);
+                        counter++;
+                    });
+                    
+                    lines.push('');
+                }
+                
+                // Footer
+                lines.push(`_Dibuat via SMK NIBA Super Apps_ ${new Date().toLocaleString('id-ID')}`);
+                
+                return lines.join('\n');
+            }
+
+            // Main function: Build WhatsApp Report
+            function buildWhatsAppReportText() {
+                if (!lastReportData) {
+                    console.error('No report data available');
+                    return '';
+                }
+                
+                const data = lastReportData;
+                console.log('=== WhatsApp Report Generator v2 ===');
+                console.log('Report Data:', data);
+                
+                // Get class label
                 const classSelect = document.getElementById('reportClassFilter');
                 let classLabel = 'Semua Kelas';
                 if (classSelect && classSelect.value) {
                     classLabel = classSelect.options[classSelect.selectedIndex].text;
                 }
-
-                const present = d.TotalPresent || 0;
-                const late = d.TotalLate || 0;
-                const sick = d.TotalSick || 0;
-                const permission = d.TotalPermission || 0;
-                const absent = d.TotalAbsent || 0;
-                const total = d.TotalRecords || 0;
-
-                // Collect names of absent/missing students (no present status)
-                const absentees = [];
-                if (d.Records && d.Records.length > 0) {
-                    d.Records.forEach(r => {
-                        // For daily reports: status "Tidak Hadir" or empty means absent.
-                        // For weekly/monthly: use AbsentCount if available.
-                        const isDailyAbsent = (!r.Status || r.Status === 'Tidak Hadir') && r.PresentCount === undefined;
-                        const isPeriodAbsent = (r.PresentCount !== undefined) && r.PresentCount === 0;
-                        if (isDailyAbsent || isPeriodAbsent) {
-                            absentees.push(r.Name);
-                        }
-                    });
-                }
-
-                const lines = [];
-                lines.push('📋 *LAPORAN PRESENSI SISWA*');
-                lines.push('');
-                lines.push(`🏫 Kelas   : ${classLabel}`);
-                lines.push(`👤 Wali    : ___________________`);
-                lines.push(`📅 Periode : ${d.Period || '-'}`);
-                lines.push('');
-                lines.push(`📊 *Ringkasan:*`);
-                lines.push(`• Jumlah Siswa : ${total}`);
-                lines.push(`• Hadir        : ${present}`);
-                lines.push(`• Terlambat    : ${late}`);
-                lines.push(`• Sakit        : ${sick}`);
-                lines.push(`• Izin         : ${permission}`);
-                lines.push(`• Tidak Hadir  : ${absent}`);
-                lines.push('');
-
-                if (absentees.length > 0) {
-                    lines.push(`📛 *Daftar Tidak Hadir:*`);
-                    absentees.forEach((n, i) => lines.push(`${i + 1}. ${n}`));
-                    lines.push('');
-                }
-
-                lines.push(`_Dibuat via SMK NIBA Super Apps_${new Date().toLocaleString('id-ID')}`);
-
-                return lines.join('\n');
+                
+                // Categorize students
+                const categories = categorizeStudents(data.Records || []);
+                console.log('Present:', categories.present.length, 'students');
+                console.log('Sick:', categories.sick.length, 'students');
+                console.log('Permission:', categories.permission.length, 'students');
+                console.log('Absent:', categories.absent.length, 'students');
+                console.log('Present list:', categories.present);
+                
+                // Build formatted report
+                const report = formatWhatsAppReport(data, classLabel, categories);
+                console.log('Generated report length:', report.length, 'characters');
+                
+                return report;
             }
 
             function generateWhatsAppReport() {
@@ -3819,6 +4211,92 @@
                 }
             }
 
+            // --- AI SETTINGS ---
+            async function saveAISettings(e) {
+                e.preventDefault();
+                const form = e.target;
+                const formData = new FormData();
+                formData.append('ai_base_url', document.getElementById('ai_base_url').value);
+                formData.append('ai_api_key', document.getElementById('ai_api_key').value);
+                formData.append('ai_model', document.getElementById('ai_model').value);
+
+                try {
+                    const res = await fetch('/admin/ai/settings', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await res.json();
+                    if (res.ok) {
+                        Swal.fire({ icon: 'success', title: 'Berhasil', text: data.message, timer: 1500, showConfirmButton: false });
+                    } else {
+                        throw new Error(data.message || "Gagal menyimpan");
+                    }
+                } catch (err) {
+                    Swal.fire('Error', err.message || 'Gagal menyimpan pengaturan AI', 'error');
+                }
+            }
+
+            async function loadAISettings() {
+                try {
+                    const res = await fetch('/admin/ai/settings');
+                    if (!res.ok) return;
+                    const data = await res.json();
+
+                    document.getElementById('ai_base_url').value = data.ai_base_url || '';
+                    document.getElementById('ai_api_key').value = data.ai_api_key || '';
+                    document.getElementById('ai_model').value = data.ai_model || 'gpt-4o-mini';
+                } catch (err) {
+                    console.error("Error loading AI settings:", err);
+                }
+            }
+
+            async function testAIConnection() {
+                Swal.fire({
+                    title: 'Testing AI Connection...',
+                    text: 'Menghubungi API...',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+
+                try {
+                    const res = await fetch('/admin/ai/test', { method: 'POST' });
+                    const data = await res.json();
+
+                    if (data.status === 'success') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Koneksi Berhasil!',
+                            html: `<div class="text-left text-sm">
+                                <p class="mb-2">${data.message}</p>
+                                <p class="text-slate-600"><strong>Base URL:</strong> ${data.base_url}</p>
+                                <p class="text-slate-600"><strong>Model:</strong> ${data.model}</p>
+                                <p class="text-slate-600"><strong>Status Code:</strong> ${data.status_code}</p>
+                            </div>`,
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Koneksi Gagal',
+                            html: `<div class="text-left text-sm">
+                                <p class="mb-2 text-red-600">${data.message}</p>
+                                ${data.base_url ? `<p class="text-slate-600"><strong>Base URL:</strong> ${data.base_url}</p>` : ''}
+                                ${data.model ? `<p class="text-slate-600"><strong>Model:</strong> ${data.model}</p>` : ''}
+                                ${data.status_code ? `<p class="text-slate-600"><strong>Status Code:</strong> ${data.status_code}</p>` : ''}
+                                ${data.response ? `<details class="mt-2"><summary class="cursor-pointer text-slate-600">Response Detail</summary><pre class="mt-2 p-2 bg-slate-100 rounded text-xs overflow-auto max-h-40">${data.response}</pre></details>` : ''}
+                            </div>`,
+                            width: '600px'
+                        });
+                    }
+                } catch (err) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: err.message || 'Gagal melakukan test koneksi'
+                    });
+                }
+            }
+
             // --- WA LOGS ---
             async function loadWALogs() {
                 const tbody = document.getElementById('walogs-table-body');
@@ -4222,7 +4700,8 @@
                 tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4">Memuat data...</td></tr>';
 
                 try {
-                    const res = await fetch(`/admin/attendance/daily?class_id=${classID}&date=${date}`);
+                    const res = await fetch(`/admin/attendance/sheet?class_id=${classID}&date=${date}`);
+                    if (!res.ok) throw new Error('Failed to load');
                     const students = await res.json();
 
                     if (!students || students.length === 0) {
@@ -4242,8 +4721,8 @@
                         html += `
                         <tr class="hover:bg-slate-50 transition student-att-row" data-id="${s.student_id}">
                             <td class="px-4 py-3 text-slate-500 font-mono text-xs">${index + 1}</td>
-                            <td class="px-4 py-3 text-slate-600 font-mono text-xs">${s.nis}</td>
-                            <td class="px-4 py-3 font-medium text-slate-800">${s.name}</td>
+                            <td class="px-4 py-3 text-slate-600 font-mono text-xs">${s.nis || '-'}</td>
+                            <td class="px-4 py-3 font-medium text-slate-800">${s.name || '-'}</td>
                             <td class="px-4 py-3 text-center">
                                 <div class="flex justify-center gap-4">
                                     <label class="flex items-center gap-1 cursor-pointer">
@@ -4271,7 +4750,7 @@
                     tbody.innerHTML = html;
 
                 } catch (err) {
-                    console.error(err);
+                    console.error('loadAttendanceSheet error:', err);
                     tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-red-500">Gagal memuat data</td></tr>';
                 }
             }
@@ -4742,6 +5221,66 @@
                 </div>
             </div>
         </div>
+
+        <!-- MODAL: IMPORT POINT RULES -->
+        <div id="modal-import-point-rules"
+            class="fixed inset-0 z-50 flex items-center justify-center hidden bg-black/50 backdrop-blur-sm animate-fade-in">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden transform transition-all scale-95"
+                onclick="event.stopPropagation()">
+                <div class="px-6 py-4 border-b flex justify-between items-center bg-slate-50">
+                    <h3 class="font-bold text-lg text-slate-800">Import Aturan Poin</h3>
+                    <button onclick="closeModal('modal-import-point-rules')"
+                        class="text-slate-400 hover:text-red-500 transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <div class="p-6">
+                    <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <h4 class="font-semibold text-blue-800 mb-2 flex items-center gap-2">
+                            <i data-lucide="info" class="w-4 h-4"></i> Format CSV
+                        </h4>
+                        <p class="text-sm text-blue-700 mb-2">File CSV harus memiliki kolom: <code class="bg-blue-100 px-1 rounded">category,name,points,description</code></p>
+                        <p class="text-xs text-blue-600">Contoh:</p>
+                        <pre class="text-xs bg-white p-2 rounded mt-1 border border-blue-100 overflow-x-auto">category,name,points,description
+achievement,Juara Kelas,100,Juara 1 kelas
+violation,Terlambat,-10,Datang terlambat ke sekolah
+achievement,Piket Bersih,15,Melaksanakan piket dengan baik</pre>
+                    </div>
+
+                    <form id="import-rules-form" onsubmit="submitImportRules(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">Upload File CSV</label>
+                            <input type="file" id="import-rules-file" accept=".csv" required
+                                class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-green-100 outline-none transition-shadow">
+                            <p class="text-xs text-slate-500 mt-1">Pilih file CSV dengan format yang sesuai</p>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" id="import-replace" class="w-4 h-4 text-green-600 rounded">
+                            <label for="import-replace" class="text-sm text-slate-700">Hapus semua aturan yang ada sebelum import</label>
+                        </div>
+
+                        <div class="pt-2 flex gap-3">
+                            <button type="submit"
+                                class="flex-1 bg-green-600 text-white rounded-lg py-2.5 hover:bg-green-700 font-medium transition-colors shadow-lg shadow-green-600/20 flex items-center justify-center gap-2">
+                                <i data-lucide="upload" class="w-4 h-4"></i> Import
+                            </button>
+                            <button type="button" onclick="closeModal('modal-import-point-rules')"
+                                class="px-6 bg-slate-200 text-slate-700 rounded-lg py-2.5 hover:bg-slate-300 font-medium transition-colors">
+                                Batal
+                            </button>
+                        </div>
+                    </form>
+
+                    <div id="import-rules-result" class="mt-4 hidden">
+                        <div class="p-4 rounded-lg border">
+                            <h5 class="font-semibold mb-2">Hasil Import:</h5>
+                            <p id="import-rules-message" class="text-sm"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         <!-- POINT SYSTEM JS -->
         <script>
             // --- POINT SYSTEM LOGIC ---
@@ -4749,7 +5288,7 @@
             // Tab Switching
             function openPointTab(tabName, btn) {
                 // Hide all tabs
-                ['leaderboard', 'input', 'redeem', 'master'].forEach(t => {
+                ['leaderboard', 'input', 'redeem', 'history', 'master'].forEach(t => {
                     const el = document.getElementById('point-' + t);
                     if (el) el.classList.add('hidden');
                 });
@@ -4770,6 +5309,9 @@
 
                 if (tabName === 'leaderboard') loadLeaderboard();
                 if (tabName === 'master') { loadPointRules(); loadPointRewards(); }
+                if (tabName === 'input') loadRuleOptions();
+                if (tabName === 'redeem') loadRewardOptions();
+                if (tabName === 'history') loadPointHistory();
             }
 
             // --- MASTER DATA ---
@@ -4837,8 +5379,133 @@
                 openModal('modal-add-point-rule');
             }
 
+            function openImportRulesModal() {
+                openModal('modal-import-point-rules');
+            }
+
             function openAddRewardModal() {
                 openModal('modal-add-point-reward');
+            }
+
+            async function submitImportRules(e) {
+                e.preventDefault();
+                const fileInput = document.getElementById('import-rules-file');
+                const replaceCheck = document.getElementById('import-replace');
+                const resultDiv = document.getElementById('import-rules-result');
+                const messageEl = document.getElementById('import-rules-message');
+
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    Swal.fire('Error', 'Pilih file CSV terlebih dahulu', 'error');
+                    return;
+                }
+
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+
+                reader.onload = async function(event) {
+                    const csvText = event.target.result;
+                    const lines = csvText.trim().split('\n');
+
+                    if (lines.length < 2) {
+                        Swal.fire('Error', 'File CSV kosong atau tidak valid', 'error');
+                        return;
+                    }
+
+                    // Parse header
+                    const header = lines[0].split(',').map(h => h.trim());
+                    if (!header.includes('category') || !header.includes('name') || !header.includes('points')) {
+                        Swal.fire('Error', 'Header CSV tidak valid. Harus ada: category, name, points', 'error');
+                        return;
+                    }
+
+                    Swal.fire({
+                        title: 'Mengimport...',
+                        text: 'Mohon tunggu',
+                        allowOutsideClick: false,
+                        didOpen: () => { Swal.showLoading(); }
+                    });
+
+                    // Delete existing rules if replace is checked
+                    if (replaceCheck.checked) {
+                        try {
+                            const rules = await fetch('/admin/point-rules').then(r => r.json());
+                            for (const rule of rules) {
+                                await fetch(`/admin/point-rules/${rule.id}`, { method: 'DELETE' });
+                            }
+                        } catch (err) {
+                            console.error('Error deleting old rules:', err);
+                        }
+                    }
+
+                    // Parse and import each row
+                    let successCount = 0;
+                    let failCount = 0;
+                    const errors = [];
+
+                    for (let i = 1; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        if (!line) continue;
+
+                        const values = line.split(',').map(v => v.trim());
+                        const rowData = {};
+                        header.forEach((h, idx) => {
+                            rowData[h] = values[idx] || '';
+                        });
+
+                        const formData = new FormData();
+                        formData.append('category', rowData.category);
+                        formData.append('name', rowData.name);
+                        formData.append('points', rowData.points);
+                        formData.append('description', rowData.description || '');
+
+                        try {
+                            const res = await fetch('/admin/point-rules/add', { method: 'POST', body: formData });
+                            if (res.ok) {
+                                successCount++;
+                            } else {
+                                failCount++;
+                                const data = await res.json();
+                                errors.push(`Baris ${i + 1}: ${data.message || 'Error'}`);
+                            }
+                        } catch (err) {
+                            failCount++;
+                            errors.push(`Baris ${i + 1}: ${err.message}`);
+                        }
+                    }
+
+                    Swal.close();
+
+                    // Show result
+                    resultDiv.classList.remove('hidden');
+                    if (failCount === 0) {
+                        resultDiv.querySelector('.border').className = 'p-4 rounded-lg border border-green-200 bg-green-50';
+                        messageEl.innerHTML = `<span class="text-green-700 font-semibold">✓ Berhasil import ${successCount} aturan</span>`;
+                    } else {
+                        resultDiv.querySelector('.border').className = 'p-4 rounded-lg border border-yellow-200 bg-yellow-50';
+                        messageEl.innerHTML = `<span class="text-yellow-700 font-semibold">Import selesai: ${successCount} berhasil, ${failCount} gagal</span>`;
+                        if (errors.length > 0) {
+                            messageEl.innerHTML += '<ul class="mt-2 text-xs list-disc list-inside">' + 
+                                errors.slice(0, 5).map(e => `<li>${e}</li>`).join('') + 
+                                (errors.length > 5 ? `<li>... dan ${errors.length - 5} error lainnya</li>` : '') +
+                                '</ul>';
+                        }
+                    }
+
+                    loadPointRules();
+                    fileInput.value = '';
+                    setTimeout(() => {
+                        if (failCount === 0) {
+                            closeModal('modal-import-point-rules');
+                            resultDiv.classList.add('hidden');
+                        }
+                    }, 3000);
+                };
+
+                reader.onerror = function() {
+                    Swal.fire('Error', 'Gagal membaca file', 'error');
+                };
+
+                reader.readAsText(file);
             }
 
             async function submitAddPointRule(e) {
@@ -4915,36 +5582,84 @@
 
             // --- INPUT & REDEEM ---
 
-            async function findStudentByRFID(rfid, mode) {
-                if (rfid.length < 5) return;
-
-                const previewEl = document.getElementById(`point-student-preview-${mode}`);
+            let searchTimeout = null;
+            async function searchStudentForPoints(query, mode) {
+                const resultsEl = document.getElementById(`point-student-results-${mode}`);
                 const idInput = document.getElementById(mode === 'input' ? 'point-student-id' : 'redeem-student-id');
-                const ruleSelect = document.getElementById('point-rule-select');
-                const rewardSelect = document.getElementById('point-reward-select');
+                const previewEl = document.getElementById(`point-student-preview-${mode}`);
 
-                previewEl.innerText = 'Mencari...';
+                // Clear previous selection when user types
+                idInput.value = '';
+                if (mode === 'redeem') {
+                    document.getElementById('point-student-balance').innerText = '';
+                }
 
-                try {
-                    const res = await fetch(`/api/student/lookup?rfid=${rfid}`);
-                    if (!res.ok) throw new Error('Siswa tidak ditemukan');
+                if (query.length < 2) {
+                    resultsEl.classList.add('hidden');
+                    resultsEl.innerHTML = '';
+                    previewEl.innerText = '';
+                    return;
+                }
 
-                    const data = await res.json();
-                    previewEl.innerHTML = `<span class="text-green-600">✅ ${data.name} (${data.class_name})</span>`;
-                    idInput.value = data.id;
+                // Debounce search
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(async () => {
+                    try {
+                        const res = await fetch(`/admin/points/search-student?q=${encodeURIComponent(query)}`);
+                        if (!res.ok) throw new Error('Search failed');
+                        const data = await res.json();
 
-                    // Load options if not loaded
-                    if (mode === 'input' && ruleSelect.options.length <= 1) loadRuleOptions();
-                    if (mode === 'redeem') {
-                        loadStudentBalance(data.id);
-                        if (rewardSelect.options.length <= 1) loadRewardOptions();
+                        if (!data || data.length === 0) {
+                            resultsEl.innerHTML = '<div class="p-3 text-sm text-slate-500 text-center">Siswa tidak ditemukan</div>';
+                            resultsEl.classList.remove('hidden');
+                            return;
+                        }
+
+                        resultsEl.innerHTML = data.map(s => `
+                            <div class="p-3 hover:bg-blue-50 cursor-pointer border-b last:border-0 flex items-center gap-3"
+                                onclick="selectStudentForPoints(${s.id}, '${escapeHtml(s.name)}', '${escapeHtml(s.class_name || '-')}', '${escapeHtml(s.nis || s.nis_siswa || s.rfid || '')}', '${mode}')">
+                                <div class="flex-1">
+                                    <p class="font-medium text-sm text-slate-800">${escapeHtml(s.name)}</p>
+                                    <p class="text-xs text-slate-500">${escapeHtml(s.class_name || '-')} · ${escapeHtml(s.nis || s.nis_siswa || s.rfid || '')}</p>
+                                </div>
+                            </div>
+                        `).join('');
+                        resultsEl.classList.remove('hidden');
+                    } catch (err) {
+                        console.error('Search error:', err);
+                        resultsEl.innerHTML = '<div class="p-3 text-sm text-red-500 text-center">Gagal mencari siswa</div>';
+                        resultsEl.classList.remove('hidden');
                     }
+                }, 300);
+            }
 
-                } catch (err) {
-                    previewEl.innerHTML = `<span class="text-red-600">❌ Siswa tidak ditemukan</span>`;
-                    idInput.value = '';
+            function selectStudentForPoints(id, name, className, nis, mode) {
+                const idInput = document.getElementById(mode === 'input' ? 'point-student-id' : 'redeem-student-id');
+                const previewEl = document.getElementById(`point-student-preview-${mode}`);
+                const searchInput = document.getElementById(mode === 'input' ? 'point-student-search' : 'redeem-student-search');
+                const resultsEl = document.getElementById(`point-student-results-${mode}`);
+
+                idInput.value = id;
+                searchInput.value = `${name} (${nis})`;
+                previewEl.innerHTML = `<span class="text-green-600">✅ ${name} - ${className}</span>`;
+                resultsEl.classList.add('hidden');
+
+                if (mode === 'redeem') {
+                    loadStudentBalance(id);
                 }
             }
+
+            function escapeHtml(str) {
+                if (!str) return '';
+                return str.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            }
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.relative')) {
+                    document.querySelectorAll('[id^="point-student-results-"]').forEach(el => el.classList.add('hidden'));
+                }
+            });
 
             async function loadStudentBalance(id) {
                 // Fetch profile to get balance
@@ -4959,20 +5674,36 @@
 
             async function loadRuleOptions() {
                 const select = document.getElementById('point-rule-select');
-                const res = await fetch('/admin/point-rules');
-                const data = await res.json();
+                if (!select) return;
+                // Already loaded (more than just the placeholder option)
+                if (select.options.length > 1) return;
+                try {
+                    const res = await fetch('/admin/point-rules');
+                    if (!res.ok) throw new Error('Failed');
+                    const data = await res.json();
 
-                select.innerHTML = '<option value="">Pilih Aturan...</option>' +
-                    data.map(r => `<option value="${r.id}">${r.name} (${r.points > 0 ? '+' : ''}${r.points})</option>`).join('');
+                    select.innerHTML = '<option value="">Pilih Aturan...</option>' +
+                        data.map(r => `<option value="${r.id}">${r.name} (${r.points > 0 ? '+' : ''}${r.points})</option>`).join('');
+                } catch (err) {
+                    console.error('loadRuleOptions error:', err);
+                    select.innerHTML = '<option value="">Gagal memuat aturan</option>';
+                }
             }
 
             async function loadRewardOptions() {
                 const select = document.getElementById('point-reward-select');
-                const res = await fetch('/admin/point-rewards');
-                const data = await res.json();
-
-                select.innerHTML = '<option value="">Pilih Hadiah...</option>' +
-                    data.map(r => `<option value="${r.id}" ${r.stock <= 0 ? 'disabled' : ''}>${r.name} (${r.points_cost} Poin) - Stok: ${r.stock}</option>`).join('');
+                if (!select) return;
+                if (select.options.length > 1) return;
+                try {
+                    const res = await fetch('/admin/point-rewards');
+                    if (!res.ok) throw new Error('Failed');
+                    const data = await res.json();
+                    select.innerHTML = '<option value="">Pilih Hadiah...</option>' +
+                        data.map(r => `<option value="${r.id}">${r.name} (${r.points_cost} Poin)</option>`).join('');
+                } catch (err) {
+                    console.error('loadRewardOptions error:', err);
+                    select.innerHTML = '<option value="">Gagal memuat hadiah</option>';
+                }
             }
 
             async function submitPointTransaction(e) {
@@ -4991,17 +5722,18 @@
 
                     if (res.ok) {
                         // Clear inputs
-                        document.getElementById('point-student-rfid').value = '';
+                        document.getElementById('point-student-search').value = '';
                         document.getElementById('point-student-id').value = '';
                         document.getElementById('point-student-preview-input').innerText = '';
                         document.getElementById('point-rule-select').value = '';
-                        document.getElementById('point-student-rfid').focus();
+                        document.getElementById('point-student-search').focus();
                         Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: data.message, showConfirmButton: false, timer: 1500 });
                     } else {
-                        Swal.fire('Gagal', data.message, 'error');
+                        Swal.fire('Gagal', data.message || 'Gagal menyimpan poin', 'error');
                     }
                 } catch (err) {
-                    Swal.fire('Error', 'Gagal menyimpan', 'error');
+                    console.error('submitPointTransaction error:', err);
+                    Swal.fire('Error', 'Gagal menyimpan: ' + err.message, 'error');
                 } finally {
                     btn.disabled = false;
                     btn.innerHTML = orgText;
@@ -5028,16 +5760,120 @@
                         if (sid) loadStudentBalance(sid);
                         loadPointRewards(); // Update stock
                         Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: data.message, showConfirmButton: false, timer: 1500 });
-                        form.reset();
+                        // Clear search input and preview
+                        document.getElementById('redeem-student-search').value = '';
+                        document.getElementById('redeem-student-id').value = '';
+                        document.getElementById('point-student-preview-redeem').innerText = '';
+                        document.getElementById('point-reward-select').value = '';
                     } else {
-                        Swal.fire('Gagal', data.message, 'error');
+                        Swal.fire('Gagal', data.message || 'Gagal memproses', 'error');
                     }
                 } catch (err) {
-                    Swal.fire('Error', 'Gagal memproses', 'error');
+                    console.error('submitRedeem error:', err);
+                    Swal.fire('Error', 'Gagal memproses: ' + err.message, 'error');
                 } finally {
                     btn.disabled = false;
                     btn.innerHTML = orgText;
                 }
+            }
+
+            // --- POINT HISTORY ---
+            
+            async function loadPointHistory() {
+                const tbody = document.getElementById('history-table');
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8">Memuat riwayat...</td></tr>';
+
+                const studentId = document.getElementById('history-student-id').value;
+                const type = document.getElementById('history-type').value;
+                const limit = document.getElementById('history-limit').value;
+
+                const params = new URLSearchParams();
+                if (studentId) params.append('student_id', studentId);
+                if (type) params.append('type', type);
+                if (limit) params.append('limit', limit);
+
+                try {
+                    const res = await fetch(`/admin/points/history?${params}`);
+                    const data = await res.json();
+
+                    if (!data || data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-500">Belum ada riwayat transaksi</td></tr>';
+                        return;
+                    }
+
+                    tbody.innerHTML = data.map(item => {
+                        const pointClass = item.points_change > 0 ? 'text-green-600' : 'text-red-600';
+                        const pointSign = item.points_change > 0 ? '+' : '';
+                        return `
+                            <tr class="hover:bg-slate-50 border-b transition-colors">
+                                <td class="px-4 py-3 text-sm text-slate-600">${formatDateTime(item.timestamp)}</td>
+                                <td class="px-4 py-3 text-sm font-medium text-slate-800">${item.student_name}</td>
+                                <td class="px-4 py-3 text-sm text-slate-600">${item.class_name || '-'}</td>
+                                <td class="px-4 py-3 text-sm text-slate-700">${item.description}</td>
+                                <td class="px-4 py-3 text-sm text-right font-bold ${pointClass}">${pointSign}${item.points_change}</td>
+                                <td class="px-4 py-3 text-sm text-slate-600">${item.recorded_by || '-'}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                } catch (err) {
+                    console.error(err);
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-red-500">Gagal memuat riwayat</td></tr>';
+                }
+            }
+
+            function formatDateTime(timestamp) {
+                const date = new Date(timestamp);
+                const dd = String(date.getDate()).padStart(2, '0');
+                const mm = String(date.getMonth() + 1).padStart(2, '0');
+                const yyyy = date.getFullYear();
+                const hh = String(date.getHours()).padStart(2, '0');
+                const min = String(date.getMinutes()).padStart(2, '0');
+                return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+            }
+
+            async function searchStudentForHistory(query) {
+                if (query.length < 2) {
+                    document.getElementById('history-student-results').classList.add('hidden');
+                    return;
+                }
+
+                try {
+                    const res = await fetch(`/admin/points/search-student?q=${encodeURIComponent(query)}`);
+                    const data = await res.json();
+                    const resultsDiv = document.getElementById('history-student-results');
+
+                    if (!data || data.length === 0) {
+                        resultsDiv.innerHTML = '<div class="p-3 text-sm text-slate-500">Tidak ditemukan</div>';
+                        resultsDiv.classList.remove('hidden');
+                        return;
+                    }
+
+                    resultsDiv.innerHTML = data.map(s => `
+                        <div class="p-3 hover:bg-slate-50 cursor-pointer border-b last:border-0" onclick="selectStudentForHistory(${s.id}, '${s.name}', '${s.class_name || ''}')">
+                            <div class="font-medium text-sm">${s.name}</div>
+                            <div class="text-xs text-slate-500">${s.nis || ''} | ${s.class_name || '-'}</div>
+                        </div>
+                    `).join('');
+                    resultsDiv.classList.remove('hidden');
+                } catch (err) {
+                    console.error(err);
+                }
+            }
+
+            function selectStudentForHistory(id, name, className) {
+                document.getElementById('history-student-id').value = id;
+                document.getElementById('history-student-search').value = name;
+                document.getElementById('history-student-preview').innerText = `${name} (${className})`;
+                document.getElementById('history-student-results').classList.add('hidden');
+            }
+
+            function clearHistoryFilter() {
+                document.getElementById('history-student-search').value = '';
+                document.getElementById('history-student-id').value = '';
+                document.getElementById('history-student-preview').innerText = '';
+                document.getElementById('history-type').value = '';
+                document.getElementById('history-limit').value = '100';
+                loadPointHistory();
             }
 
             // --- LEADERBOARD ---
@@ -5190,6 +6026,207 @@
                 }
             }
 
+        </script>
+
+        <!-- ENGLISH MODAL -->
+        <div id="engModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl w-full max-w-lg p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-lg">Detail Setoran</h3>
+                    <button onclick="engCloseModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+                </div>
+                <div id="engModalContent"></div>
+                <div class="mt-4"><label class="block text-xs font-semibold text-slate-600 mb-1">Feedback</label>
+                    <textarea id="engModalFeedback" rows="2" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></textarea></div>
+                <div class="flex gap-2 mt-4">
+                    <button onclick="engDoReview('approve')" class="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-green-700">Approve</button>
+                    <button onclick="engDoReview('reject')" class="flex-1 bg-red-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-red-700">Reject</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ENGLISH JS -->
+        <script>
+        let engCurId=null;
+        document.addEventListener('DOMContentLoaded',()=>{
+            const today=new Date().toISOString().split('T')[0];
+            document.getElementById('engDate').value=today;
+            document.getElementById('engRDate').value=today;
+            engLoadClasses();
+            engInitMY();
+        });
+        function engTab(p){
+            document.querySelectorAll('.eng-page').forEach(el=>el.classList.add('hidden'));
+            document.getElementById('eng-page-'+p).classList.remove('hidden');
+            document.querySelectorAll('[id^="eng-tab-"]').forEach(el=>{el.classList.remove('border-blue-600','text-blue-600');el.classList.add('border-transparent','text-slate-600');});
+            document.getElementById('eng-tab-'+p).classList.add('border-blue-600','text-blue-600');
+            document.getElementById('eng-tab-'+p).classList.remove('border-transparent','text-slate-600');
+            if(p==='review')engLoadSubs();
+            if(p==='lb')engLoadLB();
+            if(p==='prog')engLoadProg();
+            if(p==='quest')engLoadQuest();
+            lucide.createIcons();
+        }
+        function engToggleFields(){
+            const t=document.getElementById('engType').value;
+            document.getElementById('engVocabField').classList.toggle('hidden',t!=='vocabulary');
+            document.getElementById('engQuizField').classList.toggle('hidden',t!=='quiz');
+        }
+        
+        async function generateAIQuest() {
+            const questType = document.getElementById('engType').value;
+            const topic = document.getElementById('engTopic').value;
+            const date = document.getElementById('engDate').value;
+
+            if (!topic) {
+                Swal.fire({icon: 'warning', title: 'Masukkan topik terlebih dahulu', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000});
+                return;
+            }
+
+            Swal.fire({
+                title: 'Generating Quest...',
+                text: 'AI sedang membuat quest untuk Anda',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            try {
+                const fd = new FormData();
+                fd.append('quest_type', questType);
+                fd.append('topic', topic);
+                fd.append('date', date);
+
+                const r = await fetch('/admin/ai/generate-quest', {method: 'POST', body: fd});
+                const d = await r.json();
+
+                if (r.ok) {
+                    Swal.close();
+                    // Fill form with AI-generated data
+                    document.getElementById('engTitle').value = d.data.title || '';
+                    document.getElementById('engDesc').value = d.data.description || '';
+                    document.getElementById('engTopic').value = d.data.topic || topic;
+                    document.getElementById('engXP').value = d.data.xp_reward || 10;
+                    
+                    if (questType === 'vocabulary') {
+                        document.getElementById('engVocab').value = d.data.vocabulary_words || '';
+                    } else if (questType === 'quiz') {
+                        document.getElementById('engQuizQ').value = d.data.quiz_question || '';
+                        document.getElementById('engQuizCh').value = d.data.quiz_choices || '';
+                        document.getElementById('engQuizA').value = d.data.quiz_answer || '';
+                    }
+                    
+                    Swal.fire({icon: 'success', title: 'Quest berhasil di-generate!', text: 'Silakan review dan simpan', toast: true, position: 'top-end', showConfirmButton: false, timer: 2500});
+                } else {
+                    Swal.fire({icon: 'error', title: 'Gagal', text: d.message || 'Terjadi kesalahan'});
+                }
+            } catch (err) {
+                Swal.fire({icon: 'error', title: 'Error', text: err.message || 'Gagal menghubungi AI'});
+            }
+        }
+
+        document.getElementById('engQuestForm').onsubmit=async(e)=>{
+            e.preventDefault();
+            const fd=new FormData();
+            fd.append('date',document.getElementById('engDate').value);
+            fd.append('title',document.getElementById('engTitle').value);
+            fd.append('description',document.getElementById('engDesc').value);
+            fd.append('quest_type',document.getElementById('engType').value);
+            fd.append('topic',document.getElementById('engTopic').value);
+            fd.append('xp_reward',document.getElementById('engXP').value);
+            fd.append('vocabulary_words',document.getElementById('engVocab').value);
+            fd.append('quiz_question',document.getElementById('engQuizQ').value);
+            fd.append('quiz_choices',document.getElementById('engQuizCh').value);
+            fd.append('quiz_answer',document.getElementById('engQuizA').value);
+            const r=await fetch('/admin/english/quest',{method:'POST',body:fd});
+            const d=await r.json();
+            Swal.fire({icon:r.ok?'success':'error',title:d.message,toast:true,position:'top-end',showConfirmButton:false,timer:2000});
+        };
+        async function engLoadQuest(){
+            const r=await fetch('/admin/english/quest');
+            if(!r.ok)return;
+            const d=await r.json();
+            document.getElementById('engTitle').value=d.title||'';
+            document.getElementById('engDesc').value=d.description||'';
+            document.getElementById('engType').value=d.quest_type||'written';
+            document.getElementById('engTopic').value=d.topic||'';
+            document.getElementById('engXP').value=d.xp_reward||10;
+            document.getElementById('engVocab').value=d.vocabulary_words||'';
+            document.getElementById('engQuizQ').value=d.quiz_question||'';
+            document.getElementById('engQuizCh').value=d.quiz_choices||'';
+            document.getElementById('engQuizA').value=d.quiz_answer||'';
+            engToggleFields();
+        }
+        async function engLoadClasses(){
+            const r=await fetch('/admin/classes/json');
+            const d=await r.json();
+            const opts=d.map(c=>'<option value="'+c.id+'">'+c.name+'</option>').join('');
+            document.getElementById('engRClass').innerHTML='<option value="">Semua</option>'+opts;
+            document.getElementById('engPClass').innerHTML='<option value="">Semua</option>'+opts;
+        }
+        function engInitMY(){
+            const m=document.getElementById('engPMonth'),y=document.getElementById('engPYear'),now=new Date();
+            for(let i=1;i<=12;i++)m.innerHTML+='<option value="'+String(i).padStart(2,'0')+'"'+(i===now.getMonth()+1?' selected':'')+'>'+i+'</option>';
+            for(let yr=now.getFullYear();yr>=2024;yr--)y.innerHTML+='<option value="'+yr+'"'+(yr===now.getFullYear()?' selected':'')+'>'+yr+'</option>';
+        }
+        async function engLoadSubs(){
+            const date=document.getElementById('engRDate').value,st=document.getElementById('engRStatus').value,cl=document.getElementById('engRClass').value;
+            let url='/admin/english/submissions?date='+date;
+            if(st)url+='&status='+st;
+            if(cl)url+='&class_id='+cl;
+            const r=await fetch(url);
+            const d=await r.json();
+            const tb=document.getElementById('engSubTable');
+            if(!d.length){tb.innerHTML='<tr><td colspan="7" class="text-center text-slate-400 py-8">Tidak ada data</td></tr>';return;}
+            tb.innerHTML=d.map(s=>{
+                const badge=s.status==='approved'?'bg-green-100 text-green-700':s.status==='rejected'?'bg-red-100 text-red-700':'bg-yellow-100 text-yellow-700';
+                const label=s.status==='approved'?'Approved':s.status==='rejected'?'Rejected':'Pending';
+                const btn=s.status==='pending'?'<button onclick="engOpenModal('+s.id+')" class="bg-blue-600 text-white px-3 py-1 rounded text-xs">Review</button>':'-';
+                return'<tr class="border-b"><td class="px-4 py-3">'+s.student_name+'</td><td class="px-4 py-3">'+(s.class_name||'-')+'</td><td class="px-4 py-3 text-xs">'+s.quest_type+'</td><td class="px-4 py-3 text-xs max-w-[200px] truncate">'+(s.content||s.vocab_words||s.quiz_answer||'-')+'</td><td class="px-4 py-3 text-xs">'+(s.submitted_at?s.submitted_at.substring(0,16).replace('T',' '):'-')+'</td><td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs font-medium '+badge+'">'+label+'</span></td><td class="px-4 py-3 text-center">'+btn+'</td></tr>';
+            }).join('');
+        }
+        async function engOpenModal(id){
+            engCurId=id;
+            const r=await fetch('/admin/english/submissions?date='+document.getElementById('engRDate').value);
+            const d=await r.json();
+            const s=d.find(x=>x.id===id);
+            if(!s)return;
+            document.getElementById('engModalContent').innerHTML='<p class="text-sm"><strong>Siswa:</strong> '+s.student_name+' ('+(s.class_name||'-')+')</p><p class="text-sm mt-1"><strong>Tipe:</strong> '+s.quest_type+'</p><div class="bg-slate-50 p-3 rounded-lg text-sm mt-2">'+(s.content||s.vocab_words||s.quiz_answer||'-')+'</div>';
+            document.getElementById('engModalFeedback').value='';
+            document.getElementById('engModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+        function engCloseModal(){document.getElementById('engModal').classList.add('hidden');engCurId=null;}
+        async function engDoReview(action){
+            if(!engCurId)return;
+            const fd=new FormData();
+            fd.append('action',action);
+            fd.append('feedback',document.getElementById('engModalFeedback').value);
+            const r=await fetch('/admin/english/submissions/'+engCurId+'/review',{method:'POST',body:fd});
+            const d=await r.json();
+            engCloseModal();
+            Swal.fire({icon:r.ok?'success':'error',title:d.message,toast:true,position:'top-end',showConfirmButton:false,timer:2000});
+            engLoadSubs();
+        }
+        async function engLoadLB(){
+            const r=await fetch('/admin/english/leaderboard');
+            const d=await r.json();
+            const tb=document.getElementById('engLbTable');
+            if(!d.length){tb.innerHTML='<tr><td colspan="6" class="text-center text-slate-400 py-8">Belum ada data</td></tr>';return;}
+            tb.innerHTML=d.map((s,i)=>{
+                const m=i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1);
+                return'<tr class="border-b"><td class="px-4 py-3 text-center font-bold">'+m+'</td><td class="px-4 py-3">'+s.name+'</td><td class="px-4 py-3">'+(s.class_name||'-')+'</td><td class="px-4 py-3 text-center">🔥 '+s.current_streak+'</td><td class="px-4 py-3 text-center font-bold text-blue-600">'+s.total_xp+'</td><td class="px-4 py-3 text-center">🏅 '+s.badge_count+'</td></tr>';
+            }).join('');
+        }
+        async function engLoadProg(){
+            const m=document.getElementById('engPMonth').value,y=document.getElementById('engPYear').value,cl=document.getElementById('engPClass').value;
+            let url='/admin/english/progress?month='+m+'&year='+y;
+            if(cl)url+='&class_id='+cl;
+            const r=await fetch(url);
+            const d=await r.json();
+            const tb=document.getElementById('engProgTable');
+            if(!d.length){tb.innerHTML='<tr><td colspan="6" class="text-center text-slate-400 py-8">Tidak ada data</td></tr>';return;}
+            tb.innerHTML=d.map(s=>'<tr class="border-b"><td class="px-4 py-3">'+s.name+'</td><td class="px-4 py-3">'+(s.class_name||'-')+'</td><td class="px-4 py-3 text-center">🔥 '+s.current_streak+'</td><td class="px-4 py-3 text-center font-bold text-blue-600">'+s.total_xp+'</td><td class="px-4 py-3 text-center text-green-600">'+s.approved+'</td><td class="px-4 py-3 text-center">'+s.total_sub+'</td></tr>').join('');
+        }
         </script>
     </body>
 

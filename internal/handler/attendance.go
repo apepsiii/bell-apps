@@ -434,6 +434,77 @@ func GetDailyAttendance(db *sql.DB) echo.HandlerFunc {
 	}
 }
 
+// GetClassAttendanceSheet returns ALL students of a class with their
+// attendance status for a given date. Students with no attendance log are
+// returned with status "Unknown" so the admin bulk-attendance modal can
+// display every student (not just those who already tapped in).
+func GetClassAttendanceSheet(db *sql.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		classID := c.QueryParam("class_id")
+		dateStr := c.QueryParam("date")
+		if dateStr == "" {
+			dateStr = time.Now().Format("2006-01-02")
+		}
+		if classID == "" {
+			return c.JSON(http.StatusBadRequest, map[string]string{"message": "class_id required"})
+		}
+
+		// Get all active students in the class, LEFT JOIN their latest
+		// attendance log for the given date.
+		rows, err := db.Query(`
+			SELECT s.id, s.nis, s.name, COALESCE(al.status, ''), COALESCE(al.timestamp, '')
+			FROM students s
+			LEFT JOIN (
+				SELECT rfid_uid, status, timestamp
+				FROM attendance_logs
+				WHERE date = ? AND user_type = 'Siswa'
+				GROUP BY rfid_uid
+				HAVING MAX(id)
+			) al ON al.rfid_uid = s.rfid_uid
+			WHERE s.class_id = ? AND s.status = 'active'
+			ORDER BY s.name ASC`, dateStr, classID)
+
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+		}
+		defer rows.Close()
+
+		type SheetRow struct {
+			StudentID int    `json:"student_id"`
+			NIS       string `json:"nis"`
+			Name      string `json:"name"`
+			Status    string `json:"status"`
+			Time      string `json:"time"`
+		}
+
+		var sheet []SheetRow
+		for rows.Next() {
+			var r SheetRow
+			var status, ts string
+			rows.Scan(&r.StudentID, &r.NIS, &r.Name, &status, &ts)
+			if status == "" {
+				r.Status = "Unknown"
+			} else {
+				r.Status = status
+			}
+			// Format timestamp to HH:MM if present
+			if ts != "" {
+				if t, err := time.Parse("2006-01-02 15:04:05", ts); err == nil {
+					r.Time = t.Format("15:04")
+				} else {
+					r.Time = ts
+				}
+			}
+			sheet = append(sheet, r)
+		}
+
+		if sheet == nil {
+			sheet = []SheetRow{}
+		}
+		return c.JSON(http.StatusOK, sheet)
+	}
+}
+
 func BulkAttendance(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		type Request struct {
