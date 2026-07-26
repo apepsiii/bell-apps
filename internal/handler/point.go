@@ -109,7 +109,8 @@ func GetStudentPointProfile(db *sql.DB) echo.HandlerFunc {
 		var className, nis, photo sql.NullString
 
 		err := db.QueryRow(`
-			SELECT s.id, s.name, s.nis, s.photo, c.name, COALESCE(SUM(sp.points_change), 0) as total
+			SELECT s.id, s.name, s.nis, s.photo, c.name,
+			       COALESCE(SUM(sp.points_change), 0) + COALESCE((SELECT total_xp FROM english_streaks es WHERE es.student_id = s.id), 0) as total
 			FROM students s
 			LEFT JOIN classes c ON s.class_id = c.id
 			LEFT JOIN student_points sp ON s.id = sp.student_id
