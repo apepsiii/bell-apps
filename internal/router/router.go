@@ -305,6 +305,86 @@ func Register(e *echo.Echo, db *sql.DB, viewsFS embed.FS, app AppHandlers) {
 	admin.GET("/backup", handler.BackupDatabase(db))
 	admin.POST("/restore", handler.RestoreDatabase(db))
 
+	// === SARPRAS (ASSET MANAGEMENT) ROUTES ===
+	sarpras := admin.Group("/sarpras")
+
+	// Dashboard
+	sarpras.GET("", func(c echo.Context) error {
+		return c.Render(http.StatusOK, "sarpras_dashboard.html", nil)
+	})
+
+	// Pages
+	sarpras.GET("/categories", func(c echo.Context) error {
+		return c.Render(http.StatusOK, "sarpras_categories.html", nil)
+	})
+	sarpras.GET("/funding", func(c echo.Context) error {
+		return c.Render(http.StatusOK, "sarpras_funding.html", nil)
+	})
+	sarpras.GET("/locations", func(c echo.Context) error {
+		return c.Render(http.StatusOK, "sarpras_locations.html", nil)
+	})
+	sarpras.GET("/assets", func(c echo.Context) error {
+		return c.Render(http.StatusOK, "sarpras_assets.html", nil)
+	})
+	sarpras.GET("/asset/add", func(c echo.Context) error {
+		return c.Render(http.StatusOK, "sarpras_asset_add.html", nil)
+	})
+	sarpras.GET("/asset/:id", func(c echo.Context) error {
+		return c.Render(http.StatusOK, "sarpras_asset_detail.html", nil)
+	})
+	sarpras.GET("/borrowings", func(c echo.Context) error {
+		return c.Render(http.StatusOK, "sarpras_borrowings.html", nil)
+	})
+	sarpras.GET("/maintenance", func(c echo.Context) error {
+		return c.Render(http.StatusOK, "sarpras_maintenance.html", nil)
+	})
+
+	// API Endpoints
+	sarprasAPI := sarpras.Group("/api")
+
+	// Asset Categories API
+	sarprasAPI.GET("/categories", handler.GetAssetCategories(db))
+	sarprasAPI.POST("/category/add", handler.AddAssetCategory(db))
+	sarprasAPI.POST("/category/update/:id", handler.UpdateAssetCategory(db))
+	sarprasAPI.DELETE("/category/:id", handler.DeleteAssetCategory(db))
+
+	// Asset Funding Sources
+	sarprasAPI.GET("/funding-sources", handler.GetAssetFundingSources(db))
+	sarprasAPI.POST("/funding-source/add", handler.AddAssetFundingSource(db))
+	sarprasAPI.POST("/funding-source/update/:id", handler.UpdateAssetFundingSource(db))
+	sarprasAPI.DELETE("/funding-source/:id", handler.DeleteAssetFundingSource(db))
+
+	// Asset Locations
+	sarprasAPI.GET("/locations", handler.GetAssetLocations(db))
+	sarprasAPI.POST("/location/add", handler.AddAssetLocation(db))
+	sarprasAPI.POST("/location/update/:id", handler.UpdateAssetLocation(db))
+	sarprasAPI.DELETE("/location/:id", handler.DeleteAssetLocation(db))
+
+	// Assets Management
+	sarprasAPI.GET("/assets", handler.GetAssets(db))
+	sarprasAPI.GET("/asset/:id", handler.GetAssetByID(db))
+	sarprasAPI.POST("/asset/add", handler.AddAsset(db))
+	sarprasAPI.POST("/asset/update/:id", handler.UpdateAsset(db))
+	sarprasAPI.DELETE("/asset/:id", handler.DeleteAsset(db))
+	sarprasAPI.GET("/asset/:id/qr", handler.GenerateAssetQRCode(db))
+	sarprasAPI.GET("/stats", handler.GetAssetStats(db))
+
+	// Asset Borrowings
+	sarprasAPI.GET("/borrowings", handler.GetAssetBorrowings(db))
+	sarprasAPI.POST("/borrowing/create", handler.CreateAssetBorrowing(db))
+	sarprasAPI.POST("/borrowing/:id/approve", handler.ApproveAssetBorrowing(db))
+	sarprasAPI.POST("/borrowing/:id/reject", handler.RejectAssetBorrowing(db))
+	sarprasAPI.POST("/borrowing/:id/return", handler.ReturnAssetBorrowing(db))
+
+	// Maintenance Tickets
+	sarprasAPI.GET("/tickets", handler.GetMaintenanceTickets(db))
+	sarprasAPI.POST("/ticket/create", handler.CreateMaintenanceTicket(db))
+	sarprasAPI.POST("/ticket/:id/update", handler.UpdateMaintenanceTicketStatus(db))
+	sarprasAPI.DELETE("/ticket/:id", handler.DeleteMaintenanceTicket(db))
+
+	// Public scan endpoint (for QR code scanning)
+	e.GET("/sarpras/scan", handler.ScanAssetQRCode(db))
+
 	// Port config
 	port := getEnv("PORT", config.GetServerPort())
 	host := config.GetServerHost()

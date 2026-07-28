@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maintenance Tickets - Sarpras</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-family: 'Archivo Black', sans-serif;
+            color: #1a1a1a;
+            font-size: 24px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        thead {
+            background: #f9fafb;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        th {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        td {
+            color: #6b7280;
+        }
+
+        tbody tr:hover {
+            background: #f9fafb;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-green { background: #d1fae5; color: #065f46; }
+        .badge-blue { background: #dbeafe; color: #1e40af; }
+        .badge-yellow { background: #fef3c7; color: #92400e; }
+        .badge-red { background: #fee2e2; color: #991b1b; }
+        .badge-orange { background: #fed7aa; color: #9a3412; }
+        .badge-gray { background: #f3f4f6; color: #374151; }
+
+        .actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+        }
+
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            font-size: 20px;
+            color: #1a1a1a;
+        }
+
+        .close {
+            font-size: 28px;
+            cursor: pointer;
+            color: #6b7280;
+            line-height: 1;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #374151;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>🔧 Maintenance Tickets</h1>
+                <p style="color: #6b7280; font-size: 14px; margin-top: 4px;">Pelaporan & Tracking Perbaikan Aset</p>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <a href="/admin/sarpras" class="btn btn-secondary">← Kembali</a>
+                <button class="btn btn-primary" onclick="openCreateModal()">+ Laporkan Masalah</button>
+            </div>
+        </div>
+
+        <div id="alertContainer"></div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="filterByStatus('')">Semua</div>
+            <div class="tab" onclick="filterByStatus('open')">Terbuka</div>
+            <div class="tab" onclick="filterByStatus('in_progress')">Dalam Proses</div>
+            <div class="tab" onclick="filterByStatus('resolved')">Selesai</div>
+            <div class="tab" onclick="filterByStatus('closed')">Ditutup</div>
+        </div>
+
+        <div class="card">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>No. Tiket</th>
+                            <th>Judul</th>
+                            <th>Aset/Lokasi</th>
+                            <th>Prioritas</th>
+                            <th>Status</th>
+                            <th>Dilaporkan</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ticketsBody">
+                        <tr>
+                            <td colspan="7" class="loading">Memuat data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Create Ticket -->
+    <div id="createModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Laporkan Masalah</h2>
+                <span class="close" onclick="closeCreateModal()">&times;</span>
+            </div>
+            <form id="ticketForm" onsubmit="createTicket(event)">
+                <div class="form-group">
+                    <label>Aset (Opsional)</label>
+                    <select id="asset_id">
+                        <option value="">Pilih aset (jika terkait aset spesifik)...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Lokasi</label>
+                    <select id="location_id">
+                        <option value="">Pilih lokasi...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Judul Masalah *</label>
+                    <input type="text" id="title" required placeholder="Contoh: AC tidak dingin">
+                </div>
+
+                <div class="form-group">
+                    <label>Deskripsi Detail *</label>
+                    <textarea id="description" required placeholder="Jelaskan masalah secara detail..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Prioritas</label>
+                    <select id="priority">
+                        <option value="low">Rendah</option>
+                        <option value="medium" selected>Sedang</option>
+                        <option value="high">Tinggi</option>
+                        <option value="urgent">Mendesak</option>
+                    </select>
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeCreateModal()">Batal</button>
+                    <button type="submit" class="btn btn-success">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Update Status -->
+    <div id="updateModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Update Status Tiket</h2>
+                <span class="close" onclick="closeUpdateModal()">&times;</span>
+            </div>
+            <form id="updateForm" onsubmit="updateTicket(event)">
+                <input type="hidden" id="update_ticket_id">
+                
+                <div class="form-group">
+                    <label>Status *</label>
+                    <select id="update_status" required>
+                        <option value="open">Terbuka</option>
+                        <option value="in_progress">Dalam Proses</option>
+                        <option value="resolved">Selesai</option>
+                        <option value="closed">Ditutup</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Catatan Penyelesaian</label>
+                    <textarea id="resolution_notes" placeholder="Jelaskan tindakan yang dilakukan..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Biaya Perbaikan (Rp)</label>
+                    <input type="number" id="cost" step="0.01" placeholder="0">
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeUpdateModal()">Batal</button>
+                    <button type="submit" class="btn btn-success">Update</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let allTickets = [];
+        let currentStatus = '';
+
+        async function loadAssets() {
+            try {
+                const response = await fetch('/admin/sarpras/api/assets'');
+                const assets = await response.json();
+                
+                const select = document.getElementById('asset_id');
+                select.innerHTML = '<option value="">Pilih aset (jika terkait aset spesifik)...</option>' + 
+                    assets.map(a => `<option value="${a.id}">${a.name} (${a.inventory_code})</option>`).join('');
+            } catch (error) {
+                console.error('Failed to load assets:', error);
+            }
+        }
+
+        async function loadLocations() {
+            try {
+                const response = await fetch('/admin/sarpras/api/locations'');
+                const locations = await response.json();
+                
+                const select = document.getElementById('location_id');
+                select.innerHTML = '<option value="">Pilih lokasi...</option>' + 
+                    locations.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+            } catch (error) {
+                console.error('Failed to load locations:', error);
+            }
+        }
+
+        async function loadTickets() {
+            try {
+                const url = currentStatus ? `/admin/sarpras/tickets?status=${currentStatus}` : '/admin/sarpras/api/ticket's';
+                const response = await fetch(url);
+                allTickets = await response.json();
+                renderTickets();
+            } catch (error) {
+                console.error('Failed to load tickets:', error);
+                showAlert('Gagal memuat data tiket', 'error');
+            }
+        }
+
+        function getStatusBadge(status) {
+            const badges = {
+                'open': { class: 'badge-blue', label: 'Terbuka' },
+                'in_progress': { class: 'badge-yellow', label: 'Dalam Proses' },
+                'resolved': { class: 'badge-green', label: 'Selesai' },
+                'closed': { class: 'badge-gray', label: 'Ditutup' }
+            };
+            const badge = badges[status] || { class: 'badge-gray', label: status };
+            return `<span class="badge ${badge.class}">${badge.label}</span>`;
+        }
+
+        function getPriorityBadge(priority) {
+            const badges = {
+                'low': { class: 'badge-green', label: 'Rendah' },
+                'medium': { class: 'badge-blue', label: 'Sedang' },
+                'high': { class: 'badge-orange', label: 'Tinggi' },
+                'urgent': { class: 'badge-red', label: 'Mendesak' }
+            };
+            const badge = badges[priority] || { class: 'badge-gray', label: priority };
+            return `<span class="badge ${badge.class}">${badge.label}</span>`;
+        }
+
+        function renderTickets() {
+            const tbody = document.getElementById('ticketsBody');
+            
+            if (allTickets.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="empty-state">
+                            <div class="icon">🔧</div>
+                            <p>Tidak ada tiket maintenance</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = allTickets.map(t => `
+                <tr>
+                    <td><strong>${t.ticket_number}</strong></td>
+                    <td>
+                        <div><strong>${t.title}</strong></div>
+                        <div style="font-size: 11px; color: #9ca3af; margin-top: 2px;">${t.description.substring(0, 50)}...</div>
+                    </td>
+                    <td>
+                        ${t.asset_name ? `<div><strong>${t.asset_name}</strong></div>` : ''}
+                        <div style="font-size: 11px; color: #9ca3af;">${t.location_name || '-'}</div>
+                    </td>
+                    <td>${getPriorityBadge(t.priority)}</td>
+                    <td>${getStatusBadge(t.status)}</td>
+                    <td>
+                        <div style="font-size: 11px;">${new Date(t.reported_at).toLocaleDateString('id-ID')}</div>
+                        <div style="font-size: 10px; color: #9ca3af;">${t.reporter_name}</div>
+                    </td>
+                    <td>
+                        <div class="actions">
+                            <button class="btn btn-primary btn-sm" onclick="openUpdateModal(${t.id}, '${t.status}')">Update</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteTicket(${t.id})">Hapus</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function filterByStatus(status) {
+            currentStatus = status;
+            
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            loadTickets();
+        }
+
+        function openCreateModal() {
+            document.getElementById('createModal').classList.add('active');
+            loadAssets();
+            loadLocations();
+        }
+
+        function closeCreateModal() {
+            document.getElementById('createModal').classList.remove('active');
+            document.getElementById('ticketForm').reset();
+        }
+
+        function openUpdateModal(id, currentStatus) {
+            document.getElementById('update_ticket_id').value = id;
+            document.getElementById('update_status').value = currentStatus;
+            document.getElementById('updateModal').classList.add('active');
+        }
+
+        function closeUpdateModal() {
+            document.getElementById('updateModal').classList.remove('active');
+            document.getElementById('updateForm').reset();
+        }
+
+        async function createTicket(event) {
+            event.preventDefault();
+
+            const formData = new FormData();
+            formData.append('asset_id', document.getElementById('asset_id').value);
+            formData.append('location_id', document.getElementById('location_id').value);
+            formData.append('title', document.getElementById('title').value);
+            formData.append('description', document.getElementById('description').value);
+            formData.append('priority', document.getElementById('priority').value);
+            formData.append('reported_by', '1'); // TODO: Get from session
+
+            try {
+                const response = await fetch('/admin/sarpras/api/ticket'/create', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showAlert(`Tiket berhasil dibuat! No: ${result.ticket_number}`, 'success');
+                    closeCreateModal();
+                    loadTickets();
+                } else {
+                    showAlert(result.error || 'Gagal membuat tiket', 'error');
+                }
+            } catch (error) {
+                console.error('Failed to create ticket:', error);
+                showAlert('Gagal membuat tiket', 'error');
+            }
+        }
+
+        async function updateTicket(event) {
+            event.preventDefault();
+
+            const id = document.getElementById('update_ticket_id').value;
+            const formData = new FormData();
+            formData.append('status', document.getElementById('update_status').value);
+            formData.append('resolution_notes', document.getElementById('resolution_notes').value);
+            formData.append('cost', document.getElementById('cost').value);
+
+            try {
+                const response = await fetch(`/admin/sarpras/ticket/${id}/update`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showAlert('Tiket berhasil diupdate', 'success');
+                    closeUpdateModal();
+                    loadTickets();
+                } else {
+                    showAlert(result.error || 'Gagal update tiket', 'error');
+                }
+            } catch (error) {
+                console.error('Failed to update ticket:', error);
+                showAlert('Gagal update tiket', 'error');
+            }
+        }
+
+        async function deleteTicket(id) {
+            if (!confirm('Hapus tiket ini?')) return;
+
+            try {
+                const response = await fetch(`/admin/sarpras/ticket/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showAlert('Tiket berhasil dihapus', 'success');
+                    loadTickets();
+                } else {
+                    showAlert(result.error || 'Gagal menghapus tiket', 'error');
+                }
+            } catch (error) {
+                console.error('Failed to delete ticket:', error);
+                showAlert('Gagal menghapus tiket', 'error');
+            }
+        }
+
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-error';
+            
+            alertContainer.innerHTML = `
+                <div class="alert ${alertClass}">${message}</div>
+            `;
+
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 5000);
+        }
+
+        loadTickets();
+    </script>
+</body>
+</html>

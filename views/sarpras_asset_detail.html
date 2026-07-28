@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detail Aset - Sarpras</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-family: 'Archivo Black', sans-serif;
+            color: #1a1a1a;
+            font-size: 24px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .detail-item {
+            margin-bottom: 20px;
+        }
+
+        .detail-label {
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 4px;
+        }
+
+        .detail-value {
+            font-size: 15px;
+            color: #1a1a1a;
+            font-weight: 500;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-green { background: #d1fae5; color: #065f46; }
+        .badge-blue { background: #dbeafe; color: #1e40af; }
+        .badge-yellow { background: #fef3c7; color: #92400e; }
+        .badge-red { background: #fee2e2; color: #991b1b; }
+        .badge-gray { background: #f3f4f6; color: #374151; }
+
+        .qr-container {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .qr-container img {
+            width: 100%;
+            max-width: 256px;
+            border: 4px solid #1a1a1a;
+            border-radius: 8px;
+        }
+
+        .qr-actions {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .inventory-code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 24px;
+            font-weight: bold;
+            color: #1a1a1a;
+            background: #fef3c7;
+            padding: 10px 20px;
+            border-radius: 8px;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+
+        .price {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 20px;
+            font-weight: bold;
+            color: #059669;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+            .header, .btn, .card:not(.qr-card) {
+                display: none;
+            }
+            .qr-card {
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1 id="assetTitle">Detail Aset</h1>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <a href="/admin/sarpras/assets" class="btn btn-secondary">← Kembali</a>
+                <button class="btn btn-primary" onclick="window.print()">🖨️ Print QR</button>
+            </div>
+        </div>
+
+        <div id="alertContainer"></div>
+        <div id="contentContainer" class="loading">Memuat data...</div>
+    </div>
+
+    <script>
+        const assetId = window.location.pathname.split('/').pop();
+
+        async function loadAssetDetail() {
+            try {
+                const response = await fetch(`/admin/sarpras/asset/${assetId}`);
+                
+                if (!response.ok) {
+                    throw new Error('Asset not found');
+                }
+
+                const asset = await response.json();
+                renderAssetDetail(asset);
+            } catch (error) {
+                console.error('Failed to load asset:', error);
+                document.getElementById('contentContainer').innerHTML = `
+                    <div class="alert alert-error">
+                        Gagal memuat data aset. Aset mungkin tidak ditemukan.
+                    </div>
+                `;
+            }
+        }
+
+        function getConditionBadge(condition) {
+            const badges = {
+                'good': { class: 'badge-green', label: 'Baik' },
+                'fair': { class: 'badge-blue', label: 'Cukup Baik' },
+                'poor': { class: 'badge-yellow', label: 'Kurang Baik' },
+                'broken': { class: 'badge-red', label: 'Rusak' },
+                'disposed': { class: 'badge-gray', label: 'Dihapus' }
+            };
+            const badge = badges[condition] || { class: 'badge-gray', label: condition };
+            return `<span class="badge ${badge.class}">${badge.label}</span>`;
+        }
+
+        function renderAssetDetail(asset) {
+            document.getElementById('assetTitle').textContent = asset.name;
+            
+            const contentContainer = document.getElementById('contentContainer');
+            contentContainer.className = 'content-grid';
+            contentContainer.innerHTML = `
+                <div>
+                    <div class="card">
+                        <div class="section-title">📋 Informasi Dasar</div>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <div class="inventory-code">${asset.inventory_code}</div>
+                        </div>
+
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <div class="detail-label">Nama Aset</div>
+                                <div class="detail-value">${asset.name}</div>
+                            </div>
+
+                            <div class="detail-item">
+                                <div class="detail-label">Kategori</div>
+                                <div class="detail-value">
+                                    <span class="badge badge-blue">${asset.category_name}</span>
+                                </div>
+                            </div>
+
+                            <div class="detail-item">
+                                <div class="detail-label">Merk/Tipe</div>
+                                <div class="detail-value">${asset.brand || '-'}</div>
+                            </div>
+
+                            <div class="detail-item">
+                                <div class="detail-label">Nomor Seri</div>
+                                <div class="detail-value">${asset.serial_number || '-'}</div>
+                            </div>
+                        </div>
+
+                        ${asset.specification ? `
+                            <div class="detail-item">
+                                <div class="detail-label">Spesifikasi</div>
+                                <div class="detail-value">${asset.specification}</div>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <div class="card">
+                        <div class="section-title">💰 Informasi Pengadaan</div>
+                        
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <div class="detail-label">Tahun Pengadaan</div>
+                                <div class="detail-value">${asset.acquisition_year}</div>
+                            </div>
+
+                            <div class="detail-item">
+                                <div class="detail-label">Tanggal Pengadaan</div>
+                                <div class="detail-value">
+                                    ${asset.acquisition_date ? new Date(asset.acquisition_date).toLocaleDateString('id-ID') : '-'}
+                                </div>
+                            </div>
+
+                            <div class="detail-item">
+                                <div class="detail-label">Harga Perolehan</div>
+                                <div class="detail-value">
+                                    <span class="price">Rp ${(asset.purchase_price || 0).toLocaleString('id-ID')}</span>
+                                </div>
+                            </div>
+
+                            <div class="detail-item">
+                                <div class="detail-label">Sumber Dana</div>
+                                <div class="detail-value">
+                                    <span class="badge badge-green">${asset.funding_source || '-'}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="section-title">📍 Lokasi & Pengelolaan</div>
+                        
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <div class="detail-label">Lokasi</div>
+                                <div class="detail-value">${asset.location_name || '-'}</div>
+                            </div>
+
+                            <div class="detail-item">
+                                <div class="detail-label">Penanggung Jawab</div>
+                                <div class="detail-value">${asset.pic_name || '-'}</div>
+                            </div>
+
+                            <div class="detail-item">
+                                <div class="detail-label">Kondisi</div>
+                                <div class="detail-value">${getConditionBadge(asset.condition)}</div>
+                            </div>
+
+                            <div class="detail-item">
+                                <div class="detail-label">Jumlah</div>
+                                <div class="detail-value">${asset.quantity} ${asset.unit || 'unit'}</div>
+                            </div>
+
+                            <div class="detail-item">
+                                <div class="detail-label">Status Peminjaman</div>
+                                <div class="detail-value">
+                                    ${asset.is_borrowable ? 
+                                        '<span class="badge badge-green">Bisa Dipinjam</span>' : 
+                                        '<span class="badge badge-gray">Tidak Bisa Dipinjam</span>'
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        ${asset.notes ? `
+                            <div class="detail-item" style="margin-top: 20px;">
+                                <div class="detail-label">Catatan</div>
+                                <div class="detail-value">${asset.notes}</div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+
+                <div>
+                    <div class="card qr-card">
+                        <div class="section-title">QR Code</div>
+                        
+                        <div class="qr-container">
+                            <img src="/admin/sarpras/asset/${asset.id}/qr" alt="QR Code ${asset.inventory_code}">
+                            <p style="margin-top: 15px; font-size: 14px; color: #6b7280;">
+                                Scan untuk akses cepat
+                            </p>
+                            <p style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #9ca3af; margin-top: 5px;">
+                                ${asset.inventory_code}
+                            </p>
+                        </div>
+
+                        <div class="qr-actions">
+                            <a href="/admin/sarpras/asset/${asset.id}/qr" download="${asset.inventory_code}.png" 
+                               class="btn btn-primary" style="text-align: center;">
+                                📥 Download QR
+                            </a>
+                            <button class="btn btn-success" style="text-align: center;" onclick="window.print()">
+                                🖨️ Print Label
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="section-title">⚡ Quick Actions</div>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            ${asset.is_borrowable ? `
+                                <button class="btn btn-success" onclick="borrowAsset()">
+                                    🤝 Ajukan Peminjaman
+                                </button>
+                            ` : ''}
+                            <button class="btn btn-primary" onclick="reportIssue()">
+                                🔧 Laporkan Kerusakan
+                            </button>
+                            <button class="btn btn-secondary" onclick="moveAsset()">
+                                📍 Pindahkan Lokasi
+                            </button>
+                            <button class="btn btn-danger" onclick="deleteAsset()">
+                                🗑️ Hapus Aset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function borrowAsset() {
+            window.location.href = '/admin/sarpras/borrowings?asset_id=' + assetId;
+        }
+
+        function reportIssue() {
+            window.location.href = '/admin/sarpras/maintenance?asset_id=' + assetId;
+        }
+
+        function moveAsset() {
+            alert('Fitur pindah lokasi akan segera tersedia');
+        }
+
+        async function deleteAsset() {
+            const asset = await fetch(`/admin/sarpras/asset/${assetId}`).then(r => r.json());
+            
+            if (!confirm(`Hapus aset "${asset.name}"?\n\nKode: ${asset.inventory_code}\n\nPeringatan: Aset dengan peminjaman aktif tidak bisa dihapus.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/admin/sarpras/asset/${assetId}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert('Aset berhasil dihapus');
+                    window.location.href = '/admin/sarpras/assets';
+                } else {
+                    alert(result.error || 'Gagal menghapus aset');
+                }
+            } catch (error) {
+                console.error('Failed to delete asset:', error);
+                alert('Gagal menghapus aset');
+            }
+        }
+
+        loadAssetDetail();
+    </script>
+</body>
+</html>

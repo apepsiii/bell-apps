@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daftar Aset - Sarpras</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .header h1 {
+            font-family: 'Archivo Black', sans-serif;
+            color: #1a1a1a;
+            font-size: 24px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .filters {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 0;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: #374151;
+            font-size: 13px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        thead {
+            background: #f9fafb;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        th {
+            font-weight: 600;
+            color: #374151;
+            font-size: 13px;
+        }
+
+        td {
+            color: #6b7280;
+        }
+
+        tbody tr:hover {
+            background: #f9fafb;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-blue { background: #dbeafe; color: #1e40af; }
+        .badge-green { background: #d1fae5; color: #065f46; }
+        .badge-yellow { background: #fef3c7; color: #92400e; }
+        .badge-red { background: #fee2e2; color: #991b1b; }
+        .badge-gray { background: #f3f4f6; color: #374151; }
+
+        .actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+        }
+
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .price {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            color: #059669;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>📦 Daftar Aset</h1>
+                <p style="color: #6b7280; font-size: 14px; margin-top: 4px;">Data Inventaris Barang Sekolah</p>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <a href="/admin/sarpras" class="btn btn-secondary">← Kembali</a>
+                <a href="/admin/sarpras/asset/add" class="btn btn-primary">+ Tambah Aset</a>
+            </div>
+        </div>
+
+        <div id="alertContainer"></div>
+
+        <div class="card">
+            <div class="filters">
+                <div class="form-group">
+                    <label>Pencarian</label>
+                    <input type="text" id="searchInput" placeholder="Nama, kode, merk..." onkeyup="filterAssets()">
+                </div>
+                <div class="form-group">
+                    <label>Kategori</label>
+                    <select id="categoryFilter" onchange="filterAssets()">
+                        <option value="">Semua Kategori</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Lokasi</label>
+                    <select id="locationFilter" onchange="filterAssets()">
+                        <option value="">Semua Lokasi</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Kondisi</label>
+                    <select id="conditionFilter" onchange="filterAssets()">
+                        <option value="">Semua Kondisi</option>
+                        <option value="good">Baik</option>
+                        <option value="fair">Cukup Baik</option>
+                        <option value="poor">Kurang Baik</option>
+                        <option value="broken">Rusak</option>
+                        <option value="disposed">Dihapus</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 15px; color: #6b7280; font-size: 14px;">
+                <span id="assetCount">0</span> aset ditemukan
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Kode Inventaris</th>
+                            <th>Nama Aset</th>
+                            <th>Kategori</th>
+                            <th>Lokasi</th>
+                            <th>Kondisi</th>
+                            <th>Harga</th>
+                            <th>Qty</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="assetsBody">
+                        <tr>
+                            <td colspan="8" class="loading">Memuat data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allAssets = [];
+        let filteredAssets = [];
+
+        async function loadCategories() {
+            try {
+                const response = await fetch('/admin/sarpras/api/categories');
+                const categories = await response.json();
+                
+                const select = document.getElementById('categoryFilter');
+                select.innerHTML = '<option value="">Semua Kategori</option>' + 
+                    categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            } catch (error) {
+                console.error('Failed to load categories:', error);
+            }
+        }
+
+        async function loadLocations() {
+            try {
+                const response = await fetch('/admin/sarpras/api/locations');
+                const locations = await response.json();
+                
+                const select = document.getElementById('locationFilter');
+                select.innerHTML = '<option value="">Semua Lokasi</option>' + 
+                    locations.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+            } catch (error) {
+                console.error('Failed to load locations:', error);
+            }
+        }
+
+        async function loadAssets() {
+            try {
+                const response = await fetch('/admin/sarpras/api/assets');
+                allAssets = await response.json();
+                filteredAssets = allAssets;
+                renderAssets();
+            } catch (error) {
+                console.error('Failed to load assets:', error);
+                showAlert('Gagal memuat data aset', 'error');
+            }
+        }
+
+        function getConditionBadge(condition) {
+            const badges = {
+                'good': { class: 'badge-green', label: 'Baik' },
+                'fair': { class: 'badge-blue', label: 'Cukup Baik' },
+                'poor': { class: 'badge-yellow', label: 'Kurang Baik' },
+                'broken': { class: 'badge-red', label: 'Rusak' },
+                'disposed': { class: 'badge-gray', label: 'Dihapus' }
+            };
+            const badge = badges[condition] || { class: 'badge-gray', label: condition };
+            return `<span class="badge ${badge.class}">${badge.label}</span>`;
+        }
+
+        function filterAssets() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const categoryId = document.getElementById('categoryFilter').value;
+            const locationId = document.getElementById('locationFilter').value;
+            const condition = document.getElementById('conditionFilter').value;
+
+            filteredAssets = allAssets.filter(asset => {
+                const matchSearch = !search || 
+                    asset.name.toLowerCase().includes(search) ||
+                    asset.inventory_code.toLowerCase().includes(search) ||
+                    (asset.brand && asset.brand.toLowerCase().includes(search));
+                
+                const matchCategory = !categoryId || asset.category_id == categoryId;
+                const matchLocation = !locationId || asset.location_id == locationId;
+                const matchCondition = !condition || asset.condition === condition;
+
+                return matchSearch && matchCategory && matchLocation && matchCondition;
+            });
+
+            renderAssets();
+        }
+
+        function renderAssets() {
+            const tbody = document.getElementById('assetsBody');
+            document.getElementById('assetCount').textContent = filteredAssets.length;
+            
+            if (filteredAssets.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="empty-state">
+                            <div class="icon">📦</div>
+                            <p>Tidak ada aset ditemukan</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = filteredAssets.map(asset => `
+                <tr>
+                    <td>
+                        <strong style="color: #1a1a1a;">${asset.inventory_code}</strong>
+                    </td>
+                    <td>
+                        <div><strong>${asset.name}</strong></div>
+                        ${asset.brand ? `<div style="font-size: 12px; color: #9ca3af;">${asset.brand}</div>` : ''}
+                    </td>
+                    <td><span class="badge badge-blue">${asset.category_name}</span></td>
+                    <td>${asset.location_name || '-'}</td>
+                    <td>${getConditionBadge(asset.condition)}</td>
+                    <td class="price">Rp ${(asset.purchase_price || 0).toLocaleString('id-ID')}</td>
+                    <td>${asset.quantity} ${asset.unit || 'unit'}</td>
+                    <td>
+                        <div class="actions">
+                            <a href="/admin/sarpras/asset/${asset.id}" class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">Detail</a>
+                            <button class="btn btn-danger" style="padding: 5px 10px; font-size: 12px;" onclick="deleteAsset(${asset.id}, '${asset.name}')">Hapus</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function deleteAsset(id, name) {
+            if (!confirm(`Hapus aset "${name}"?\n\nPeringatan: Aset dengan peminjaman aktif tidak bisa dihapus.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/admin/sarpras/asset/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showAlert('Aset berhasil dihapus', 'success');
+                    loadAssets();
+                } else {
+                    showAlert(result.error || 'Gagal menghapus aset', 'error');
+                }
+            } catch (error) {
+                console.error('Failed to delete asset:', error);
+                showAlert('Gagal menghapus aset', 'error');
+            }
+        }
+
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-error';
+            
+            alertContainer.innerHTML = `
+                <div class="alert ${alertClass}">${message}</div>
+            `;
+
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 5000);
+        }
+
+        loadCategories();
+        loadLocations();
+        loadAssets();
+    </script>
+</body>
+</html>

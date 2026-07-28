@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manajemen Sumber Dana - Sarpras</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-family: 'Archivo Black', sans-serif;
+            color: #1a1a1a;
+            font-size: 24px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #f9fafb;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        th {
+            font-weight: 600;
+            color: #374151;
+            font-size: 14px;
+        }
+
+        td {
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        tbody tr:hover {
+            background: #f9fafb;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-green {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            font-size: 20px;
+            color: #1a1a1a;
+        }
+
+        .close {
+            font-size: 28px;
+            cursor: pointer;
+            color: #6b7280;
+            line-height: 1;
+        }
+
+        .close:hover {
+            color: #1a1a1a;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #374151;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+        }
+
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>💰 Sumber Dana</h1>
+                <p style="color: #6b7280; font-size: 14px; margin-top: 4px;">Manajemen Sumber Pembiayaan Aset</p>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <a href="/admin/sarpras" class="btn btn-secondary">← Kembali</a>
+                <button class="btn btn-primary" onclick="openAddModal()">+ Tambah Sumber Dana</button>
+            </div>
+        </div>
+
+        <div id="alertContainer"></div>
+
+        <div class="card">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Kode</th>
+                            <th>Nama Sumber Dana</th>
+                            <th>Deskripsi</th>
+                            <th>Tanggal Dibuat</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sourcesBody">
+                        <tr>
+                            <td colspan="5" class="loading">Memuat data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Add/Edit -->
+    <div id="sourceModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Tambah Sumber Dana</h2>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <form id="sourceForm" onsubmit="saveSource(event)">
+                <input type="hidden" id="sourceId">
+                
+                <div class="form-group">
+                    <label>Kode Sumber Dana *</label>
+                    <input type="text" id="code" required placeholder="Contoh: BOS, KOMITE, HIBAH">
+                </div>
+
+                <div class="form-group">
+                    <label>Nama Sumber Dana *</label>
+                    <input type="text" id="name" required placeholder="Contoh: Dana BOS">
+                </div>
+
+                <div class="form-group">
+                    <label>Deskripsi</label>
+                    <textarea id="description" placeholder="Deskripsi sumber dana..."></textarea>
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
+                    <button type="submit" class="btn btn-success">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let sources = [];
+
+        async function loadSources() {
+            try {
+                const response = await fetch('/admin/sarpras/api/funding-sources');
+                sources = await response.json();
+                renderSources();
+            } catch (error) {
+                console.error('Failed to load sources:', error);
+                showAlert('Gagal memuat data sumber dana', 'error');
+            }
+        }
+
+        function renderSources() {
+            const tbody = document.getElementById('sourcesBody');
+            
+            if (sources.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="empty-state">
+                            <div class="icon">💰</div>
+                            <p>Belum ada sumber dana</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = sources.map(src => `
+                <tr>
+                    <td><span class="badge badge-green">${src.code}</span></td>
+                    <td><strong>${src.name}</strong></td>
+                    <td>${src.description || '-'}</td>
+                    <td>${new Date(src.created_at).toLocaleDateString('id-ID')}</td>
+                    <td>
+                        <div class="actions">
+                            <button class="btn btn-primary" style="padding: 6px 12px; font-size: 12px;" onclick="editSource(${src.id})">Edit</button>
+                            <button class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;" onclick="deleteSource(${src.id}, '${src.name}')">Hapus</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function openAddModal() {
+            document.getElementById('modalTitle').textContent = 'Tambah Sumber Dana';
+            document.getElementById('sourceForm').reset();
+            document.getElementById('sourceId').value = '';
+            document.getElementById('sourceModal').classList.add('active');
+        }
+
+        function editSource(id) {
+            const source = sources.find(s => s.id === id);
+            if (!source) return;
+
+            document.getElementById('modalTitle').textContent = 'Edit Sumber Dana';
+            document.getElementById('sourceId').value = id;
+            document.getElementById('code').value = source.code;
+            document.getElementById('name').value = source.name;
+            document.getElementById('description').value = source.description || '';
+            document.getElementById('sourceModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('sourceModal').classList.remove('active');
+            document.getElementById('sourceForm').reset();
+        }
+
+        async function saveSource(event) {
+            event.preventDefault();
+
+            const id = document.getElementById('sourceId').value;
+            const formData = new FormData();
+            formData.append('code', document.getElementById('code').value);
+            formData.append('name', document.getElementById('name').value);
+            formData.append('description', document.getElementById('description').value);
+
+            try {
+                const url = id ? `/admin/sarpras/funding-source/update/${id}` : '/admin/sarpras/api/funding-source/add';
+                const response = await fetch(url, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showAlert(id ? 'Sumber dana berhasil diupdate' : 'Sumber dana berhasil ditambahkan', 'success');
+                    closeModal();
+                    loadSources();
+                } else {
+                    showAlert(result.error || 'Gagal menyimpan sumber dana', 'error');
+                }
+            } catch (error) {
+                console.error('Failed to save source:', error);
+                showAlert('Gagal menyimpan sumber dana', 'error');
+            }
+        }
+
+        async function deleteSource(id, name) {
+            if (!confirm(`Hapus sumber dana "${name}"?\n\nPeringatan: Sumber dana yang memiliki aset tidak bisa dihapus.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/admin/sarpras/funding-source/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showAlert('Sumber dana berhasil dihapus', 'success');
+                    loadSources();
+                } else {
+                    showAlert(result.error || 'Gagal menghapus sumber dana', 'error');
+                }
+            } catch (error) {
+                console.error('Failed to delete source:', error);
+                showAlert('Gagal menghapus sumber dana', 'error');
+            }
+        }
+
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-error';
+            
+            alertContainer.innerHTML = `
+                <div class="alert ${alertClass}">${message}</div>
+            `;
+
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 5000);
+        }
+
+        loadSources();
+    </script>
+</body>
+</html>
