@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manajemen Kategori Aset - Sarpras</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -12,9 +15,11 @@
         }
 
         body {
-            font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #f5f5f5;
-            padding: 20px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #fafafa;
+            color: #1a1a1a;
+            padding: 32px;
+            line-height: 1.6;
         }
 
         .container {
@@ -23,49 +28,63 @@
         }
 
         .header {
-            background: white;
-            padding: 20px 30px;
-            border-radius: 12px;
-            margin-bottom: 30px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 40px;
+        }
+
+        .header-top {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-bottom: 12px;
         }
 
         .header h1 {
-            font-family: 'Archivo Black', sans-serif;
+            font-size: 32px;
+            font-weight: 700;
             color: #1a1a1a;
-            font-size: 24px;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            color: #6b7280;
+            font-size: 15px;
+            font-weight: 400;
         }
 
         .btn {
-            padding: 10px 20px;
+            padding: 12px 24px;
             border: none;
             border-radius: 8px;
             cursor: pointer;
             font-size: 14px;
-            transition: all 0.3s;
+            font-weight: 500;
+            transition: all 0.2s ease;
             text-decoration: none;
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: inherit;
         }
 
         .btn-primary {
-            background: #3b82f6;
+            background: #1a1a1a;
             color: white;
         }
 
         .btn-primary:hover {
-            background: #2563eb;
+            background: #404040;
+            transform: translateY(-1px);
         }
 
         .btn-secondary {
-            background: #6b7280;
-            color: white;
+            background: white;
+            color: #1a1a1a;
+            border: 1px solid #e5e7eb;
         }
 
         .btn-secondary:hover {
-            background: #4b5563;
+            background: #f9fafb;
+            border-color: #d1d5db;
         }
 
         .btn-danger {
@@ -88,10 +107,10 @@
 
         .card {
             background: white;
-            padding: 30px;
+            border: 1px solid #e5e7eb;
             border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
+            padding: 0;
+            margin-bottom: 24px;
         }
 
         .table-container {
@@ -101,39 +120,46 @@
         table {
             width: 100%;
             border-collapse: collapse;
+            font-size: 14px;
         }
 
         thead {
             background: #f9fafb;
-        }
-
-        th, td {
-            padding: 12px;
-            text-align: left;
             border-bottom: 1px solid #e5e7eb;
         }
 
         th {
+            padding: 14px 20px;
+            text-align: left;
             font-weight: 600;
             color: #374151;
-            font-size: 14px;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         td {
-            color: #6b7280;
-            font-size: 14px;
+            padding: 16px 20px;
+            color: #4b5563;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
         }
 
         tbody tr:hover {
-            background: #f9fafb;
+            background: #fafafa;
         }
 
         .badge {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
             padding: 4px 12px;
-            border-radius: 12px;
+            border-radius: 6px;
             font-size: 12px;
-            font-weight: 600;
+            font-weight: 500;
+            letter-spacing: 0.3px;
         }
 
         .badge-blue {
@@ -148,7 +174,8 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(4px);
             z-index: 1000;
             align-items: center;
             justify-content: center;
@@ -160,31 +187,35 @@
 
         .modal-content {
             background: white;
-            padding: 30px;
-            border-radius: 12px;
+            padding: 32px;
+            border-radius: 16px;
             max-width: 500px;
             width: 90%;
             max-height: 90vh;
             overflow-y: auto;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
         }
 
         .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
 
         .modal-header h2 {
-            font-size: 20px;
+            font-size: 24px;
+            font-weight: 700;
             color: #1a1a1a;
+            letter-spacing: -0.3px;
         }
 
         .close {
-            font-size: 28px;
+            font-size: 24px;
             cursor: pointer;
-            color: #6b7280;
+            color: #9ca3af;
             line-height: 1;
+            padding: 4px;
         }
 
         .close:hover {
@@ -204,21 +235,21 @@
         }
 
         .form-group input,
-        .form-group textarea,
-        .form-group select {
+        .form-group textarea {
             width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #d1d5db;
+            padding: 12px 16px;
+            border: 1px solid #e5e7eb;
             border-radius: 8px;
             font-size: 14px;
             font-family: inherit;
+            transition: all 0.2s ease;
         }
 
         .form-group input:focus,
-        .form-group textarea:focus,
-        .form-group select:focus {
+        .form-group textarea:focus {
             outline: none;
-            border-color: #3b82f6;
+            border-color: #1a1a1a;
+            box-shadow: 0 0 0 3px rgba(0,0,0,0.05);
         }
 
         .form-group textarea {
@@ -233,38 +264,47 @@
 
         .empty-state {
             text-align: center;
-            padding: 60px 20px;
-            color: #6b7280;
+            padding: 80px 20px;
+            color: #9ca3af;
         }
 
         .empty-state .icon {
             font-size: 48px;
             margin-bottom: 16px;
+            opacity: 0.5;
         }
 
         .loading {
             text-align: center;
-            padding: 40px;
-            color: #6b7280;
+            padding: 60px 20px;
+            color: #9ca3af;
         }
 
         .alert {
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+            padding: 14px 20px;
+            border-radius: 10px;
+            margin-bottom: 24px;
             font-size: 14px;
+            border: 1px solid;
         }
 
         .alert-success {
-            background: #d1fae5;
+            background: #f0fdf4;
             color: #065f46;
-            border: 1px solid #a7f3d0;
+            border-color: #86efac;
         }
 
         .alert-error {
-            background: #fee2e2;
+            background: #fef2f2;
             color: #991b1b;
-            border: 1px solid #fecaca;
+            border-color: #fca5a5;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 24px;
         }
     </style>
 </head>
@@ -496,3 +536,4 @@
     </script>
 </body>
 </html>
+
