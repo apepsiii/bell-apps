@@ -137,7 +137,7 @@ func CreateAnnouncement(db *sql.DB) echo.HandlerFunc {
 
 		status := "played"
 		if scheduledAt.Valid {
-			status = "scheduled"
+			status = "pending"
 		}
 
 		res, err := db.Exec("INSERT INTO announcements (title, message, audio_file, scheduled_at, status) VALUES (?, ?, ?, ?, ?)",
