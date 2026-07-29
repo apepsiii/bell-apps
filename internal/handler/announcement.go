@@ -105,10 +105,18 @@ func CreateAnnouncement(db *sql.DB) echo.HandlerFunc {
 		reg := regexp.MustCompile(`[^a-zA-Z0-9\s]`)
 		safeMessage := reg.ReplaceAllString(message, "")
 		baseFileName := strings.ReplaceAll(strings.TrimSpace(strings.ToLower(safeMessage)), " ", "_")
+		// Remove consecutive underscores and trailing underscores
+		multiUnderscore := regexp.MustCompile(`_+`)
+		baseFileName = multiUnderscore.ReplaceAllString(baseFileName, "_")
+		baseFileName = strings.Trim(baseFileName, "_")
 		if len(baseFileName) == 0 {
 			baseFileName = "pengumuman_" + strconv.FormatInt(time.Now().Unix(), 10)
 		} else if len(baseFileName) > 50 {
-			baseFileName = baseFileName[:50]
+			baseFileName = strings.Trim(baseFileName[:50], "_")
+		}
+		// Final safety: use timestamp if still empty
+		if baseFileName == "" {
+			baseFileName = "pengumuman_" + strconv.FormatInt(time.Now().Unix(), 10)
 		}
 
 	speechFile, err := downloadTTSAudio(message, "id", "public/assets/audio", baseFileName)
