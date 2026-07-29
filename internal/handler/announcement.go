@@ -129,7 +129,11 @@ func CreateAnnouncement(db *sql.DB) echo.HandlerFunc {
 
 		var scheduledAt sql.NullTime
 		if scheduledAtStr != "" {
-			t, err := time.Parse("2006-01-02T15:04", scheduledAtStr)
+			loc, err := time.LoadLocation("Asia/Jakarta")
+			if err != nil {
+				loc = time.Local
+			}
+			t, err := time.ParseInLocation("2006-01-02T15:04", scheduledAtStr, loc)
 			if err == nil {
 				scheduledAt = sql.NullTime{Time: t, Valid: true}
 			}
