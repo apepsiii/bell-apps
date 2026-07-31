@@ -1181,42 +1181,38 @@
                         <div class="flex justify-between items-center mb-6">
                             <div>
                                 <h2 class="text-2xl font-bold text-slate-800">Laporan Kehadiran</h2>
-                                <p class="text-slate-500">Generate laporan kehadiran dalam format PDF</p>
+                                <p class="text-slate-500 text-sm">Generate dan cetak laporan kehadiran siswa & staff</p>
                             </div>
                         </div>
 
                         <!-- Filter Form -->
                         <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
-                            <h3 class="text-lg font-semibold mb-4">Filter Laporan</h3>
+                            <h3 class="text-base font-semibold mb-4 text-slate-700 flex items-center gap-2">
+                                <i data-lucide="filter" class="w-4 h-4 text-blue-500"></i> Filter Laporan
+                            </h3>
 
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <!-- Report Type -->
                                 <div>
-                                    <label class="block text-sm font-medium text-slate-700 mb-2">Tipe Laporan</label>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Tipe Laporan</label>
                                     <select id="reportPeriodType" onchange="toggleDateInputs()"
-                                        class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                                        class="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-slate-50 focus:bg-white">
                                         <option value="daily">Harian</option>
                                         <option value="weekly">Mingguan</option>
                                         <option value="monthly">Bulanan</option>
                                     </select>
                                 </div>
-
-                                <!-- Subject Type -->
                                 <div>
-                                    <label class="block text-sm font-medium text-slate-700 mb-2">Subjek</label>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Subjek</label>
                                     <select id="reportSubjectType" onchange="toggleClassFilter()"
-                                        class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                                        class="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-slate-50 focus:bg-white">
                                         <option value="student">Siswa</option>
                                         <option value="staff">Staff</option>
                                     </select>
                                 </div>
-
-                                <!-- Class Filter (for students only) -->
                                 <div id="classFilterDiv">
-                                    <label class="block text-sm font-medium text-slate-700 mb-2">Kelas
-                                        (Opsional)</label>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Kelas (Opsional)</label>
                                     <select id="reportClassFilter"
-                                        class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                                        class="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-slate-50 focus:bg-white">
                                         <option value="">Semua Kelas</option>
                                         {{range .Classes}}
                                         <option value="{{.ID}}">{{.Name}}</option>
@@ -1225,72 +1221,83 @@
                                 </div>
                             </div>
 
-                            <!-- Date Inputs -->
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                                <!-- Daily Date -->
                                 <div id="dailyDateDiv">
-                                    <label class="block text-sm font-medium text-slate-700 mb-2">Tanggal</label>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Tanggal</label>
                                     <input type="date" id="reportDailyDate"
-                                        class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                                        class="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-slate-50 focus:bg-white">
                                 </div>
-
-                                <!-- Weekly Start Date -->
                                 <div id="weeklyStartDiv" class="hidden">
-                                    <label class="block text-sm font-medium text-slate-700 mb-2">Tanggal Mulai</label>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Tanggal Mulai</label>
                                     <input type="date" id="reportWeeklyStart"
-                                        class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                                        class="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-slate-50 focus:bg-white">
                                 </div>
-
-                                <!-- Weekly End Date -->
                                 <div id="weeklyEndDiv" class="hidden">
-                                    <label class="block text-sm font-medium text-slate-700 mb-2">Tanggal Akhir</label>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Tanggal Akhir</label>
                                     <input type="date" id="reportWeeklyEnd"
-                                        class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                                        class="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-slate-50 focus:bg-white">
                                 </div>
-
-                                <!-- Monthly Month -->
                                 <div id="monthlyMonthDiv" class="hidden">
-                                    <label class="block text-sm font-medium text-slate-700 mb-2">Bulan</label>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Bulan</label>
                                     <input type="month" id="reportMonthlyMonth"
-                                        class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                                        class="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-slate-50 focus:bg-white">
                                 </div>
                             </div>
 
-                            <!-- Action Buttons -->
-                            <div class="flex gap-3 mt-6">
+                            <div class="flex gap-3 mt-6 pt-4 border-t border-slate-100">
                                 <button onclick="generateReport('preview')"
-                                    class="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center gap-2 transition">
+                                    class="px-5 py-2.5 bg-slate-700 text-white rounded-lg hover:bg-slate-800 flex items-center gap-2 transition text-sm font-medium">
                                     <i data-lucide="eye" class="w-4 h-4"></i> Preview
                                 </button>
                                 <button onclick="generateReport('download')"
-                                    class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 shadow-lg shadow-blue-600/20 transition">
+                                    class="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 shadow-lg shadow-blue-600/20 transition text-sm font-medium">
                                     <i data-lucide="download" class="w-4 h-4"></i> Download PDF
+                                </button>
+                                <button onclick="printReport()" id="btn-print-report"
+                                    class="hidden px-5 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 flex items-center gap-2 transition text-sm font-medium">
+                                    <i data-lucide="printer" class="w-4 h-4"></i> Cetak
                                 </button>
                             </div>
                         </div>
 
+                        <!-- Print Styles -->
+                        <style>
+                            @media print {
+                                body * { visibility: hidden; }
+                                #printable-report, #printable-report * { visibility: visible; }
+                                #printable-report { position: fixed; left: 0; top: 0; width: 100%; }
+                                @page { margin: 15mm; size: A4 landscape; }
+                            }
+                        </style>
+
                         <!-- Preview Area -->
-                        <div id="reportPreview"
-                            class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 hidden">
-                            <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-lg font-semibold">Preview Laporan</h3>
+                        <div id="reportPreview" class="hidden">
+                            <!-- Action bar above report -->
+                            <div class="flex justify-between items-center mb-3 no-print">
+                                <span class="text-sm font-semibold text-slate-600">Preview Laporan</span>
                                 <div class="flex items-center gap-2">
-                                    <!-- WhatsApp report actions -->
                                     <button onclick="generateWhatsAppReport()" id="btn-wa-report"
                                         class="hidden bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5">
-                                        <i data-lucide="message-circle" class="w-3.5 h-3.5"></i> Salin Laporan WA
+                                        <i data-lucide="message-circle" class="w-3.5 h-3.5"></i> Salin WA
                                     </button>
                                     <button onclick="openWhatsAppModal()" id="btn-wa-modal"
                                         class="hidden bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5">
-                                        <i data-lucide="share-2" class="w-3.5 h-3.5"></i> Opsi Laporan WA
+                                        <i data-lucide="share-2" class="w-3.5 h-3.5"></i> Opsi WA
                                     </button>
-                                    <button onclick="closePreview()" class="text-slate-500 hover:text-slate-700">
+                                    <button onclick="printReport()"
+                                        class="bg-slate-700 hover:bg-slate-800 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5">
+                                        <i data-lucide="printer" class="w-3.5 h-3.5"></i> Cetak
+                                    </button>
+                                    <button onclick="closePreview()" class="text-slate-400 hover:text-slate-700 ml-1">
                                         <i data-lucide="x" class="w-5 h-5"></i>
                                     </button>
                                 </div>
                             </div>
-                            <div id="reportPreviewContent" class="overflow-x-auto">
-                                <!-- Preview content will be loaded here -->
+
+                            <!-- Printable Report Card -->
+                            <div id="printable-report" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                                <div id="reportPreviewContent" class="overflow-x-auto p-6">
+                                </div>
                             </div>
                         </div>
 
@@ -3256,88 +3263,140 @@
                 const previewDiv = document.getElementById('reportPreview');
                 const contentDiv = document.getElementById('reportPreviewContent');
 
-                // Detect if period report (weekly/monthly) or daily
                 const isPeriod = data.Records && data.Records.length > 0 && data.Records[0].PresentCount !== undefined;
+                const now = new Date().toLocaleDateString('id-ID', { day:'2-digit', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' });
 
-                // Build preview HTML
-                let html = '<div class="mb-4">';
-                html += '<h4 class="font-bold text-lg">' + data.Title + '</h4>';
-                html += '<p class="text-sm text-slate-500">Periode: ' + data.Period + '</p>';
-                html += '</div>';
+                let html = `
+                <div style="font-family: Arial, sans-serif; color: #0f172a;">
+                    <!-- KOP SEKOLAH -->
+                    <div style="border-bottom: 3px solid #1d4ed8; padding-bottom: 12px; margin-bottom: 16px; display: flex; align-items: center; gap: 16px;">
+                        <div style="width: 60px; height: 60px; background: #1d4ed8; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <span style="color: white; font-size: 28px; font-weight: 900;">N</span>
+                        </div>
+                        <div>
+                            <div style="font-size: 18px; font-weight: 900; color: #1d4ed8; letter-spacing: 0.5px;">SMK NIBA</div>
+                            <div style="font-size: 11px; color: #64748b; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;">Super Apps — Sistem Informasi Sekolah</div>
+                            <div style="margin-top: 2px; font-size: 15px; font-weight: 700; color: #0f172a;">${data.Title.toUpperCase()}</div>
+                        </div>
+                    </div>
 
-                // Statistics
-                html += '<div class="grid grid-cols-6 gap-2 mb-4">';
-                html += '<div class="bg-slate-100 p-2 rounded text-center"><div class="text-xs text-slate-500">Total</div><div class="font-bold">' + data.TotalRecords + '</div></div>';
-                html += '<div class="bg-green-100 p-2 rounded text-center"><div class="text-xs text-green-700">Hadir</div><div class="font-bold text-green-700">' + data.TotalPresent + '</div></div>';
-                html += '<div class="bg-orange-100 p-2 rounded text-center"><div class="text-xs text-orange-700">Terlambat</div><div class="font-bold text-orange-700">' + data.TotalLate + '</div></div>';
-                html += '<div class="bg-blue-100 p-2 rounded text-center"><div class="text-xs text-blue-700">Sakit</div><div class="font-bold text-blue-700">' + data.TotalSick + '</div></div>';
-                html += '<div class="bg-purple-100 p-2 rounded text-center"><div class="text-xs text-purple-700">Izin</div><div class="font-bold text-purple-700">' + data.TotalPermission + '</div></div>';
-                html += '<div class="bg-red-100 p-2 rounded text-center"><div class="text-xs text-red-700">Alpha</div><div class="font-bold text-red-700">' + data.TotalAbsent + '</div></div>';
-                html += '</div>';
+                    <!-- INFO LAPORAN -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 16px; font-size: 12px;">
+                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
+                            <div style="color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; font-size: 10px; margin-bottom: 2px;">Periode</div>
+                            <div style="font-weight: 700; color: #0f172a;">${data.Period}</div>
+                        </div>
+                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
+                            <div style="color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; font-size: 10px; margin-bottom: 2px;">Subjek</div>
+                            <div style="font-weight: 700; color: #0f172a;">${data.Type === 'student' ? 'Siswa' : 'Staff'}</div>
+                        </div>
+                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
+                            <div style="color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; font-size: 10px; margin-bottom: 2px;">Dicetak</div>
+                            <div style="font-weight: 700; color: #0f172a; font-size: 11px;">${now}</div>
+                        </div>
+                    </div>
 
-                // Table
-                html += '<div class="overflow-x-auto"><table class="w-full text-sm border-collapse border">';
-                html += '<thead class="bg-blue-50"><tr>';
-                html += '<th class="border p-2 text-center">No</th>';
-                html += '<th class="border p-2">NIS/NIP</th>';
-                html += '<th class="border p-2">Nama</th>';
-                html += '<th class="border p-2">Kelas/Role</th>';
+                    <!-- STATISTIK -->
+                    <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-bottom: 16px;">
+                        <div style="background: #f1f5f9; border-radius: 8px; padding: 8px; text-align: center;">
+                            <div style="font-size: 10px; color: #64748b; font-weight: 600; text-transform: uppercase;">Total</div>
+                            <div style="font-size: 20px; font-weight: 900; color: #0f172a;">${data.TotalRecords}</div>
+                        </div>
+                        <div style="background: #dcfce7; border-radius: 8px; padding: 8px; text-align: center;">
+                            <div style="font-size: 10px; color: #16a34a; font-weight: 600; text-transform: uppercase;">Hadir</div>
+                            <div style="font-size: 20px; font-weight: 900; color: #16a34a;">${data.TotalPresent}</div>
+                        </div>
+                        <div style="background: #fff7ed; border-radius: 8px; padding: 8px; text-align: center;">
+                            <div style="font-size: 10px; color: #ea580c; font-weight: 600; text-transform: uppercase;">Terlambat</div>
+                            <div style="font-size: 20px; font-weight: 900; color: #ea580c;">${data.TotalLate}</div>
+                        </div>
+                        <div style="background: #eff6ff; border-radius: 8px; padding: 8px; text-align: center;">
+                            <div style="font-size: 10px; color: #2563eb; font-weight: 600; text-transform: uppercase;">Sakit</div>
+                            <div style="font-size: 20px; font-weight: 900; color: #2563eb;">${data.TotalSick}</div>
+                        </div>
+                        <div style="background: #faf5ff; border-radius: 8px; padding: 8px; text-align: center;">
+                            <div style="font-size: 10px; color: #9333ea; font-weight: 600; text-transform: uppercase;">Izin</div>
+                            <div style="font-size: 20px; font-weight: 900; color: #9333ea;">${data.TotalPermission}</div>
+                        </div>
+                        <div style="background: #fef2f2; border-radius: 8px; padding: 8px; text-align: center;">
+                            <div style="font-size: 10px; color: #dc2626; font-weight: 600; text-transform: uppercase;">Alpha</div>
+                            <div style="font-size: 20px; font-weight: 900; color: #dc2626;">${data.TotalAbsent}</div>
+                        </div>
+                    </div>
+
+                    <!-- TABEL -->
+                    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                        <thead>
+                            <tr style="background: #1d4ed8; color: white;">
+                                <th style="padding: 8px 10px; text-align: center; font-weight: 700; width: 32px;">No</th>
+                                <th style="padding: 8px 10px; text-align: left; font-weight: 700;">NIS/NIP</th>
+                                <th style="padding: 8px 10px; text-align: left; font-weight: 700;">Nama</th>
+                                <th style="padding: 8px 10px; text-align: left; font-weight: 700;">Kelas/Role</th>`;
 
                 if (isPeriod) {
-                    html += '<th class="border p-2 text-center bg-green-50">Hadir</th>';
-                    html += '<th class="border p-2 text-center bg-orange-50">Terlambat</th>';
-                    html += '<th class="border p-2 text-center bg-blue-50">Sakit</th>';
-                    html += '<th class="border p-2 text-center bg-purple-50">Izin</th>';
-                    html += '<th class="border p-2 text-center bg-red-50">Alpha</th>';
-                    html += '<th class="border p-2 text-center bg-slate-100 font-bold">% Kehadiran</th>';
+                    html += `
+                                <th style="padding: 8px 10px; text-align: center; font-weight: 700; background: #15803d;">Hadir</th>
+                                <th style="padding: 8px 10px; text-align: center; font-weight: 700; background: #c2410c;">Terlambat</th>
+                                <th style="padding: 8px 10px; text-align: center; font-weight: 700; background: #1d4ed8;">Sakit</th>
+                                <th style="padding: 8px 10px; text-align: center; font-weight: 700; background: #7e22ce;">Izin</th>
+                                <th style="padding: 8px 10px; text-align: center; font-weight: 700; background: #b91c1c;">Alpha</th>
+                                <th style="padding: 8px 10px; text-align: center; font-weight: 700; background: #0f172a;">% Hadir</th>`;
                 } else {
-                    html += '<th class="border p-2 text-center">Status</th>';
-                    html += '<th class="border p-2 text-center">Waktu</th>';
+                    html += `
+                                <th style="padding: 8px 10px; text-align: center; font-weight: 700;">Status</th>
+                                <th style="padding: 8px 10px; text-align: center; font-weight: 700;">Waktu</th>`;
                 }
-                html += '</tr></thead><tbody>';
+
+                html += `</tr></thead><tbody>`;
 
                 data.Records.forEach((record, idx) => {
-                    const rowBg = idx % 2 === 0 ? '' : 'bg-slate-50';
-                    html += '<tr class="' + rowBg + '">';
-                    html += '<td class="border p-2 text-center text-slate-500">' + record.No + '</td>';
-                    html += '<td class="border p-2 text-xs">' + (record.ID || '-') + '</td>';
-                    html += '<td class="border p-2 font-medium">' + record.Name + '</td>';
-                    html += '<td class="border p-2 text-sm text-slate-600">' + (record.ClassOrRole || '-') + '</td>';
+                    const rowBg = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
+                    html += `<tr style="background: ${rowBg}; border-bottom: 1px solid #e2e8f0;">
+                        <td style="padding: 7px 10px; text-align: center; color: #94a3b8; font-size: 11px;">${record.No}</td>
+                        <td style="padding: 7px 10px; font-size: 11px; color: #475569;">${record.ID || '-'}</td>
+                        <td style="padding: 7px 10px; font-weight: 600;">${record.Name}</td>
+                        <td style="padding: 7px 10px; color: #475569; font-size: 11px;">${record.ClassOrRole || '-'}</td>`;
 
                     if (isPeriod) {
-                        html += '<td class="border p-2 text-center text-green-700 font-semibold">' + (record.PresentCount || 0) + '</td>';
-                        html += '<td class="border p-2 text-center text-orange-600">' + (record.LateCount || 0) + '</td>';
-                        html += '<td class="border p-2 text-center text-blue-600">' + (record.SickCount || 0) + '</td>';
-                        html += '<td class="border p-2 text-center text-purple-600">' + (record.PermissionCount || 0) + '</td>';
-                        html += '<td class="border p-2 text-center text-red-600">' + (record.AbsentCount || 0) + '</td>';
                         const rate = record.AttendanceRate || 0;
-                        const rateClass = rate < 80 ? 'text-red-600 font-bold' : 'text-green-700 font-bold';
-                        html += '<td class="border p-2 text-center ' + rateClass + '">' + rate.toFixed(1) + '%</td>';
+                        const rateColor = rate < 80 ? '#dc2626' : '#16a34a';
+                        const rateBg = rate < 80 ? '#fef2f2' : '#dcfce7';
+                        html += `
+                        <td style="padding: 7px 10px; text-align: center; font-weight: 700; color: #16a34a;">${record.PresentCount || 0}</td>
+                        <td style="padding: 7px 10px; text-align: center; color: #ea580c;">${record.LateCount || 0}</td>
+                        <td style="padding: 7px 10px; text-align: center; color: #2563eb;">${record.SickCount || 0}</td>
+                        <td style="padding: 7px 10px; text-align: center; color: #9333ea;">${record.PermissionCount || 0}</td>
+                        <td style="padding: 7px 10px; text-align: center; color: #dc2626;">${record.AbsentCount || 0}</td>
+                        <td style="padding: 7px 10px; text-align: center; font-weight: 800; color: ${rateColor}; background: ${rateBg}; border-radius: 4px;">${rate.toFixed(1)}%</td>`;
                     } else {
-                        const statusColors = {
-                            'Datang': 'text-green-600', 'Hadir': 'text-green-600',
-                            'Terlambat': 'text-orange-500', 'Sakit': 'text-blue-600',
-                            'Izin': 'text-purple-600', 'Alpha': 'text-red-600', 'Tidak Hadir': 'text-red-600'
-                        };
-                        const sc = statusColors[record.Status] || '';
-                        html += '<td class="border p-2 text-center text-sm ' + sc + '">' + (record.Status || '-') + '</td>';
+                        const statusColors = { 'Datang':'#16a34a','Hadir':'#16a34a','Terlambat':'#ea580c','Sakit':'#2563eb','Izin':'#9333ea','Alpha':'#dc2626','Tidak Hadir':'#dc2626' };
+                        const sc = statusColors[record.Status] || '#475569';
                         const t = record.Time && record.Time.length >= 16 ? record.Time.substring(11, 16) : '-';
-                        html += '<td class="border p-2 text-center text-xs">' + t + '</td>';
+                        html += `
+                        <td style="padding: 7px 10px; text-align: center; font-weight: 700; color: ${sc};">${record.Status || '-'}</td>
+                        <td style="padding: 7px 10px; text-align: center; color: #475569;">${t}</td>`;
                     }
-                    html += '</tr>';
+                    html += `</tr>`;
                 });
 
-                html += '</tbody></table></div>';
+                html += `</tbody></table>
+                    <div style="margin-top: 12px; padding-top: 8px; border-top: 1px solid #e2e8f0; font-size: 10px; color: #94a3b8; text-align: right;">
+                        Laporan digenerate otomatis oleh SMK NIBA Super Apps &mdash; ${now}
+                    </div>
+                </div>`;
 
                 contentDiv.innerHTML = html;
                 previewDiv.classList.remove('hidden');
 
-                // Show WhatsApp report actions (only meaningful for student reports)
                 const showWA = data.Type === 'student';
                 document.getElementById('btn-wa-report').classList.toggle('hidden', !showWA);
                 document.getElementById('btn-wa-modal').classList.toggle('hidden', !showWA);
 
                 lucide.createIcons();
+            }
+
+            function printReport() {
+                window.print();
             }
 
             // --- WhatsApp Report Generator (NEW VERSION) ---
