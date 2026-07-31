@@ -3256,6 +3256,9 @@
                 const previewDiv = document.getElementById('reportPreview');
                 const contentDiv = document.getElementById('reportPreviewContent');
 
+                // Detect if period report (weekly/monthly) or daily
+                const isPeriod = data.Records && data.Records.length > 0 && data.Records[0].PresentCount !== undefined;
+
                 // Build preview HTML
                 let html = '<div class="mb-4">';
                 html += '<h4 class="font-bold text-lg">' + data.Title + '</h4>';
@@ -3273,39 +3276,58 @@
                 html += '</div>';
 
                 // Table
-                html += '<table class="w-full text-sm border-collapse border">';
-                html += '<thead class="bg-slate-100"><tr>';
-                html += '<th class="border p-2">No</th>';
+                html += '<div class="overflow-x-auto"><table class="w-full text-sm border-collapse border">';
+                html += '<thead class="bg-blue-50"><tr>';
+                html += '<th class="border p-2 text-center">No</th>';
                 html += '<th class="border p-2">NIS/NIP</th>';
                 html += '<th class="border p-2">Nama</th>';
                 html += '<th class="border p-2">Kelas/Role</th>';
-                html += '<th class="border p-2">Status</th>';
-                if (data.Records.length > 0 && data.Records[0].Time) {
-                    html += '<th class="border p-2">Waktu</th>';
-                }
-                if (data.Records.length > 0 && data.Records[0].AttendanceRate !== undefined) {
-                    html += '<th class="border p-2">% Kehadiran</th>';
+
+                if (isPeriod) {
+                    html += '<th class="border p-2 text-center bg-green-50">Hadir</th>';
+                    html += '<th class="border p-2 text-center bg-orange-50">Terlambat</th>';
+                    html += '<th class="border p-2 text-center bg-blue-50">Sakit</th>';
+                    html += '<th class="border p-2 text-center bg-purple-50">Izin</th>';
+                    html += '<th class="border p-2 text-center bg-red-50">Alpha</th>';
+                    html += '<th class="border p-2 text-center bg-slate-100 font-bold">% Kehadiran</th>';
+                } else {
+                    html += '<th class="border p-2 text-center">Status</th>';
+                    html += '<th class="border p-2 text-center">Waktu</th>';
                 }
                 html += '</tr></thead><tbody>';
 
-                data.Records.forEach(record => {
-                    html += '<tr>';
-                    html += '<td class="border p-2 text-center">' + record.No + '</td>';
-                    html += '<td class="border p-2">' + record.ID + '</td>';
-                    html += '<td class="border p-2">' + record.Name + '</td>';
-                    html += '<td class="border p-2">' + record.ClassOrRole + '</td>';
-                    html += '<td class="border p-2 text-center">' + (record.Status || '-') + '</td>';
-                    if (record.Time) {
-                        html += '<td class="border p-2 text-center">' + (record.Time ? record.Time.substring(11, 16) : '-') + '</td>';
-                    }
-                    if (record.AttendanceRate !== undefined) {
-                        const rateClass = record.AttendanceRate < 80 ? 'text-red-600 font-bold' : '';
-                        html += '<td class="border p-2 text-center ' + rateClass + '">' + record.AttendanceRate.toFixed(1) + '%</td>';
+                data.Records.forEach((record, idx) => {
+                    const rowBg = idx % 2 === 0 ? '' : 'bg-slate-50';
+                    html += '<tr class="' + rowBg + '">';
+                    html += '<td class="border p-2 text-center text-slate-500">' + record.No + '</td>';
+                    html += '<td class="border p-2 text-xs">' + (record.ID || '-') + '</td>';
+                    html += '<td class="border p-2 font-medium">' + record.Name + '</td>';
+                    html += '<td class="border p-2 text-sm text-slate-600">' + (record.ClassOrRole || '-') + '</td>';
+
+                    if (isPeriod) {
+                        html += '<td class="border p-2 text-center text-green-700 font-semibold">' + (record.PresentCount || 0) + '</td>';
+                        html += '<td class="border p-2 text-center text-orange-600">' + (record.LateCount || 0) + '</td>';
+                        html += '<td class="border p-2 text-center text-blue-600">' + (record.SickCount || 0) + '</td>';
+                        html += '<td class="border p-2 text-center text-purple-600">' + (record.PermissionCount || 0) + '</td>';
+                        html += '<td class="border p-2 text-center text-red-600">' + (record.AbsentCount || 0) + '</td>';
+                        const rate = record.AttendanceRate || 0;
+                        const rateClass = rate < 80 ? 'text-red-600 font-bold' : 'text-green-700 font-bold';
+                        html += '<td class="border p-2 text-center ' + rateClass + '">' + rate.toFixed(1) + '%</td>';
+                    } else {
+                        const statusColors = {
+                            'Datang': 'text-green-600', 'Hadir': 'text-green-600',
+                            'Terlambat': 'text-orange-500', 'Sakit': 'text-blue-600',
+                            'Izin': 'text-purple-600', 'Alpha': 'text-red-600', 'Tidak Hadir': 'text-red-600'
+                        };
+                        const sc = statusColors[record.Status] || '';
+                        html += '<td class="border p-2 text-center text-sm ' + sc + '">' + (record.Status || '-') + '</td>';
+                        const t = record.Time && record.Time.length >= 16 ? record.Time.substring(11, 16) : '-';
+                        html += '<td class="border p-2 text-center text-xs">' + t + '</td>';
                     }
                     html += '</tr>';
                 });
 
-                html += '</tbody></table>';
+                html += '</tbody></table></div>';
 
                 contentDiv.innerHTML = html;
                 previewDiv.classList.remove('hidden');
