@@ -4,186 +4,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tambah Aset - Sarpras</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #f5f5f5;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-        }
-
-        .header {
-            background: white;
-            padding: 20px 30px;
-            border-radius: 12px;
-            margin-bottom: 30px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .header h1 {
-            font-family: 'Archivo Black', sans-serif;
-            color: #1a1a1a;
-            font-size: 24px;
-            margin-bottom: 8px;
-        }
-
-        .header p {
-            color: #6b7280;
-            font-size: 14px;
-        }
-
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .btn-secondary {
-            background: #6b7280;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #4b5563;
-        }
-
-        .btn-success {
-            background: #10b981;
-            color: white;
-        }
-
-        .btn-success:hover {
-            background: #059669;
-        }
-
-        .card {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-
-        .section-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #1a1a1a;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #e5e7eb;
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #374151;
-            font-size: 14px;
-        }
-
-        .form-group label .required {
-            color: #ef4444;
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-            font-size: 14px;
-            font-family: inherit;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #3b82f6;
-        }
-
-        .form-group textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
-
-        .form-group small {
-            display: block;
-            margin-top: 4px;
-            color: #6b7280;
-            font-size: 12px;
-        }
-
-        .checkbox-group {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .checkbox-group input[type="checkbox"] {
-            width: auto;
-        }
-
-        .form-actions {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 2px solid #e5e7eb;
-        }
-
-        .alert {
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 14px;
-        }
-
-        .alert-success {
-            background: #d1fae5;
-            color: #065f46;
-            border: 1px solid #a7f3d0;
-        }
-
-        .alert-error {
-            background: #fee2e2;
-            color: #991b1b;
-            border: 1px solid #fecaca;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: #6b7280;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', -apple-system, sans-serif; background: #fafafa; color: #1a1a1a; padding: 32px; line-height: 1.6; }
+        .container { max-width: 900px; margin: 0 auto; }
+        .header { margin-bottom: 40px; }
+        .header h1 { font-size: 32px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 8px; }
+        .header p { color: #6b7280; font-size: 15px; }
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s ease; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; font-family: inherit; }
+        .btn-primary { background: #1a1a1a; color: white; }
+        .btn-primary:hover { background: #404040; transform: translateY(-1px); }
+        .btn-secondary { background: white; color: #1a1a1a; border: 1px solid #e5e7eb; }
+        .btn-secondary:hover { background: #f9fafb; }
+        .btn-success { background: #10b981; color: white; }
+        .btn-success:hover { background: #059669; }
+        .card { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 28px; margin-bottom: 24px; }
+        .section-title { font-size: 16px; font-weight: 600; color: #1a1a1a; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid #f3f4f6; letter-spacing: -0.2px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 500; color: #374151; font-size: 14px; }
+        .form-group label .required { color: #ef4444; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px 16px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; font-family: inherit; transition: all 0.2s ease; background: white; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #1a1a1a; box-shadow: 0 0 0 3px rgba(0,0,0,0.05); }
+        .form-group textarea { resize: vertical; min-height: 80px; }
+        .form-group small { display: block; margin-top: 4px; color: #9ca3af; font-size: 12px; }
+        .checkbox-group { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+        .checkbox-group input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+        .checkbox-group label { margin-bottom: 0; cursor: pointer; }
+        .form-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 8px; padding-top: 24px; border-top: 1px solid #f3f4f6; }
+        .alert { padding: 14px 20px; border-radius: 10px; margin-bottom: 24px; font-size: 14px; border: 1px solid; }
+        .alert-success { background: #f0fdf4; color: #065f46; border-color: #86efac; }
+        .alert-error { background: #fef2f2; color: #991b1b; border-color: #fca5a5; }
     </style>
 </head>
 <body>
@@ -198,33 +52,27 @@
         <form id="assetForm" onsubmit="saveAsset(event)">
             <div class="card">
                 <div class="section-title">📋 Informasi Dasar</div>
-
                 <div class="form-row">
                     <div class="form-group">
                         <label>Kategori Aset <span class="required">*</span></label>
                         <select id="category_id" required>
                             <option value="">Pilih kategori...</option>
                         </select>
-                        <small>Klasifikasi KIB (A, B, C, D, E) atau BHP</small>
                     </div>
-
                     <div class="form-group">
                         <label>Nama Aset <span class="required">*</span></label>
                         <input type="text" id="name" required placeholder="Contoh: Laptop Dell Latitude">
                     </div>
                 </div>
-
                 <div class="form-group">
                     <label>Spesifikasi</label>
                     <textarea id="specification" placeholder="Deskripsi detail spesifikasi aset..."></textarea>
                 </div>
-
                 <div class="form-row">
                     <div class="form-group">
                         <label>Merk/Tipe</label>
                         <input type="text" id="brand" placeholder="Contoh: Dell">
                     </div>
-
                     <div class="form-group">
                         <label>Nomor Seri</label>
                         <input type="text" id="serial_number" placeholder="Contoh: DL12345">
@@ -234,27 +82,22 @@
 
             <div class="card">
                 <div class="section-title">💰 Informasi Pengadaan</div>
-
                 <div class="form-row">
                     <div class="form-group">
                         <label>Tahun Pengadaan <span class="required">*</span></label>
                         <input type="number" id="acquisition_year" required min="2000" max="2100" placeholder="2026">
-                        <small>Kode inventaris akan di-generate otomatis berdasarkan tahun</small>
+                        <small>Kode inventaris di-generate otomatis berdasarkan tahun</small>
                     </div>
-
                     <div class="form-group">
                         <label>Tanggal Pengadaan</label>
                         <input type="date" id="acquisition_date">
                     </div>
                 </div>
-
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Harga Perolehan</label>
+                        <label>Harga Perolehan (Rp)</label>
                         <input type="number" id="purchase_price" step="0.01" placeholder="0">
-                        <small>Dalam Rupiah (Rp)</small>
                     </div>
-
                     <div class="form-group">
                         <label>Sumber Dana</label>
                         <select id="funding_source_id">
@@ -266,7 +109,6 @@
 
             <div class="card">
                 <div class="section-title">📍 Lokasi & Penanggung Jawab</div>
-
                 <div class="form-row">
                     <div class="form-group">
                         <label>Lokasi</label>
@@ -274,7 +116,6 @@
                             <option value="">Pilih lokasi...</option>
                         </select>
                     </div>
-
                     <div class="form-group">
                         <label>Penanggung Jawab (Staff)</label>
                         <select id="pic_staff_id">
@@ -286,7 +127,6 @@
 
             <div class="card">
                 <div class="section-title">📊 Status & Kondisi</div>
-
                 <div class="form-row">
                     <div class="form-group">
                         <label>Kondisi</label>
@@ -297,13 +137,11 @@
                             <option value="broken">Rusak</option>
                         </select>
                     </div>
-
                     <div class="form-group">
-                        <label>Jumlah</label>
+                        <label>Jumlah <span class="required">*</span></label>
                         <input type="number" id="quantity" value="1" min="1" required>
                     </div>
                 </div>
-
                 <div class="form-row">
                     <div class="form-group">
                         <label>Satuan</label>
@@ -316,65 +154,56 @@
                             <option value="liter">Liter</option>
                         </select>
                     </div>
-
                     <div class="form-group">
+                        <label>Status Peminjaman</label>
                         <div class="checkbox-group">
                             <input type="checkbox" id="is_borrowable" value="1">
-                            <label for="is_borrowable" style="margin-bottom: 0;">Bisa dipinjam</label>
+                            <label for="is_borrowable">Bisa dipinjam oleh staff/siswa</label>
                         </div>
-                        <small>Centang jika aset bisa dipinjam oleh staff/siswa</small>
                     </div>
                 </div>
-
                 <div class="form-group">
                     <label>Catatan</label>
                     <textarea id="notes" placeholder="Catatan tambahan tentang aset..."></textarea>
                 </div>
-            </div>
 
-            <div class="form-actions">
-                <a href="/admin/sarpras/assets" class="btn btn-secondary">Batal</a>
-                <button type="submit" class="btn btn-success">💾 Simpan Aset</button>
+                <div class="form-actions">
+                    <a href="/admin/sarpras/assets" class="btn btn-secondary">Batal</a>
+                    <button type="submit" class="btn btn-success">💾 Simpan Aset</button>
+                </div>
             </div>
         </form>
     </div>
 
     <script>
-        const currentYear = new Date().getFullYear();
-        document.getElementById('acquisition_year').value = currentYear;
+        document.getElementById('acquisition_year').value = new Date().getFullYear();
 
         async function loadFormData() {
             try {
-                // Load categories
-                const catResponse = await fetch('/admin/sarpras/api/categories');
-                const categories = await catResponse.json();
-                document.getElementById('category_id').innerHTML = 
-                    '<option value="">Pilih kategori...</option>' + 
-                    categories.map(c => `<option value="${c.id}">${c.code} - ${c.name}</option>`).join('');
+                const [catRes, fundRes, locRes, staffRes] = await Promise.all([
+                    fetch('/admin/sarpras/api/categories'),
+                    fetch('/admin/sarpras/api/funding-sources'),
+                    fetch('/admin/sarpras/api/locations'),
+                    fetch('/admin/staff/json')
+                ]);
 
-                // Load funding sources
-                const fundResponse = await fetch('/admin/sarpras/api/funding-sources');
-                const sources = await fundResponse.json();
-                document.getElementById('funding_source_id').innerHTML = 
-                    '<option value="">Pilih sumber dana...</option>' + 
-                    sources.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+                const [cats, funds, locs, staff] = await Promise.all([
+                    catRes.json(), fundRes.json(), locRes.json(), staffRes.json()
+                ]);
 
-                // Load locations
-                const locResponse = await fetch('/admin/sarpras/api/locations');
-                const locations = await locResponse.json();
-                document.getElementById('location_id').innerHTML = 
-                    '<option value="">Pilih lokasi...</option>' + 
-                    locations.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+                document.getElementById('category_id').innerHTML = '<option value="">Pilih kategori...</option>' +
+                    cats.map(c => `<option value="${c.id}">${c.code} - ${c.name}</option>`).join('');
 
-                // Load staff
-                const staffResponse = await fetch('/admin/staff/json');
-                const staff = await staffResponse.json();
-                document.getElementById('pic_staff_id').innerHTML = 
-                    '<option value="">Pilih staff...</option>' + 
-                    staff.map(s => `<option value="${s.id}">${s.name} - ${s.role || 'Staff'}</option>`).join('');
+                document.getElementById('funding_source_id').innerHTML = '<option value="">Pilih sumber dana...</option>' +
+                    funds.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
 
-            } catch (error) {
-                console.error('Failed to load form data:', error);
+                document.getElementById('location_id').innerHTML = '<option value="">Pilih lokasi...</option>' +
+                    locs.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+
+                document.getElementById('pic_staff_id').innerHTML = '<option value="">Pilih staff...</option>' +
+                    staff.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+
+            } catch (e) {
                 showAlert('Gagal memuat data form', 'error');
             }
         }
@@ -383,53 +212,31 @@
             event.preventDefault();
 
             const formData = new FormData();
-            formData.append('category_id', document.getElementById('category_id').value);
-            formData.append('name', document.getElementById('name').value);
-            formData.append('specification', document.getElementById('specification').value);
-            formData.append('brand', document.getElementById('brand').value);
-            formData.append('serial_number', document.getElementById('serial_number').value);
-            formData.append('acquisition_year', document.getElementById('acquisition_year').value);
-            formData.append('acquisition_date', document.getElementById('acquisition_date').value);
-            formData.append('purchase_price', document.getElementById('purchase_price').value);
-            formData.append('funding_source_id', document.getElementById('funding_source_id').value);
-            formData.append('location_id', document.getElementById('location_id').value);
-            formData.append('pic_staff_id', document.getElementById('pic_staff_id').value);
-            formData.append('condition', document.getElementById('condition').value);
-            formData.append('quantity', document.getElementById('quantity').value);
-            formData.append('unit', document.getElementById('unit').value);
-            formData.append('notes', document.getElementById('notes').value);
+            ['category_id','name','specification','brand','serial_number','acquisition_year',
+             'acquisition_date','purchase_price','funding_source_id','location_id','pic_staff_id',
+             'condition','quantity','unit','notes'].forEach(id => {
+                formData.append(id, document.getElementById(id).value);
+            });
             formData.append('is_borrowable', document.getElementById('is_borrowable').checked ? '1' : '0');
 
             try {
-                const response = await fetch('/admin/sarpras/api/asset/add', {
-                    method: 'POST',
-                    body: formData
-                });
+                const res = await fetch('/admin/sarpras/api/asset/add', { method: 'POST', body: formData });
+                const result = await res.json();
 
-                const result = await response.json();
-
-                if (response.ok) {
-                    showAlert(`Aset berhasil ditambahkan! Kode Inventaris: ${result.inventory_code}`, 'success');
-                    setTimeout(() => {
-                        window.location.href = '/admin/sarpras/assets';
-                    }, 2000);
+                if (res.ok) {
+                    showAlert(`Aset berhasil ditambahkan! Kode: ${result.inventory_code}`, 'success');
+                    setTimeout(() => window.location.href = '/admin/sarpras/assets', 2000);
                 } else {
                     showAlert(result.error || 'Gagal menyimpan aset', 'error');
                 }
-            } catch (error) {
-                console.error('Failed to save asset:', error);
+            } catch (e) {
                 showAlert('Gagal menyimpan aset', 'error');
             }
         }
 
         function showAlert(message, type) {
-            const alertContainer = document.getElementById('alertContainer');
-            const alertClass = type === 'success' ? 'alert-success' : 'alert-error';
-            
-            alertContainer.innerHTML = `
-                <div class="alert ${alertClass}">${message}</div>
-            `;
-
+            const el = document.getElementById('alertContainer');
+            el.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
             window.scrollTo(0, 0);
         }
 

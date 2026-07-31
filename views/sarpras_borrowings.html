@@ -4,332 +4,127 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Peminjaman Aset - Sarpras</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #f5f5f5;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        .header {
-            background: white;
-            padding: 20px 30px;
-            border-radius: 12px;
-            margin-bottom: 30px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .header h1 {
-            font-family: 'Archivo Black', sans-serif;
-            color: #1a1a1a;
-            font-size: 24px;
-        }
-
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .btn-primary {
-            background: #3b82f6;
-            color: white;
-        }
-
-        .btn-secondary {
-            background: #6b7280;
-            color: white;
-        }
-
-        .btn-success {
-            background: #10b981;
-            color: white;
-        }
-
-        .btn-danger {
-            background: #ef4444;
-            color: white;
-        }
-
-        .btn-sm {
-            padding: 6px 12px;
-            font-size: 12px;
-        }
-
-        .tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .tab {
-            padding: 10px 20px;
-            background: white;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .tab.active {
-            background: #3b82f6;
-            color: white;
-            border-color: #3b82f6;
-        }
-
-        .card {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-
-        .table-container {
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-        }
-
-        thead {
-            background: #f9fafb;
-        }
-
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        th {
-            font-weight: 600;
-            color: #374151;
-        }
-
-        td {
-            color: #6b7280;
-        }
-
-        tbody tr:hover {
-            background: #f9fafb;
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', -apple-system, sans-serif; background: #fafafa; color: #1a1a1a; padding: 32px; line-height: 1.6; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header { margin-bottom: 40px; }
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .header h1 { font-size: 32px; font-weight: 700; letter-spacing: -0.5px; }
+        .header p { color: #6b7280; font-size: 15px; }
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s ease; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; font-family: inherit; }
+        .btn-primary { background: #1a1a1a; color: white; }
+        .btn-primary:hover { background: #404040; transform: translateY(-1px); }
+        .btn-secondary { background: white; color: #1a1a1a; border: 1px solid #e5e7eb; }
+        .btn-secondary:hover { background: #f9fafb; }
+        .btn-success { background: #10b981; color: white; }
+        .btn-success:hover { background: #059669; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-sm { padding: 7px 14px; font-size: 13px; }
+        .tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 1px solid #e5e7eb; }
+        .tab { padding: 12px 20px; background: transparent; border: none; border-bottom: 2px solid transparent; cursor: pointer; font-size: 14px; font-weight: 500; color: #6b7280; transition: all 0.2s; font-family: inherit; }
+        .tab:hover { color: #1a1a1a; }
+        .tab.active { color: #1a1a1a; border-bottom-color: #1a1a1a; }
+        .card { background: white; border: 1px solid #e5e7eb; border-radius: 12px; margin-bottom: 24px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        thead { background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
+        th { padding: 14px 20px; text-align: left; font-weight: 600; color: #374151; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+        td { padding: 14px 20px; color: #4b5563; border-bottom: 1px solid #f3f4f6; }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:hover { background: #fafafa; }
+        .badge { display: inline-flex; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500; }
         .badge-yellow { background: #fef3c7; color: #92400e; }
         .badge-green { background: #d1fae5; color: #065f46; }
         .badge-red { background: #fee2e2; color: #991b1b; }
         .badge-blue { background: #dbeafe; color: #1e40af; }
         .badge-gray { background: #f3f4f6; color: #374151; }
-
-        .actions {
-            display: flex;
-            gap: 6px;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #6b7280;
-        }
-
-        .empty-state .icon {
-            font-size: 48px;
-            margin-bottom: 16px;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #6b7280;
-        }
-
-        .alert {
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 14px;
-        }
-
-        .alert-success {
-            background: #d1fae5;
-            color: #065f46;
-            border: 1px solid #a7f3d0;
-        }
-
-        .alert-error {
-            background: #fee2e2;
-            color: #991b1b;
-            border: 1px solid #fecaca;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            max-width: 600px;
-            width: 90%;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .modal-header h2 {
-            font-size: 20px;
-            color: #1a1a1a;
-        }
-
-        .close {
-            font-size: 28px;
-            cursor: pointer;
-            color: #6b7280;
-            line-height: 1;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #374151;
-            font-size: 14px;
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-            font-size: 14px;
-            font-family: inherit;
-        }
-
-        .form-group textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
+        .actions { display: flex; gap: 8px; }
+        .empty-state { text-align: center; padding: 80px 20px; color: #9ca3af; }
+        .empty-state .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+        .loading { text-align: center; padding: 60px 20px; color: #9ca3af; }
+        .alert { padding: 14px 20px; border-radius: 10px; margin-bottom: 24px; font-size: 14px; border: 1px solid; }
+        .alert-success { background: #f0fdf4; color: #065f46; border-color: #86efac; }
+        .alert-error { background: #fef2f2; color: #991b1b; border-color: #fca5a5; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; padding: 32px; border-radius: 16px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); animation: slideUp 0.3s ease; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .modal-header h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.3px; }
+        .close { font-size: 24px; cursor: pointer; color: #9ca3af; line-height: 1; padding: 4px; transition: color 0.2s; }
+        .close:hover { color: #1a1a1a; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 500; color: #374151; font-size: 14px; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px 16px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; font-family: inherit; transition: all 0.2s; background: white; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #1a1a1a; box-shadow: 0 0 0 3px rgba(0,0,0,0.05); }
+        .form-group textarea { resize: vertical; min-height: 80px; }
+        .button-group { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <div>
-                <h1>🤝 Peminjaman Aset</h1>
-                <p style="color: #6b7280; font-size: 14px; margin-top: 4px;">Manajemen Peminjaman Barang & Ruangan</p>
-            </div>
-            <div style="display: flex; gap: 10px;">
-                <a href="/admin/sarpras" class="btn btn-secondary">← Kembali</a>
-                <button class="btn btn-primary" onclick="openCreateModal()">+ Buat Peminjaman</button>
+            <div class="header-top">
+                <div>
+                    <h1>🤝 Peminjaman Aset</h1>
+                    <p>Manajemen Peminjaman Barang & Ruangan</p>
+                </div>
+                <div style="display: flex; gap: 12px;">
+                    <a href="/admin/sarpras" class="btn btn-secondary">← Kembali</a>
+                    <button class="btn btn-primary" onclick="openCreateModal()">+ Buat Peminjaman</button>
+                </div>
             </div>
         </div>
 
         <div id="alertContainer"></div>
 
         <div class="tabs">
-            <div class="tab active" onclick="filterByStatus('')">Semua</div>
-            <div class="tab" onclick="filterByStatus('pending')">Pending</div>
-            <div class="tab" onclick="filterByStatus('approved')">Disetujui</div>
-            <div class="tab" onclick="filterByStatus('borrowed')">Dipinjam</div>
-            <div class="tab" onclick="filterByStatus('returned')">Dikembalikan</div>
-            <div class="tab" onclick="filterByStatus('rejected')">Ditolak</div>
+            <button class="tab active" onclick="filterByStatus('', this)">Semua</button>
+            <button class="tab" onclick="filterByStatus('pending', this)">Pending</button>
+            <button class="tab" onclick="filterByStatus('approved', this)">Disetujui</button>
+            <button class="tab" onclick="filterByStatus('borrowed', this)">Dipinjam</button>
+            <button class="tab" onclick="filterByStatus('returned', this)">Dikembalikan</button>
+            <button class="tab" onclick="filterByStatus('rejected', this)">Ditolak</button>
         </div>
 
         <div class="card">
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Aset</th>
-                            <th>Peminjam</th>
-                            <th>Tujuan</th>
-                            <th>Tanggal Pinjam</th>
-                            <th>Jatuh Tempo</th>
-                            <th>Status</th>
-                            <th>Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="borrowingsBody">
-                        <tr>
-                            <td colspan="7" class="loading">Memuat data...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Aset</th>
+                        <th>Peminjam</th>
+                        <th>Tujuan</th>
+                        <th>Tgl Pinjam</th>
+                        <th>Jatuh Tempo</th>
+                        <th>Status</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="borrowingsBody">
+                    <tr><td colspan="7" class="loading">Memuat data...</td></tr>
+                </tbody>
+            </table>
         </div>
     </div>
 
-    <!-- Modal Create Borrowing -->
+    <!-- Modal Create -->
     <div id="createModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Buat Peminjaman Baru</h2>
+                <h2>Buat Peminjaman</h2>
                 <span class="close" onclick="closeCreateModal()">&times;</span>
             </div>
             <form id="borrowingForm" onsubmit="createBorrowing(event)">
                 <div class="form-group">
-                    <label>Aset yang Dipinjam *</label>
+                    <label>Aset *</label>
                     <select id="asset_id" required>
-                        <option value="">Pilih aset...</option>
+                        <option value="">Pilih aset yang akan dipinjam...</option>
                     </select>
                 </div>
-
                 <div class="form-group">
                     <label>Tipe Peminjam *</label>
                     <select id="borrower_type" required onchange="loadBorrowers()">
@@ -338,30 +133,25 @@
                         <option value="student">Siswa</option>
                     </select>
                 </div>
-
                 <div class="form-group">
                     <label>Peminjam *</label>
                     <select id="borrower_id" required>
                         <option value="">Pilih peminjam...</option>
                     </select>
                 </div>
-
                 <div class="form-group">
                     <label>Tujuan Peminjaman *</label>
                     <textarea id="purpose" required placeholder="Jelaskan tujuan peminjaman..."></textarea>
                 </div>
-
                 <div class="form-group">
                     <label>Tanggal Mulai *</label>
                     <input type="date" id="borrow_date" required>
                 </div>
-
                 <div class="form-group">
                     <label>Tanggal Jatuh Tempo *</label>
                     <input type="date" id="due_date" required>
                 </div>
-
-                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <div class="button-group">
                     <button type="button" class="btn btn-secondary" onclick="closeCreateModal()">Batal</button>
                     <button type="submit" class="btn btn-success">Simpan</button>
                 </div>
@@ -373,89 +163,44 @@
         let allBorrowings = [];
         let currentStatus = '';
 
-        async function loadBorrowableAssets() {
-            try {
-                const response = await fetch('/admin/sarpras/api/assets'');
-                const assets = await response.json();
-                const borrowable = assets.filter(a => a.is_borrowable && a.condition === 'good');
-                
-                const select = document.getElementById('asset_id');
-                select.innerHTML = '<option value="">Pilih aset...</option>' + 
-                    borrowable.map(a => `<option value="${a.id}">${a.name} (${a.inventory_code})</option>`).join('');
-            } catch (error) {
-                console.error('Failed to load assets:', error);
-            }
-        }
-
-        async function loadBorrowers() {
-            const type = document.getElementById('borrower_type').value;
-            const select = document.getElementById('borrower_id');
-            
-            if (!type) {
-                select.innerHTML = '<option value="">Pilih peminjam...</option>';
-                return;
-            }
-
-            try {
-                const endpoint = type === 'staff' ? '/admin/staff/json' : '/admin/students/json';
-                const response = await fetch(endpoint);
-                const data = await response.json();
-                
-                select.innerHTML = '<option value="">Pilih peminjam...</option>' + 
-                    data.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
-            } catch (error) {
-                console.error('Failed to load borrowers:', error);
-            }
-        }
-
         async function loadBorrowings() {
             try {
-                const url = currentStatus ? `/admin/sarpras/borrowings?status=${currentStatus}` : '/admin/sarpras/api/borrowing's';
-                const response = await fetch(url);
-                allBorrowings = await response.json();
+                const url = currentStatus ? `/admin/sarpras/api/borrowings?status=${currentStatus}` : '/admin/sarpras/api/borrowings';
+                const res = await fetch(url);
+                allBorrowings = await res.json();
                 renderBorrowings();
-            } catch (error) {
-                console.error('Failed to load borrowings:', error);
+            } catch (e) {
                 showAlert('Gagal memuat data peminjaman', 'error');
             }
         }
 
-        function getStatusBadge(status) {
-            const badges = {
-                'pending': { class: 'badge-yellow', label: 'Pending' },
-                'approved': { class: 'badge-blue', label: 'Disetujui' },
-                'rejected': { class: 'badge-red', label: 'Ditolak' },
-                'borrowed': { class: 'badge-green', label: 'Dipinjam' },
-                'returned': { class: 'badge-gray', label: 'Dikembalikan' },
-                'overdue': { class: 'badge-red', label: 'Terlambat' }
+        function getStatusBadge(s) {
+            const map = {
+                'pending': ['badge-yellow', 'Pending'],
+                'approved': ['badge-blue', 'Disetujui'],
+                'rejected': ['badge-red', 'Ditolak'],
+                'borrowed': ['badge-green', 'Dipinjam'],
+                'returned': ['badge-gray', 'Dikembalikan'],
+                'overdue': ['badge-red', 'Terlambat']
             };
-            const badge = badges[status] || { class: 'badge-gray', label: status };
-            return `<span class="badge ${badge.class}">${badge.label}</span>`;
+            const [cls, label] = map[s] || ['badge-gray', s];
+            return `<span class="badge ${cls}">${label}</span>`;
         }
 
         function renderBorrowings() {
             const tbody = document.getElementById('borrowingsBody');
-            
-            if (allBorrowings.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="7" class="empty-state">
-                            <div class="icon">🤝</div>
-                            <p>Tidak ada data peminjaman</p>
-                        </td>
-                    </tr>
-                `;
+            if (!allBorrowings || allBorrowings.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="empty-state"><div class="icon">🤝</div><p>Tidak ada data peminjaman</p></td></tr>`;
                 return;
             }
-
             tbody.innerHTML = allBorrowings.map(b => `
                 <tr>
-                    <td><strong>${b.asset_name}</strong></td>
+                    <td><strong style="font-weight:600;color:#1a1a1a;">${b.asset_name}</strong></td>
                     <td>
-                        <div><strong>${b.borrower_name}</strong></div>
-                        <div style="font-size: 11px; color: #9ca3af;">${b.borrower_type === 'staff' ? 'Staff' : 'Siswa'}</div>
+                        <div style="font-weight:500;">${b.borrower_name}</div>
+                        <div style="font-size:12px;color:#9ca3af;">${b.borrower_type === 'staff' ? 'Staff' : 'Siswa'}</div>
                     </td>
-                    <td>${b.purpose}</td>
+                    <td style="max-width:200px;">${b.purpose}</td>
                     <td>${new Date(b.borrow_date).toLocaleDateString('id-ID')}</td>
                     <td>${new Date(b.due_date).toLocaleDateString('id-ID')}</td>
                     <td>${getStatusBadge(b.status)}</td>
@@ -465,7 +210,7 @@
                                 <button class="btn btn-success btn-sm" onclick="approveBorrowing(${b.id})">✓ Setuju</button>
                                 <button class="btn btn-danger btn-sm" onclick="rejectBorrowing(${b.id})">✗ Tolak</button>
                             ` : ''}
-                            ${b.status === 'approved' || b.status === 'borrowed' ? `
+                            ${(b.status === 'approved' || b.status === 'borrowed') ? `
                                 <button class="btn btn-primary btn-sm" onclick="returnBorrowing(${b.id})">↩ Kembalikan</button>
                             ` : ''}
                         </div>
@@ -474,27 +219,26 @@
             `).join('');
         }
 
-        function filterByStatus(status) {
+        function filterByStatus(status, el) {
             currentStatus = status;
-            
-            // Update active tab
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            event.target.classList.add('active');
-            
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
             loadBorrowings();
         }
 
-        function openCreateModal() {
+        async function openCreateModal() {
             document.getElementById('createModal').classList.add('active');
-            loadBorrowableAssets();
-            
-            // Set default dates
+            try {
+                const res = await fetch('/admin/sarpras/api/assets');
+                const assets = await res.json();
+                const borrowable = assets.filter(a => a.is_borrowable && a.condition === 'good');
+                document.getElementById('asset_id').innerHTML = '<option value="">Pilih aset...</option>' +
+                    borrowable.map(a => `<option value="${a.id}">${a.name} (${a.inventory_code})</option>`).join('');
+            } catch (e) {}
+
             const today = new Date();
             const nextWeek = new Date(today);
             nextWeek.setDate(nextWeek.getDate() + 7);
-            
             document.getElementById('borrow_date').value = today.toISOString().split('T')[0];
             document.getElementById('due_date').value = nextWeek.toISOString().split('T')[0];
         }
@@ -504,132 +248,82 @@
             document.getElementById('borrowingForm').reset();
         }
 
+        async function loadBorrowers() {
+            const type = document.getElementById('borrower_type').value;
+            const select = document.getElementById('borrower_id');
+            if (!type) { select.innerHTML = '<option value="">Pilih peminjam...</option>'; return; }
+            try {
+                const endpoint = type === 'staff' ? '/admin/staff/json' : '/admin/students/json';
+                const res = await fetch(endpoint);
+                const data = await res.json();
+                select.innerHTML = '<option value="">Pilih peminjam...</option>' +
+                    data.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+            } catch (e) {}
+        }
+
         async function createBorrowing(event) {
             event.preventDefault();
-
             const formData = new FormData();
-            formData.append('asset_id', document.getElementById('asset_id').value);
-            formData.append('borrower_type', document.getElementById('borrower_type').value);
-            formData.append('borrower_id', document.getElementById('borrower_id').value);
-            formData.append('purpose', document.getElementById('purpose').value);
-            formData.append('borrow_date', document.getElementById('borrow_date').value);
-            formData.append('due_date', document.getElementById('due_date').value);
+            ['asset_id','borrower_type','borrower_id','purpose','borrow_date','due_date']
+                .forEach(id => formData.append(id, document.getElementById(id).value));
 
             try {
-                const response = await fetch('/admin/sarpras/api/borrowing'/create', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
+                const res = await fetch('/admin/sarpras/api/borrowing/create', { method: 'POST', body: formData });
+                const result = await res.json();
+                if (res.ok) {
                     showAlert('Peminjaman berhasil dibuat', 'success');
                     closeCreateModal();
                     loadBorrowings();
                 } else {
                     showAlert(result.error || 'Gagal membuat peminjaman', 'error');
                 }
-            } catch (error) {
-                console.error('Failed to create borrowing:', error);
+            } catch (e) {
                 showAlert('Gagal membuat peminjaman', 'error');
             }
         }
 
         async function approveBorrowing(id) {
             if (!confirm('Setujui peminjaman ini?')) return;
-
             const formData = new FormData();
-            formData.append('approved_by', '1'); // TODO: Get from session
-
+            formData.append('approved_by', '1');
             try {
-                const response = await fetch(`/admin/sarpras/borrowing/${id}/approve`, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    showAlert('Peminjaman disetujui', 'success');
-                    loadBorrowings();
-                } else {
-                    showAlert(result.error || 'Gagal menyetujui', 'error');
-                }
-            } catch (error) {
-                console.error('Failed to approve:', error);
-                showAlert('Gagal menyetujui peminjaman', 'error');
-            }
+                const res = await fetch(`/admin/sarpras/api/borrowing/${id}/approve`, { method: 'POST', body: formData });
+                const result = await res.json();
+                if (res.ok) { showAlert('Peminjaman disetujui', 'success'); loadBorrowings(); }
+                else showAlert(result.error || 'Gagal menyetujui', 'error');
+            } catch (e) { showAlert('Gagal menyetujui', 'error'); }
         }
 
         async function rejectBorrowing(id) {
             const reason = prompt('Alasan penolakan:');
             if (!reason) return;
-
             const formData = new FormData();
             formData.append('reason', reason);
-
             try {
-                const response = await fetch(`/admin/sarpras/borrowing/${id}/reject`, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    showAlert('Peminjaman ditolak', 'success');
-                    loadBorrowings();
-                } else {
-                    showAlert(result.error || 'Gagal menolak', 'error');
-                }
-            } catch (error) {
-                console.error('Failed to reject:', error);
-                showAlert('Gagal menolak peminjaman', 'error');
-            }
+                const res = await fetch(`/admin/sarpras/api/borrowing/${id}/reject`, { method: 'POST', body: formData });
+                const result = await res.json();
+                if (res.ok) { showAlert('Peminjaman ditolak', 'success'); loadBorrowings(); }
+                else showAlert(result.error || 'Gagal menolak', 'error');
+            } catch (e) { showAlert('Gagal menolak', 'error'); }
         }
 
         async function returnBorrowing(id) {
-            const condition = prompt('Kondisi saat dikembalikan:\n\ngood = Baik\nfair = Cukup Baik\npoor = Kurang Baik\nbroken = Rusak', 'good');
+            const condition = prompt('Kondisi saat dikembalikan (good/fair/poor/broken):', 'good');
             if (!condition) return;
-
-            const notes = prompt('Catatan pengembalian (opsional):');
-
             const formData = new FormData();
             formData.append('return_condition', condition);
-            if (notes) formData.append('return_notes', notes);
-
             try {
-                const response = await fetch(`/admin/sarpras/borrowing/${id}/return`, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    showAlert('Aset berhasil dikembalikan', 'success');
-                    loadBorrowings();
-                } else {
-                    showAlert(result.error || 'Gagal mengembalikan', 'error');
-                }
-            } catch (error) {
-                console.error('Failed to return:', error);
-                showAlert('Gagal mengembalikan aset', 'error');
-            }
+                const res = await fetch(`/admin/sarpras/api/borrowing/${id}/return`, { method: 'POST', body: formData });
+                const result = await res.json();
+                if (res.ok) { showAlert('Aset berhasil dikembalikan', 'success'); loadBorrowings(); }
+                else showAlert(result.error || 'Gagal mengembalikan', 'error');
+            } catch (e) { showAlert('Gagal mengembalikan', 'error'); }
         }
 
         function showAlert(message, type) {
-            const alertContainer = document.getElementById('alertContainer');
-            const alertClass = type === 'success' ? 'alert-success' : 'alert-error';
-            
-            alertContainer.innerHTML = `
-                <div class="alert ${alertClass}">${message}</div>
-            `;
-
-            setTimeout(() => {
-                alertContainer.innerHTML = '';
-            }, 5000);
+            const el = document.getElementById('alertContainer');
+            el.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            setTimeout(() => el.innerHTML = '', 5000);
         }
 
         loadBorrowings();
