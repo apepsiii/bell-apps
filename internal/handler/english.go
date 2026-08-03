@@ -9,333 +9,383 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-// GetMyEnglishQuest returns today's English quest for the logged-in student
-func GetMyEnglishQuest(db *sql.DB) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		studentID := c.Get("student_id")
-		if studentID == nil {
-			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
-		}
-
-		today := time.Now().Format("2006-01-02")
-		var quest struct {
-			ID       int    `json:"id"`
-			Question string `json:"question"`
-			Date     string `json:"date"`
-		}
-
-		err := db.QueryRow(`
-			SELECT id, question, date 
-			FROM english_quests 
-			WHERE date = ?
-		`, today).Scan(&quest.ID, &quest.Question, &quest.Date)
-
-		if err == sql.ErrNoRows {
-			return c.JSON(http.StatusOK, map[string]interface{}{"quest": nil})
-		}
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
-		}
-
-		return c.JSON(http.StatusOK, map[string]interface{}{"quest": quest})
-	}
-}
-
-// SubmitEnglishQuest submits a student's answer to today's quest
-func SubmitEnglishQuest(db *sql.DB) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		studentID := c.Get("student_id")
-		if studentID == nil {
-			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
-		}
-
-		questID := c.FormValue("quest_id")
-		answer := c.FormValue("answer")
-
-		if questID == "" || answer == "" {
-			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Missing required fields"})
-		}
-
-		_, err := db.Exec(`
-			INSERT INTO english_submissions (quest_id, student_id, answer, submitted_at, status)
-			VALUES (?, ?, ?, ?, 'pending')
-		`, questID, studentID, answer, time.Now())
-
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
-		}
-
-		return c.JSON(http.StatusOK, map[string]string{"message": "Submission successful"})
-	}
-}
-
-// GetMyEnglishProfile returns the English quest profile for the logged-in student
-func GetMyEnglishProfile(db *sql.DB) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		studentID := c.Get("student_id")
-		if studentID == nil {
-			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
-		}
-
-		var profile struct {
-			TotalSubmissions int `json:"total_submissions"`
-			ApprovedCount    int `json:"approved_count"`
-			PendingCount     int `json:"pending_count"`
-			RejectedCount    int `json:"rejected_count"`
-			TotalPoints      int `json:"total_points"`
-		}
-
-		db.QueryRow(`
-			SELECT 
-				COUNT(*) as total,
-				SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved,
-				SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
-				SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected,
-				COALESCE(SUM(CASE WHEN status = 'approved' THEN points_earned ELSE 0 END), 0) as points
-			FROM english_submissions
-			WHERE student_id = ?
-		`, studentID).Scan(&profile.TotalSubmissions, &profile.ApprovedCount, &profile.PendingCount, &profile.RejectedCount, &profile.TotalPoints)
-
-		return c.JSON(http.StatusOK, profile)
-	}
-}
-
-// GetEnglishLeaderboard returns the English quest leaderboard
-func GetEnglishLeaderboard(db *sql.DB) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		rows, err := db.Query(`
-			SELECT 
-				s.id, s.name, s.nis, c.name as class_name,
-				COALESCE(SUM(es.points_earned), 0) as total_points,
-				COUNT(CASE WHEN es.status = 'approved' THEN 1 END) as approved_count
-			FROM students s
-			LEFT JOIN classes c ON s.class_id = c.id
-			LEFT JOIN english_submissions es ON s.id = es.student_id
-			WHERE s.status = 'active'
-			GROUP BY s.id
-			HAVING total_points > 0
-			ORDER BY total_points DESC, approved_count DESC
-			LIMIT 50
-		`)
-
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
-		}
-		defer rows.Close()
-
-		var leaderboard []map[string]interface{}
-		rank := 1
-		for rows.Next() {
-			var id, approvedCount int
-			var name, nis, className string
-			var totalPoints int
-
-			if err := rows.Scan(&id, &name, &nis, &className, &totalPoints, &approvedCount); err != nil {
-				continue
-			}
-
-			leaderboard = append(leaderboard, map[string]interface{}{
-				"rank":           rank,
-				"id":             id,
-				"name":           name,
-				"nis":            nis,
-				"class_name":     className,
-				"total_points":   totalPoints,
-				"approved_count": approvedCount,
-			})
-			rank++
-		}
-
-		return c.JSON(http.StatusOK, leaderboard)
-	}
-}
-
-// GetTodayEnglishQuest returns today's English quest (admin)
 func GetTodayEnglishQuest(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		today := time.Now().Format("2006-01-02")
-		var quest struct {
-			ID       int    `json:"id"`
-			Question string `json:"question"`
-			Date     string `json:"date"`
+		date := c.QueryParam("date")
+		if date == "" {
+			date = time.Now().Format("2006-01-02")
 		}
-
-		err := db.QueryRow(`
-			SELECT id, question, date 
-			FROM english_quests 
-			WHERE date = ?
-		`, today).Scan(&quest.ID, &quest.Question, &quest.Date)
-
+		var q struct {
+			ID              int    `json:"id"`
+			Date            string `json:"date"`
+			Title           string `json:"title"`
+			Description     string `json:"description"`
+			QuestType       string `json:"quest_type"`
+			Topic           string `json:"topic"`
+			VocabularyWords string `json:"vocabulary_words"`
+			QuizQuestion    string `json:"quiz_question"`
+			QuizChoices     string `json:"quiz_choices"`
+			QuizAnswer      string `json:"quiz_answer"`
+			XPReward        int    `json:"xp_reward"`
+		}
+		err := db.QueryRow("SELECT id, date, title, description, quest_type, topic, vocabulary_words, quiz_question, quiz_choices, quiz_answer, xp_reward FROM english_quests WHERE date = ?", date).
+			Scan(&q.ID, &q.Date, &q.Title, &q.Description, &q.QuestType, &q.Topic, &q.VocabularyWords, &q.QuizQuestion, &q.QuizChoices, &q.QuizAnswer, &q.XPReward)
 		if err == sql.ErrNoRows {
-			return c.JSON(http.StatusOK, map[string]interface{}{"quest": nil})
+			return c.JSON(http.StatusNotFound, map[string]string{"message": "Quest belum dibuat untuk hari ini"})
 		}
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
 		}
-
-		return c.JSON(http.StatusOK, map[string]interface{}{"quest": quest})
+		return c.JSON(http.StatusOK, q)
 	}
 }
 
-// CreateEnglishQuest creates a new English quest (admin)
 func CreateEnglishQuest(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		question := c.FormValue("question")
 		date := c.FormValue("date")
-
-		if question == "" || date == "" {
-			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Missing required fields"})
+		if date == "" {
+			date = time.Now().Format("2006-01-02")
 		}
-
-		_, err := db.Exec(`
-			INSERT INTO english_quests (question, date, created_at)
-			VALUES (?, ?, ?)
-		`, question, date, time.Now())
-
+		xpReward, _ := strconv.Atoi(c.FormValue("xp_reward"))
+		if xpReward == 0 {
+			xpReward = 10
+		}
+		_, err := db.Exec("INSERT OR REPLACE INTO english_quests (date, title, description, quest_type, topic, vocabulary_words, quiz_question, quiz_choices, quiz_answer, xp_reward) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+			date, c.FormValue("title"), c.FormValue("description"), c.FormValue("quest_type"),
+			c.FormValue("topic"), c.FormValue("vocabulary_words"), c.FormValue("quiz_question"),
+			c.FormValue("quiz_choices"), c.FormValue("quiz_answer"), xpReward)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
 		}
-
-		return c.JSON(http.StatusOK, map[string]string{"message": "Quest created successfully"})
+		return c.JSON(http.StatusOK, map[string]string{"status": "success", "message": "Quest berhasil disimpan"})
 	}
 }
 
-// GetEnglishSubmissions returns all submissions for review (admin)
 func GetEnglishSubmissions(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		status := c.QueryParam("status")
-		if status == "" {
-			status = "pending"
+		date := c.QueryParam("date")
+		if date == "" {
+			date = time.Now().Format("2006-01-02")
 		}
-
-		rows, err := db.Query(`
-			SELECT 
-				es.id, es.quest_id, es.student_id, es.answer, es.submitted_at, es.status,
-				COALESCE(es.review_feedback, '') as feedback, COALESCE(es.points_earned, 0) as points,
-				eq.question, s.name as student_name, s.nis, c.name as class_name
-			FROM english_submissions es
-			JOIN english_quests eq ON es.quest_id = eq.id
-			JOIN students s ON es.student_id = s.id
-			LEFT JOIN classes c ON s.class_id = c.id
-			WHERE es.status = ?
-			ORDER BY es.submitted_at DESC
-		`, status)
-
+		query := "SELECT es.id, es.student_id, s.name, COALESCE(cl.name,''), es.quest_type, es.content, es.audio_file, es.vocab_words, es.quiz_answer, es.xp_earned, es.status, es.feedback, es.submitted_at, COALESCE(es.reviewed_by,''), COALESCE(es.reviewed_at,'') FROM english_submissions es JOIN students s ON es.student_id = s.id LEFT JOIN classes cl ON s.class_id = cl.id JOIN english_quests eq ON es.quest_id = eq.id WHERE eq.date = ?"
+		args := []interface{}{date}
+		if st := c.QueryParam("status"); st != "" {
+			query += " AND es.status = ?"
+			args = append(args, st)
+		}
+		if cid := c.QueryParam("class_id"); cid != "" {
+			query += " AND s.class_id = ?"
+			args = append(args, cid)
+		}
+		query += " ORDER BY es.submitted_at DESC"
+		rows, err := db.Query(query, args...)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
 		}
 		defer rows.Close()
-
-		var submissions []map[string]interface{}
-		for rows.Next() {
-			var id, questID, studentID, points int
-			var answer, submittedAt, statusVal, feedback, question, studentName, nis, className string
-
-			if err := rows.Scan(&id, &questID, &studentID, &answer, &submittedAt, &statusVal, &feedback, &points, &question, &studentName, &nis, &className); err != nil {
-				continue
-			}
-
-			submissions = append(submissions, map[string]interface{}{
-				"id":           id,
-				"quest_id":     questID,
-				"student_id":   studentID,
-				"answer":       answer,
-				"submitted_at": submittedAt,
-				"status":       statusVal,
-				"feedback":     feedback,
-				"points":       points,
-				"question":     question,
-				"student_name": studentName,
-				"nis":          nis,
-				"class_name":   className,
-			})
+		type Sub struct {
+			ID          int    `json:"id"`
+			StudentID   int    `json:"student_id"`
+			StudentName string `json:"student_name"`
+			ClassName   string `json:"class_name"`
+			QuestType   string `json:"quest_type"`
+			Content     string `json:"content"`
+			AudioFile   string `json:"audio_file"`
+			VocabWords  string `json:"vocab_words"`
+			QuizAnswer  string `json:"quiz_answer"`
+			XPEarned    int    `json:"xp_earned"`
+			Status      string `json:"status"`
+			Feedback    string `json:"feedback"`
+			SubmittedAt string `json:"submitted_at"`
+			ReviewedBy  string `json:"reviewed_by"`
+			ReviewedAt  string `json:"reviewed_at"`
 		}
-
-		return c.JSON(http.StatusOK, submissions)
+		var subs []Sub
+		for rows.Next() {
+			var s Sub
+			rows.Scan(&s.ID, &s.StudentID, &s.StudentName, &s.ClassName, &s.QuestType, &s.Content, &s.AudioFile, &s.VocabWords, &s.QuizAnswer, &s.XPEarned, &s.Status, &s.Feedback, &s.SubmittedAt, &s.ReviewedBy, &s.ReviewedAt)
+			subs = append(subs, s)
+		}
+		if subs == nil {
+			subs = []Sub{}
+		}
+		return c.JSON(http.StatusOK, subs)
 	}
 }
 
-// ReviewEnglishSubmission reviews and grades a submission (admin)
 func ReviewEnglishSubmission(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		id := c.Param("id")
-		status := c.FormValue("status")
+		action := c.FormValue("action")
 		feedback := c.FormValue("feedback")
-		pointsStr := c.FormValue("points")
-
-		if status == "" || (status != "approved" && status != "rejected") {
-			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid status"})
+		if action != "approve" && action != "reject" {
+			return c.JSON(http.StatusBadRequest, map[string]string{"message": "action harus approve atau reject"})
 		}
-
-		points := 0
-		if status == "approved" && pointsStr != "" {
-			var err error
-			points, err = strconv.Atoi(pointsStr)
-			if err != nil {
-				return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid points value"})
-			}
-		}
-
-		_, err := db.Exec(`
-			UPDATE english_submissions
-			SET status = ?, review_feedback = ?, points_earned = ?, reviewed_at = ?
-			WHERE id = ?
-		`, status, feedback, points, time.Now(), id)
-
+		var studentID, questID, xpReward int
+		var questTitle string
+		err := db.QueryRow("SELECT es.student_id, es.quest_id, eq.xp_reward, eq.title FROM english_submissions es JOIN english_quests eq ON es.quest_id = eq.id WHERE es.id = ? AND es.status = 'pending'", id).Scan(&studentID, &questID, &xpReward, &questTitle)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return c.JSON(http.StatusNotFound, map[string]string{"message": "Submission tidak ditemukan atau sudah direview"})
 		}
-
-		return c.JSON(http.StatusOK, map[string]string{"message": "Review submitted successfully"})
+		status := "approved"
+		xpEarned := xpReward
+		if action == "reject" {
+			status = "rejected"
+			xpEarned = 0
+		}
+		tx, _ := db.Begin()
+		tx.Exec("UPDATE english_submissions SET status=?, feedback=?, xp_earned=?, reviewed_at=CURRENT_TIMESTAMP, reviewed_by='admin' WHERE id=?", status, feedback, xpEarned, id)
+		if action == "approve" {
+			englishUpdateStreak(tx, studentID, xpEarned)
+			englishCheckBadges(tx, studentID)
+			// Mirror the XP into the main student_points system so it shows up
+			// in the unified leaderboard and student point profile.
+			tx.Exec(`INSERT INTO student_points (student_id, points_change, description, recorded_by) VALUES (?, ?, ?, ?)`,
+				studentID, xpEarned, "English Daily Quest: "+questTitle, "english-quest")
+		}
+		tx.Commit()
+		return c.JSON(http.StatusOK, map[string]string{"status": "success", "message": "Submission berhasil di-review"})
 	}
 }
 
-// GetEnglishProgressReport returns progress report for all students (admin)
-func GetEnglishProgressReport(db *sql.DB) echo.HandlerFunc {
+func GetEnglishLeaderboard(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		rows, err := db.Query(`
-			SELECT 
-				s.id, s.name, s.nis, c.name as class_name,
-				COUNT(es.id) as total_submissions,
-				SUM(CASE WHEN es.status = 'approved' THEN 1 ELSE 0 END) as approved,
-				SUM(CASE WHEN es.status = 'pending' THEN 1 ELSE 0 END) as pending,
-				SUM(CASE WHEN es.status = 'rejected' THEN 1 ELSE 0 END) as rejected,
-				COALESCE(SUM(CASE WHEN es.status = 'approved' THEN es.points_earned ELSE 0 END), 0) as total_points
-			FROM students s
-			LEFT JOIN classes c ON s.class_id = c.id
-			LEFT JOIN english_submissions es ON s.id = es.student_id
-			WHERE s.status = 'active'
-			GROUP BY s.id
-			ORDER BY total_points DESC, approved DESC
-		`)
-
+		rows, err := db.Query("SELECT es.student_id, s.name, COALESCE(c.name,''), es.current_streak, es.longest_streak, es.total_xp, COUNT(eb.id) FROM english_streaks es JOIN students s ON es.student_id = s.id LEFT JOIN classes c ON s.class_id = c.id LEFT JOIN english_student_badges eb ON es.student_id = eb.student_id GROUP BY es.student_id ORDER BY es.total_xp DESC LIMIT 50")
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
 		}
 		defer rows.Close()
-
-		var report []map[string]interface{}
-		for rows.Next() {
-			var id, totalSubmissions, approved, pending, rejected, totalPoints int
-			var name, nis, className string
-
-			if err := rows.Scan(&id, &name, &nis, &className, &totalSubmissions, &approved, &pending, &rejected, &totalPoints); err != nil {
-				continue
-			}
-
-			report = append(report, map[string]interface{}{
-				"id":                id,
-				"name":              name,
-				"nis":               nis,
-				"class_name":        className,
-				"total_submissions": totalSubmissions,
-				"approved":          approved,
-				"pending":           pending,
-				"rejected":          rejected,
-				"total_points":      totalPoints,
-			})
+		type Item struct {
+			StudentID     int    `json:"student_id"`
+			Name          string `json:"name"`
+			ClassName     string `json:"class_name"`
+			CurrentStreak int    `json:"current_streak"`
+			LongestStreak int    `json:"longest_streak"`
+			TotalXP       int    `json:"total_xp"`
+			BadgeCount    int    `json:"badge_count"`
 		}
+		var items []Item
+		for rows.Next() {
+			var i Item
+			rows.Scan(&i.StudentID, &i.Name, &i.ClassName, &i.CurrentStreak, &i.LongestStreak, &i.TotalXP, &i.BadgeCount)
+			items = append(items, i)
+		}
+		if items == nil { items = []Item{} }
+		return c.JSON(http.StatusOK, items)
+	}
+}
 
-		return c.JSON(http.StatusOK, report)
+func GetEnglishProgressReport(db *sql.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		month := c.QueryParam("month")
+		year := c.QueryParam("year")
+		if month == "" { month = time.Now().Format("01") }
+		if year == "" { year = time.Now().Format("2006") }
+		query := "SELECT s.id, s.name, COALESCE(c.name,''), COALESCE(st.current_streak,0), COALESCE(st.total_xp,0), COUNT(DISTINCT CASE WHEN es.status='approved' THEN es.id END), COUNT(DISTINCT es.id) FROM students s LEFT JOIN classes c ON s.class_id = c.id LEFT JOIN english_streaks st ON s.id = st.student_id LEFT JOIN english_submissions es ON s.id = es.student_id LEFT JOIN english_quests eq ON es.quest_id = eq.id AND strftime('%m', eq.date) = ? AND strftime('%Y', eq.date) = ? WHERE s.status = 'active'"
+		args := []interface{}{month, year}
+		if cid := c.QueryParam("class_id"); cid != "" {
+			query += " AND s.class_id = ?"
+			args = append(args, cid)
+		}
+		query += " GROUP BY s.id ORDER BY COUNT(DISTINCT CASE WHEN es.status='approved' THEN es.id END) DESC"
+		rows, err := db.Query(query, args...)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+		}
+		defer rows.Close()
+		type Item struct {
+			StudentID int    `json:"student_id"`
+			Name      string `json:"name"`
+			ClassName string `json:"class_name"`
+			Streak    int    `json:"current_streak"`
+			TotalXP   int    `json:"total_xp"`
+			Approved  int    `json:"approved"`
+			TotalSub  int    `json:"total_sub"`
+		}
+		var items []Item
+		for rows.Next() {
+			var i Item
+			rows.Scan(&i.StudentID, &i.Name, &i.ClassName, &i.Streak, &i.TotalXP, &i.Approved, &i.TotalSub)
+			items = append(items, i)
+		}
+		if items == nil { items = []Item{} }
+		return c.JSON(http.StatusOK, items)
+	}
+}
+
+func GetMyEnglishQuest(db *sql.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		studentID := studentIDFromCtx(c)
+		date := time.Now().Format("2006-01-02")
+		var q struct {
+			ID              int    `json:"id"`
+			Date            string `json:"date"`
+			Title           string `json:"title"`
+			Description     string `json:"description"`
+			QuestType       string `json:"quest_type"`
+			Topic           string `json:"topic"`
+			VocabularyWords string `json:"vocabulary_words"`
+			QuizQuestion    string `json:"quiz_question"`
+			QuizChoices     string `json:"quiz_choices"`
+			XPReward        int    `json:"xp_reward"`
+			Submitted       bool   `json:"submitted"`
+			SubStatus       string `json:"sub_status"`
+		}
+		err := db.QueryRow("SELECT id, date, title, description, quest_type, topic, vocabulary_words, quiz_question, quiz_choices, xp_reward FROM english_quests WHERE date = ?", date).
+			Scan(&q.ID, &q.Date, &q.Title, &q.Description, &q.QuestType, &q.Topic, &q.VocabularyWords, &q.QuizQuestion, &q.QuizChoices, &q.XPReward)
+		if err == sql.ErrNoRows {
+			return c.JSON(http.StatusNotFound, map[string]string{"message": "Quest belum tersedia hari ini"})
+		}
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+		}
+		var subStatus string
+		if db.QueryRow("SELECT status FROM english_submissions WHERE student_id = ? AND quest_id = ?", studentID, q.ID).Scan(&subStatus) == nil {
+			q.Submitted = true
+			q.SubStatus = subStatus
+		}
+		return c.JSON(http.StatusOK, q)
+	}
+}
+
+func SubmitEnglishQuest(db *sql.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		studentID := studentIDFromCtx(c)
+		questID, _ := strconv.Atoi(c.FormValue("quest_id"))
+		var count int
+		db.QueryRow("SELECT COUNT(*) FROM english_submissions WHERE student_id = ? AND quest_id = ?", studentID, questID).Scan(&count)
+		if count > 0 {
+			return c.JSON(http.StatusBadRequest, map[string]string{"message": "Kamu sudah submit quest ini"})
+		}
+		_, err := db.Exec("INSERT INTO english_submissions (student_id, quest_id, quest_type, content, vocab_words, quiz_answer, status) VALUES (?, ?, ?, ?, ?, ?, 'pending')",
+			studentID, questID, c.FormValue("quest_type"), c.FormValue("content"), c.FormValue("vocab_words"), c.FormValue("quiz_answer"))
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+		}
+		return c.JSON(http.StatusOK, map[string]string{"status": "success", "message": "Setoran berhasil dikirim! Tunggu review dari guru."})
+	}
+}
+
+func GetMyEnglishProfile(db *sql.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		studentID := studentIDFromCtx(c)
+		var streak struct {
+			Current  int    `json:"current_streak"`
+			Longest  int    `json:"longest_streak"`
+			TotalXP  int    `json:"total_xp"`
+			LastDate string `json:"last_submit_date"`
+		}
+		// Use COALESCE to handle null values if row doesn't exist
+		err := db.QueryRow("SELECT COALESCE(current_streak, 0), COALESCE(longest_streak, 0), COALESCE(total_xp, 0), COALESCE(last_submit_date, '') FROM english_streaks WHERE student_id = ?", studentID).
+			Scan(&streak.Current, &streak.Longest, &streak.TotalXP, &streak.LastDate)
+		if err != nil {
+			// If no record exists, initialize with zeros
+			streak.Current = 0
+			streak.Longest = 0
+			streak.TotalXP = 0
+			streak.LastDate = ""
+		}
+		
+		type Badge struct {
+			Code     string `json:"code"`
+			Name     string `json:"name"`
+			Desc     string `json:"description"`
+			Icon     string `json:"icon"`
+			EarnedAt string `json:"earned_at"`
+		}
+		var badges []Badge
+		brows, _ := db.Query("SELECT eb.code, eb.name, eb.description, eb.icon, esb.earned_at FROM english_student_badges esb JOIN english_badges eb ON esb.badge_id = eb.id WHERE esb.student_id = ? ORDER BY esb.earned_at DESC", studentID)
+		if brows != nil {
+			defer brows.Close()
+			for brows.Next() {
+				var b Badge
+				brows.Scan(&b.Code, &b.Name, &b.Desc, &b.Icon, &b.EarnedAt)
+				badges = append(badges, b)
+			}
+		}
+		if badges == nil { badges = []Badge{} }
+		type HistItem struct {
+			QuestType   string `json:"quest_type"`
+			Title       string `json:"title"`
+			Status      string `json:"status"`
+			XPEarned    int    `json:"xp_earned"`
+			SubmittedAt string `json:"submitted_at"`
+			Feedback    string `json:"feedback"`
+		}
+		var history []HistItem
+		hrows, _ := db.Query("SELECT es.quest_type, eq.title, es.status, es.xp_earned, es.submitted_at, COALESCE(es.feedback, '') FROM english_submissions es JOIN english_quests eq ON es.quest_id = eq.id WHERE es.student_id = ? ORDER BY es.submitted_at DESC LIMIT 30", studentID)
+		if hrows != nil {
+			defer hrows.Close()
+			for hrows.Next() {
+				var h HistItem
+				hrows.Scan(&h.QuestType, &h.Title, &h.Status, &h.XPEarned, &h.SubmittedAt, &h.Feedback)
+				history = append(history, h)
+			}
+		}
+		if history == nil { history = []HistItem{} }
+		today := time.Now().Format("2006-01-02")
+		var todayCount int
+		db.QueryRow("SELECT COUNT(*) FROM english_submissions es JOIN english_quests eq ON es.quest_id = eq.id WHERE es.student_id = ? AND eq.date = ?", studentID, today).Scan(&todayCount)
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"streak":     streak,
+			"badges":     badges,
+			"history":    history,
+			"today_done": todayCount > 0,
+		})
+	}
+}
+
+func englishUpdateStreak(tx *sql.Tx, studentID, xpEarned int) {
+	today := time.Now().Format("2006-01-02")
+	yesterday := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
+	var current, longest int
+	var lastDate string
+	tx.QueryRow("SELECT current_streak, longest_streak, last_submit_date FROM english_streaks WHERE student_id = ?", studentID).
+		Scan(&current, &longest, &lastDate)
+	if lastDate == today {
+		tx.Exec("UPDATE english_streaks SET total_xp = total_xp + ? WHERE student_id = ?", xpEarned, studentID)
+		return
+	}
+	if lastDate == yesterday {
+		current++
+	} else {
+		current = 1
+	}
+	if current > longest {
+		longest = current
+	}
+	tx.Exec("INSERT INTO english_streaks (student_id, current_streak, longest_streak, total_xp, last_submit_date) VALUES (?, ?, ?, ?, ?) ON CONFLICT(student_id) DO UPDATE SET current_streak=?, longest_streak=?, total_xp=total_xp+?, last_submit_date=?",
+		studentID, current, longest, xpEarned, today, current, longest, xpEarned, today)
+}
+
+func englishCheckBadges(tx *sql.Tx, studentID int) {
+	var curStreak, longestStreak, totalXP, totalSubs, vocabCount, quizCount, writingCount int
+	tx.QueryRow("SELECT current_streak, longest_streak, total_xp FROM english_streaks WHERE student_id = ?", studentID).
+		Scan(&curStreak, &longestStreak, &totalXP)
+	tx.QueryRow("SELECT COUNT(*) FROM english_submissions WHERE student_id = ? AND status='approved'", studentID).Scan(&totalSubs)
+	tx.QueryRow("SELECT COUNT(*) FROM english_submissions WHERE student_id = ? AND status='approved' AND quest_type='vocabulary'", studentID).Scan(&vocabCount)
+	tx.QueryRow("SELECT COUNT(*) FROM english_submissions WHERE student_id = ? AND status='approved' AND quest_type='quiz'", studentID).Scan(&quizCount)
+	tx.QueryRow("SELECT COUNT(*) FROM english_submissions WHERE student_id = ? AND status='approved' AND quest_type='written'", studentID).Scan(&writingCount)
+	rows, err := tx.Query("SELECT id, condition_type, condition_value FROM english_badges")
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var badgeID, condVal int
+		var condType string
+		rows.Scan(&badgeID, &condType, &condVal)
+		met := false
+		switch condType {
+		case "streak":               met = curStreak >= condVal || longestStreak >= condVal
+		case "total_xp":             met = totalXP >= condVal
+		case "total_submissions":    met = totalSubs >= condVal
+		case "vocab_submissions":    met = vocabCount >= condVal
+		case "quiz_correct":         met = quizCount >= condVal
+		case "writing_submissions":  met = writingCount >= condVal
+		}
+		if met {
+			tx.Exec("INSERT OR IGNORE INTO english_student_badges (student_id, badge_id) VALUES (?, ?)", studentID, badgeID)
+		}
 	}
 }

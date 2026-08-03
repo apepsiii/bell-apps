@@ -105,10 +105,18 @@ func CreateAnnouncement(db *sql.DB) echo.HandlerFunc {
 		reg := regexp.MustCompile(`[^a-zA-Z0-9\s]`)
 		safeMessage := reg.ReplaceAllString(message, "")
 		baseFileName := strings.ReplaceAll(strings.TrimSpace(strings.ToLower(safeMessage)), " ", "_")
+		// Remove consecutive underscores and trailing underscores
+		multiUnderscore := regexp.MustCompile(`_+`)
+		baseFileName = multiUnderscore.ReplaceAllString(baseFileName, "_")
+		baseFileName = strings.Trim(baseFileName, "_")
 		if len(baseFileName) == 0 {
 			baseFileName = "pengumuman_" + strconv.FormatInt(time.Now().Unix(), 10)
 		} else if len(baseFileName) > 50 {
-			baseFileName = baseFileName[:50]
+			baseFileName = strings.Trim(baseFileName[:50], "_")
+		}
+		// Final safety: use timestamp if still empty
+		if baseFileName == "" {
+			baseFileName = "pengumuman_" + strconv.FormatInt(time.Now().Unix(), 10)
 		}
 
 	speechFile, err := downloadTTSAudio(message, "id", "public/assets/audio", baseFileName)
@@ -121,7 +129,11 @@ func CreateAnnouncement(db *sql.DB) echo.HandlerFunc {
 
 		var scheduledAt sql.NullTime
 		if scheduledAtStr != "" {
-			t, err := time.Parse("2006-01-02T15:04", scheduledAtStr)
+			loc, err := time.LoadLocation("Asia/Jakarta")
+			if err != nil {
+				loc = time.Local
+			}
+			t, err := time.ParseInLocation("2006-01-02T15:04", scheduledAtStr, loc)
 			if err == nil {
 				scheduledAt = sql.NullTime{Time: t, Valid: true}
 			}
@@ -129,7 +141,7 @@ func CreateAnnouncement(db *sql.DB) echo.HandlerFunc {
 
 		status := "played"
 		if scheduledAt.Valid {
-			status = "scheduled"
+			status = "pending"
 		}
 
 		res, err := db.Exec("INSERT INTO announcements (title, message, audio_file, scheduled_at, status) VALUES (?, ?, ?, ?, ?)",
