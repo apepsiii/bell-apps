@@ -1,0 +1,267 @@
+<!-- Delete Confirmation Modal Component -->
+<!-- Add this to admin_dual_point_student_detail.html -->
+
+<style>
+    /* Modal styles */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        animation: fadeIn 0.2s ease;
+    }
+
+    .modal-overlay.active {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 0.5rem;
+        max-width: 500px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+        animation: slideIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes slideIn {
+        from { transform: translateY(-20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    @media print {
+        .modal-overlay { display: none !important; }
+    }
+</style>
+
+<!-- Delete Point Modal -->
+<div id="deleteModal" class="modal-overlay no-print">
+    <div class="modal-content">
+        <div class="p-6">
+            <!-- Header -->
+            <div class="flex items-center gap-3 mb-4">
+                <div class="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-foreground">Konfirmasi Hapus Poin</h3>
+                    <p class="text-sm text-muted-foreground">Tindakan ini tidak dapat dibatalkan</p>
+                </div>
+            </div>
+
+            <!-- Point Info -->
+            <div class="bg-muted p-4 rounded-lg mb-4">
+                <div id="deletePointInfo" class="text-sm">
+                    <p><strong>ID:</strong> <span id="deletePointId">-</span></p>
+                    <p><strong>Poin:</strong> <span id="deletePointValue">-</span></p>
+                    <p><strong>Deskripsi:</strong> <span id="deletePointDesc">-</span></p>
+                    <p><strong>Dicatat oleh:</strong> <span id="deletePointBy">-</span></p>
+                    <p><strong>Tanggal:</strong> <span id="deletePointDate">-</span></p>
+                </div>
+            </div>
+
+            <!-- Warning -->
+            <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+                <p class="text-sm text-amber-800">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    <strong>Perhatian:</strong> Data akan di-soft delete dan dapat dipulihkan oleh superadmin jika diperlukan.
+                </p>
+            </div>
+
+            <!-- Reason Input (Required) -->
+            <div class="space-y-2 mb-6">
+                <label class="text-sm font-medium text-foreground flex items-center gap-2">
+                    <i class="fas fa-comment-alt text-red-500 text-xs"></i>
+                    Alasan Penghapusan <span class="text-red-500">*</span>
+                </label>
+                <textarea 
+                    id="deleteReason" 
+                    rows="3" 
+                    class="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    placeholder="Contoh: Input data salah, siswa tidak hadir pada tanggal tersebut, dll."
+                    required
+                ></textarea>
+                <p class="text-xs text-muted-foreground">
+                    Alasan wajib diisi untuk keperluan audit trail
+                </p>
+            </div>
+
+            <!-- Buttons -->
+            <div class="flex gap-3">
+                <button 
+                    onclick="confirmDelete()" 
+                    id="confirmDeleteBtn"
+                    class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-red-600 text-white hover:bg-red-700 h-10 px-4 py-2 flex-1">
+                    <i class="fas fa-trash mr-2"></i>
+                    Ya, Hapus Poin
+                </button>
+                <button 
+                    onclick="closeDeleteModal()" 
+                    class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
+                    Batal
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success/Error Toast -->
+<div id="toast" class="fixed bottom-4 right-4 max-w-md transform transition-all duration-300 translate-y-20 opacity-0 z-[1001] no-print">
+    <div id="toastContent" class="rounded-lg shadow-lg p-4"></div>
+</div>
+
+<script>
+    let currentDeletePoint = null;
+
+    // Open delete modal
+    function openDeleteModal(pointId, pointValue, description, recordedBy, createdAt, type) {
+        currentDeletePoint = { id: pointId, type: type }; // type: 'achievement' or 'violation'
+        
+        document.getElementById('deletePointId').textContent = pointId;
+        document.getElementById('deletePointValue').textContent = pointValue;
+        document.getElementById('deletePointDesc').textContent = description || '-';
+        document.getElementById('deletePointBy').textContent = recordedBy || '-';
+        document.getElementById('deletePointDate').textContent = createdAt || '-';
+        document.getElementById('deleteReason').value = '';
+        
+        document.getElementById('deleteModal').classList.add('active');
+        document.getElementById('deleteReason').focus();
+    }
+
+    // Close delete modal
+    function closeDeleteModal() {
+        document.getElementById('deleteModal').classList.remove('active');
+        currentDeletePoint = null;
+    }
+
+    // Confirm delete
+    async function confirmDelete() {
+        const reason = document.getElementById('deleteReason').value.trim();
+        
+        if (!reason) {
+            showToast('error', 'Alasan penghapusan wajib diisi');
+            return;
+        }
+
+        if (reason.length < 10) {
+            showToast('error', 'Alasan terlalu singkat. Minimal 10 karakter.');
+            return;
+        }
+
+        if (!currentDeletePoint) {
+            showToast('error', 'Data point tidak ditemukan');
+            return;
+        }
+
+        // Disable button
+        const btn = document.getElementById('confirmDeleteBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Menghapus...';
+
+        try {
+            const endpoint = currentDeletePoint.type === 'achievement' 
+                ? `/admin/v2/achievement/${currentDeletePoint.id}`
+                : `/admin/v2/violation/${currentDeletePoint.id}`;
+
+            const formData = new FormData();
+            formData.append('reason', reason);
+
+            const response = await fetch(endpoint, {
+                method: 'DELETE',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showToast('success', 'Poin berhasil dihapus');
+                closeDeleteModal();
+                
+                // Reload data after 1 second
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            } else {
+                showToast('error', data.error || 'Gagal menghapus poin');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-trash mr-2"></i>Ya, Hapus Poin';
+            }
+        } catch (error) {
+            showToast('error', 'Terjadi kesalahan: ' + error.message);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-trash mr-2"></i>Ya, Hapus Poin';
+        }
+    }
+
+    // Show toast notification
+    function showToast(type, message) {
+        const toast = document.getElementById('toast');
+        const content = document.getElementById('toastContent');
+        
+        const bgColor = type === 'success' ? 'bg-emerald-600' : 'bg-red-600';
+        const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+        
+        content.className = `rounded-lg shadow-lg p-4 ${bgColor} text-white`;
+        content.innerHTML = `
+            <div class="flex items-center gap-3">
+                <i class="fas ${icon} text-xl"></i>
+                <span class="font-medium">${message}</span>
+            </div>
+        `;
+        
+        // Show toast
+        toast.classList.remove('translate-y-20', 'opacity-0');
+        toast.classList.add('translate-y-0', 'opacity-100');
+        
+        // Hide after 3 seconds
+        setTimeout(() => {
+            toast.classList.add('translate-y-20', 'opacity-0');
+            toast.classList.remove('translate-y-0', 'opacity-100');
+        }, 3000);
+    }
+
+    // Close modal on ESC key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeDeleteModal();
+        }
+    });
+
+    // Close modal on overlay click
+    document.getElementById('deleteModal').addEventListener('click', (e) => {
+        if (e.target.id === 'deleteModal') {
+            closeDeleteModal();
+        }
+    });
+
+    // Example: Add delete buttons to history items
+    function addDeleteButtonsToHistory() {
+        // For achievement history
+        const achievementItems = document.querySelectorAll('#achievement-history .activity-item');
+        achievementItems.forEach(item => {
+            // Add delete button (only for authorized users)
+            // This is just an example - adjust based on your actual HTML structure
+        });
+    }
+
+    // Call on page load if needed
+    // addDeleteButtonsToHistory();
+</script>
+
+<!-- Usage Example:
+<button onclick="openDeleteModal(123, 50, 'Juara kelas', 'Admin', '2026-08-03 10:00', 'achievement')">
+    <i class="fas fa-trash"></i> Hapus
+</button>
+-->

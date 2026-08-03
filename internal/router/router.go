@@ -43,6 +43,7 @@ type AppHandlers interface {
 func Register(e *echo.Echo, db *sql.DB, viewsFS embed.FS, app AppHandlers) {
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+	e.Use(appMiddleware.SecurityHeaders())
 
 	e.HTTPErrorHandler = func(err error, c echo.Context) {
 		code := http.StatusInternalServerError
@@ -76,7 +77,7 @@ func Register(e *echo.Echo, db *sql.DB, viewsFS embed.FS, app AppHandlers) {
 	e.GET("/scan-face", handler.ScanFacePage(db))
 	e.GET("/scan-sholat", handler.ScanPrayerPage(db))
 
-	e.POST("/api/login", handler.Login())
+	e.POST("/api/login", handler.Login(), appMiddleware.AuthRateLimiter())
 	e.POST("/api/logout", handler.Logout())
 	e.GET("/api/sync", app.SyncHandler)
 	e.GET("/api/leaderboard", app.PublicLeaderboardHandler)
@@ -90,7 +91,7 @@ func Register(e *echo.Echo, db *sql.DB, viewsFS embed.FS, app AppHandlers) {
 	e.POST("/api/attendance/test-wa", handler.TestWA(db))
 
 	// --- ADMIN ROUTES ---
-	admin := e.Group("/admin", appMiddleware.AdminAuth())
+	admin := e.Group("/admin", appMiddleware.AdminAuth(), appMiddleware.AdminRateLimiter())
 	admin.GET("", app.DashboardHandler)
 
 	admin.GET("/announcements", handler.GetAnnouncements(db))
@@ -222,7 +223,7 @@ func Register(e *echo.Echo, db *sql.DB, viewsFS embed.FS, app AppHandlers) {
 	}
 
 	e.GET("/operator/login", serveEmbedPage("views/mobile/login.html"))
-	e.POST("/api/operator/login", handler.OperatorLogin(db))
+	e.POST("/api/operator/login", handler.OperatorLogin(db), appMiddleware.AuthRateLimiter())
 	e.POST("/api/operator/logout", handler.OperatorLogout(db))
 
 	operatorPages := e.Group("/operator")
@@ -259,7 +260,7 @@ func Register(e *echo.Echo, db *sql.DB, viewsFS embed.FS, app AppHandlers) {
 		}
 		return serveStudentPage("login.html")(c)
 	})
-	e.POST("/api/student/login", handler.StudentLogin(db))
+	e.POST("/api/student/login", handler.StudentLogin(db), appMiddleware.AuthRateLimiter())
 	e.POST("/api/student/logout", handler.StudentLogout(db))
 
 	// Weather API (public, proxied from backend to hide API key)
