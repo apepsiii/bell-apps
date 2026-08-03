@@ -309,6 +309,17 @@ func Register(e *echo.Echo, db *sql.DB, viewsFS embed.FS, app AppHandlers) {
 	admin.GET("/backup", handler.BackupDatabase(db))
 	admin.POST("/restore", handler.RestoreDatabase(db))
 
+	// === DUAL-TRACK POINT SYSTEM V2 ===
+	admin.GET("/v2/achievement-rules", handler.GetAchievementRules(db))
+	admin.GET("/v2/violation-rules", handler.GetViolationRules(db))
+	admin.GET("/v2/student/:id/points", handler.GetStudentDualPointProfile(db))
+	admin.POST("/v2/student/achievement", handler.AddAchievementPoint(db))
+	admin.POST("/v2/student/violation", handler.AddViolationPoint(db))
+	admin.DELETE("/v2/achievement/:id", handler.DeleteAchievementPoint(db))
+	admin.DELETE("/v2/violation/:id", handler.DeleteViolationPoint(db))
+	admin.GET("/v2/leaderboard", handler.GetDualPointLeaderboard(db))
+	admin.GET("/v2/class-summary", handler.GetClassDualPointSummary(db))
+
 	// === SARPRAS (ASSET MANAGEMENT) ROUTES ===
 	sarpras := admin.Group("/sarpras")
 

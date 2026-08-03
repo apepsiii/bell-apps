@@ -50,6 +50,7 @@ func InitDB() *sql.DB {
 	SeedEnglishBadges(db)
 	SeedAttendanceInsights(db)
 	SeedAssetData(db)
+	SeedDualTrackPointRules(db)
 
 	return db
 }
@@ -412,6 +413,58 @@ func runSQLiteMigrations(db *sql.DB) {
 			setting_key TEXT UNIQUE NOT NULL,
 			setting_value TEXT,
 			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		// === DUAL-TRACK POINT SYSTEM ===
+		`CREATE TABLE IF NOT EXISTS achievement_rules (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			code TEXT NOT NULL UNIQUE,
+			category TEXT NOT NULL,
+			category_code TEXT NOT NULL,
+			name TEXT NOT NULL,
+			description TEXT,
+			points INTEGER NOT NULL DEFAULT 0,
+			min_points INTEGER DEFAULT 0,
+			max_points INTEGER DEFAULT 0,
+			is_active INTEGER DEFAULT 1,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS violation_rules (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			code TEXT NOT NULL UNIQUE,
+			category TEXT NOT NULL,
+			category_code TEXT NOT NULL,
+			name TEXT NOT NULL,
+			description TEXT,
+			points_1 INTEGER NOT NULL DEFAULT 0,
+			points_2 INTEGER NOT NULL DEFAULT 0,
+			points_3 INTEGER NOT NULL DEFAULT 0,
+			is_active INTEGER DEFAULT 1,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS student_achievement_points (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			student_id INTEGER NOT NULL,
+			rule_id INTEGER,
+			points INTEGER NOT NULL DEFAULT 0,
+			description TEXT,
+			recorded_by TEXT DEFAULT 'Admin',
+			academic_year TEXT,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY(student_id) REFERENCES students(id),
+			FOREIGN KEY(rule_id) REFERENCES achievement_rules(id)
+		)`,
+		`CREATE TABLE IF NOT EXISTS student_violation_points (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			student_id INTEGER NOT NULL,
+			rule_id INTEGER,
+			occurrence INTEGER DEFAULT 1,
+			points INTEGER NOT NULL DEFAULT 0,
+			description TEXT,
+			recorded_by TEXT DEFAULT 'Admin',
+			academic_year TEXT,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY(student_id) REFERENCES students(id),
+			FOREIGN KEY(rule_id) REFERENCES violation_rules(id)
 		)`,
 		// === SARPRAS TABLES ===
 		`CREATE TABLE IF NOT EXISTS asset_categories (
@@ -849,6 +902,58 @@ func runMySQLMigrations(db *sql.DB) {
 			setting_key VARCHAR(100) UNIQUE NOT NULL,
 			setting_value TEXT,
 			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+		)`,
+		// === DUAL-TRACK POINT SYSTEM (MySQL) ===
+		`CREATE TABLE IF NOT EXISTS achievement_rules (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			code VARCHAR(20) NOT NULL UNIQUE,
+			category VARCHAR(100) NOT NULL,
+			category_code VARCHAR(10) NOT NULL,
+			name VARCHAR(255) NOT NULL,
+			description TEXT,
+			points INT NOT NULL DEFAULT 0,
+			min_points INT DEFAULT 0,
+			max_points INT DEFAULT 0,
+			is_active TINYINT DEFAULT 1,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS violation_rules (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			code VARCHAR(20) NOT NULL UNIQUE,
+			category VARCHAR(100) NOT NULL,
+			category_code VARCHAR(10) NOT NULL,
+			name VARCHAR(255) NOT NULL,
+			description TEXT,
+			points_1 INT NOT NULL DEFAULT 0,
+			points_2 INT NOT NULL DEFAULT 0,
+			points_3 INT NOT NULL DEFAULT 0,
+			is_active TINYINT DEFAULT 1,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS student_achievement_points (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			student_id INT NOT NULL,
+			rule_id INT,
+			points INT NOT NULL DEFAULT 0,
+			description TEXT,
+			recorded_by VARCHAR(100) DEFAULT 'Admin',
+			academic_year VARCHAR(20),
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY(student_id) REFERENCES students(id),
+			FOREIGN KEY(rule_id) REFERENCES achievement_rules(id)
+		)`,
+		`CREATE TABLE IF NOT EXISTS student_violation_points (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			student_id INT NOT NULL,
+			rule_id INT,
+			occurrence INT DEFAULT 1,
+			points INT NOT NULL DEFAULT 0,
+			description TEXT,
+			recorded_by VARCHAR(100) DEFAULT 'Admin',
+			academic_year VARCHAR(20),
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY(student_id) REFERENCES students(id),
+			FOREIGN KEY(rule_id) REFERENCES violation_rules(id)
 		)`,
 		// === SARPRAS TABLES (MySQL) ===
 		`CREATE TABLE IF NOT EXISTS asset_categories (
