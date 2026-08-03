@@ -228,13 +228,13 @@ func GetStudentDualPointProfile(db *sql.DB) echo.HandlerFunc {
 		// Total achievement points
 		db.QueryRow(`
 			SELECT COALESCE(SUM(points), 0) FROM student_achievement_points
-			WHERE student_id = ? AND academic_year = ?
+			WHERE student_id = ? AND academic_year = ? AND deleted_at IS NULL
 		`, studentID, academicYear).Scan(&profile.AchievementPoints)
 
 		// Total violation points
 		db.QueryRow(`
 			SELECT COALESCE(SUM(points), 0) FROM student_violation_points
-			WHERE student_id = ? AND academic_year = ?
+			WHERE student_id = ? AND academic_year = ? AND deleted_at IS NULL
 		`, studentID, academicYear).Scan(&profile.ViolationPoints)
 
 		profile.AchievementGrade = getAchievementGrade(profile.AchievementPoints)
@@ -247,7 +247,7 @@ func GetStudentDualPointProfile(db *sql.DB) echo.HandlerFunc {
 				COUNT(*) as count
 			FROM student_achievement_points sap
 			LEFT JOIN achievement_rules ar ON sap.rule_id = ar.id
-			WHERE sap.student_id = ? AND sap.academic_year = ?
+			WHERE sap.student_id = ? AND sap.academic_year = ? AND sap.deleted_at IS NULL
 			GROUP BY ar.category
 		`, studentID, academicYear)
 		if err == nil {
@@ -269,7 +269,7 @@ func GetStudentDualPointProfile(db *sql.DB) echo.HandlerFunc {
 				COUNT(*) as count
 			FROM student_violation_points svp
 			LEFT JOIN violation_rules vr ON svp.rule_id = vr.id
-			WHERE svp.student_id = ? AND svp.academic_year = ?
+			WHERE svp.student_id = ? AND svp.academic_year = ? AND svp.deleted_at IS NULL
 			GROUP BY vr.category
 		`, studentID, academicYear)
 		if err == nil {
@@ -292,7 +292,7 @@ func GetStudentDualPointProfile(db *sql.DB) echo.HandlerFunc {
 				FROM (
 					SELECT s.id, COALESCE(SUM(sap.points), 0) as total_achievement
 					FROM students s
-					LEFT JOIN student_achievement_points sap ON s.id = sap.student_id AND sap.academic_year = ?
+					LEFT JOIN student_achievement_points sap ON s.id = sap.student_id AND sap.academic_year = ? AND sap.deleted_at IS NULL
 					WHERE s.class_id = ? AND s.status = 'active'
 					GROUP BY s.id
 					HAVING total_achievement > ?
@@ -316,7 +316,7 @@ func GetStudentDualPointProfile(db *sql.DB) echo.HandlerFunc {
 				sap.academic_year, sap.created_at
 			FROM student_achievement_points sap
 			LEFT JOIN achievement_rules ar ON sap.rule_id = ar.id
-			WHERE sap.student_id = ? AND sap.academic_year = ?
+			WHERE sap.student_id = ? AND sap.academic_year = ? AND sap.deleted_at IS NULL
 			ORDER BY sap.created_at DESC LIMIT 100
 		`, studentID, academicYear)
 		if err == nil {
@@ -348,7 +348,7 @@ func GetStudentDualPointProfile(db *sql.DB) echo.HandlerFunc {
 				svp.academic_year, svp.created_at
 			FROM student_violation_points svp
 			LEFT JOIN violation_rules vr ON svp.rule_id = vr.id
-			WHERE svp.student_id = ? AND svp.academic_year = ?
+			WHERE svp.student_id = ? AND svp.academic_year = ? AND svp.deleted_at IS NULL
 			ORDER BY svp.created_at DESC LIMIT 100
 		`, studentID, academicYear)
 		if err == nil {
@@ -396,6 +396,31 @@ func AddAchievementPoint(db *sql.DB) echo.HandlerFunc {
 			recordedBy = "Admin"
 		}
 
+		// Get max points config
+		maxPointsStr := GetConfigValue(db, "MAX_POINTS_PER_TRANSACTION", "100")
+		maxPoints := 100
+		if mp, err := strconv.Atoi(maxPointsStr); err == nil {
+			maxPoints = mp
+		}
+
+		// Check rate limit
+		rateLimitStr := GetConfigValue(db, "RATE_LIMIT_PER_DAY", "50")
+		rateLimit := 50
+		if rl, err := strconv.Atoi(rateLimitStr); err == nil {
+			rateLimit = rl
+		}
+
+		exceeded, count, err := CheckRateLimit(db, recordedBy, rateLimit)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to check rate limit"})
+		}
+		if exceeded {
+			return c.JSON(http.StatusTooManyRequests, map[string]string{
+				"error":   "Batas input harian tercapai",
+				"message": "Anda sudah melakukan " + strconv.Itoa(count) + " input hari ini. Maksimal " + strconv.Itoa(rateLimit) + " per hari.",
+			})
+		}
+
 		var points int
 		var ruleName string
 
@@ -407,6 +432,12 @@ func AddAchievementPoint(db *sql.DB) echo.HandlerFunc {
 			// Allow override points
 			if pointsStr != "" {
 				if p, err := strconv.Atoi(pointsStr); err == nil && p > 0 {
+					// Validate max points
+					if p > maxPoints {
+						return c.JSON(http.StatusBadRequest, map[string]string{
+							"error": "Maksimal poin per transaksi adalah " + strconv.Itoa(maxPoints),
+						})
+					}
 					points = p
 				}
 			}
@@ -422,6 +453,12 @@ func AddAchievementPoint(db *sql.DB) echo.HandlerFunc {
 			if err != nil || points <= 0 {
 				return c.JSON(http.StatusBadRequest, map[string]string{"error": "points tidak valid"})
 			}
+			// Validate max points
+			if points > maxPoints {
+				return c.JSON(http.StatusBadRequest, map[string]string{
+					"error": "Maksimal poin per transaksi adalah " + strconv.Itoa(maxPoints),
+				})
+			}
 		}
 
 		var ruleIDPtr interface{}
@@ -429,7 +466,7 @@ func AddAchievementPoint(db *sql.DB) echo.HandlerFunc {
 			ruleIDPtr = ruleID
 		}
 
-		_, err := db.Exec(`
+		result, err := db.Exec(`
 			INSERT INTO student_achievement_points (student_id, rule_id, points, description, recorded_by, academic_year)
 			VALUES (?, ?, ?, ?, ?, ?)
 		`, studentID, ruleIDPtr, points, description, recordedBy, academicYear)
@@ -437,6 +474,19 @@ func AddAchievementPoint(db *sql.DB) echo.HandlerFunc {
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		}
+
+		// Log audit trail
+		insertID, _ := result.LastInsertId()
+		newData := map[string]interface{}{
+			"id":            insertID,
+			"student_id":    studentID,
+			"rule_id":       ruleID,
+			"points":        points,
+			"description":   description,
+			"recorded_by":   recordedBy,
+			"academic_year": academicYear,
+		}
+		LogAuditTrail(db, c, "INSERT", "student_achievement_points", int(insertID), nil, newData, "")
 
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"message": "Poin penghargaan berhasil dicatat",
@@ -513,27 +563,109 @@ func AddViolationPoint(db *sql.DB) echo.HandlerFunc {
 	}
 }
 
-// DeleteAchievementPoint deletes an achievement point record
+// DeleteAchievementPoint soft deletes an achievement point record
 func DeleteAchievementPoint(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		id := c.Param("id")
-		_, err := db.Exec("DELETE FROM student_achievement_points WHERE id = ?", id)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		reason := c.FormValue("reason") // Alasan penghapusan
+		
+		// Check authorization - only kepala_sekolah or superadmin can delete
+		if !CheckAdminRole(c, "kepala_sekolah") {
+			return c.JSON(http.StatusForbidden, map[string]string{
+				"error": "Hanya kepala sekolah yang dapat menghapus poin",
+			})
 		}
-		return c.JSON(http.StatusOK, map[string]string{"message": "Berhasil dihapus"})
+
+		if reason == "" {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"error": "Alasan penghapusan wajib diisi",
+			})
+		}
+
+		// Get record data before deletion for audit
+		recordID, _ := strconv.Atoi(id)
+		oldData, err := GetRecordBeforeDelete(db, "student_achievement_points", recordID)
+		if err != nil {
+			return c.JSON(http.StatusNotFound, map[string]string{
+				"error": "Record tidak ditemukan atau sudah dihapus",
+			})
+		}
+
+		// Get user info
+		deletedBy := "Admin"
+		if user := c.Get("user"); user != nil {
+			if username, ok := user.(string); ok {
+				deletedBy = username
+			}
+		}
+
+		// Perform soft delete
+		err = SoftDeleteRecord(db, "student_achievement_points", recordID, deletedBy, reason)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{
+				"error": err.Error(),
+			})
+		}
+
+		// Log audit trail
+		LogAuditTrail(db, c, "DELETE", "student_achievement_points", recordID, oldData, nil, reason)
+
+		return c.JSON(http.StatusOK, map[string]string{
+			"message": "Poin penghargaan berhasil dihapus",
+		})
 	}
 }
 
-// DeleteViolationPoint deletes a violation point record
+// DeleteViolationPoint soft deletes a violation point record
 func DeleteViolationPoint(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		id := c.Param("id")
-		_, err := db.Exec("DELETE FROM student_violation_points WHERE id = ?", id)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		reason := c.FormValue("reason") // Alasan penghapusan
+		
+		// Check authorization - only kepala_sekolah or superadmin can delete
+		if !CheckAdminRole(c, "kepala_sekolah") {
+			return c.JSON(http.StatusForbidden, map[string]string{
+				"error": "Hanya kepala sekolah yang dapat menghapus poin",
+			})
 		}
-		return c.JSON(http.StatusOK, map[string]string{"message": "Berhasil dihapus"})
+
+		if reason == "" {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"error": "Alasan penghapusan wajib diisi",
+			})
+		}
+
+		// Get record data before deletion for audit
+		recordID, _ := strconv.Atoi(id)
+		oldData, err := GetRecordBeforeDelete(db, "student_violation_points", recordID)
+		if err != nil {
+			return c.JSON(http.StatusNotFound, map[string]string{
+				"error": "Record tidak ditemukan atau sudah dihapus",
+			})
+		}
+
+		// Get user info
+		deletedBy := "Admin"
+		if user := c.Get("user"); user != nil {
+			if username, ok := user.(string); ok {
+				deletedBy = username
+			}
+		}
+
+		// Perform soft delete
+		err = SoftDeleteRecord(db, "student_violation_points", recordID, deletedBy, reason)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{
+				"error": err.Error(),
+			})
+		}
+
+		// Log audit trail
+		LogAuditTrail(db, c, "DELETE", "student_violation_points", recordID, oldData, nil, reason)
+
+		return c.JSON(http.StatusOK, map[string]string{
+			"message": "Poin pelanggaran berhasil dihapus",
+		})
 	}
 }
 
@@ -548,10 +680,10 @@ func GetDualPointLeaderboard(db *sql.DB) echo.HandlerFunc {
 		rows, err := db.Query(`
 			SELECT s.id, s.name, COALESCE(c.name,'') as class_name,
 				COALESCE(SUM(sap.points), 0) as achievement_points,
-				COALESCE((SELECT SUM(points) FROM student_violation_points WHERE student_id = s.id AND academic_year = ?), 0) as violation_points
+				COALESCE((SELECT SUM(points) FROM student_violation_points WHERE student_id = s.id AND academic_year = ? AND deleted_at IS NULL), 0) as violation_points
 			FROM students s
 			LEFT JOIN classes c ON s.class_id = c.id
-			LEFT JOIN student_achievement_points sap ON s.id = sap.student_id AND sap.academic_year = ?
+			LEFT JOIN student_achievement_points sap ON s.id = sap.student_id AND sap.academic_year = ? AND sap.deleted_at IS NULL
 			WHERE s.status = 'active'
 			GROUP BY s.id
 			ORDER BY achievement_points DESC
@@ -606,9 +738,9 @@ func GetClassDualPointSummary(db *sql.DB) echo.HandlerFunc {
 				COALESCE(SUM(svp.vpoints), 0) as total_violation
 			FROM classes c
 			LEFT JOIN students s ON s.class_id = c.id AND s.status = 'active'
-			LEFT JOIN student_achievement_points sap ON sap.student_id = s.id AND sap.academic_year = ?
+			LEFT JOIN student_achievement_points sap ON sap.student_id = s.id AND sap.academic_year = ? AND sap.deleted_at IS NULL
 			LEFT JOIN (
-				SELECT student_id, SUM(points) as vpoints FROM student_violation_points WHERE academic_year = ? GROUP BY student_id
+				SELECT student_id, SUM(points) as vpoints FROM student_violation_points WHERE academic_year = ? AND deleted_at IS NULL GROUP BY student_id
 			) svp ON svp.student_id = s.id
 			GROUP BY c.id
 			ORDER BY c.name

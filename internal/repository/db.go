@@ -51,6 +51,13 @@ func InitDB() *sql.DB {
 	SeedAttendanceInsights(db)
 	SeedAssetData(db)
 	SeedDualTrackPointRules(db)
+	
+	// Run audit trail migration
+	if err := MigrationAuditTrail(db); err != nil {
+		log.Printf("Warning: Audit trail migration failed: %v", err)
+	} else {
+		log.Println("✅ Audit trail migration completed successfully")
+	}
 
 	return db
 }
