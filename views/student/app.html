@@ -204,8 +204,87 @@
                 </div>
             </div>
 
+            <!-- Widget Cuaca Bogor -->
+            <div class="mt-6 px-5">
+                <div id="weatherWidget" class="soft-card p-4 overflow-hidden relative">
+                    <!-- Loading state -->
+                    <div id="weatherLoading" class="flex items-center gap-3">
+                        <div class="skeleton w-12 h-12 rounded-2xl flex-shrink-0"></div>
+                        <div class="flex-1">
+                            <div class="skeleton h-3 w-24 mb-2 rounded-full"></div>
+                            <div class="skeleton h-4 w-32 rounded-full"></div>
+                        </div>
+                        <div class="skeleton h-8 w-16 rounded-xl"></div>
+                    </div>
+                    <!-- Weather content -->
+                    <div id="weatherContent" class="hidden">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <i class="ph-fill ph-map-pin text-sm text-brand-blue"></i>
+                                <span class="text-xs font-semibold text-text-muted">Bogor, Jawa Barat</span>
+                            </div>
+                            <span id="weatherUpdateTime" class="text-[10px] text-text-muted"></span>
+                        </div>
+                        <!-- Current weather -->
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-3">
+                                <div id="weatherIconWrap" class="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, #EEF2FF, #DBEAFE);">
+                                    <span id="weatherEmoji" class="text-3xl">⛅</span>
+                                </div>
+                                <div>
+                                    <div class="flex items-baseline gap-1">
+                                        <span id="weatherTemp" class="text-3xl font-bold text-text-main tracking-tight">--</span>
+                                        <span class="text-sm font-medium text-text-muted">°C</span>
+                                    </div>
+                                    <p id="weatherDesc" class="text-xs font-medium text-text-muted capitalize">Memuat...</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="flex items-center gap-1 justify-end mb-1">
+                                    <i class="ph-fill ph-drop text-blue-400 text-xs"></i>
+                                    <span id="weatherHumidity" class="text-xs font-semibold text-text-main">--%</span>
+                                </div>
+                                <div class="flex items-center gap-1 justify-end mb-1">
+                                    <i class="ph-fill ph-wind text-slate-400 text-xs"></i>
+                                    <span id="weatherWind" class="text-xs font-semibold text-text-main">-- km/h</span>
+                                </div>
+                                <div class="flex items-center gap-1 justify-end">
+                                    <i class="ph-fill ph-thermometer text-orange-400 text-xs"></i>
+                                    <span id="weatherFeelsLike" class="text-xs font-semibold text-text-main">--°C</span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Forecast strip -->
+                        <div class="border-t border-ui-border pt-3">
+                            <p class="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-2">Perkiraan 5 Hari</p>
+                            <div id="weatherForecast" class="grid grid-cols-5 gap-1">
+                                <!-- Forecast items injected by JS -->
+                            </div>
+                        </div>
+                        <!-- Weather alert -->
+                        <div id="weatherAlert" class="hidden mt-3 p-3 bg-amber-50 border border-amber-200 rounded-2xl">
+                            <div class="flex items-center gap-2">
+                                <i class="ph-fill ph-warning text-amber-500 text-sm flex-shrink-0"></i>
+                                <p id="weatherAlertText" class="text-xs text-amber-800 font-medium"></p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Error state -->
+                    <div id="weatherError" class="hidden flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-2xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+                            <i class="ph-fill ph-cloud-slash text-xl text-gray-400"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs font-semibold text-text-main">Cuaca tidak tersedia</p>
+                            <p class="text-[10px] text-text-muted">Gagal memuat data cuaca</p>
+                        </div>
+                        <button onclick="loadWeather()" class="ml-auto text-xs font-semibold text-brand-blue">Coba lagi</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Kehadiran Hari Ini (Soft UI) -->
-            <div class="mt-8 px-5">
+            <div class="mt-6 px-5">
                 <div class="flex justify-between items-center mb-3">
                     <h3 class="text-sm font-bold text-text-main">Kehadiran Hari Ini</h3>
                     <span id="todayDateBadge" class="text-xs font-semibold px-3 py-1 bg-blue-50 text-brand-blue rounded-full">Hari ini</span>
@@ -652,6 +731,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (initial === 'presensi') loadCalendar();
         if (initial === 'qr') loadQRCard();
     });
+    loadWeather();
 });
 
 // ===== NAVIGATION =====
@@ -694,6 +774,121 @@ function switchTab(tabName) {
     if (tabName === 'presensi' && Object.keys(calendarData).length === 0) loadCalendar();
     if (tabName === 'english') loadEnglishTab();
     if (tabName === 'poin') loadPoinPage();
+}
+
+// ===== WEATHER =====
+const WEATHER_CITY = 'Bogor';
+
+const weatherIcons = {
+    '01d': '☀️', '01n': '🌙',
+    '02d': '⛅', '02n': '⛅',
+    '03d': '☁️', '03n': '☁️',
+    '04d': '☁️', '04n': '☁️',
+    '09d': '🌧️', '09n': '🌧️',
+    '10d': '🌦️', '10n': '🌧️',
+    '11d': '⛈️', '11n': '⛈️',
+    '13d': '❄️', '13n': '❄️',
+    '50d': '🌫️', '50n': '🌫️',
+};
+
+const weatherBg = {
+    'clear': 'linear-gradient(135deg, #FFF7ED, #FFEDD5)',
+    'clouds': 'linear-gradient(135deg, #F1F5F9, #E2E8F0)',
+    'rain': 'linear-gradient(135deg, #EFF6FF, #DBEAFE)',
+    'drizzle': 'linear-gradient(135deg, #EFF6FF, #DBEAFE)',
+    'thunderstorm': 'linear-gradient(135deg, #F5F3FF, #EDE9FE)',
+    'snow': 'linear-gradient(135deg, #F0F9FF, #E0F2FE)',
+    'mist': 'linear-gradient(135deg, #F8FAFC, #F1F5F9)',
+    'default': 'linear-gradient(135deg, #EEF2FF, #DBEAFE)',
+};
+
+function getWeatherAlert(weatherMain, temp) {
+    if (weatherMain === 'Thunderstorm') return '⚡ Waspada petir! Hindari beraktivitas di luar ruangan.';
+    if (weatherMain === 'Rain' || weatherMain === 'Drizzle') return '🌧️ Hujan hari ini, jangan lupa bawa payung!';
+    if (temp >= 35) return '🌡️ Cuaca sangat panas, perbanyak minum air putih!';
+    if (temp <= 18) return '🧥 Cuaca dingin, gunakan pakaian hangat.';
+    return null;
+}
+
+function getDayName(dt) {
+    const days = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+    return days[new Date(dt * 1000).getDay()];
+}
+
+async function loadWeather() {
+    try {
+        document.getElementById('weatherLoading').classList.remove('hidden');
+        document.getElementById('weatherContent').classList.add('hidden');
+        document.getElementById('weatherError').classList.add('hidden');
+
+        const [currentRes, forecastRes] = await Promise.all([
+            fetch('/api/weather/current'),
+            fetch('/api/weather/forecast')
+        ]);
+
+        if (!currentRes.ok) throw new Error('API error');
+
+        const current = await currentRes.json();
+        const forecast = await forecastRes.json();
+
+        if (current.error) throw new Error(current.error);
+
+        const temp = Math.round(current.main.temp);
+        const feelsLike = Math.round(current.main.feels_like);
+        const humidity = current.main.humidity;
+        const windSpeed = Math.round(current.wind.speed * 3.6);
+        const desc = current.weather[0].description;
+        const icon = current.weather[0].icon;
+        const main = current.weather[0].main;
+
+        document.getElementById('weatherTemp').textContent = temp;
+        document.getElementById('weatherDesc').textContent = desc;
+        document.getElementById('weatherHumidity').textContent = humidity + '%';
+        document.getElementById('weatherWind').textContent = windSpeed + ' km/h';
+        document.getElementById('weatherFeelsLike').textContent = feelsLike + '°C';
+        document.getElementById('weatherEmoji').textContent = weatherIcons[icon] || '🌤️';
+        document.getElementById('weatherUpdateTime').textContent = 'Update: ' + new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+
+        const bgKey = main.toLowerCase();
+        const bg = weatherBg[bgKey] || weatherBg['default'];
+        document.getElementById('weatherIconWrap').style.background = bg;
+
+        const alertMsg = getWeatherAlert(main, temp);
+        if (alertMsg) {
+            document.getElementById('weatherAlert').classList.remove('hidden');
+            document.getElementById('weatherAlertText').textContent = alertMsg;
+        } else {
+            document.getElementById('weatherAlert').classList.add('hidden');
+        }
+
+        // Forecast - 1 data per hari (paling mendekati tengah hari)
+        const dailyMap = {};
+        forecast.list.forEach(item => {
+            const date = new Date(item.dt * 1000);
+            const dayKey = date.toDateString();
+            const hour = date.getHours();
+            if (!dailyMap[dayKey] || Math.abs(hour - 12) < Math.abs(new Date(dailyMap[dayKey].dt * 1000).getHours() - 12)) {
+                dailyMap[dayKey] = item;
+            }
+        });
+
+        const dailyList = Object.values(dailyMap).slice(0, 5);
+        document.getElementById('weatherForecast').innerHTML = dailyList.map(item => `
+            <div class="flex flex-col items-center gap-1 p-1.5 rounded-2xl hover:bg-gray-50 transition-colors">
+                <span class="text-[10px] font-semibold text-text-muted">${getDayName(item.dt)}</span>
+                <span class="text-lg">${weatherIcons[item.weather[0].icon] || '🌤️'}</span>
+                <span class="text-[11px] font-bold text-text-main">${Math.round(item.main.temp)}°</span>
+            </div>
+        `).join('');
+
+        document.getElementById('weatherLoading').classList.add('hidden');
+        document.getElementById('weatherContent').classList.remove('hidden');
+
+    } catch (e) {
+        console.error('Weather error:', e);
+        document.getElementById('weatherLoading').classList.add('hidden');
+        document.getElementById('weatherError').classList.remove('hidden');
+    }
 }
 
 // ===== DASHBOARD / HOME =====

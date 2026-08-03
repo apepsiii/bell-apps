@@ -262,6 +262,10 @@ func Register(e *echo.Echo, db *sql.DB, viewsFS embed.FS, app AppHandlers) {
 	e.POST("/api/student/login", handler.StudentLogin(db))
 	e.POST("/api/student/logout", handler.StudentLogout(db))
 
+	// Weather API (public, proxied from backend to hide API key)
+	e.GET("/api/weather/current", handler.WeatherCurrent())
+	e.GET("/api/weather/forecast", handler.WeatherForecast())
+
 	studentPages := e.Group("/student")
 	studentPages.Use(handler.StudentAuth(db))
 	studentPages.GET("", func(c echo.Context) error { return c.Redirect(http.StatusSeeOther, "/student/app") })

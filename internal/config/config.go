@@ -13,6 +13,13 @@ type AppConfig struct {
 	Paths    PathsConfig    `yaml:"paths"`
 	Auth     AuthConfig     `yaml:"auth"`
 	Log      LogConfig      `yaml:"log"`
+	Weather  WeatherConfig  `yaml:"weather"`
+}
+
+type WeatherConfig struct {
+	APIKey  string `yaml:"openweather_api_key"`
+	City    string `yaml:"city"`
+	Country string `yaml:"country"`
 }
 
 type ServerConfig struct {
@@ -275,6 +282,17 @@ func GetSecretKey() string {
 func GetConfigPath() string {
 	exePath, _ := os.Executable()
 	return filepath.Join(filepath.Dir(exePath), "config.yaml")
+}
+
+func GetWeatherConfig() WeatherConfig {
+	if config != nil {
+		return config.Weather
+	}
+	return WeatherConfig{
+		APIKey:  getEnv("OPENWEATHER_API_KEY", ""),
+		City:    getEnv("WEATHER_CITY", "Bogor"),
+		Country: getEnv("WEATHER_COUNTRY", "ID"),
+	}
 }
 
 func getEnv(key, defaultValue string) string {
