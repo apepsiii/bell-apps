@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Input Poin Siswa - SMK NIBA Super Apps</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        border: "hsl(214.3 31.8% 91.4%)",
+                        input: "hsl(214.3 31.8% 91.4%)",
+                        ring: "hsl(222.2 84% 4.9%)",
+                        background: "hsl(0 0% 100%)",
+                        foreground: "hsl(222.2 84% 4.9%)",
+                        primary: {
+                            DEFAULT: "hsl(222.2 47.4% 11.2%)",
+                            foreground: "hsl(210 40% 98%)",
+                        },
+                        secondary: {
+                            DEFAULT: "hsl(210 40% 96.1%)",
+                            foreground: "hsl(222.2 47.4% 11.2%)",
+                        },
+                        muted: {
+                            DEFAULT: "hsl(210 40% 96.1%)",
+                            foreground: "hsl(215.4 16.3% 46.9%)",
+                        },
+                    },
+                    borderRadius: {
+                        lg: "0.5rem",
+                        md: "calc(0.5rem - 2px)",
+                        sm: "calc(0.5rem - 4px)",
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        @keyframes fadeIn { 
+            from { opacity: 0; transform: translateY(10px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        
+        @keyframes slideDown { 
+            from { opacity: 0; transform: translateY(-10px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        
+        .fade-in { 
+            animation: fadeIn 0.4s ease-out forwards; 
+        }
+        
+        .slide-down { 
+            animation: slideDown 0.3s ease-out forwards; 
+        }
+        
+        .card {
+            border-radius: 0.5rem;
+            border: 1px solid hsl(214.3 31.8% 91.4%);
+            background-color: hsl(0 0% 100%);
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+        }
+        
+        .card:hover {
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        
+        .student-card {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        
+        .student-card:hover {
+            transform: translateX(4px);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen antialiased">
+    <div class="min-h-screen">
+        <!-- Header -->
+        <div class="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div class="max-w-7xl mx-auto px-6 py-6">
+                <div class="flex items-center justify-between">
+                    <div class="fade-in">
+                        <div class="flex items-center gap-3">
+                            <div class="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
+                                <i class="fas fa-edit text-primary-foreground"></i>
+                            </div>
+                            <div>
+                                <h1 class="text-2xl font-semibold tracking-tight text-foreground">Input Poin Siswa</h1>
+                                <p class="text-sm text-muted-foreground">
+                                    Sistem poin dual-track (Penghargaan & Pelanggaran)
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="/admin/dual-point/dashboard" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
+                        <i class="fas fa-arrow-left mr-2 h-4 w-4"></i>Kembali
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="max-w-7xl mx-auto px-6 py-8">
+            <!-- Tab Navigation -->
+            <div class="card mb-8 overflow-hidden fade-in">
+                <div class="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground w-full">
+                    <button onclick="switchTab('achievement')" id="tab-achievement" 
+                        class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 flex-1 bg-background text-foreground shadow-sm">
+                        <i class="fas fa-trophy mr-2"></i>
+                        Poin Penghargaan
+                    </button>
+                    <button onclick="switchTab('violation')" id="tab-violation" 
+                        class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 flex-1">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        Poin Pelanggaran
+                    </button>
+                </div>
+            </div>
+
+            <!-- Achievement Tab Content -->
+            <div id="content-achievement" class="space-y-6">
+                <!-- Student Search -->
+                <div class="card p-6 fade-in">
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-3">
+                            <div class="h-8 w-8 rounded-md bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                                <i class="fas fa-search text-sm"></i>
+                            </div>
+                            <h2 class="text-lg font-semibold text-foreground">Cari Siswa</h2>
+                        </div>
+                        <div class="flex gap-3">
+                            <input type="text" id="search-student-achievement" placeholder="Ketik NIS atau Nama Siswa..." 
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                onkeypress="if(event.key === 'Enter') searchStudent('achievement')">
+                            <button onclick="searchStudent('achievement')" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-emerald-600 text-white hover:bg-emerald-700 h-10 px-4 py-2">
+                                <i class="fas fa-search mr-2"></i>Cari
+                            </button>
+                        </div>
+                        <div id="student-result-achievement" class="mt-4"></div>
+                    </div>
+                </div>
+
+                <!-- Achievement Form -->
+                <div id="achievement-form-container" class="card p-6 hidden slide-down">
+                    <div class="space-y-6">
+                        <div class="flex items-center gap-3">
+                            <div class="h-8 w-8 rounded-md bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                                <i class="fas fa-award text-sm"></i>
+                            </div>
+                            <h2 class="text-lg font-semibold text-foreground">Form Input Poin Penghargaan</h2>
+                        </div>
+                        <form id="achievement-form" class="space-y-4">
+                            <input type="hidden" id="achievement-student-id">
+                            
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2">
+                                    <i class="fas fa-user-graduate text-emerald-500 text-xs"></i>
+                                    Siswa Terpilih
+                                </label>
+                                <div id="achievement-student-info" class="flex h-10 w-full rounded-md border border-input bg-emerald-50 px-3 py-2 text-sm"></div>
+                            </div>
+
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2">
+                                    <i class="fas fa-tag text-blue-500 text-xs"></i>
+                                    Kategori Penghargaan
+                                </label>
+                                <select id="achievement-category" onchange="loadAchievementRules()" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                                    <option value="">-- Pilih Kategori --</option>
+                                    <option value="R1">🕌 R1 - Pengembangan Keagamaan</option>
+                                    <option value="R2">✨ R2 - Kejujuran</option>
+                                    <option value="R3">📚 R3 - Prestasi Akademik</option>
+                                    <option value="R4">⏰ R4 - Kedisiplinan</option>
+                                    <option value="R5">🤝 R5 - Pengembangan Sosial</option>
+                                    <option value="R6">👑 R6 - Kepemimpinan</option>
+                                    <option value="R7">🇮🇩 R7 - Kebangsaan</option>
+                                    <option value="R8">🏆 R8 - Ekstrakurikuler & Perlombaan</option>
+                                    <option value="R9">🌱 R9 - Peduli Lingkungan</option>
+                                    <option value="R10">💼 R10 - Kewirausahaan</option>
+                                </select>
+                            </div>
+
+                            <div id="achievement-rule-container" class="hidden space-y-2">
+                                <label class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2">
+                                    <i class="fas fa-list-ul text-purple-500 text-xs"></i>
+                                    Jenis Penghargaan
+                                </label>
+                                <select id="achievement-rule" onchange="fillAchievementPoints()" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                                    <option value="">-- Pilih Jenis --</option>
+                                </select>
+                            </div>
+
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2">
+                                    <i class="fas fa-star text-amber-500 text-xs"></i>
+                                    Jumlah Poin
+                                </label>
+                                <input type="number" id="achievement-points" min="1" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 font-semibold text-emerald-600" required>
+                            </div>
+
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2">
+                                    <i class="fas fa-comment-alt text-indigo-500 text-xs"></i>
+                                    Keterangan (Opsional)
+                                </label>
+                                <textarea id="achievement-description" rows="3" class="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="Tambahkan catatan atau keterangan..."></textarea>
+                            </div>
+
+                            <div class="flex gap-3 pt-2">
+                                <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-emerald-600 text-white hover:bg-emerald-700 h-10 px-4 py-2 flex-1">
+                                    <i class="fas fa-save mr-2"></i>Simpan Poin Penghargaan
+                                </button>
+                                <button type="button" onclick="resetAchievementForm()" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
+                                    <i class="fas fa-redo mr-2"></i>Reset
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Violation Tab Content -->
+            <div id="content-violation" class="space-y-6 hidden">
+                <!-- Student Search -->
+                <div class="card p-6 fade-in">
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-3">
+                            <div class="h-8 w-8 rounded-md bg-red-100 text-red-600 flex items-center justify-center">
+                                <i class="fas fa-search text-sm"></i>
+                            </div>
+                            <h2 class="text-lg font-semibold text-foreground">Cari Siswa</h2>
+                        </div>
+                        <div class="flex gap-3">
+                            <input type="text" id="search-student-violation" placeholder="Ketik NIS atau Nama Siswa..." 
+                                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                onkeypress="if(event.key === 'Enter') searchStudent('violation')">
+                            <button onclick="searchStudent('violation')" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-red-600 text-white hover:bg-red-700 h-10 px-4 py-2">
+                                <i class="fas fa-search mr-2"></i>Cari
+                            </button>
+                        </div>
+                        <div id="student-result-violation" class="mt-4"></div>
+                    </div>
+                </div>
+
+                <!-- Violation Form -->
+                <div id="violation-form-container" class="card p-6 hidden slide-down">
+                    <div class="space-y-6">
+                        <div class="flex items-center gap-3">
+                            <div class="h-8 w-8 rounded-md bg-red-100 text-red-600 flex items-center justify-center">
+                                <i class="fas fa-exclamation-circle text-sm"></i>
+                            </div>
+                            <h2 class="text-lg font-semibold text-foreground">Form Input Poin Pelanggaran</h2>
+                        </div>
+                        <form id="violation-form" class="space-y-4">
+                            <input type="hidden" id="violation-student-id">
+                            
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2">
+                                    <i class="fas fa-user-graduate text-red-500 text-xs"></i>
+                                    Siswa Terpilih
+                                </label>
+                                <div id="violation-student-info" class="flex h-10 w-full rounded-md border border-input bg-red-50 px-3 py-2 text-sm"></div>
+                            </div>
+
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2">
+                                    <i class="fas fa-tag text-blue-500 text-xs"></i>
+                                    Kategori Pelanggaran
+                                </label>
+                                <select id="violation-category" onchange="loadViolationRules()" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                                    <option value="">-- Pilih Kategori --</option>
+                                    <option value="P1">⏰ P1 - Terlambat</option>
+                                    <option value="P2">📅 P2 - Kehadiran</option>
+                                    <option value="P3">👔 P3 - Seragam</option>
+                                    <option value="P4">✂️ P4 - Kerapian dan Penampilan</option>
+                                    <option value="P5">📋 P5 - Kedisiplinan Umum</option>
+                                </select>
+                            </div>
+
+                            <div id="violation-rule-container" class="hidden space-y-2">
+                                <label class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2">
+                                    <i class="fas fa-list-ul text-purple-500 text-xs"></i>
+                                    Jenis Pelanggaran
+                                </label>
+                                <select id="violation-rule" onchange="fillViolationPoints()" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" required>
+                                    <option value="">-- Pilih Jenis --</option>
+                                </select>
+                            </div>
+
+                            <div id="occurrence-container" class="hidden space-y-2">
+                                <label class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2">
+                                    <i class="fas fa-sort-numeric-up text-orange-500 text-xs"></i>
+                                    Pelanggaran Ke-
+                                </label>
+                                <select id="violation-occurrence" onchange="fillViolationPoints()" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" required>
+                                    <option value="1">1️⃣ Pelanggaran Pertama</option>
+                                    <option value="2">2️⃣ Pelanggaran Kedua</option>
+                                    <option value="3">3️⃣ Pelanggaran Ketiga</option>
+                                </select>
+                            </div>
+
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2">
+                                    <i class="fas fa-exclamation-triangle text-red-500 text-xs"></i>
+                                    Jumlah Poin Pelanggaran
+                                </label>
+                                <input type="number" id="violation-points" readonly class="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm font-semibold text-red-600" required>
+                            </div>
+
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2">
+                                    <i class="fas fa-comment-alt text-indigo-500 text-xs"></i>
+                                    Keterangan (Opsional)
+                                </label>
+                                <textarea id="violation-description" rows="3" class="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="Tambahkan catatan atau keterangan..."></textarea>
+                            </div>
+
+                            <div class="flex gap-3 pt-2">
+                                <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-red-600 text-white hover:bg-red-700 h-10 px-4 py-2 flex-1">
+                                    <i class="fas fa-save mr-2"></i>Simpan Poin Pelanggaran
+                                </button>
+                                <button type="button" onclick="resetViolationForm()" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
+                                    <i class="fas fa-redo mr-2"></i>Reset
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let achievementRules = [];
+        let violationRules = [];
+
+        // Tab Switching
+        function switchTab(tab) {
+            const achievementTab = document.getElementById('tab-achievement');
+            const violationTab = document.getElementById('tab-violation');
+            const achievementContent = document.getElementById('content-achievement');
+            const violationContent = document.getElementById('content-violation');
+            
+            if (tab === 'achievement') {
+                achievementTab.classList.add('bg-background', 'text-foreground', 'shadow-sm');
+                achievementTab.classList.remove('text-muted-foreground');
+                violationTab.classList.remove('bg-background', 'text-foreground', 'shadow-sm');
+                violationTab.classList.add('text-muted-foreground');
+                achievementContent.classList.remove('hidden');
+                violationContent.classList.add('hidden');
+            } else {
+                violationTab.classList.add('bg-background', 'text-foreground', 'shadow-sm');
+                violationTab.classList.remove('text-muted-foreground');
+                achievementTab.classList.remove('bg-background', 'text-foreground', 'shadow-sm');
+                achievementTab.classList.add('text-muted-foreground');
+                violationContent.classList.remove('hidden');
+                achievementContent.classList.add('hidden');
+            }
+        }
+
+        // Search Student
+        async function searchStudent(type) {
+            const query = document.getElementById(`search-student-${type}`).value.trim();
+            if (!query) {
+                alert('Masukkan NIS atau nama siswa');
+                return;
+            }
+
+            try {
+                const res = await fetch(`/admin/points/search-student?q=${encodeURIComponent(query)}`);
+                const data = await res.json();
+                
+                const resultDiv = document.getElementById(`student-result-${type}`);
+                if (data.length === 0) {
+                    resultDiv.innerHTML = `
+                        <div class="text-center py-8 text-muted-foreground">
+                            <i class="fas fa-user-slash text-4xl mb-3 opacity-30"></i>
+                            <p class="font-medium">Siswa tidak ditemukan</p>
+                            <p class="text-sm mt-1">Coba dengan NIS atau nama yang lain</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                resultDiv.innerHTML = data.map(s => `
+                    <div class="student-card rounded-lg border bg-card p-4 hover:bg-accent transition-all" onclick="selectStudent(${s.id}, '${s.name}', '${s.nis}', '${s.class_name}', '${type}')">
+                        <div class="flex items-center gap-4">
+                            <div class="h-12 w-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold text-lg shadow-sm">
+                                ${s.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div class="flex-1">
+                                <p class="font-medium text-foreground">${s.name}</p>
+                                <p class="text-sm text-muted-foreground flex items-center gap-2">
+                                    <i class="fas fa-id-card text-xs"></i>
+                                    NIS: ${s.nis} 
+                                    <span class="mx-1">•</span>
+                                    <i class="fas fa-graduation-cap text-xs"></i>
+                                    ${s.class_name}
+                                </p>
+                            </div>
+                            <i class="fas fa-arrow-right text-${type === 'achievement' ? 'emerald' : 'red'}-500"></i>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                alert('Gagal mencari siswa: ' + err.message);
+            }
+        }
+
+        function selectStudent(id, name, nis, className, type) {
+            const studentInfo = `
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold shadow-sm">
+                        ${name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                        <p class="font-medium text-foreground">${name}</p>
+                        <p class="text-xs text-muted-foreground">NIS: ${nis} • Kelas: ${className}</p>
+                    </div>
+                </div>
+            `;
+            
+            if (type === 'achievement') {
+                document.getElementById('achievement-student-id').value = id;
+                document.getElementById('achievement-student-info').innerHTML = studentInfo;
+                document.getElementById('achievement-form-container').classList.remove('hidden');
+                document.getElementById('achievement-form-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                document.getElementById('violation-student-id').value = id;
+                document.getElementById('violation-student-info').innerHTML = studentInfo;
+                document.getElementById('violation-form-container').classList.remove('hidden');
+                document.getElementById('violation-form-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        // Load Achievement Rules
+        async function loadAchievementRules() {
+            const category = document.getElementById('achievement-category').value;
+            if (!category) {
+                document.getElementById('achievement-rule-container').classList.add('hidden');
+                return;
+            }
+
+            try {
+                const res = await fetch(`/admin/v2/achievement-rules?category=${category}`);
+                achievementRules = await res.json();
+                
+                const select = document.getElementById('achievement-rule');
+                select.innerHTML = '<option value="">-- Pilih Jenis --</option>' + 
+                    achievementRules.map(r => `<option value="${r.id}">${r.name} (${r.points} poin)</option>`).join('');
+                
+                document.getElementById('achievement-rule-container').classList.remove('hidden');
+            } catch (err) {
+                alert('Gagal memuat rules: ' + err.message);
+            }
+        }
+
+        function fillAchievementPoints() {
+            const ruleId = document.getElementById('achievement-rule').value;
+            if (!ruleId) return;
+            
+            const rule = achievementRules.find(r => r.id == ruleId);
+            if (rule) {
+                document.getElementById('achievement-points').value = rule.points;
+                document.getElementById('achievement-description').value = rule.description || '';
+            }
+        }
+
+        // Load Violation Rules
+        async function loadViolationRules() {
+            const category = document.getElementById('violation-category').value;
+            if (!category) {
+                document.getElementById('violation-rule-container').classList.add('hidden');
+                document.getElementById('occurrence-container').classList.add('hidden');
+                return;
+            }
+
+            try {
+                const res = await fetch(`/admin/v2/violation-rules?category=${category}`);
+                violationRules = await res.json();
+                
+                const select = document.getElementById('violation-rule');
+                select.innerHTML = '<option value="">-- Pilih Jenis --</option>' + 
+                    violationRules.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+                
+                document.getElementById('violation-rule-container').classList.remove('hidden');
+            } catch (err) {
+                alert('Gagal memuat rules: ' + err.message);
+            }
+        }
+
+        function fillViolationPoints() {
+            const ruleId = document.getElementById('violation-rule').value;
+            const occurrence = document.getElementById('violation-occurrence').value;
+            
+            if (!ruleId) {
+                document.getElementById('occurrence-container').classList.add('hidden');
+                return;
+            }
+
+            document.getElementById('occurrence-container').classList.remove('hidden');
+            
+            const rule = violationRules.find(r => r.id == ruleId);
+            if (rule) {
+                let points = rule.points_1;
+                if (occurrence == 2) points = rule.points_2;
+                if (occurrence == 3) points = rule.points_3;
+                
+                document.getElementById('violation-points').value = points;
+                document.getElementById('violation-description').value = rule.description || '';
+            }
+        }
+
+        // Submit Achievement
+        document.getElementById('achievement-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            formData.append('student_id', document.getElementById('achievement-student-id').value);
+            formData.append('rule_id', document.getElementById('achievement-rule').value || '');
+            formData.append('points', document.getElementById('achievement-points').value);
+            formData.append('description', document.getElementById('achievement-description').value);
+            formData.append('recorded_by', 'Admin');
+
+            try {
+                const res = await fetch('/admin/v2/student/achievement', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    alert('Poin penghargaan berhasil dicatat: +' + data.points + ' poin');
+                    resetAchievementForm();
+                } else {
+                    alert('Gagal: ' + (data.error || 'Unknown error'));
+                }
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        });
+
+        // Submit Violation
+        document.getElementById('violation-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            formData.append('student_id', document.getElementById('violation-student-id').value);
+            formData.append('rule_id', document.getElementById('violation-rule').value);
+            formData.append('occurrence', document.getElementById('violation-occurrence').value);
+            formData.append('description', document.getElementById('violation-description').value);
+            formData.append('recorded_by', 'Admin');
+
+            try {
+                const res = await fetch('/admin/v2/student/violation', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    alert(`Poin pelanggaran berhasil dicatat: +${data.points} poin\nTotal Pelanggaran: ${data.total_violation} poin\nStatus: ${data.violation_level}`);
+                    resetViolationForm();
+                } else {
+                    alert('Gagal: ' + (data.error || 'Unknown error'));
+                }
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        });
+
+        function resetAchievementForm() {
+            document.getElementById('achievement-form').reset();
+            document.getElementById('achievement-student-id').value = '';
+            document.getElementById('achievement-form-container').classList.add('hidden');
+            document.getElementById('student-result-achievement').innerHTML = '';
+            document.getElementById('search-student-achievement').value = '';
+        }
+
+        function resetViolationForm() {
+            document.getElementById('violation-form').reset();
+            document.getElementById('violation-student-id').value = '';
+            document.getElementById('violation-form-container').classList.add('hidden');
+            document.getElementById('student-result-violation').innerHTML = '';
+            document.getElementById('search-student-violation').value = '';
+        }
+    </script>
+</body>
+</html>

@@ -319,6 +319,23 @@ func Register(e *echo.Echo, db *sql.DB, viewsFS embed.FS, app AppHandlers) {
 	admin.DELETE("/v2/violation/:id", handler.DeleteViolationPoint(db))
 	admin.GET("/v2/leaderboard", handler.GetDualPointLeaderboard(db))
 	admin.GET("/v2/class-summary", handler.GetClassDualPointSummary(db))
+	
+	// Dual-Track Point System Pages
+	admin.GET("/dual-point/dashboard", func(c echo.Context) error {
+		return c.Render(http.StatusOK, "admin_dual_point_dashboard.html", nil)
+	})
+	admin.GET("/dual-point/input", func(c echo.Context) error {
+		return c.Render(http.StatusOK, "admin_dual_point_input.html", nil)
+	})
+	admin.GET("/dual-point/leaderboard", func(c echo.Context) error {
+		return c.Render(http.StatusOK, "admin_dual_point_leaderboard.html", nil)
+	})
+	admin.GET("/dual-point/reports", func(c echo.Context) error {
+		return c.Render(http.StatusOK, "admin_dual_point_reports.html", nil)
+	})
+	admin.GET("/dual-point/student/:id", func(c echo.Context) error {
+		return c.Render(http.StatusOK, "admin_dual_point_student_detail.html", nil)
+	})
 
 	// === SARPRAS (ASSET MANAGEMENT) ROUTES ===
 	sarpras := admin.Group("/sarpras")

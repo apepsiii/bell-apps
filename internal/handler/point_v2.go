@@ -41,14 +41,28 @@ type ViolationRule struct {
 }
 
 type StudentDualPointProfile struct {
-	Student            StudentInfo              `json:"student"`
-	AcademicYear       string                   `json:"academic_year"`
-	AchievementPoints  int                      `json:"achievement_points"`
-	ViolationPoints    int                      `json:"violation_points"`
-	AchievementGrade   string                   `json:"achievement_grade"`
-	ViolationLevel     string                   `json:"violation_level"`
-	AchievementHistory []AchievementPointLog    `json:"achievement_history"`
-	ViolationHistory   []ViolationPointLog      `json:"violation_history"`
+	Student              StudentInfo              `json:"student"`
+	AcademicYear         string                   `json:"academic_year"`
+	AchievementPoints    int                      `json:"achievement_points"`
+	ViolationPoints      int                      `json:"violation_points"`
+	AchievementGrade     string                   `json:"achievement_grade"`
+	ViolationLevel       string                   `json:"violation_level"`
+	AchievementHistory   []AchievementPointLog    `json:"achievement_history"`
+	ViolationHistory     []ViolationPointLog      `json:"violation_history"`
+	AchievementBreakdown []CategoryBreakdown      `json:"achievement_breakdown"`
+	ViolationBreakdown   []CategoryBreakdown      `json:"violation_breakdown"`
+	ClassRank            int                      `json:"class_rank"`
+	TotalClassStudents   int                      `json:"total_class_students"`
+	NIS                  string                   `json:"nis"`
+	ClassName            string                   `json:"class_name"`
+	Status               string                   `json:"status"`
+	Name                 string                   `json:"name"`
+}
+
+type CategoryBreakdown struct {
+	Category string `json:"category"`
+	Points   int    `json:"points"`
+	Count    int    `json:"count"`
 }
 
 type AchievementPointLog struct {
@@ -190,14 +204,15 @@ func GetStudentDualPointProfile(db *sql.DB) echo.HandlerFunc {
 		}
 
 		var profile StudentDualPointProfile
-		var className, nis, photo sql.NullString
+		var className, nis, photo, status sql.NullString
+		var classID sql.NullInt64
 
 		err := db.QueryRow(`
-			SELECT s.id, s.name, COALESCE(s.nis,''), COALESCE(s.photo,''), COALESCE(c.name,'')
+			SELECT s.id, s.name, COALESCE(s.nis,''), COALESCE(s.photo,''), COALESCE(c.name,''), COALESCE(s.status,''), s.class_id
 			FROM students s
 			LEFT JOIN classes c ON s.class_id = c.id
 			WHERE s.id = ?
-		`, studentID).Scan(&profile.Student.ID, &profile.Student.Name, &nis, &photo, &className)
+		`, studentID).Scan(&profile.Student.ID, &profile.Student.Name, &nis, &photo, &className, &status, &classID)
 		if err != nil {
 			return c.JSON(http.StatusNotFound, map[string]string{"error": "Siswa tidak ditemukan"})
 		}
@@ -205,6 +220,10 @@ func GetStudentDualPointProfile(db *sql.DB) echo.HandlerFunc {
 		profile.Student.NIS = nis.String
 		profile.Student.Photo = photo.String
 		profile.AcademicYear = academicYear
+		profile.NIS = nis.String
+		profile.ClassName = className.String
+		profile.Status = status.String
+		profile.Name = profile.Student.Name
 
 		// Total achievement points
 		db.QueryRow(`
@@ -220,6 +239,74 @@ func GetStudentDualPointProfile(db *sql.DB) echo.HandlerFunc {
 
 		profile.AchievementGrade = getAchievementGrade(profile.AchievementPoints)
 		profile.ViolationLevel = getViolationLevel(profile.ViolationPoints)
+
+		// Achievement breakdown by category
+		aBreakdownRows, err := db.Query(`
+			SELECT COALESCE(ar.category, 'Lainnya') as category, 
+				SUM(sap.points) as total_points,
+				COUNT(*) as count
+			FROM student_achievement_points sap
+			LEFT JOIN achievement_rules ar ON sap.rule_id = ar.id
+			WHERE sap.student_id = ? AND sap.academic_year = ?
+			GROUP BY ar.category
+		`, studentID, academicYear)
+		if err == nil {
+			defer aBreakdownRows.Close()
+			for aBreakdownRows.Next() {
+				var b CategoryBreakdown
+				aBreakdownRows.Scan(&b.Category, &b.Points, &b.Count)
+				profile.AchievementBreakdown = append(profile.AchievementBreakdown, b)
+			}
+		}
+		if profile.AchievementBreakdown == nil {
+			profile.AchievementBreakdown = []CategoryBreakdown{}
+		}
+
+		// Violation breakdown by category
+		vBreakdownRows, err := db.Query(`
+			SELECT COALESCE(vr.category, 'Lainnya') as category, 
+				SUM(svp.points) as total_points,
+				COUNT(*) as count
+			FROM student_violation_points svp
+			LEFT JOIN violation_rules vr ON svp.rule_id = vr.id
+			WHERE svp.student_id = ? AND svp.academic_year = ?
+			GROUP BY vr.category
+		`, studentID, academicYear)
+		if err == nil {
+			defer vBreakdownRows.Close()
+			for vBreakdownRows.Next() {
+				var b CategoryBreakdown
+				vBreakdownRows.Scan(&b.Category, &b.Points, &b.Count)
+				profile.ViolationBreakdown = append(profile.ViolationBreakdown, b)
+			}
+		}
+		if profile.ViolationBreakdown == nil {
+			profile.ViolationBreakdown = []CategoryBreakdown{}
+		}
+
+		// Get class rank
+		if classID.Valid {
+			var rank int
+			err = db.QueryRow(`
+				SELECT COUNT(*) + 1
+				FROM (
+					SELECT s.id, COALESCE(SUM(sap.points), 0) as total_achievement
+					FROM students s
+					LEFT JOIN student_achievement_points sap ON s.id = sap.student_id AND sap.academic_year = ?
+					WHERE s.class_id = ? AND s.status = 'active'
+					GROUP BY s.id
+					HAVING total_achievement > ?
+				)
+			`, academicYear, classID.Int64, profile.AchievementPoints).Scan(&rank)
+			if err == nil {
+				profile.ClassRank = rank
+			}
+
+			// Get total students in class
+			db.QueryRow(`
+				SELECT COUNT(*) FROM students WHERE class_id = ? AND status = 'active'
+			`, classID.Int64).Scan(&profile.TotalClassStudents)
+		}
 
 		// Achievement history
 		aRows, err := db.Query(`
