@@ -276,7 +276,7 @@
                         </div>
                         <div>
                             <p class="text-xs font-semibold text-text-main">Cuaca tidak tersedia</p>
-                            <p class="text-[10px] text-text-muted">Gagal memuat data cuaca</p>
+                            <p id="weatherErrorMsg" class="text-[10px] text-text-muted">Gagal memuat data cuaca</p>
                         </div>
                         <button onclick="loadWeather()" class="ml-auto text-xs font-semibold text-brand-blue">Coba lagi</button>
                     </div>
@@ -826,6 +826,8 @@ async function loadWeather() {
             fetch('/api/weather/forecast')
         ]);
 
+        if (currentRes.status === 503) throw new Error('not_configured');
+        if (currentRes.status === 401) throw new Error('401');
         if (!currentRes.ok) throw new Error('API error');
 
         const current = await currentRes.json();
@@ -888,6 +890,14 @@ async function loadWeather() {
         console.error('Weather error:', e);
         document.getElementById('weatherLoading').classList.add('hidden');
         document.getElementById('weatherError').classList.remove('hidden');
+        const errMsg = document.getElementById('weatherErrorMsg');
+        if (e.message && e.message.includes('401')) {
+            errMsg.textContent = 'API key belum aktif, coba lagi dalam beberapa jam';
+        } else if (!navigator.onLine) {
+            errMsg.textContent = 'Tidak ada koneksi internet';
+        } else {
+            errMsg.textContent = 'Gagal memuat data cuaca';
+        }
     }
 }
 
