@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manajemen Rules Point - SMK NIBA Super Apps</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        .tab-active { border-bottom: 3px solid #667eea; color: #667eea; font-weight: 600; }
+        .badge { padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: 600; }
+        .badge-success { background: #d1fae5; color: #065f46; }
+        .badge-danger { background: #fee2e2; color: #991b1b; }
+        .modal { transition: opacity 0.3s ease; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="glass-card p-6 mb-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-bold text-gray-800">
+                        <i class="fas fa-cog mr-2"></i>Manajemen Rules Point
+                    </h1>
+                    <p class="text-gray-600 mt-1">Kelola butir-butir poin penghargaan dan pelanggaran</p>
+                </div>
+                <div class="flex gap-2">
+                    <a href="/admin/dual-point/dashboard" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition">
+                        <i class="fas fa-arrow-left mr-1"></i> Kembali
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="glass-card mb-6">
+            <div class="border-b border-gray-200">
+                <nav class="flex">
+                    <button id="tab-achievement" onclick="switchTab('achievement')" 
+                        class="px-6 py-4 text-gray-600 hover:text-gray-900 tab-active">
+                        <i class="fas fa-star mr-2"></i>Penghargaan
+                    </button>
+                    <button id="tab-violation" onclick="switchTab('violation')" 
+                        class="px-6 py-4 text-gray-600 hover:text-gray-900">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>Pelanggaran
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="p-4 border-b border-gray-200 bg-gray-50">
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="openAddModal()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition">
+                        <i class="fas fa-plus mr-1"></i> Tambah Rule
+                    </button>
+                    <button onclick="exportRules()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition">
+                        <i class="fas fa-download mr-1"></i> Export CSV
+                    </button>
+                    <label class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition cursor-pointer">
+                        <i class="fas fa-upload mr-1"></i> Import CSV
+                        <input type="file" accept=".csv" onchange="importRules(event)" class="hidden">
+                    </label>
+                    <button onclick="downloadTemplate()" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition">
+                        <i class="fas fa-file-csv mr-1"></i> Template
+                    </button>
+                </div>
+            </div>
+
+            <!-- Achievement Rules Table -->
+            <div id="achievement-content" class="p-4">
+                <div class="overflow-x-auto">
+                    <table class="w-full" id="achievement-table">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Kode</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Kategori</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Nama</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Poin</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Range</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
+                                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="achievement-body" class="divide-y divide-gray-200">
+                            <!-- Data will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Violation Rules Table -->
+            <div id="violation-content" class="p-4 hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full" id="violation-table">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Kode</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Kategori</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Nama</th>
+                                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Poin 1</th>
+                                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Poin 2</th>
+                                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Poin 3</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
+                                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="violation-body" class="divide-y divide-gray-200">
+                            <!-- Data will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="glass-card p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-green-100 rounded-lg">
+                        <i class="fas fa-star text-green-600 text-2xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-600">Total Rules Penghargaan</p>
+                        <p id="achievement-count" class="text-2xl font-bold text-gray-800">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="glass-card p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-red-100 rounded-lg">
+                        <i class="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-600">Total Rules Pelanggaran</p>
+                        <p id="violation-count" class="text-2xl font-bold text-gray-800">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Add/Edit Achievement -->
+    <div id="modal-achievement" class="modal fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-lg mx-4 max-h-screen overflow-y-auto">
+            <h2 id="modal-achievement-title" class="text-xl font-bold mb-4">Tambah Rule Penghargaan</h2>
+            <form id="form-achievement" onsubmit="saveAchievementRule(event)">
+                <input type="hidden" id="achievement-id">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Kode Rule *</label>
+                        <input type="text" id="achievement-code" required 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" 
+                            placeholder="Contoh: R1">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Kategori *</label>
+                            <input type="text" id="achievement-category" required 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" 
+                                placeholder="Contoh: Akademik">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Kode Kategori *</label>
+                            <input type="text" id="achievement-category-code" required 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" 
+                                placeholder="Contoh: AKD">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nama Butir *</label>
+                        <input type="text" id="achievement-name" required 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" 
+                            placeholder="Contoh: Juara 1 Lomba Akademik">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Deskripsi</label>
+                        <textarea id="achievement-description" rows="2"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Poin *</label>
+                        <input type="number" id="achievement-points" required min="0"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Poin Minimal</label>
+                            <input type="number" id="achievement-min-points" min="0"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Poin Maksimal</label>
+                            <input type="number" id="achievement-max-points" min="0"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2 mt-6">
+                    <button type="button" onclick="closeModal('achievement')" 
+                        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition">
+                        Batal
+                    </button>
+                    <button type="submit" 
+                        class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition">
+                        Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Add/Edit Violation -->
+    <div id="modal-violation" class="modal fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-lg mx-4 max-h-screen overflow-y-auto">
+            <h2 id="modal-violation-title" class="text-xl font-bold mb-4">Tambah Rule Pelanggaran</h2>
+            <form id="form-violation" onsubmit="saveViolationRule(event)">
+                <input type="hidden" id="violation-id">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Kode Rule *</label>
+                        <input type="text" id="violation-code" required 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500" 
+                            placeholder="Contoh: P1">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Kategori *</label>
+                            <input type="text" id="violation-category" required 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500" 
+                                placeholder="Contoh: Kedisiplinan">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Kode Kategori *</label>
+                            <input type="text" id="violation-category-code" required 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500" 
+                                placeholder="Contoh: DIS">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nama Butir *</label>
+                        <input type="text" id="violation-name" required 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500" 
+                            placeholder="Contoh: Terlambat datang ke sekolah">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Deskripsi</label>
+                        <textarea id="violation-description" rows="2"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"></textarea>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Poin Ke-1 *</label>
+                            <input type="number" id="violation-points-1" required min="0"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Poin Ke-2</label>
+                            <input type="number" id="violation-points-2" min="0"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Poin Ke-3</label>
+                            <input type="number" id="violation-points-3" min="0"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500">
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-500">* Poin bertingkat untuk pelanggaran berulang</p>
+                </div>
+                <div class="flex justify-end gap-2 mt-6">
+                    <button type="button" onclick="closeModal('violation')" 
+                        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition">
+                        Batal
+                    </button>
+                    <button type="submit" 
+                        class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">
+                        Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentTab = 'achievement';
+
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAchievementRules();
+            loadViolationRules();
+        });
+
+        // Switch tabs
+        function switchTab(tab) {
+            currentTab = tab;
+            document.getElementById('tab-achievement').classList.remove('tab-active');
+            document.getElementById('tab-violation').classList.remove('tab-active');
+            document.getElementById('achievement-content').classList.add('hidden');
+            document.getElementById('violation-content').classList.add('hidden');
+
+            if (tab === 'achievement') {
+                document.getElementById('tab-achievement').classList.add('tab-active');
+                document.getElementById('achievement-content').classList.remove('hidden');
+            } else {
+                document.getElementById('tab-violation').classList.add('tab-active');
+                document.getElementById('violation-content').classList.remove('hidden');
+            }
+        }
+
+        // Load Achievement Rules
+        async function loadAchievementRules() {
+            try {
+                const response = await fetch('/admin/v2/achievement-rules');
+                const data = await response.json();
+                
+                const tbody = document.getElementById('achievement-body');
+                tbody.innerHTML = '';
+
+                data.forEach(rule => {
+                    const range = rule.max_points > 0 ? `${rule.min_points} - ${rule.max_points}` : rule.points;
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 font-mono font-semibold">${rule.code}</td>
+                            <td class="px-4 py-3">
+                                <span class="text-sm">${rule.category}</span>
+                                <span class="text-xs text-gray-500 ml-1">(${rule.category_code})</span>
+                            </td>
+                            <td class="px-4 py-3">${rule.name}</td>
+                            <td class="px-4 py-3 font-semibold text-green-600">${rule.points}</td>
+                            <td class="px-4 py-3 text-gray-600">${range}</td>
+                            <td class="px-4 py-3">
+                                <span class="badge ${rule.is_active ? 'badge-success' : 'badge-danger'}">
+                                    ${rule.is_active ? 'Aktif' : 'Nonaktif'}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                <button onclick="editAchievementRule(${rule.id})" class="text-blue-600 hover:text-blue-800 mr-2">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="toggleAchievementStatus(${rule.id})" class="text-yellow-600 hover:text-yellow-800 mr-2">
+                                    <i class="fas fa-power-off"></i>
+                                </button>
+                                <button onclick="deleteAchievementRule(${rule.id})" class="text-red-600 hover:text-red-800">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                document.getElementById('achievement-count').textContent = data.length;
+            } catch (error) {
+                console.error('Error loading achievement rules:', error);
+            }
+        }
+
+        // Load Violation Rules
+        async function loadViolationRules() {
+            try {
+                const response = await fetch('/admin/v2/violation-rules');
+                const data = await response.json();
+                
+                const tbody = document.getElementById('violation-body');
+                tbody.innerHTML = '';
+
+                data.forEach(rule => {
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 font-mono font-semibold">${rule.code}</td>
+                            <td class="px-4 py-3">
+                                <span class="text-sm">${rule.category}</span>
+                                <span class="text-xs text-gray-500 ml-1">(${rule.category_code})</span>
+                            </td>
+                            <td class="px-4 py-3">${rule.name}</td>
+                            <td class="px-4 py-3 text-center font-semibold text-red-600">${rule.points_1}</td>
+                            <td class="px-4 py-3 text-center font-semibold text-red-600">${rule.points_2}</td>
+                            <td class="px-4 py-3 text-center font-semibold text-red-600">${rule.points_3}</td>
+                            <td class="px-4 py-3">
+                                <span class="badge ${rule.is_active ? 'badge-success' : 'badge-danger'}">
+                                    ${rule.is_active ? 'Aktif' : 'Nonaktif'}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                <button onclick="editViolationRule(${rule.id})" class="text-blue-600 hover:text-blue-800 mr-2">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="toggleViolationStatus(${rule.id})" class="text-yellow-600 hover:text-yellow-800 mr-2">
+                                    <i class="fas fa-power-off"></i>
+                                </button>
+                                <button onclick="deleteViolationRule(${rule.id})" class="text-red-600 hover:text-red-800">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                document.getElementById('violation-count').textContent = data.length;
+            } catch (error) {
+                console.error('Error loading violation rules:', error);
+            }
+        }
+
+        // Open Add Modal
+        function openAddModal() {
+            if (currentTab === 'achievement') {
+                document.getElementById('form-achievement').reset();
+                document.getElementById('achievement-id').value = '';
+                document.getElementById('modal-achievement-title').textContent = 'Tambah Rule Penghargaan';
+                document.getElementById('modal-achievement').classList.remove('hidden');
+            } else {
+                document.getElementById('form-violation').reset();
+                document.getElementById('violation-id').value = '';
+                document.getElementById('modal-violation-title').textContent = 'Tambah Rule Pelanggaran';
+                document.getElementById('modal-violation').classList.remove('hidden');
+            }
+        }
+
+        // Close Modal
+        function closeModal(type) {
+            document.getElementById(`modal-${type}`).classList.add('hidden');
+        }
+
+        // Save Achievement Rule
+        async function saveAchievementRule(event) {
+            event.preventDefault();
+            
+            const id = document.getElementById('achievement-id').value;
+            const formData = new FormData();
+            formData.append('code', document.getElementById('achievement-code').value);
+            formData.append('category', document.getElementById('achievement-category').value);
+            formData.append('category_code', document.getElementById('achievement-category-code').value);
+            formData.append('name', document.getElementById('achievement-name').value);
+            formData.append('description', document.getElementById('achievement-description').value);
+            formData.append('points', document.getElementById('achievement-points').value);
+            formData.append('min_points', document.getElementById('achievement-min-points').value);
+            formData.append('max_points', document.getElementById('achievement-max-points').value);
+
+            try {
+                const url = id ? `/admin/v2/achievement-rule/update/${id}` : '/admin/v2/achievement-rule/add';
+                const response = await fetch(url, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert(result.message);
+                    closeModal('achievement');
+                    loadAchievementRules();
+                } else {
+                    alert(result.error);
+                }
+            } catch (error) {
+                alert('Gagal menyimpan rule: ' + error.message);
+            }
+        }
+
+        // Save Violation Rule
+        async function saveViolationRule(event) {
+            event.preventDefault();
+            
+            const id = document.getElementById('violation-id').value;
+            const formData = new FormData();
+            formData.append('code', document.getElementById('violation-code').value);
+            formData.append('category', document.getElementById('violation-category').value);
+            formData.append('category_code', document.getElementById('violation-category-code').value);
+            formData.append('name', document.getElementById('violation-name').value);
+            formData.append('description', document.getElementById('violation-description').value);
+            formData.append('points_1', document.getElementById('violation-points-1').value);
+            formData.append('points_2', document.getElementById('violation-points-2').value);
+            formData.append('points_3', document.getElementById('violation-points-3').value);
+
+            try {
+                const url = id ? `/admin/v2/violation-rule/update/${id}` : '/admin/v2/violation-rule/add';
+                const response = await fetch(url, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert(result.message);
+                    closeModal('violation');
+                    loadViolationRules();
+                } else {
+                    alert(result.error);
+                }
+            } catch (error) {
+                alert('Gagal menyimpan rule: ' + error.message);
+            }
+        }
+
+        // Edit Achievement Rule
+        async function editAchievementRule(id) {
+            try {
+                const response = await fetch('/admin/v2/achievement-rules');
+                const rules = await response.json();
+                const rule = rules.find(r => r.id === id);
+
+                if (rule) {
+                    document.getElementById('achievement-id').value = rule.id;
+                    document.getElementById('achievement-code').value = rule.code;
+                    document.getElementById('achievement-category').value = rule.category;
+                    document.getElementById('achievement-category-code').value = rule.category_code;
+                    document.getElementById('achievement-name').value = rule.name;
+                    document.getElementById('achievement-description').value = rule.description || '';
+                    document.getElementById('achievement-points').value = rule.points;
+                    document.getElementById('achievement-min-points').value = rule.min_points || '';
+                    document.getElementById('achievement-max-points').value = rule.max_points || '';
+                    
+                    document.getElementById('modal-achievement-title').textContent = 'Edit Rule Penghargaan';
+                    document.getElementById('modal-achievement').classList.remove('hidden');
+                }
+            } catch (error) {
+                alert('Gagal memuat data rule');
+            }
+        }
+
+        // Edit Violation Rule
+        async function editViolationRule(id) {
+            try {
+                const response = await fetch('/admin/v2/violation-rules');
+                const rules = await response.json();
+                const rule = rules.find(r => r.id === id);
+
+                if (rule) {
+                    document.getElementById('violation-id').value = rule.id;
+                    document.getElementById('violation-code').value = rule.code;
+                    document.getElementById('violation-category').value = rule.category;
+                    document.getElementById('violation-category-code').value = rule.category_code;
+                    document.getElementById('violation-name').value = rule.name;
+                    document.getElementById('violation-description').value = rule.description || '';
+                    document.getElementById('violation-points-1').value = rule.points_1;
+                    document.getElementById('violation-points-2').value = rule.points_2 || '';
+                    document.getElementById('violation-points-3').value = rule.points_3 || '';
+                    
+                    document.getElementById('modal-violation-title').textContent = 'Edit Rule Pelanggaran';
+                    document.getElementById('modal-violation').classList.remove('hidden');
+                }
+            } catch (error) {
+                alert('Gagal memuat data rule');
+            }
+        }
+
+        // Toggle Achievement Status
+        async function toggleAchievementStatus(id) {
+            if (!confirm('Yakin ingin mengubah status rule ini?')) return;
+
+            try {
+                const response = await fetch(`/admin/v2/achievement-rule/toggle/${id}`, { method: 'POST' });
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert(result.message);
+                    loadAchievementRules();
+                } else {
+                    alert(result.error);
+                }
+            } catch (error) {
+                alert('Gagal mengubah status');
+            }
+        }
+
+        // Toggle Violation Status
+        async function toggleViolationStatus(id) {
+            if (!confirm('Yakin ingin mengubah status rule ini?')) return;
+
+            try {
+                const response = await fetch(`/admin/v2/violation-rule/toggle/${id}`, { method: 'POST' });
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert(result.message);
+                    loadViolationRules();
+                } else {
+                    alert(result.error);
+                }
+            } catch (error) {
+                alert('Gagal mengubah status');
+            }
+        }
+
+        // Delete Achievement Rule
+        async function deleteAchievementRule(id) {
+            if (!confirm('Yakin ingin menghapus rule ini?')) return;
+
+            try {
+                const response = await fetch(`/admin/v2/achievement-rule/${id}`, { method: 'DELETE' });
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert(result.message);
+                    loadAchievementRules();
+                } else {
+                    alert(result.error);
+                }
+            } catch (error) {
+                alert('Gagal menghapus rule');
+            }
+        }
+
+        // Delete Violation Rule
+        async function deleteViolationRule(id) {
+            if (!confirm('Yakin ingin menghapus rule ini?')) return;
+
+            try {
+                const response = await fetch(`/admin/v2/violation-rule/${id}`, { method: 'DELETE' });
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert(result.message);
+                    loadViolationRules();
+                } else {
+                    alert(result.error);
+                }
+            } catch (error) {
+                alert('Gagal menghapus rule');
+            }
+        }
+
+        // Export Rules
+        function exportRules() {
+            if (currentTab === 'achievement') {
+                window.location.href = '/admin/v2/achievement-rules/export';
+            } else {
+                window.location.href = '/admin/v2/violation-rules/export';
+            }
+        }
+
+        // Import Rules
+        async function importRules(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const url = currentTab === 'achievement' 
+                    ? '/admin/v2/achievement-rules/import' 
+                    : '/admin/v2/violation-rules/import';
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert(result.message);
+                    if (result.details && result.details.length > 0) {
+                        console.log('Import errors:', result.details);
+                    }
+                    if (currentTab === 'achievement') {
+                        loadAchievementRules();
+                    } else {
+                        loadViolationRules();
+                    }
+                } else {
+                    alert(result.error);
+                }
+            } catch (error) {
+                alert('Gagal import: ' + error.message);
+            }
+
+            event.target.value = '';
+        }
+
+        // Download Template
+        function downloadTemplate() {
+            let csv = '';
+            if (currentTab === 'achievement') {
+                csv = 'Kode,Kategori,Kode Kategori,Nama,Deskripsi,Poin,Poin Min,Poin Max,Aktif\n';
+                csv += 'R1,Akademik,AKD,Juara 1 Lomba Akademik, Juara 1 lomba akademik tingkat kabupaten,50,0,0,Ya\n';
+                csv += 'R2,Akademik,AKD,Juara 2 Lomba Akademik, Juara 2 lomba akademik tingkat kabupaten,40,0,0,Ya\n';
+            } else {
+                csv = 'Kode,Kategori,Kode Kategori,Nama,Deskripsi,Poin Ke-1,Poin Ke-2,Poin Ke-3,Aktif\n';
+                csv += 'P1,Kedisiplinan,DIS,Terlambat datang ke sekolah,Terlambat datang ke sekolah tanpa keterangan,5,10,15,Ya\n';
+                csv += 'P2,Kedisiplinan,DIS,Tidak memakai seragam,Tidak memakai seragam lengkap,3,5,10,Ya\n';
+            }
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = currentTab === 'achievement' ? 'template_achievement_rules.csv' : 'template_violation_rules.csv';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>

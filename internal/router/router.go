@@ -313,6 +313,18 @@ func Register(e *echo.Echo, db *sql.DB, viewsFS embed.FS, app AppHandlers) {
 	// === DUAL-TRACK POINT SYSTEM V2 ===
 	admin.GET("/v2/achievement-rules", handler.GetAchievementRules(db))
 	admin.GET("/v2/violation-rules", handler.GetViolationRules(db))
+	admin.POST("/v2/achievement-rule/add", handler.AddAchievementRule(db))
+	admin.POST("/v2/achievement-rule/update/:id", handler.UpdateAchievementRule(db))
+	admin.DELETE("/v2/achievement-rule/:id", handler.DeleteAchievementRule(db))
+	admin.POST("/v2/achievement-rule/toggle/:id", handler.ToggleAchievementRuleStatus(db))
+	admin.POST("/v2/violation-rule/add", handler.AddViolationRule(db))
+	admin.POST("/v2/violation-rule/update/:id", handler.UpdateViolationRule(db))
+	admin.DELETE("/v2/violation-rule/:id", handler.DeleteViolationRule(db))
+	admin.POST("/v2/violation-rule/toggle/:id", handler.ToggleViolationRuleStatus(db))
+	admin.GET("/v2/achievement-rules/export", handler.ExportAchievementRules(db))
+	admin.POST("/v2/achievement-rules/import", handler.ImportAchievementRules(db))
+	admin.GET("/v2/violation-rules/export", handler.ExportViolationRules(db))
+	admin.POST("/v2/violation-rules/import", handler.ImportViolationRules(db))
 	admin.GET("/v2/student/:id/points", handler.GetStudentDualPointProfile(db))
 	admin.POST("/v2/student/achievement", handler.AddAchievementPoint(db))
 	admin.POST("/v2/student/violation", handler.AddViolationPoint(db))
@@ -336,6 +348,9 @@ func Register(e *echo.Echo, db *sql.DB, viewsFS embed.FS, app AppHandlers) {
 	})
 	admin.GET("/dual-point/student/:id", func(c echo.Context) error {
 		return c.Render(http.StatusOK, "admin_dual_point_student_detail.html", nil)
+	})
+	admin.GET("/dual-point/rules", func(c echo.Context) error {
+		return c.Render(http.StatusOK, "admin_dual_point_rules.html", nil)
 	})
 
 	// === SARPRAS (ASSET MANAGEMENT) ROUTES ===
