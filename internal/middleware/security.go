@@ -15,11 +15,11 @@ func SecurityHeaders() echo.MiddlewareFunc {
 		return func(c echo.Context) error {
 			// Content Security Policy - restrict resource loading
 			csp := "default-src 'self'; " +
-				"script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com; " +
-				"style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; " +
+				"script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://cdn.tailwindcss.com; " +
+				"style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://cdn.tailwindcss.com; " +
 				"font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; " +
 				"img-src 'self' data: https:; " +
-				"connect-src 'self' https://api.openweathermap.org; " +
+				"connect-src 'self' https://api.openweathermap.org https://cdn.jsdelivr.net https://unpkg.com; " +
 				"frame-ancestors 'none'; " +
 				"base-uri 'self'; " +
 				"form-action 'self'"
