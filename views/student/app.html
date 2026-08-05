@@ -127,38 +127,28 @@
                 <!-- Points Card (Glassmorphism) -->
                 <div class="glass rounded-3xl p-5">
                     <div class="flex items-center justify-between">
-                        <div>
+                        <div class="flex-1">
                             <p class="text-xs text-white/80 font-medium mb-1 flex items-center gap-1">
-                                <i class="ph-fill ph-coins text-sm"></i> Total Poin Kamu
+                                <i class="ph-fill ph-star text-sm"></i> Skor Terpadu
                             </p>
                             <div class="flex items-baseline gap-2">
                                 <h3 class="text-3xl font-bold text-white tracking-tight" id="balanceAmount">--</h3>
                                 <span class="text-sm font-semibold text-white/80">Pts</span>
                             </div>
+                            <div class="flex items-center gap-3 mt-2">
+                                <span class="text-xs text-white/70 flex items-center gap-1">
+                                    <i class="ph-fill ph-calendar-check text-xs"></i>
+                                    Hadir: <span id="homeAttendancePoints" class="font-bold text-white/90">--</span>
+                                </span>
+                                <span class="text-xs text-white/70 flex items-center gap-1">
+                                    <i class="ph-fill ph-trophy text-xs"></i>
+                                    Panca: <span id="homePancaPoints" class="font-bold text-white/90">--</span>
+                                </span>
+                            </div>
                         </div>
                         <button onclick="toggleBalance()" class="w-10 h-10 rounded-2xl bg-white/15 flex items-center justify-center btn-soft hover:bg-white/25 transition-colors">
                             <i class="ph ph-eye text-lg text-white" id="balanceEyeIcon"></i>
                         </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Announcement Banner Slider (Floating Card) -->
-            <div class="px-5 -mt-6 relative z-20">
-                <div class="relative overflow-hidden rounded-3xl shadow-float">
-                    <div id="bannerSlider" class="flex transition-transform duration-500 ease-out">
-                        <div class="min-w-full bg-gradient-to-br from-purple-500 via-pink-500 to-rose-500 p-6 rounded-3xl text-white">
-                            <div class="flex items-center gap-2 mb-2">
-                                <i class="ph-fill ph-megaphone text-xl"></i>
-                                <span class="text-xs font-semibold uppercase tracking-wider opacity-90">Pengumuman</span>
-                            </div>
-                            <h3 class="font-bold text-lg mb-1">Memuat Pengumuman...</h3>
-                            <p class="text-sm opacity-90">Mohon tunggu sebentar</p>
-                        </div>
-                    </div>
-                    <!-- Slider Indicators -->
-                    <div id="sliderIndicators" class="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
-                        <div class="w-1.5 h-1.5 rounded-full bg-white/60"></div>
                     </div>
                 </div>
             </div>
@@ -460,34 +450,159 @@
                         <p class="text-xs opacity-80 mt-0.5">Kumpulkan poinmu</p>
                     </div>
                 </div>
-                
-                <!-- Point Balance Card (Glassmorphism) -->
-                <div class="glass rounded-3xl p-5">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-xs text-white/80 font-medium mb-1 flex items-center gap-1">
-                                <i class="ph-fill ph-coins text-sm"></i> Total Poin Kamu
-                            </p>
-                            <div class="flex items-baseline gap-2">
-                                <h3 class="text-3xl font-bold text-white tracking-tight" id="poinBalance">--</h3>
-                                <span class="text-sm font-semibold text-white/80">Pts</span>
+
+                <!-- Dua kartu poin -->
+                <div class="grid grid-cols-2 gap-3">
+                    <!-- Poin Kehadiran -->
+                    <div class="glass rounded-3xl p-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <div class="w-8 h-8 rounded-2xl bg-blue-400/30 flex items-center justify-center">
+                                <i class="ph-fill ph-calendar-check text-sm text-blue-100"></i>
                             </div>
+                            <p class="text-xs text-white/80 font-medium">Kehadiran</p>
                         </div>
-                        <div class="w-14 h-14 rounded-3xl bg-yellow-400/20 backdrop-blur-sm flex items-center justify-center border border-white/20">
-                            <i class="ph-fill ph-trophy text-2xl text-yellow-300"></i>
+                        <div class="flex items-baseline gap-1">
+                            <h3 class="text-2xl font-bold text-white tracking-tight" id="poinBalance">--</h3>
+                            <span class="text-xs font-semibold text-white/70">Pts</span>
+                        </div>
+                        <p class="text-xs text-white/60 mt-1">RFID + English XP</p>
+                    </div>
+                    <!-- Poin Pancawaluya -->
+                    <div class="glass rounded-3xl p-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <div class="w-8 h-8 rounded-2xl bg-amber-400/30 flex items-center justify-center">
+                                <i class="ph-fill ph-star text-sm text-amber-100"></i>
+                            </div>
+                            <p class="text-xs text-white/80 font-medium">Pancawaluya</p>
+                        </div>
+                        <div class="flex items-baseline gap-1">
+                            <h3 class="text-2xl font-bold text-white tracking-tight" id="poinPancawaluya">--</h3>
+                            <span class="text-xs font-semibold text-white/70">Pts</span>
+                        </div>
+                        <p class="text-xs text-white/60 mt-1" id="poinTahunAjaran"></p>
+                    </div>
+                </div>
+
+                <!-- Pelanggaran badge jika ada -->
+                <div id="violationBadge" class="hidden mt-3 bg-red-500/20 border border-red-400/30 rounded-2xl px-4 py-2 flex items-center gap-2">
+                    <i class="ph-fill ph-warning text-red-300 text-sm"></i>
+                    <p class="text-xs text-red-100">Poin pelanggaran: <span id="poinViolation" class="font-bold">0</span></p>
+                </div>
+            </div>
+
+            <div class="px-5 content-card-overlap">
+                <!-- Tab switcher -->
+                <div class="soft-card p-1 mb-4 flex rounded-2xl gap-1">
+                    <button id="tab-attendance-btn" onclick="switchPoinTab('attendance')" class="flex-1 py-2 rounded-xl text-xs font-bold transition-all bg-brand-blue text-white shadow">
+                        <i class="ph ph-calendar-check mr-1"></i>Hadir
+                    </button>
+                    <button id="tab-panca-btn" onclick="switchPoinTab('panca')" class="flex-1 py-2 rounded-xl text-xs font-bold transition-all text-text-muted">
+                        <i class="ph ph-star mr-1"></i>Panca
+                    </button>
+                    <button id="tab-claim-btn" onclick="switchPoinTab('claim')" class="flex-1 py-2 rounded-xl text-xs font-bold transition-all text-text-muted">
+                        <i class="ph ph-paper-plane-tilt mr-1"></i>Klaim
+                    </button>
+                </div>
+
+                <!-- Riwayat Kehadiran -->
+                <div id="poin-tab-attendance" class="soft-card p-5 mb-8">
+                    <h3 class="font-bold text-sm text-text-main mb-4 flex items-center gap-2">
+                        <i class="ph-fill ph-clock-countdown text-brand-blue"></i>
+                        Riwayat Kehadiran
+                    </h3>
+                    <div id="poinHistoryList" class="flex flex-col gap-3">
+                        <div class="text-center py-6 text-sm text-text-muted">Memuat riwayat...</div>
+                    </div>
+                </div>
+
+                <!-- Riwayat Pancawaluya -->
+                <div id="poin-tab-panca" class="hidden soft-card p-5 mb-8">
+                    <h3 class="font-bold text-sm text-text-main mb-4 flex items-center gap-2">
+                        <i class="ph-fill ph-star text-amber-500"></i>
+                        Riwayat Pancawaluya
+                    </h3>
+                    <div id="poinPancaHistoryList" class="flex flex-col gap-3">
+                        <div class="text-center py-6 text-sm text-text-muted">Memuat riwayat...</div>
+                    </div>
+                </div>
+
+                <!-- Tab Klaim Poin -->
+                <div id="poin-tab-claim" class="hidden mb-8">
+                    <!-- Form Submit Klaim -->
+                    <div class="soft-card p-5 mb-4">
+                        <h3 class="font-bold text-sm text-text-main mb-4 flex items-center gap-2">
+                            <i class="ph-fill ph-paper-plane-tilt text-purple-500"></i>
+                            Ajukan Klaim Poin
+                        </h3>
+                        <form id="claimForm" class="flex flex-col gap-3">
+                            <div>
+                                <label class="text-xs text-text-muted mb-1 block">Jenis Kegiatan</label>
+                                <select id="claimRuleSelect" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" required>
+                                    <option value="">Pilih jenis kegiatan...</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-xs text-text-muted mb-1 block">Deskripsi Kegiatan</label>
+                                <textarea id="claimDescription" rows="3" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none" placeholder="Ceritakan kegiatan yang kamu lakukan..." required></textarea>
+                            </div>
+                            <div>
+                                <label class="text-xs text-text-muted mb-1 block">Foto Dokumentasi</label>
+                                <div id="claimEvidencePreview" class="hidden mb-2">
+                                    <img id="claimEvidenceImg" src="" class="w-full h-40 object-cover rounded-xl border border-gray-200">
+                                </div>
+                                <div class="flex gap-2">
+                                    <label class="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-text-muted cursor-pointer hover:bg-gray-100 transition">
+                                        <i class="ph ph-upload text-base"></i> Upload Foto
+                                        <input type="file" id="claimEvidenceFile" accept="image/*" class="hidden" onchange="previewClaimEvidence(event)">
+                                    </label>
+                                    <button type="button" onclick="captureClaimEvidence()" class="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-text-muted hover:bg-gray-100 transition">
+                                        <i class="ph ph-camera text-base"></i> Kamera
+                                    </button>
+                                </div>
+                                <input type="text" id="claimCaption" class="w-full mt-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Keterangan foto (opsional)">
+                            </div>
+                            <div id="claimFormMsg" class="hidden text-xs px-3 py-2 rounded-xl"></div>
+                            <button type="submit" id="claimSubmitBtn" class="w-full bg-purple-600 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-purple-700 transition active:scale-[0.98]">
+                                <span id="claimSubmitText">Ajukan Klaim</span>
+                                <span id="claimSubmitSpinner" class="hidden"><svg class="animate-spin h-4 w-4 mx-auto" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg></span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Riwayat Klaim -->
+                    <div class="soft-card p-5 mb-8">
+                        <h3 class="font-bold text-sm text-text-main mb-4 flex items-center gap-2">
+                            <i class="ph-fill ph-clock-countdown text-purple-500"></i>
+                            Riwayat Klaim
+                        </h3>
+                        <div id="claimHistoryList" class="flex flex-col gap-3">
+                            <div class="text-center py-6 text-sm text-text-muted">Memuat...</div>
                         </div>
                     </div>
                 </div>
             </div>
-            
-            <div class="px-5 content-card-overlap">
-                <!-- Point History -->
-                <div class="soft-card p-5 mb-8">
+
+            <!-- Camera modal for claim evidence -->
+            <div id="claimCameraModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+                <div class="bg-white rounded-2xl p-4 w-full max-w-sm mx-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="font-bold text-sm">Ambil Foto Dokumentasi</span>
+                        <button onclick="closeCameraModal()" class="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center"><i class="ph ph-x text-xs"></i></button>
+                    </div>
+                    <video id="claimCameraVideo" autoplay playsinline class="w-full rounded-xl mb-3 bg-black" style="height:240px;object-fit:cover;"></video>
+                    <button onclick="captureFromCamera()" class="w-full bg-purple-600 text-white py-2.5 rounded-xl text-sm font-bold">Ambil Foto</button>
+                    <canvas id="claimCameraCanvas" class="hidden"></canvas>
+                </div>
+            </div>
+        </div>
+
+                <!-- Riwayat Pancawaluya -->
+                <div id="poin-tab-panca" class="hidden soft-card p-5 mb-8">
                     <h3 class="font-bold text-sm text-text-main mb-4 flex items-center gap-2">
-                        <i class="ph-fill ph-clock-countdown text-brand-blue"></i>
-                        Riwayat Poin
+                        <i class="ph-fill ph-star text-amber-500"></i>
+                        Riwayat Pancawaluya
                     </h3>
-                    <div id="poinHistoryList" class="flex flex-col gap-3">
+                    <div id="poinPancaHistoryList" class="flex flex-col gap-3">
                         <div class="text-center py-6 text-sm text-text-muted">Memuat riwayat...</div>
                     </div>
                 </div>
@@ -496,91 +611,238 @@
 
         <!-- VIEW: NOTIFIKASI -->
         <div id="view-notifikasi" class="view-section">
-            <div class="top-header-small pt-12 px-5 text-white">
-                <div class="flex items-center justify-between mb-5">
+            <div class="top-header-small pt-12 px-5 pb-6 text-white">
+                <div class="flex items-center justify-between mb-6">
                     <div class="flex items-center gap-3">
-                        <button onclick="switchTab('home')" class="w-10 h-10 rounded-2xl glass flex items-center justify-center btn-soft">
-                            <i class="ph-bold ph-arrow-left text-lg text-white"></i>
+                        <button onclick="switchTab('home')" class="w-11 h-11 rounded-2xl glass flex items-center justify-center btn-soft hover:scale-105 transition-transform">
+                            <i class="ph-bold ph-arrow-left text-xl text-white"></i>
                         </button>
                         <div>
-                            <h2 class="text-xl font-bold tracking-tight">Notifikasi</h2>
-                            <p class="text-xs opacity-80 mt-0.5">Pemberitahuan terbaru</p>
+                            <h2 class="text-2xl font-bold tracking-tight">Notifikasi</h2>
+                            <p class="text-xs opacity-75 mt-1">Tetap update dengan pengumuman terbaru</p>
                         </div>
                     </div>
-                    <button onclick="markAllAsRead()" class="text-xs font-semibold glass px-3 py-1.5 rounded-xl btn-soft">
-                        Tandai Baca
-                    </button>
                 </div>
+                <button onclick="markAllAsRead()" class="text-xs font-semibold glass px-4 py-2 rounded-full btn-soft hover:scale-105 transition-transform flex items-center gap-2">
+                    <i class="ph-bold ph-checks text-sm"></i>
+                    <span>Tandai Semua Dibaca</span>
+                </button>
             </div>
-            
-            <div class="px-5 content-card-overlap">
-                <div id="notifikasiList" class="flex flex-col gap-3">
-                    <div class="soft-card p-5 text-center py-8">
-                        <div class="w-14 h-14 rounded-3xl bg-blue-50 text-brand-blue flex items-center justify-center mx-auto mb-3 shadow-icon">
-                            <i class="ph ph-bell text-2xl"></i>
+
+            <div class="px-5 content-card-overlap pb-8">
+                <div id="notifikasiList" class="flex flex-col gap-2"></div>
+            </div>
+
+            <!-- Detail Modal -->
+            <div id="notifDetailModal" class="hidden fixed inset-0 z-50 flex items-end justify-center animate-fade-in">
+                <div class="absolute inset-0 bg-black/50 backdrop-blur-md" onclick="closeNotifDetail()"></div>
+                <div class="relative bg-white w-full max-w-lg rounded-t-[2rem] p-6 max-h-[85vh] overflow-y-auto shadow-2xl animate-slide-up">
+                    <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6"></div>
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex-1 pr-4">
+                            <h3 id="notifDetailTitle" class="font-bold text-xl text-gray-900 leading-tight">-</h3>
+                            <p id="notifDetailDate" class="text-xs text-gray-400 mt-2 flex items-center gap-1.5">
+                                <i class="ph ph-clock text-sm"></i>
+                                <span id="notifDetailDateText"></span>
+                            </p>
                         </div>
-                        <p class="text-sm text-text-muted">Memuat notifikasi...</p>
+                        <button onclick="closeNotifDetail()" class="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center flex-shrink-0 transition-colors">
+                            <i class="ph-bold ph-x text-base text-gray-600"></i>
+                        </button>
                     </div>
+                    <div class="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent my-5"></div>
+                    <div id="notifDetailMessage" class="text-[15px] text-gray-700 leading-relaxed whitespace-pre-wrap"></div>
                 </div>
             </div>
         </div>
 
         <!-- VIEW: PROFIL -->
         <div id="view-profil" class="view-section">
-            <div class="top-header-small pt-12 px-5 pb-12 text-white text-center flex flex-col items-center">
-                <div id="profPhotoCont" class="w-24 h-24 rounded-3xl glass overflow-hidden mb-4 flex items-center justify-center">
-                    <img id="profPhotoImg" src="" alt="" class="w-full h-full object-cover hidden">
-                    <i id="profPhotoIcon" class="ph ph-user text-3xl text-white"></i>
+            <!-- Header dengan Foto Profil -->
+            <div class="top-header-small pt-8 pb-12 text-white">
+                <div class="flex flex-col items-center">
+                    <div class="relative mb-3">
+                        <div id="profPhotoCont" class="w-20 h-20 rounded-full glass overflow-hidden flex items-center justify-center shadow-xl">
+                            <img id="profPhotoImg" src="" alt="" class="w-full h-full object-cover hidden">
+                            <i id="profPhotoIcon" class="ph ph-user text-2xl text-white"></i>
+                        </div>
+                        <button onclick="triggerPhotoUpload()" class="absolute -bottom-1 -right-1 w-7 h-7 bg-white rounded-full shadow-md flex items-center justify-center hover:scale-110 transition-transform">
+                            <i class="ph-fill ph-camera text-blue-600 text-xs"></i>
+                        </button>
+                        <input type="file" id="photoFileInput" accept="image/*" class="hidden" onchange="uploadPhoto(event)">
+                    </div>
+                    <h2 id="profName" class="text-base font-bold">Memuat...</h2>
+                    <p id="profClass" class="text-[11px] opacity-90 mt-0.5">-</p>
                 </div>
-                <h2 id="profName" class="text-xl font-bold tracking-tight">Memuat...</h2>
-                <p id="profClass" class="text-sm opacity-80 mt-0.5">-</p>
             </div>
-            <div class="px-5 content-card-overlap flex flex-col gap-3 mb-8">
-                <div class="soft-card p-4 flex items-center gap-3 btn-soft">
-                    <div class="w-10 h-10 rounded-2xl bg-blue-50 flex items-center justify-center text-brand-blue flex-shrink-0">
-                        <i class="ph ph-identification-card text-lg"></i>
+
+            <!-- Content Cards -->
+            <div class="px-4 -mt-6 pb-20 space-y-3">
+                
+                <!-- Card: Informasi Siswa -->
+                <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+                    <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-3 py-2 flex items-center justify-between">
+                        <div class="flex items-center gap-1.5">
+                            <i class="ph-bold ph-user-circle text-white text-sm"></i>
+                            <span class="text-white font-bold text-[11px] uppercase tracking-wide">Info Siswa</span>
+                        </div>
+                        <button onclick="toggleEditSiswa()" id="editSiswaBtn" class="text-white/90 hover:text-white text-[10px] font-semibold flex items-center gap-0.5">
+                            <i class="ph-bold ph-pencil-simple text-xs"></i>
+                            <span>Edit</span>
+                        </button>
                     </div>
-                    <div class="flex-1"><p class="text-xs text-text-muted">NIS</p><p id="profNIS" class="text-sm font-semibold text-text-main font-mono">-</p></div>
-                </div>
-                <div class="soft-card p-4 flex items-center gap-3 btn-soft">
-                    <div class="w-10 h-10 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-500 flex-shrink-0">
-                        <i class="ph ph-cake text-lg"></i>
+                    
+                    <!-- View Mode -->
+                    <div id="siswaViewMode" class="p-3 space-y-2.5">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+                                <i class="ph-bold ph-identification-card text-blue-600 text-base"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-[9px] text-gray-500 font-semibold uppercase mb-0.5">NIS</div>
+                                <div id="profNIS" class="text-sm font-bold text-gray-900 truncate">-</div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center flex-shrink-0">
+                                <i class="ph-bold ph-graduation-cap text-purple-600 text-base"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-[9px] text-gray-500 font-semibold uppercase mb-0.5">Kelas</div>
+                                <div id="profKelas" class="text-sm font-bold text-gray-900 truncate">-</div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
+                                <i class="ph-bold ph-cake text-orange-600 text-base"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-[9px] text-gray-500 font-semibold uppercase mb-0.5">Tanggal Lahir</div>
+                                <div id="profBirthday" class="text-sm font-bold text-gray-900 truncate">-</div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex-1"><p class="text-xs text-text-muted">Tanggal Lahir</p><p id="profBirthday" class="text-sm font-semibold text-text-main">-</p></div>
-                </div>
-                <div class="soft-card p-4 flex items-center gap-3 btn-soft">
-                    <div class="w-10 h-10 rounded-2xl bg-green-50 flex items-center justify-center text-green-500 flex-shrink-0">
-                        <i class="ph ph-user-circle text-lg"></i>
+                    
+                    <!-- Edit Mode -->
+                    <div id="siswaEditMode" class="hidden p-3 space-y-2.5">
+                        <div>
+                            <label class="text-[10px] text-gray-700 font-semibold mb-1 block">Tanggal Lahir</label>
+                            <input type="date" id="editBirthday" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <div id="siswaUpdateMsg" class="hidden text-[10px] px-3 py-2 rounded-xl font-semibold"></div>
+                        <div class="flex gap-2">
+                            <button onclick="saveSiswaProfile()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl text-xs font-bold transition-colors">
+                                Simpan
+                            </button>
+                            <button onclick="toggleEditSiswa()" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-xl text-xs font-bold transition-colors">
+                                Batal
+                            </button>
+                        </div>
                     </div>
-                    <div class="flex-1"><p class="text-xs text-text-muted">Nama Wali</p><p id="profParent" class="text-sm font-semibold text-text-main">-</p></div>
-                </div>
-                </div>
-                <div class="w-full bg-white p-4 rounded-xl flex justify-between items-center shadow-sm border border-gray-50">
-                    <div class="flex items-center gap-3"><i class="ph ph-phone text-xl text-text-muted"></i><span class="text-sm"><b>HP Wali:</b> <span id="profPhone" class="font-mono">-</span></span></div>
                 </div>
 
-                <!-- Ganti PIN -->
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-50 mt-2">
-                    <div class="flex items-center gap-2 mb-3">
-                        <i class="ph ph-lock-key text-xl text-brand-blue"></i>
-                        <span class="font-semibold text-sm text-text-main">Ganti PIN</span>
+                <!-- Card: Informasi Wali -->
+                <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+                    <div class="bg-gradient-to-r from-green-500 to-green-600 px-3 py-2 flex items-center justify-between">
+                        <div class="flex items-center gap-1.5">
+                            <i class="ph-bold ph-users text-white text-sm"></i>
+                            <span class="text-white font-bold text-[11px] uppercase tracking-wide">Info Wali</span>
+                        </div>
+                        <button onclick="toggleEditWali()" id="editWaliBtn" class="text-white/90 hover:text-white text-[10px] font-semibold flex items-center gap-0.5">
+                            <i class="ph-bold ph-pencil-simple text-xs"></i>
+                            <span>Edit</span>
+                        </button>
                     </div>
-                    <form id="pinForm" class="space-y-2">
-                        <input type="password" id="oldPin" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="PIN Lama" required inputmode="numeric" maxlength="8" autocomplete="off">
-                        <input type="password" id="newPin" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="PIN Baru (4-8 digit)" required inputmode="numeric" maxlength="8" autocomplete="off">
-                        <input type="password" id="confirmPin" class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Konfirmasi PIN Baru" required inputmode="numeric" maxlength="8" autocomplete="off">
-                        <div id="pinError" class="hidden bg-red-50 border border-red-200 text-red-600 px-3 py-2 rounded-xl text-xs"></div>
-                        <div id="pinSuccess" class="hidden bg-blue-50 border border-blue-200 text-brand-blue px-3 py-2 rounded-xl text-xs font-semibold"></div>
-                        <button type="submit" id="pinBtn" class="w-full bg-[#0B57C2] hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl text-sm transition-all active:scale-[0.98]">
+                    
+                    <!-- View Mode -->
+                    <div id="waliViewMode" class="p-3 space-y-2.5">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-9 h-9 rounded-xl bg-green-50 flex items-center justify-center flex-shrink-0">
+                                <i class="ph-bold ph-user text-green-600 text-base"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-[9px] text-gray-500 font-semibold uppercase mb-0.5">Nama Wali</div>
+                                <div id="profParent" class="text-sm font-bold text-gray-900 truncate">-</div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-9 h-9 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0">
+                                <i class="ph-bold ph-phone text-teal-600 text-base"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-[9px] text-gray-500 font-semibold uppercase mb-0.5">No HP Wali</div>
+                                <div id="profPhone" class="text-sm font-bold text-gray-900 truncate">-</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Edit Mode -->
+                    <div id="waliEditMode" class="hidden p-3 space-y-2.5">
+                        <div>
+                            <label class="text-[10px] text-gray-700 font-semibold mb-1 block">Nama Wali</label>
+                            <input type="text" id="editParentName" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" placeholder="Masukkan nama wali">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-gray-700 font-semibold mb-1 block">No HP Wali</label>
+                            <input type="tel" id="editParentPhone" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" placeholder="08xxxxxxxxxx">
+                        </div>
+                        <div id="waliUpdateMsg" class="hidden text-[10px] px-3 py-2 rounded-xl font-semibold"></div>
+                        <div class="flex gap-2">
+                            <button onclick="saveWaliProfile()" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-xl text-xs font-bold transition-colors">
+                                Simpan
+                            </button>
+                            <button onclick="toggleEditWali()" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-xl text-xs font-bold transition-colors">
+                                Batal
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card: Keamanan (PIN) -->
+                <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+                    <div class="bg-gradient-to-r from-red-500 to-red-600 px-3 py-2 flex items-center gap-1.5">
+                        <i class="ph-bold ph-lock-key text-white text-sm"></i>
+                        <span class="text-white font-bold text-[11px] uppercase tracking-wide">Keamanan</span>
+                    </div>
+                    
+                    <form id="pinForm" class="p-3 space-y-2.5">
+                        <input type="password" id="oldPin" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent" placeholder="PIN Lama" required inputmode="numeric" maxlength="8" autocomplete="off">
+                        
+                        <input type="password" id="newPin" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent" placeholder="PIN Baru (4-8 digit)" required inputmode="numeric" maxlength="8" autocomplete="off">
+                        
+                        <input type="password" id="confirmPin" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent" placeholder="Konfirmasi PIN Baru" required inputmode="numeric" maxlength="8" autocomplete="off">
+                        
+                        <div id="pinError" class="hidden bg-red-50 border border-red-200 text-red-600 px-3 py-2 rounded-xl text-[10px] font-semibold flex items-center gap-2">
+                            <i class="ph-fill ph-warning-circle text-xs"></i>
+                            <span id="pinErrorText"></span>
+                        </div>
+                        
+                        <div id="pinSuccess" class="hidden bg-green-50 border border-green-200 text-green-600 px-3 py-2 rounded-xl text-[10px] font-semibold flex items-center gap-2">
+                            <i class="ph-fill ph-check-circle text-xs"></i>
+                            <span id="pinSuccessText"></span>
+                        </div>
+                        
+                        <button type="submit" id="pinBtn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl text-sm transition-colors">
                             <span id="pinBtnText">Simpan PIN Baru</span>
-                            <span id="pinBtnSpinner" class="hidden"><svg class="animate-spin h-4 w-4 mx-auto" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg></span>
+                            <span id="pinBtnSpinner" class="hidden">
+                                <svg class="animate-spin h-4 w-4 mx-auto" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                </svg>
+                            </span>
                         </button>
                     </form>
                 </div>
 
-                <button onclick="doLogout()" class="w-full bg-white p-4 rounded-xl flex justify-center items-center shadow-sm border border-gray-50 mt-4 text-red-500 active:bg-red-50 transition-colors">
-                    <div class="flex items-center gap-3"><i class="ph ph-sign-out text-xl"></i><span class="font-bold text-sm">Keluar</span></div>
+                <!-- Button: Logout -->
+                <button onclick="doLogout()" class="w-full bg-white rounded-2xl shadow-sm p-3.5 flex items-center justify-center gap-2 text-red-600 hover:bg-red-50 transition-colors group">
+                    <i class="ph-bold ph-sign-out text-base group-hover:scale-110 transition-transform"></i>
+                    <span class="font-bold text-sm">Keluar dari Akun</span>
                 </button>
+
             </div>
         </div>
 
@@ -718,7 +980,7 @@ let calendarData = {};
 let calStats = {};
 
 // ===== INIT =====
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', function() {
     const path = window.location.pathname;
     let initial = 'home';
     if (path.includes('/presensi')) initial = 'presensi';
@@ -726,50 +988,81 @@ window.addEventListener('DOMContentLoaded', () => {
     else if (path.includes('/profil')) initial = 'profil';
     else if (path.includes('/info')) initial = 'info';
 
-    loadDashboard().then(() => {
-        switchTab(initial);
-        if (initial === 'presensi') loadCalendar();
-        if (initial === 'qr') loadQRCard();
+    loadDashboard().then(function() {
+        // Small delay to ensure DOM is fully ready
+        setTimeout(function() {
+            switchTab(initial);
+            if (initial === 'presensi') loadCalendar();
+            if (initial === 'qr') loadQRCard();
+        }, 100);
+    }).catch(function(err) {
+        console.error('Dashboard load failed:', err);
+        // Still try to show the UI even if dashboard fails
+        setTimeout(function() {
+            switchTab(initial);
+        }, 100);
     });
+    
     loadWeather();
 });
 
 // ===== NAVIGATION =====
 function switchTab(tabName) {
-    document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
-    document.getElementById('view-' + tabName).classList.add('active');
+    const viewSection = document.getElementById('view-' + tabName);
+    if (!viewSection) {
+        console.error('View section not found:', tabName);
+        return;
+    }
+    
+    document.querySelectorAll('.view-section').forEach(function(v) { 
+        v.classList.remove('active'); 
+    });
+    viewSection.classList.add('active');
 
-    document.querySelectorAll('.nav-item').forEach(item => {
+    document.querySelectorAll('.nav-item').forEach(function(item) {
         const ic = item.querySelector('.nav-icon-wrap');
         const icon = item.querySelector('.nav-icon');
         const txt = item.querySelector('.nav-text');
         if (!ic || !icon || !txt) return;
-        ic.classList.remove('bg-brand-bg', 'text-brand-blue', 'nav-item-active'); ic.classList.add('text-text-muted');
-        icon.classList.remove('ph-fill'); icon.classList.add('ph');
-        txt.classList.remove('font-bold', 'text-brand-blue'); txt.classList.add('font-medium', 'text-text-muted');
+        ic.classList.remove('bg-brand-bg', 'text-brand-blue', 'nav-item-active'); 
+        ic.classList.add('text-text-muted');
+        icon.classList.remove('ph-fill'); 
+        icon.classList.add('ph');
+        txt.classList.remove('font-bold', 'text-brand-blue'); 
+        txt.classList.add('font-medium', 'text-text-muted');
     });
 
-    document.getElementById('nav-qr').classList.remove('active-tab');
-    const ql = document.getElementById('qr-label');
-    ql.className = 'text-[9px] font-bold text-text-muted text-center block w-full mt-0.5';
+    const navQr = document.getElementById('nav-qr');
+    const qrLabel = document.getElementById('qr-label');
+    if (navQr) navQr.classList.remove('active-tab');
+    if (qrLabel) qrLabel.className = 'text-[9px] font-bold text-text-muted text-center block w-full mt-0.5';
 
     if (tabName === 'qr') {
-        document.getElementById('nav-qr').classList.add('active-tab');
-        const l = document.getElementById('qr-label');
-        l.classList.replace('text-text-muted', 'text-brand-blue');
-        l.classList.add('font-bold');
+        if (navQr) navQr.classList.add('active-tab');
+        if (qrLabel) {
+            qrLabel.classList.replace('text-text-muted', 'text-brand-blue');
+            qrLabel.classList.add('font-bold');
+        }
         loadQRCard();
     } else {
         const sel = document.getElementById('nav-' + tabName);
         if (sel) {
-            const ic = sel.querySelector('.nav-icon-wrap'), icon = sel.querySelector('.nav-icon'), txt = sel.querySelector('.nav-text');
-            ic.classList.remove('text-text-muted'); ic.classList.add('bg-brand-bg', 'text-brand-blue', 'nav-item-active');
-            icon.classList.remove('ph'); icon.classList.add('ph-fill');
-            txt.classList.remove('font-medium', 'text-text-muted'); txt.classList.add('font-bold', 'text-brand-blue');
+            const ic = sel.querySelector('.nav-icon-wrap');
+            const icon = sel.querySelector('.nav-icon');
+            const txt = sel.querySelector('.nav-text');
+            if (ic && icon && txt) {
+                ic.classList.remove('text-text-muted'); 
+                ic.classList.add('bg-brand-bg', 'text-brand-blue', 'nav-item-active');
+                icon.classList.remove('ph'); 
+                icon.classList.add('ph-fill');
+                txt.classList.remove('font-medium', 'text-text-muted'); 
+                txt.classList.add('font-bold', 'text-brand-blue');
+            }
         }
     }
 
-    document.getElementById('main-content').scrollTop = 0;
+    const mainContent = document.getElementById('main-content');
+    if (mainContent) mainContent.scrollTop = 0;
 
     if (tabName === 'presensi' && Object.keys(calendarData).length === 0) loadCalendar();
     if (tabName === 'english') loadEnglishTab();
@@ -817,9 +1110,13 @@ function getDayName(dt) {
 
 async function loadWeather() {
     try {
-        document.getElementById('weatherLoading').classList.remove('hidden');
-        document.getElementById('weatherContent').classList.add('hidden');
-        document.getElementById('weatherError').classList.add('hidden');
+        const loadingEl = document.getElementById('weatherLoading');
+        const contentEl = document.getElementById('weatherContent');
+        const errorEl = document.getElementById('weatherError');
+        
+        if (loadingEl) loadingEl.classList.remove('hidden');
+        if (contentEl) contentEl.classList.add('hidden');
+        if (errorEl) errorEl.classList.add('hidden');
 
         const [currentRes, forecastRes] = await Promise.all([
             fetch('/api/weather/current'),
@@ -843,29 +1140,40 @@ async function loadWeather() {
         const icon = current.weather[0].icon;
         const main = current.weather[0].main;
 
-        document.getElementById('weatherTemp').textContent = temp;
-        document.getElementById('weatherDesc').textContent = desc;
-        document.getElementById('weatherHumidity').textContent = humidity + '%';
-        document.getElementById('weatherWind').textContent = windSpeed + ' km/h';
-        document.getElementById('weatherFeelsLike').textContent = feelsLike + '°C';
-        document.getElementById('weatherEmoji').textContent = weatherIcons[icon] || '🌤️';
-        document.getElementById('weatherUpdateTime').textContent = 'Update: ' + new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+        const tempEl = document.getElementById('weatherTemp');
+        const descEl = document.getElementById('weatherDesc');
+        const humidityEl = document.getElementById('weatherHumidity');
+        const windEl = document.getElementById('weatherWind');
+        const feelsLikeEl = document.getElementById('weatherFeelsLike');
+        const emojiEl = document.getElementById('weatherEmoji');
+        const updateTimeEl = document.getElementById('weatherUpdateTime');
+        const iconWrapEl = document.getElementById('weatherIconWrap');
+        
+        if (tempEl) tempEl.textContent = temp;
+        if (descEl) descEl.textContent = desc;
+        if (humidityEl) humidityEl.textContent = humidity + '%';
+        if (windEl) windEl.textContent = windSpeed + ' km/h';
+        if (feelsLikeEl) feelsLikeEl.textContent = feelsLike + '°C';
+        if (emojiEl) emojiEl.textContent = weatherIcons[icon] || '🌤️';
+        if (updateTimeEl) updateTimeEl.textContent = 'Update: ' + new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
 
         const bgKey = main.toLowerCase();
         const bg = weatherBg[bgKey] || weatherBg['default'];
-        document.getElementById('weatherIconWrap').style.background = bg;
+        if (iconWrapEl) iconWrapEl.style.background = bg;
 
         const alertMsg = getWeatherAlert(main, temp);
-        if (alertMsg) {
-            document.getElementById('weatherAlert').classList.remove('hidden');
-            document.getElementById('weatherAlertText').textContent = alertMsg;
-        } else {
-            document.getElementById('weatherAlert').classList.add('hidden');
+        const alertEl = document.getElementById('weatherAlert');
+        const alertTextEl = document.getElementById('weatherAlertText');
+        if (alertMsg && alertEl && alertTextEl) {
+            alertEl.classList.remove('hidden');
+            alertTextEl.textContent = alertMsg;
+        } else if (alertEl) {
+            alertEl.classList.add('hidden');
         }
 
         // Forecast - 1 data per hari (paling mendekati tengah hari)
         const dailyMap = {};
-        forecast.list.forEach(item => {
+        forecast.list.forEach(function(item) {
             const date = new Date(item.dt * 1000);
             const dayKey = date.toDateString();
             const hour = date.getHours();
@@ -875,28 +1183,36 @@ async function loadWeather() {
         });
 
         const dailyList = Object.values(dailyMap).slice(0, 5);
-        document.getElementById('weatherForecast').innerHTML = dailyList.map(item => `
-            <div class="flex flex-col items-center gap-1 p-1.5 rounded-2xl hover:bg-gray-50 transition-colors">
-                <span class="text-[10px] font-semibold text-text-muted">${getDayName(item.dt)}</span>
-                <span class="text-lg">${weatherIcons[item.weather[0].icon] || '🌤️'}</span>
-                <span class="text-[11px] font-bold text-text-main">${Math.round(item.main.temp)}°</span>
-            </div>
-        `).join('');
+        const forecastEl = document.getElementById('weatherForecast');
+        if (forecastEl) {
+            forecastEl.innerHTML = dailyList.map(function(item) {
+                return '<div class="flex flex-col items-center gap-1 p-1.5 rounded-2xl hover:bg-gray-50 transition-colors">' +
+                    '<span class="text-[10px] font-semibold text-text-muted">' + getDayName(item.dt) + '</span>' +
+                    '<span class="text-lg">' + (weatherIcons[item.weather[0].icon] || '🌤️') + '</span>' +
+                    '<span class="text-[11px] font-bold text-text-main">' + Math.round(item.main.temp) + '°</span>' +
+                    '</div>';
+            }).join('');
+        }
 
-        document.getElementById('weatherLoading').classList.add('hidden');
-        document.getElementById('weatherContent').classList.remove('hidden');
+        if (loadingEl) loadingEl.classList.add('hidden');
+        if (contentEl) contentEl.classList.remove('hidden');
 
     } catch (e) {
         console.error('Weather error:', e);
-        document.getElementById('weatherLoading').classList.add('hidden');
-        document.getElementById('weatherError').classList.remove('hidden');
+        const loadingEl = document.getElementById('weatherLoading');
+        const errorEl = document.getElementById('weatherError');
         const errMsg = document.getElementById('weatherErrorMsg');
-        if (e.message && e.message.includes('401')) {
-            errMsg.textContent = 'API key belum aktif, coba lagi dalam beberapa jam';
-        } else if (!navigator.onLine) {
-            errMsg.textContent = 'Tidak ada koneksi internet';
-        } else {
-            errMsg.textContent = 'Gagal memuat data cuaca';
+        
+        if (loadingEl) loadingEl.classList.add('hidden');
+        if (errorEl) errorEl.classList.remove('hidden');
+        if (errMsg) {
+            if (e.message && e.message.includes('401')) {
+                errMsg.textContent = 'API key belum aktif, coba lagi dalam beberapa jam';
+            } else if (!navigator.onLine) {
+                errMsg.textContent = 'Tidak ada koneksi internet';
+            } else {
+                errMsg.textContent = 'Gagal memuat data cuaca';
+            }
         }
     }
 }
@@ -909,26 +1225,50 @@ async function loadDashboard() {
         dashboardData = await r.json();
 
         // Avatar on home header
-        if (dashboardData.student && dashboardData.student.photo) {
-            document.getElementById('homeAvatar').src = dashboardData.student.photo;
-            document.getElementById('homeAvatar').classList.remove('hidden');
-            document.getElementById('homeAvatarIcon').classList.add('hidden');
+        const homeAvatar = document.getElementById('homeAvatar');
+        const homeAvatarIcon = document.getElementById('homeAvatarIcon');
+        if (dashboardData.student && dashboardData.student.photo && homeAvatar && homeAvatarIcon) {
+            homeAvatar.src = dashboardData.student.photo;
+            homeAvatar.classList.remove('hidden');
+            homeAvatarIcon.classList.add('hidden');
         }
 
         // Greeting Name (2 kata pertama)
-        if (dashboardData.student && dashboardData.student.name) {
+        const greetingNameEl = document.getElementById('studentGreetingName');
+        const classNameEl = document.getElementById('studentClassName');
+        if (dashboardData.student && dashboardData.student.name && greetingNameEl) {
             const nameParts = dashboardData.student.name.trim().split(' ');
             const greetingName = nameParts.slice(0, 2).join(' ');
-            document.getElementById('studentGreetingName').textContent = greetingName;
-            document.getElementById('studentClassName').textContent = dashboardData.student['class'] || '-';
+            greetingNameEl.textContent = greetingName;
+            if (classNameEl) classNameEl.textContent = dashboardData.student['class'] || '-';
         }
 
         // Points
-        document.getElementById('balanceAmount').textContent = dashboardData.points || '0';
-        document.getElementById('poinBalance').textContent = dashboardData.points || '0';
+        const balanceAmountEl = document.getElementById('balanceAmount');
+        if (balanceAmountEl) balanceAmountEl.textContent = dashboardData.weighted_score ?? dashboardData.points ?? '0';
+        const poinBalanceEl = document.getElementById('poinBalance');
+        if (poinBalanceEl) poinBalanceEl.textContent = dashboardData.points || '0';
+        const homeAttEl = document.getElementById('homeAttendancePoints');
+        const homePancaEl = document.getElementById('homePancaPoints');
+        if (homeAttEl) homeAttEl.textContent = dashboardData.points || '0';
+        if (homePancaEl) homePancaEl.textContent = dashboardData.pancawaluya_points ?? '0';
+        if (dashboardData.pancawaluya_points !== undefined) {
+            const pancaEl = document.getElementById('poinPancawaluya');
+            if (pancaEl) pancaEl.textContent = dashboardData.pancawaluya_points;
+        }
+        if (dashboardData.violation_points > 0) {
+            const violBadge = document.getElementById('violationBadge');
+            const violEl = document.getElementById('poinViolation');
+            if (violBadge) violBadge.classList.remove('hidden');
+            if (violEl) violEl.textContent = dashboardData.violation_points;
+        }
+        if (dashboardData.academic_year) {
+            const yearEl = document.getElementById('poinTahunAjaran');
+            if (yearEl) yearEl.textContent = dashboardData.academic_year;
+        }
 
         // Banner Slider
-        loadBannerSlider(dashboardData.announcements || []);
+        renderNotifikasiList(dashboardData.announcements || []);
 
         // Today attendance
         renderTodayAttendance(dashboardData.today || {});
@@ -942,23 +1282,45 @@ async function loadDashboard() {
 
         // Announcements count badge
         if (dashboardData.announcements && dashboardData.announcements.length > 0) {
-            document.getElementById('notifDot').classList.remove('hidden');
-            document.getElementById('infoNotifDot').classList.remove('hidden');
+            const notifDot = document.getElementById('notifDot');
+            const infoNotifDot = document.getElementById('infoNotifDot');
+            if (notifDot) notifDot.classList.remove('hidden');
+            if (infoNotifDot) infoNotifDot.classList.remove('hidden');
         }
 
         // Profile data cache
         if (dashboardData.student) {
             const s = dashboardData.student;
-            document.getElementById('profName').textContent = s.name || '-';
-            document.getElementById('profClass').textContent = s['class'] ? ('NIS: ' + s.nis + ' | Kelas: ' + s['class']) : '-';
-            document.getElementById('profNIS').textContent = s.nis || '-';
-            document.getElementById('profBirthday').textContent = s.birthday || '-';
-            document.getElementById('profParent').textContent = s.parent_name || '-';
-            document.getElementById('profPhone').textContent = s.parent_phone || '-';
-            if (s.photo) {
-                document.getElementById('profPhotoImg').src = s.photo;
-                document.getElementById('profPhotoImg').classList.remove('hidden');
-                document.getElementById('profPhotoIcon').classList.add('hidden');
+            const profNameEl = document.getElementById('profName');
+            const profClassEl = document.getElementById('profClass');
+            const profNISEl = document.getElementById('profNIS');
+            const profBirthdayEl = document.getElementById('profBirthday');
+            const profParentEl = document.getElementById('profParent');
+            const profPhoneEl = document.getElementById('profPhone');
+            const profKelasEl = document.getElementById('profKelas');
+            
+            if (profNameEl) profNameEl.textContent = s.name || '-';
+            if (profClassEl) profClassEl.textContent = s['class'] ? ('NIS: ' + s.nis + ' | Kelas: ' + s['class']) : '-';
+            if (profNISEl) profNISEl.textContent = s.nis || '-';
+            if (profBirthdayEl) profBirthdayEl.textContent = s.birthday || '-';
+            if (profParentEl) profParentEl.textContent = s.parent_name || '-';
+            if (profPhoneEl) profPhoneEl.textContent = s.parent_phone || '-';
+            if (profKelasEl) profKelasEl.textContent = s['class'] || '-';
+            
+            // pre-fill edit fields
+            const editBirthday = document.getElementById('editBirthday');
+            const editParentName = document.getElementById('editParentName');
+            const editParentPhone = document.getElementById('editParentPhone');
+            if (editBirthday) editBirthday.value = s.birthday || '';
+            if (editParentName) editParentName.value = s.parent_name || '';
+            if (editParentPhone) editParentPhone.value = s.parent_phone || '';
+            
+            const profPhotoImg = document.getElementById('profPhotoImg');
+            const profPhotoIcon = document.getElementById('profPhotoIcon');
+            if (s.photo && profPhotoImg && profPhotoIcon) {
+                profPhotoImg.src = s.photo;
+                profPhotoImg.classList.remove('hidden');
+                profPhotoIcon.classList.add('hidden');
             }
         }
 
@@ -970,17 +1332,20 @@ async function loadDashboard() {
 
         // Default PIN toast
         if (dashboardData.using_default_pin) {
-            setTimeout(() => showToast('Ganti PIN default Anda di halaman Profil'), 1500);
+            setTimeout(function() { showToast('Ganti PIN default Anda di halaman Profil'); }, 1500);
         }
     } catch(e) {
-        console.error(e);
-        window.location.href = '/student/login';
+        console.error('Dashboard error:', e);
+        // Only redirect to login if truly unauthorized (401/403), not on JS errors
+        if (e.message === 'Unauthorized') {
+            window.location.href = '/student/login';
+        }
     }
 }
 
 function renderTodayAttendance(today) {
     const dateEl = document.getElementById('todayDateBadge');
-    if (today.date) {
+    if (dateEl && today.date) {
         const d = new Date(today.date);
         const days = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
         dateEl.textContent = days[d.getDay()] + ', ' + d.getDate() + '/' + (d.getMonth()+1);
@@ -991,6 +1356,8 @@ function renderTodayAttendance(today) {
     const inLabel = document.getElementById('todayInLabel');
     const outLabel = document.getElementById('todayOutLabel');
     const inStatus = document.getElementById('todayInStatus');
+    
+    if (!inTime || !outTime || !inLabel || !outLabel) return;
 
     // Status configuration map
     const statusConfig = {
@@ -1036,35 +1403,41 @@ function renderTodayAttendance(today) {
 
     if (today.holiday_name) {
         const hn = document.getElementById('holidayNoteHome');
-        hn.textContent = 'Libur: ' + today.holiday_name;
-        hn.classList.remove('hidden');
+        if (hn) {
+            hn.textContent = 'Libur: ' + today.holiday_name;
+            hn.classList.remove('hidden');
+        }
     }
 }
 
 function renderPointHistory(history) {
     const container = document.getElementById('pointHistoryList');
+    if (!container) return;
     if (!history || history.length === 0) {
         container.innerHTML = '<div class="text-center py-4 text-sm text-text-muted">Belum ada riwayat poin</div>';
         return;
     }
     let html = '';
-    history.slice(0, 5).forEach(h => {
-        const icon = h.points > 0 ? 'ph-check-circle' : 'ph-minus-circle';
-        const color = h.points > 0 ? 'ui-success' : 'ui-danger';
+    history.slice(0, 3).forEach(function(h) {
+        const pts = h.points ?? h.points_change ?? 0;
+        const dateStr = (h.date || h.timestamp || '').substring(0, 10);
+        const icon = pts > 0 ? 'ph-check-circle' : 'ph-minus-circle';
         html += '<div class="flex justify-between items-center pb-3 border-b border-gray-100 last:border-0">' +
             '<div class="flex items-center gap-3">' +
-            '<div class="w-10 h-10 rounded-full bg-' + (h.points > 0 ? 'green-100 text-green-600' : 'red-100 text-red-500') + ' flex items-center justify-center">' +
+            '<div class="w-10 h-10 rounded-full bg-' + (pts > 0 ? 'green-100 text-green-600' : 'red-100 text-red-500') + ' flex items-center justify-center">' +
             '<i class="ph-fill ' + icon + ' text-xl"></i></div>' +
             '<div><p class="text-sm font-bold text-text-main">' + (h.description || '-') + '</p>' +
-            '<p class="text-xs text-text-muted">' + (h.date || '') + '</p></div></div>' +
-            '<span class="text-sm font-bold text-' + (h.points > 0 ? 'ui-success' : 'ui-danger') + '">' +
-            (h.points > 0 ? '+' : '') + h.points + ' Pts</span></div>';
+            '<p class="text-xs text-text-muted">' + dateStr + '</p></div></div>' +
+            '<span class="text-sm font-bold text-' + (pts > 0 ? 'ui-success' : 'ui-danger') + '">' +
+            (pts > 0 ? '+' : '') + pts + ' Pts</span></div>';
     });
     container.innerHTML = html;
 }
 
 function renderAnnouncements(announcements) {
     const container = document.getElementById('infoList');
+    if (!container) return;
+    
     if (!announcements || announcements.length === 0) {
         container.innerHTML = '<div class="bg-white p-4 rounded-2xl shadow-sm border border-ui-border text-center py-8">' +
             '<i class="ph ph-megaphone text-3xl text-text-muted mb-2"></i>' +
@@ -1072,7 +1445,7 @@ function renderAnnouncements(announcements) {
         return;
     }
     let html = '';
-    announcements.forEach(a => {
+    announcements.forEach(function(a) {
         html += '<div class="bg-white p-4 rounded-2xl shadow-sm border border-ui-border flex gap-4 items-start">' +
             '<div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-brand-blue flex-shrink-0">' +
             '<i class="ph-fill ph-megaphone text-xl"></i></div>' +
@@ -1084,76 +1457,6 @@ function renderAnnouncements(announcements) {
 }
 
 // ===== BANNER SLIDER =====
-let bannerSliderIndex = 0;
-let bannerSliderInterval = null;
-
-function loadBannerSlider(announcements) {
-    const slider = document.getElementById('bannerSlider');
-    const indicators = document.getElementById('sliderIndicators');
-    
-    if (!announcements || announcements.length === 0) {
-        slider.innerHTML = '<div class="min-w-full bg-gradient-to-r from-blue-500 to-indigo-500 p-6 rounded-2xl text-white">' +
-            '<h3 class="font-bold text-lg mb-2">Selamat Datang! 👋</h3>' +
-            '<p class="text-sm opacity-90">Belum ada pengumuman terbaru</p></div>';
-        indicators.innerHTML = '<div class="w-2 h-2 rounded-full bg-white"></div>';
-        return;
-    }
-    
-    const colors = [
-        'from-purple-500 to-pink-500',
-        'from-blue-500 to-cyan-500',
-        'from-green-500 to-emerald-500',
-        'from-orange-500 to-red-500',
-        'from-indigo-500 to-purple-500'
-    ];
-    
-    let html = '';
-    announcements.slice(0, 5).forEach((a, i) => {
-        const colorClass = colors[i % colors.length];
-        html += '<div class="min-w-full bg-gradient-to-r ' + colorClass + ' p-6 rounded-2xl text-white">' +
-            '<div class="flex items-start gap-2 mb-2">' +
-            '<i class="ph-fill ph-megaphone text-2xl"></i>' +
-            '<span class="text-xs font-semibold uppercase opacity-80">Pengumuman</span>' +
-            '</div>' +
-            '<h3 class="font-bold text-lg mb-2 line-clamp-2">' + (a.title || 'Pengumuman') + '</h3>' +
-            '<p class="text-sm opacity-90 line-clamp-2">' + (a.message || '') + '</p>' +
-            '</div>';
-    });
-    slider.innerHTML = html;
-    
-    // Indicators
-    let indicatorsHtml = '';
-    for (let i = 0; i < Math.min(announcements.length, 5); i++) {
-        indicatorsHtml += '<div class="w-2 h-2 rounded-full ' + (i === 0 ? 'bg-white' : 'bg-white/50') + '" data-index="' + i + '"></div>';
-    }
-    indicators.innerHTML = indicatorsHtml;
-    
-    // Auto slide
-    if (announcements.length > 1) {
-        clearInterval(bannerSliderInterval);
-        bannerSliderInterval = setInterval(() => {
-            bannerSliderIndex = (bannerSliderIndex + 1) % Math.min(announcements.length, 5);
-            updateBannerSlider();
-        }, 4000);
-    }
-}
-
-function updateBannerSlider() {
-    const slider = document.getElementById('bannerSlider');
-    slider.style.transform = 'translateX(-' + (bannerSliderIndex * 100) + '%)';
-    
-    const indicators = document.querySelectorAll('#sliderIndicators > div');
-    indicators.forEach((ind, i) => {
-        if (i === bannerSliderIndex) {
-            ind.classList.remove('bg-white/50');
-            ind.classList.add('bg-white');
-        } else {
-            ind.classList.remove('bg-white');
-            ind.classList.add('bg-white/50');
-        }
-    });
-}
-
 // ===== ATTENDANCE INSIGHT =====
 const insightMessages = {
     early: [
@@ -1287,60 +1590,273 @@ function timeToMinutes(timeStr) {
     return parseInt(parts[0]) * 60 + parseInt(parts[1]);
 }
 
+// ===== POIN TAB SWITCHER =====
+function switchPoinTab(tab) {
+    const tabs = ['attendance', 'panca', 'claim'];
+    tabs.forEach(t => {
+        const div = document.getElementById('poin-tab-' + t);
+        const btn = document.getElementById('tab-' + t + '-btn');
+        if (!div || !btn) return;
+        if (t === tab) {
+            div.classList.remove('hidden');
+            btn.classList.add('bg-brand-blue', 'text-white', 'shadow');
+            btn.classList.remove('text-text-muted');
+        } else {
+            div.classList.add('hidden');
+            btn.classList.remove('bg-brand-blue', 'text-white', 'shadow');
+            btn.classList.add('text-text-muted');
+        }
+    });
+    if (tab === 'claim') loadClaimTab();
+}
+
+// ===== KLAIM POIN =====
+let claimRules = [];
+let claimCameraStream = null;
+
+async function loadClaimTab() {
+    // Load rules jika belum
+    if (claimRules.length === 0) {
+        try {
+            const r = await fetch('/api/student/claim-rules');
+            claimRules = await r.json();
+            const sel = document.getElementById('claimRuleSelect');
+            sel.innerHTML = '<option value="">Pilih jenis kegiatan...</option>';
+            const categories = {};
+            claimRules.forEach(r => {
+                if (!categories[r.category]) categories[r.category] = [];
+                categories[r.category].push(r);
+            });
+            Object.entries(categories).forEach(([cat, rules]) => {
+                const og = document.createElement('optgroup');
+                og.label = cat;
+                rules.forEach(r => {
+                    const opt = document.createElement('option');
+                    opt.value = r.id;
+                    opt.textContent = r.name + ' (+' + r.points + ' poin)';
+                    og.appendChild(opt);
+                });
+                sel.appendChild(og);
+            });
+        } catch (e) { console.error(e); }
+    }
+    loadClaimHistory();
+}
+
+async function loadClaimHistory() {
+    const container = document.getElementById('claimHistoryList');
+    container.innerHTML = '<div class="text-center py-4 text-sm text-text-muted">Memuat...</div>';
+    try {
+        const r = await fetch('/api/student/claims');
+        const claims = await r.json();
+        if (!claims || claims.length === 0) {
+            container.innerHTML = '<div class="text-center py-6 text-sm text-text-muted">Belum ada klaim</div>';
+            return;
+        }
+        let html = '';
+        claims.forEach(c => {
+            const statusColor = c.status === 'approved' ? 'text-green-600 bg-green-50 border-green-200' :
+                                c.status === 'rejected' ? 'text-red-600 bg-red-50 border-red-200' :
+                                'text-amber-600 bg-amber-50 border-amber-200';
+            const statusLabel = c.status === 'approved' ? 'Disetujui' :
+                                c.status === 'rejected' ? 'Ditolak' : 'Menunggu';
+            const statusIcon = c.status === 'approved' ? 'ph-check-circle' :
+                               c.status === 'rejected' ? 'ph-x-circle' : 'ph-clock';
+            html += '<div class="border border-gray-100 rounded-2xl p-4">' +
+                '<div class="flex items-start justify-between gap-2 mb-2">' +
+                '<div class="flex-1">' +
+                '<p class="text-sm font-bold text-text-main">' + (c.rule_name || '-') + '</p>' +
+                '<p class="text-xs text-text-muted mt-0.5">' + (c.submitted_at || '').substring(0, 10) + '</p>' +
+                '</div>' +
+                '<span class="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full border ' + statusColor + '">' +
+                '<i class="ph-fill ' + statusIcon + ' text-xs"></i>' + statusLabel + '</span>' +
+                '</div>' +
+                '<p class="text-xs text-text-muted line-clamp-2">' + (c.description || '') + '</p>' +
+                (c.evidence ? '<img src="' + c.evidence + '" class="w-full h-32 object-cover rounded-xl mt-2 border border-gray-100">' : '') +
+                (c.status === 'rejected' && c.rejection_notes ? '<div class="mt-2 bg-red-50 border border-red-200 rounded-xl p-3"><p class="text-xs text-red-600"><b>Catatan admin:</b> ' + c.rejection_notes + '</p></div>' : '') +
+                (c.status === 'approved' ? '<div class="mt-2 bg-green-50 border border-green-200 rounded-xl p-2 text-xs text-green-700 font-bold text-center">+' + c.points + ' poin ditambahkan</div>' : '') +
+                '</div>';
+        });
+        container.innerHTML = html;
+    } catch (e) {
+        container.innerHTML = '<div class="text-center py-4 text-sm text-red-400">Gagal memuat</div>';
+    }
+}
+
+function previewClaimEvidence(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        document.getElementById('claimEvidenceImg').src = e.target.result;
+        document.getElementById('claimEvidencePreview').classList.remove('hidden');
+    };
+    reader.readAsDataURL(file);
+}
+
+async function captureClaimEvidence() {
+    try {
+        claimCameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        document.getElementById('claimCameraVideo').srcObject = claimCameraStream;
+        document.getElementById('claimCameraModal').classList.remove('hidden');
+    } catch (e) {
+        showToast('Tidak dapat mengakses kamera');
+    }
+}
+
+function captureFromCamera() {
+    const video = document.getElementById('claimCameraVideo');
+    const canvas = document.getElementById('claimCameraCanvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+    document.getElementById('claimEvidenceImg').src = dataUrl;
+    document.getElementById('claimEvidencePreview').classList.remove('hidden');
+    // Store base64 for submission
+    document.getElementById('claimEvidenceFile')._capturedBase64 = dataUrl.split(',')[1];
+    closeCameraModal();
+}
+
+function closeCameraModal() {
+    if (claimCameraStream) { claimCameraStream.getTracks().forEach(t => t.stop()); claimCameraStream = null; }
+    document.getElementById('claimCameraModal').classList.add('hidden');
+}
+
+document.getElementById('claimForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('claimSubmitBtn');
+    const msgEl = document.getElementById('claimFormMsg');
+    document.getElementById('claimSubmitText').classList.add('hidden');
+    document.getElementById('claimSubmitSpinner').classList.remove('hidden');
+    btn.disabled = true;
+    msgEl.classList.add('hidden');
+
+    const formData = new FormData();
+    formData.append('rule_id', document.getElementById('claimRuleSelect').value);
+    formData.append('description', document.getElementById('claimDescription').value);
+    formData.append('caption', document.getElementById('claimCaption').value);
+
+    const fileInput = document.getElementById('claimEvidenceFile');
+    if (fileInput._capturedBase64) {
+        formData.append('evidence_base64', fileInput._capturedBase64);
+    } else if (fileInput.files[0]) {
+        formData.append('evidence', fileInput.files[0]);
+    }
+
+    try {
+        const res = await fetch('/api/student/claims', { method: 'POST', body: formData });
+        const d = await res.json();
+        msgEl.className = 'text-xs px-3 py-2 rounded-xl ' + (res.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200');
+        msgEl.textContent = d.message;
+        msgEl.classList.remove('hidden');
+        if (res.ok) {
+            document.getElementById('claimForm').reset();
+            document.getElementById('claimEvidencePreview').classList.add('hidden');
+            fileInput._capturedBase64 = null;
+            setTimeout(() => loadClaimHistory(), 500);
+        }
+    } catch (err) {
+        msgEl.className = 'text-xs px-3 py-2 rounded-xl bg-red-50 text-red-600 border border-red-200';
+        msgEl.textContent = 'Gagal mengajukan klaim';
+        msgEl.classList.remove('hidden');
+    } finally {
+        document.getElementById('claimSubmitText').classList.remove('hidden');
+        document.getElementById('claimSubmitSpinner').classList.add('hidden');
+        btn.disabled = false;
+    }
+});
+
 // ===== POIN PAGE =====
 async function loadPoinPage() {
     const container = document.getElementById('poinHistoryList');
+    const pancaContainer = document.getElementById('poinPancaHistoryList');
     container.innerHTML = '<div class="text-center py-6 text-sm text-text-muted">Memuat riwayat...</div>';
+    pancaContainer.innerHTML = '<div class="text-center py-6 text-sm text-text-muted">Memuat riwayat...</div>';
 
     try {
         const r = await fetch('/api/student/points');
         if (!r.ok) throw new Error('Failed');
         const d = await r.json();
 
-        // Update balance
+        // Update balances
         document.getElementById('poinBalance').textContent = d.total_points ?? '0';
+        document.getElementById('poinPancawaluya').textContent = d.pancawaluya_points ?? '0';
 
-        // Render history from API (uses points_change field)
-        const history = d.history || [];
-        if (!history || history.length === 0) {
-            container.innerHTML = '<div class="text-center py-6 text-sm text-text-muted">Belum ada riwayat poin</div>';
-            return;
+        const viol = d.violation_points ?? 0;
+        if (viol > 0) {
+            document.getElementById('violationBadge').classList.remove('hidden');
+            document.getElementById('poinViolation').textContent = viol;
+        }
+        if (d.academic_year) {
+            document.getElementById('poinTahunAjaran').textContent = d.academic_year;
         }
 
-        let html = '';
-        history.forEach(h => {
-            const pts = h.points_change;
-            const isPositive = pts > 0;
-            const dateStr = h.timestamp ? h.timestamp.substring(0, 10) : '';
-            html += '<div class="flex justify-between items-center pb-3 border-b border-gray-100 last:border-0 last:pb-0">' +
-                '<div class="flex items-center gap-3">' +
-                '<div class="w-10 h-10 rounded-xl ' + (isPositive ? 'bg-green-100' : 'bg-red-100') + ' flex items-center justify-center flex-shrink-0">' +
-                '<i class="ph-fill ' + (isPositive ? 'ph-arrow-up' : 'ph-arrow-down') + ' text-lg ' + (isPositive ? 'text-green-600' : 'text-red-600') + '"></i>' +
-                '</div>' +
-                '<div class="flex-1 min-w-0">' +
-                '<p class="text-sm font-semibold text-text-main truncate">' + (h.description || '-') + '</p>' +
-                '<p class="text-xs text-text-muted mt-0.5">' + dateStr + '</p>' +
-                '</div>' +
-                '</div>' +
-                '<span class="text-base font-bold flex-shrink-0 ml-2 ' + (isPositive ? 'text-green-600' : 'text-red-600') + '">' +
-                (isPositive ? '+' : '') + pts + '</span>' +
-                '</div>';
-        });
-        container.innerHTML = html;
+        // Render attendance history
+        const history = d.history || [];
+        if (history.length === 0) {
+            container.innerHTML = '<div class="text-center py-6 text-sm text-text-muted">Belum ada riwayat kehadiran</div>';
+        } else {
+            let html = '';
+            history.forEach(h => {
+                const pts = h.points_change;
+                const isPositive = pts > 0;
+                const dateStr = h.timestamp ? h.timestamp.substring(0, 10) : '';
+                html += '<div class="flex justify-between items-center pb-3 border-b border-gray-100 last:border-0 last:pb-0">' +
+                    '<div class="flex items-center gap-3">' +
+                    '<div class="w-10 h-10 rounded-xl ' + (isPositive ? 'bg-blue-100' : 'bg-red-100') + ' flex items-center justify-center flex-shrink-0">' +
+                    '<i class="ph-fill ' + (isPositive ? 'ph-calendar-check' : 'ph-minus-circle') + ' text-lg ' + (isPositive ? 'text-blue-600' : 'text-red-600') + '"></i>' +
+                    '</div>' +
+                    '<div class="flex-1 min-w-0">' +
+                    '<p class="text-sm font-semibold text-text-main truncate">' + (h.description || '-') + '</p>' +
+                    '<p class="text-xs text-text-muted mt-0.5">' + dateStr + '</p>' +
+                    '</div></div>' +
+                    '<span class="text-base font-bold flex-shrink-0 ml-2 ' + (isPositive ? 'text-blue-600' : 'text-red-600') + '">' +
+                    (isPositive ? '+' : '') + pts + '</span></div>';
+            });
+            container.innerHTML = html;
+        }
+
+        // Render pancawaluya history
+        const pancaHistory = d.panca_history || [];
+        if (pancaHistory.length === 0) {
+            pancaContainer.innerHTML = '<div class="text-center py-6 text-sm text-text-muted">Belum ada riwayat Pancawaluya</div>';
+        } else {
+            let html = '';
+            pancaHistory.forEach(h => {
+                const isAchievement = h.type === 'achievement';
+                const dateStr = h.date ? h.date.substring(0, 10) : '';
+                html += '<div class="flex justify-between items-center pb-3 border-b border-gray-100 last:border-0 last:pb-0">' +
+                    '<div class="flex items-center gap-3">' +
+                    '<div class="w-10 h-10 rounded-xl ' + (isAchievement ? 'bg-amber-100' : 'bg-red-100') + ' flex items-center justify-center flex-shrink-0">' +
+                    '<i class="ph-fill ' + (isAchievement ? 'ph-star' : 'ph-warning') + ' text-lg ' + (isAchievement ? 'text-amber-500' : 'text-red-500') + '"></i>' +
+                    '</div>' +
+                    '<div class="flex-1 min-w-0">' +
+                    '<p class="text-sm font-semibold text-text-main truncate">' + (h.description || '-') + '</p>' +
+                    '<p class="text-xs text-text-muted mt-0.5">' + (h.category ? h.category + ' · ' : '') + dateStr + '</p>' +
+                    '</div></div>' +
+                    '<span class="text-base font-bold flex-shrink-0 ml-2 ' + (isAchievement ? 'text-amber-600' : 'text-red-600') + '">' +
+                    (isAchievement ? '+' : '-') + h.points + '</span></div>';
+            });
+            pancaContainer.innerHTML = html;
+        }
     } catch (e) {
         container.innerHTML = '<div class="text-center py-6 text-sm text-red-400">Gagal memuat riwayat</div>';
+        pancaContainer.innerHTML = '<div class="text-center py-6 text-sm text-red-400">Gagal memuat riwayat</div>';
     }
 }
 
 // ===== POIN HISTORY FOR POIN PAGE (from dashboard data) =====
 function renderPoinHistory(history) {
     const container = document.getElementById('poinHistoryList');
+    if (!container) return;
+    
     if (!history || history.length === 0) {
         container.innerHTML = '<div class="text-center py-6 text-sm text-text-muted">Belum ada riwayat poin</div>';
         return;
     }
     let html = '';
-    history.forEach(h => {
+    history.forEach(function(h) {
         const pts = h.points_change ?? h.points ?? 0;
         const isPositive = pts > 0;
         const dateStr = h.timestamp ? h.timestamp.substring(0, 10) : (h.date || '');
@@ -1367,41 +1883,144 @@ function openAllMenuPopup() {
 }
 
 // ===== NOTIFIKASI =====
-function markAllAsRead() {
-    alert('Semua notifikasi telah ditandai sebagai dibaca');
-}
-
 function renderNotifikasiList(announcements) {
     const container = document.getElementById('notifikasiList');
+    if (!container) return;
+    
     if (!announcements || announcements.length === 0) {
-        container.innerHTML = '<div class="bg-white p-4 rounded-2xl shadow-sm border border-ui-border text-center py-8">' +
-            '<i class="ph ph-bell text-3xl text-text-muted mb-2"></i>' +
-            '<p class="text-sm text-text-muted">Belum ada notifikasi</p></div>';
+        container.innerHTML = '<div class="bg-white rounded-3xl p-8 text-center shadow-sm border border-gray-100">' +
+            '<div class="w-20 h-20 rounded-full bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center mx-auto mb-4">' +
+            '<i class="ph ph-bell-slash text-4xl text-gray-400"></i></div>' +
+            '<p class="text-sm font-semibold text-gray-900 mb-1">Belum Ada Notifikasi</p>' +
+            '<p class="text-xs text-gray-500">Pengumuman akan muncul di sini</p></div>';
         return;
     }
     let html = '';
-    announcements.forEach(a => {
-        html += '<div class="bg-white p-4 rounded-2xl shadow-sm border border-ui-border">' +
-            '<div class="flex gap-3 items-start">' +
-            '<div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-brand-blue flex-shrink-0">' +
-            '<i class="ph-fill ph-bell text-lg"></i></div>' +
-            '<div class="flex-1">' +
-            '<h4 class="font-semibold text-sm text-text-main mb-1">' + (a.title || 'Notifikasi') + '</h4>' +
-            '<p class="text-xs text-text-muted mb-2">' + (a.message || '') + '</p>' +
-            '<span class="text-[10px] text-text-muted">Baru saja</span>' +
+    let unreadCount = 0;
+    announcements.forEach(function(a) {
+        const isRead = a.is_read === true;
+        if (!isRead) unreadCount++;
+        const excerpt = (a.message || '').length > 80 ? (a.message || '').substring(0, 80) + '...' : (a.message || '');
+        const dateStr = a.created_at ? a.created_at.substring(0, 10) : '';
+        const timeAgo = getTimeAgo(a.created_at);
+        const titleText = a.title || 'Pengumuman';
+        html += '<div onclick="openNotifDetail(' + JSON.stringify(a.id) + ',' + JSON.stringify(titleText) + ',' + JSON.stringify(a.message || '') + ',' + JSON.stringify(dateStr) + ')" ' +
+            'class="bg-white rounded-2xl p-4 flex gap-3.5 items-start cursor-pointer transition-all hover:shadow-md active:scale-[0.98] border ' + 
+            (isRead ? 'border-gray-100 opacity-60' : 'border-blue-100 shadow-sm') + '">' +
+            '<div class="relative flex-shrink-0">' +
+            '<div class="w-12 h-12 rounded-xl ' + (isRead ? 'bg-gray-100' : 'bg-gradient-to-br from-blue-500 to-indigo-600') + ' flex items-center justify-center">' +
+            '<i class="ph-fill ph-bell text-xl ' + (isRead ? 'text-gray-400' : 'text-white') + '"></i></div>' +
+            (!isRead ? '<span class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 border-2 border-white rounded-full animate-pulse"></span>' : '') +
             '</div>' +
+            '<div class="flex-1 min-w-0">' +
+            '<div class="flex items-start justify-between gap-2 mb-1">' +
+            '<h4 class="font-bold text-[15px] text-gray-900 leading-snug">' + titleText + '</h4>' +
             '</div>' +
-            '</div>';
+            '<p class="text-[13px] text-gray-600 leading-relaxed line-clamp-2 mb-2">' + excerpt + '</p>' +
+            '<div class="flex items-center gap-1.5 text-[11px] text-gray-400">' +
+            '<i class="ph ph-clock text-xs"></i>' +
+            '<span>' + timeAgo + '</span>' +
+            '</div>' +
+            '</div></div>';
     });
     container.innerHTML = html;
+
+    // update notif dot
+    const dot = document.getElementById('notifDot');
+    const infoDot = document.getElementById('infoNotifDot');
+    if (dot) dot.classList.toggle('hidden', unreadCount === 0);
+    if (infoDot) infoDot.classList.toggle('hidden', unreadCount === 0);
+}
+
+function getTimeAgo(dateStr) {
+    if (!dateStr) return '-';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diff = Math.floor((now - date) / 1000); // seconds
+    
+    if (diff < 60) return 'Baru saja';
+    if (diff < 3600) return Math.floor(diff / 60) + ' menit lalu';
+    if (diff < 86400) return Math.floor(diff / 3600) + ' jam lalu';
+    if (diff < 604800) return Math.floor(diff / 86400) + ' hari lalu';
+    
+    return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function openNotifDetail(id, title, message, date) {
+    const titleEl = document.getElementById('notifDetailTitle');
+    const messageEl = document.getElementById('notifDetailMessage');
+    const dateTextEl = document.getElementById('notifDetailDateText');
+    const modalEl = document.getElementById('notifDetailModal');
+    
+    if (!titleEl || !messageEl || !dateTextEl || !modalEl) return;
+    
+    titleEl.textContent = title || '-';
+    messageEl.textContent = message || '-';
+    
+    let formattedDate = '';
+    if (date) {
+        try {
+            const dateObj = new Date(date);
+            formattedDate = dateObj.toLocaleDateString('id-ID', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+        } catch(e) {
+            formattedDate = date;
+        }
+    }
+    dateTextEl.textContent = formattedDate;
+    modalEl.classList.remove('hidden');
+
+    // mark as read
+    fetch('/api/student/announcement/' + id + '/read', { method: 'POST' }).then(function() {
+        // update UI - mark card as read
+        if (dashboardData && dashboardData.announcements) {
+            dashboardData.announcements = dashboardData.announcements.map(function(a) {
+                if (String(a.id) === String(id)) {
+                    return Object.assign({}, a, { is_read: true });
+                }
+                return a;
+            });
+            renderNotifikasiList(dashboardData.announcements);
+        }
+    }).catch(function(err) {
+        console.error('Failed to mark as read:', err);
+    });
+}
+
+function closeNotifDetail() {
+    document.getElementById('notifDetailModal').classList.add('hidden');
+}
+
+async function markAllAsRead() {
+    try {
+        await fetch('/api/student/announcements/read-all', { method: 'POST' });
+        if (dashboardData && dashboardData.announcements) {
+            dashboardData.announcements = dashboardData.announcements.map(function(a) {
+                return Object.assign({}, a, { is_read: true });
+            });
+            renderNotifikasiList(dashboardData.announcements);
+        }
+        showToast('Semua notifikasi ditandai sudah dibaca');
+    } catch(err) {
+        console.error('Failed to mark all as read:', err);
+        showToast('Gagal menandai notifikasi');
+    }
 }
 
 // ===== BALANCE TOGGLE =====
 function toggleBalance() {
     const el = document.getElementById('balanceAmount');
     const ic = document.getElementById('balanceEyeIcon');
+    const attEl = document.getElementById('homeAttendancePoints');
+    const pancaEl = document.getElementById('homePancaPoints');
     isBalanceVisible = !isBalanceVisible;
-    el.textContent = isBalanceVisible ? (dashboardData ? dashboardData.points : '0') : '****';
+    el.textContent = isBalanceVisible ? (dashboardData ? (dashboardData.weighted_score ?? dashboardData.points ?? '0') : '0') : '****';
+    if (attEl) attEl.textContent = isBalanceVisible ? (dashboardData ? dashboardData.points || '0' : '0') : '**';
+    if (pancaEl) pancaEl.textContent = isBalanceVisible ? (dashboardData ? dashboardData.pancawaluya_points ?? '0' : '0') : '**';
     ic.classList.toggle('ph-eye', !isBalanceVisible);
     ic.classList.toggle('ph-eye-slash', isBalanceVisible);
 }
@@ -1606,9 +2225,151 @@ document.getElementById('pinForm').addEventListener('submit', async function(e) 
 function showPinErr(msg) { document.getElementById('pinError').textContent = msg; document.getElementById('pinError').classList.remove('hidden'); }
 
 // ===== LOGOUT =====
+// ===== PROFIL - FOTO =====
+function triggerPhotoUpload() {
+    document.getElementById('photoFileInput').click();
+}
+
+async function uploadPhoto(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('photo', file);
+
+    showToast('Mengupload foto...');
+    try {
+        const res = await fetch('/api/student/photo', { method: 'POST', body: formData });
+        const d = await res.json();
+        if (res.ok) {
+            document.getElementById('profPhotoImg').src = d.photo_url + '?t=' + Date.now();
+            document.getElementById('profPhotoImg').classList.remove('hidden');
+            document.getElementById('profPhotoIcon').classList.add('hidden');
+            // update home avatar
+            const homeAvatar = document.getElementById('homeAvatar');
+            if (homeAvatar) { homeAvatar.src = d.photo_url + '?t=' + Date.now(); homeAvatar.classList.remove('hidden'); }
+            showToast('Foto berhasil diperbarui');
+        } else {
+            showToast(d.message || 'Gagal upload foto');
+        }
+    } catch (e) {
+        showToast('Gagal upload foto');
+    }
+}
+
+// ===== PROFIL - EDIT WALI =====
+// ===== EDIT SISWA PROFILE =====
+function toggleEditSiswa() {
+    const viewMode = document.getElementById('siswaViewMode');
+    const editMode = document.getElementById('siswaEditMode');
+    const btn = document.getElementById('editSiswaBtn');
+    const isEditing = !editMode.classList.contains('hidden');
+    
+    if (isEditing) {
+        editMode.classList.add('hidden');
+        viewMode.classList.remove('hidden');
+        btn.innerHTML = '<i class="ph-bold ph-pencil-simple text-xs"></i><span>Edit</span>';
+    } else {
+        viewMode.classList.add('hidden');
+        editMode.classList.remove('hidden');
+        btn.innerHTML = '<i class="ph-bold ph-x text-xs"></i><span>Batal</span>';
+        document.getElementById('siswaUpdateMsg').classList.add('hidden');
+    }
+}
+
+async function saveSiswaProfile() {
+    const birthday = document.getElementById('editBirthday').value;
+    const msgEl = document.getElementById('siswaUpdateMsg');
+    
+    if (!birthday) {
+        msgEl.classList.remove('hidden');
+        msgEl.className = 'text-xs px-3 py-2 rounded-lg bg-red-50 text-red-600 border border-red-200 font-semibold';
+        msgEl.textContent = 'Tanggal lahir harus diisi';
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/student/profile', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ birthday: birthday })
+        });
+        const d = await res.json();
+        msgEl.classList.remove('hidden');
+        
+        if (res.ok) {
+            msgEl.className = 'text-xs px-3 py-2 rounded-lg bg-green-50 text-green-600 border border-green-200 font-semibold';
+            msgEl.textContent = d.message || 'Tersimpan';
+            document.getElementById('profBirthday').textContent = birthday || '-';
+            setTimeout(function() { toggleEditSiswa(); }, 1000);
+        } else {
+            msgEl.className = 'text-xs px-3 py-2 rounded-lg bg-red-50 text-red-600 border border-red-200 font-semibold';
+            msgEl.textContent = d.message || 'Gagal menyimpan';
+        }
+    } catch (e) {
+        msgEl.classList.remove('hidden');
+        msgEl.className = 'text-xs px-3 py-2 rounded-lg bg-red-50 text-red-600 border border-red-200 font-semibold';
+        msgEl.textContent = 'Gagal menyimpan';
+    }
+}
+
+// ===== EDIT WALI PROFILE =====
+function toggleEditWali() {
+    const viewMode = document.getElementById('waliViewMode');
+    const editMode = document.getElementById('waliEditMode');
+    const btn = document.getElementById('editWaliBtn');
+    const isEditing = !editMode.classList.contains('hidden');
+    if (isEditing) {
+        editMode.classList.add('hidden');
+        viewMode.classList.remove('hidden');
+        btn.innerHTML = '<i class="ph-bold ph-pencil-simple text-xs"></i><span>Edit</span>';
+    } else {
+        viewMode.classList.add('hidden');
+        editMode.classList.remove('hidden');
+        btn.innerHTML = '<i class="ph-bold ph-x text-xs"></i><span>Batal</span>';
+        document.getElementById('waliUpdateMsg').classList.add('hidden');
+    }
+}
+
+async function saveWaliProfile() {
+    const parentName = document.getElementById('editParentName').value.trim();
+    const parentPhone = document.getElementById('editParentPhone').value.trim();
+    const msgEl = document.getElementById('waliUpdateMsg');
+
+    try {
+        const res = await fetch('/api/student/profile', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ parent_name: parentName, parent_phone: parentPhone })
+        });
+        const d = await res.json();
+        msgEl.classList.remove('hidden', 'bg-red-50', 'text-red-600', 'border-red-200', 'bg-green-50', 'text-green-600', 'border-green-200');
+        if (res.ok) {
+            msgEl.className = 'text-xs px-3 py-2 rounded-lg bg-green-50 text-green-600 border border-green-200 font-semibold';
+            msgEl.textContent = d.message || 'Tersimpan';
+            document.getElementById('profParent').textContent = parentName || '-';
+            document.getElementById('profPhone').textContent = parentPhone || '-';
+            setTimeout(function() { toggleEditWali(); }, 1000);
+        } else {
+            msgEl.className = 'text-xs px-3 py-2 rounded-lg bg-red-50 text-red-600 border border-red-200 font-semibold';
+            msgEl.textContent = d.message || 'Gagal menyimpan';
+        }
+    } catch (e) {
+        msgEl.classList.remove('hidden');
+        msgEl.className = 'text-xs px-3 py-2 rounded-lg bg-red-50 text-red-600 border border-red-200 font-semibold';
+        msgEl.textContent = 'Gagal menyimpan';
+    }
+}
+
 async function doLogout() {
-    await fetch('/api/student/logout', { method: 'POST' });
-    window.location.href = '/student/login';
+    if (!confirm('Yakin ingin keluar dari akun?')) return;
+    try {
+        await fetch('/api/student/logout', { method: 'POST' });
+        window.location.href = '/student/login';
+    } catch(err) {
+        console.error('Logout error:', err);
+        window.location.href = '/student/login';
+    }
 }
 
 // ===== TOAST =====
