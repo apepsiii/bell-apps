@@ -145,16 +145,11 @@ func Register(e *echo.Echo, db *sql.DB, viewsFS embed.FS, app AppHandlers) {
 	admin.DELETE("/staff/:id", handler.DeleteStaff(db))
 	admin.POST("/staff/import", handler.ImportStaff(db))
 
-	e.GET("/admin/announcements", handler.GetAnnouncements(db))
-	e.POST("/admin/announcement/add", handler.CreateAnnouncement(db))
-	e.DELETE("/admin/announcement/:id", handler.DeleteAnnouncement(db))
-	e.POST("/admin/announcement/play/:id", handler.PlayAnnouncement(db))
-
-	e.GET("/admin/holidays", handler.GetHolidays(db))
-	e.POST("/admin/holiday/add", handler.AddHoliday(db))
-	e.PUT("/admin/holiday/:id", handler.UpdateHoliday(db))
-	e.DELETE("/admin/holiday/:id", handler.DeleteHoliday(db))
-	e.POST("/admin/holidays/import-national", handler.ImportNationalHolidays(db))
+	admin.GET("/holidays", handler.GetHolidays(db))
+	admin.POST("/holiday/add", handler.AddHoliday(db))
+	admin.PUT("/holiday/:id", handler.UpdateHoliday(db))
+	admin.DELETE("/holiday/:id", handler.DeleteHoliday(db))
+	admin.POST("/holidays/import-national", handler.ImportNationalHolidays(db))
 
 	admin.GET("/point-rules", handler.GetPointRules(db))
 	admin.POST("/point-rules/add", handler.AddPointRule(db))

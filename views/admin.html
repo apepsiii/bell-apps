@@ -6370,6 +6370,7 @@ achievement,Piket Bersih,15,Melaksanakan piket dengan baik</pre>
             for(let i=1;i<=12;i++)m.innerHTML+='<option value="'+String(i).padStart(2,'0')+'"'+(i===now.getMonth()+1?' selected':'')+'>'+i+'</option>';
             for(let yr=now.getFullYear();yr>=2024;yr--)y.innerHTML+='<option value="'+yr+'"'+(yr===now.getFullYear()?' selected':'')+'>'+yr+'</option>';
         }
+        function escHtml(s){if(!s)return'-';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
         async function engLoadSubs(){
             const date=document.getElementById('engRDate').value,st=document.getElementById('engRStatus').value,cl=document.getElementById('engRClass').value;
             let url='/admin/english/submissions?date='+date;
@@ -6383,7 +6384,7 @@ achievement,Piket Bersih,15,Melaksanakan piket dengan baik</pre>
                 const badge=s.status==='approved'?'bg-green-100 text-green-700':s.status==='rejected'?'bg-red-100 text-red-700':'bg-yellow-100 text-yellow-700';
                 const label=s.status==='approved'?'Approved':s.status==='rejected'?'Rejected':'Pending';
                 const btn=s.status==='pending'?'<button onclick="engOpenModal('+s.id+')" class="bg-blue-600 text-white px-3 py-1 rounded text-xs">Review</button>':'-';
-                return'<tr class="border-b"><td class="px-4 py-3">'+s.student_name+'</td><td class="px-4 py-3">'+(s.class_name||'-')+'</td><td class="px-4 py-3 text-xs">'+s.quest_type+'</td><td class="px-4 py-3 text-xs max-w-[200px] truncate">'+(s.content||s.vocab_words||s.quiz_answer||'-')+'</td><td class="px-4 py-3 text-xs">'+(s.submitted_at?s.submitted_at.substring(0,16).replace('T',' '):'-')+'</td><td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs font-medium '+badge+'">'+label+'</span></td><td class="px-4 py-3 text-center">'+btn+'</td></tr>';
+                return'<tr class="border-b"><td class="px-4 py-3">'+escHtml(s.student_name)+'</td><td class="px-4 py-3">'+escHtml(s.class_name||'-')+'</td><td class="px-4 py-3 text-xs">'+escHtml(s.quest_type)+'</td><td class="px-4 py-3 text-xs max-w-[200px] truncate">'+escHtml(s.content||s.vocab_words||s.quiz_answer||'-')+'</td><td class="px-4 py-3 text-xs">'+(s.submitted_at?s.submitted_at.substring(0,16).replace('T',' '):'-')+'</td><td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs font-medium '+badge+'">'+label+'</span></td><td class="px-4 py-3 text-center">'+btn+'</td></tr>';
             }).join('');
         }
         async function engOpenModal(id){
@@ -6392,7 +6393,7 @@ achievement,Piket Bersih,15,Melaksanakan piket dengan baik</pre>
             const d=await r.json();
             const s=d.find(x=>x.id===id);
             if(!s)return;
-            document.getElementById('engModalContent').innerHTML='<p class="text-sm"><strong>Siswa:</strong> '+s.student_name+' ('+(s.class_name||'-')+')</p><p class="text-sm mt-1"><strong>Tipe:</strong> '+s.quest_type+'</p><div class="bg-slate-50 p-3 rounded-lg text-sm mt-2">'+(s.content||s.vocab_words||s.quiz_answer||'-')+'</div>';
+            document.getElementById('engModalContent').innerHTML='<p class="text-sm"><strong>Siswa:</strong> '+escHtml(s.student_name)+' ('+escHtml(s.class_name||'-')+')</p><p class="text-sm mt-1"><strong>Tipe:</strong> '+escHtml(s.quest_type)+'</p><div class="bg-slate-50 p-3 rounded-lg text-sm mt-2">'+escHtml(s.content||s.vocab_words||s.quiz_answer||'-')+'</div>';
             document.getElementById('engModalFeedback').value='';
             document.getElementById('engModal').classList.remove('hidden');
             lucide.createIcons();

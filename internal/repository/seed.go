@@ -2,7 +2,6 @@ package repository
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 
 	"golang.org/x/crypto/bcrypt"
@@ -31,7 +30,5 @@ func CreateDefaultOperator(db *sql.DB) {
 		log.Fatal("Failed to create default operator:", err)
 	}
 
-	fmt.Println("Default operator created:")
-	fmt.Println("  Username: operator")
-	fmt.Println("  Password: operator123")
+	log.Println("Default operator created. Ganti password segera melalui halaman profil operator.")
 }

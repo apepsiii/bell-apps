@@ -79,6 +79,12 @@ func BackupDatabase(db *sql.DB) echo.HandlerFunc {
 	}
 }
 
+const (
+	maxBackupSize       = 500 * 1024 * 1024 // 500 MB
+	maxUnzippedSize     = 2 * 1024 * 1024 * 1024 // 2 GB
+	maxUnzippedFileSize = 500 * 1024 * 1024 // 500 MB per file
+)
+
 // RestoreDatabase restores SQLite database from uploaded zip file
 func RestoreDatabase(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
@@ -94,6 +100,13 @@ func RestoreDatabase(db *sql.DB) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"status":  "error",
 				"message": "File backup tidak ditemukan",
+			})
+		}
+
+		if file.Size > maxBackupSize {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"status":  "error",
+				"message": "Ukuran file backup maksimal 500 MB",
 			})
 		}
 
@@ -137,9 +150,30 @@ func RestoreDatabase(db *sql.DB) echo.HandlerFunc {
 		restoredDB := false
 		restoredFiles := 0
 
+		var totalUnzipped int64
 		for _, f := range zr.File {
 			if f.FileInfo().IsDir() {
 				continue
+			}
+
+			if f.UncompressedSize64 > maxUnzippedFileSize {
+				if _, err := os.Stat(backupPath); err == nil {
+					os.Rename(backupPath, dbPath)
+				}
+				return c.JSON(http.StatusBadRequest, map[string]string{
+					"status":  "error",
+					"message": "File di dalam zip terlalu besar",
+				})
+			}
+			totalUnzipped += int64(f.UncompressedSize64)
+			if totalUnzipped > maxUnzippedSize {
+				if _, err := os.Stat(backupPath); err == nil {
+					os.Rename(backupPath, dbPath)
+				}
+				return c.JSON(http.StatusBadRequest, map[string]string{
+					"status":  "error",
+					"message": "Total ukuran file backup terlalu besar (zip bomb protection)",
+				})
 			}
 
 			var destPath string

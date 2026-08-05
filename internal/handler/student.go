@@ -48,10 +48,14 @@ func AddStudent(db *sql.DB) echo.HandlerFunc {
 			src, err := file.Open()
 			if err == nil {
 				defer src.Close()
+				validated, verr := utils.ValidatePhotoFile(src, file.Filename, file.Size)
+				if verr != nil {
+					return c.JSON(http.StatusBadRequest, map[string]string{"message": verr.Error()})
+				}
 				ext := utils.GetPhotoExtension(file.Filename)
 				filename := utils.BuildPhotoFilename(nis, ext)
 				dstPath := filepath.Join(config.GetPhotoPath(), filename)
-				if err := utils.SaveUploadedFile(src, dstPath); err == nil {
+				if err := utils.SaveUploadedFile(validated, dstPath); err == nil {
 					photoFile = filename
 				}
 			}
@@ -105,10 +109,14 @@ func UpdateStudent(db *sql.DB) echo.HandlerFunc {
 			src, err := file.Open()
 			if err == nil {
 				defer src.Close()
+				validated, verr := utils.ValidatePhotoFile(src, file.Filename, file.Size)
+				if verr != nil {
+					return c.JSON(http.StatusBadRequest, map[string]string{"message": verr.Error()})
+				}
 				ext := utils.GetPhotoExtension(file.Filename)
 				filename := utils.BuildPhotoFilename(nis, ext)
 				dstPath := filepath.Join(config.GetPhotoPath(), filename)
-				if err := utils.SaveUploadedFile(src, dstPath); err == nil {
+				if err := utils.SaveUploadedFile(validated, dstPath); err == nil {
 					photoFile = filename
 					// Update with photo
 					if hashedPassword != "" {

@@ -1,13 +1,51 @@
 package utils
 
 import (
+	"bytes"
 	"encoding/base64"
+	"errors"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 )
+
+const maxPhotoSize = 5 * 1024 * 1024 // 5 MB
+
+var allowedImageExts = map[string]bool{
+	".jpg":  true,
+	".jpeg": true,
+	".png":  true,
+	".webp": true,
+}
+
+var allowedImageMIME = map[string]bool{
+	"image/jpeg": true,
+	"image/png":  true,
+	"image/webp": true,
+}
+
+func ValidatePhotoFile(src io.Reader, filename string, size int64) (io.Reader, error) {
+	if size > maxPhotoSize {
+		return nil, errors.New("ukuran foto maksimal 5 MB")
+	}
+	ext := strings.ToLower(filepath.Ext(filename))
+	if !allowedImageExts[ext] {
+		return nil, errors.New("format foto tidak didukung, gunakan JPG, PNG, atau WEBP")
+	}
+	buf := make([]byte, 512)
+	n, err := src.Read(buf)
+	if err != nil && err != io.EOF {
+		return nil, errors.New("gagal membaca file")
+	}
+	mime := http.DetectContentType(buf[:n])
+	if !allowedImageMIME[mime] {
+		return nil, errors.New("file bukan gambar yang valid")
+	}
+	return io.MultiReader(bytes.NewReader(buf[:n]), src), nil
+}
 
 func SaveUploadedFile(file io.Reader, dstPath string) error {
 	dir := filepath.Dir(dstPath)

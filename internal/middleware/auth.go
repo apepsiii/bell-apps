@@ -6,6 +6,7 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"belsekolah/internal/config"
+	"belsekolah/internal/handler"
 )
 
 // AlreadyLoggedIn redirects to /admin if user is already logged in
@@ -13,7 +14,7 @@ func AlreadyLoggedIn() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			cookie, err := c.Cookie(config.GetCookieName())
-			if err == nil && cookie.Value == config.GetSecretKey() {
+			if err == nil && cookie.Value != "" && handler.ValidateAdminSession(cookie.Value) {
 				return c.Redirect(http.StatusSeeOther, "/admin")
 			}
 			return next(c)
@@ -26,7 +27,7 @@ func AdminAuth() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			cookie, err := c.Cookie(config.GetCookieName())
-			if err != nil || cookie.Value != config.GetSecretKey() {
+			if err != nil || !handler.ValidateAdminSession(cookie.Value) {
 				return c.Redirect(http.StatusSeeOther, "/login")
 			}
 			return next(c)
