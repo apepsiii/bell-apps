@@ -39,4 +39,7 @@ context/
 .DS_Store
 Thumbs.db
 tmp/
-progress.md
+*.stackdump
+
+# Kilo config
+.kilo/
