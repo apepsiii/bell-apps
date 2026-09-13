@@ -1880,15 +1880,23 @@
                         <h2 class="text-2xl font-bold text-slate-800 mb-6">Sistem Poin Siswa</h2>
 
                         <!-- Tabs -->
-                        <div class="flex gap-4 border-b mb-6 border-slate-200">
+                        <div class="flex gap-4 border-b mb-6 border-slate-200 overflow-x-auto">
+                            <button onclick="openPointTab('komposit', this)"
+                                class="point-tab-btn px-4 py-2 font-medium text-blue-600 border-b-2 border-blue-600 transition-colors whitespace-nowrap">Skor Komposit</button>
+                            <button onclick="openPointTab('prestasi', this)"
+                                class="point-tab-btn px-4 py-2 font-medium text-slate-500 hover:text-blue-600 transition-colors whitespace-nowrap">Approval Prestasi</button>
+                            <button onclick="openPointTab('pelanggaran', this)"
+                                class="point-tab-btn px-4 py-2 font-medium text-slate-500 hover:text-blue-600 transition-colors whitespace-nowrap">Pelanggaran</button>
+                            <button onclick="openPointTab('pemulihan', this)"
+                                class="point-tab-btn px-4 py-2 font-medium text-slate-500 hover:text-blue-600 transition-colors whitespace-nowrap">Pemulihan</button>
                             <button onclick="openPointTab('leaderboard', this)"
-                                class="point-tab-btn px-4 py-2 font-medium text-blue-600 border-b-2 border-blue-600 transition-colors">Leaderboard</button>
+                                class="point-tab-btn px-4 py-2 font-medium text-slate-500 hover:text-blue-600 transition-colors whitespace-nowrap">Leaderboard Lama</button>
+                            <button onclick="openPointTab('kelola', this)"
+                                class="point-tab-btn px-4 py-2 font-medium text-slate-500 hover:text-blue-600 transition-colors whitespace-nowrap">Kelola Poin</button>
                             <button onclick="openPointTab('input', this)"
-                                class="point-tab-btn px-4 py-2 font-medium text-slate-500 hover:text-blue-600 transition-colors">Input
-                                Poin</button>
+                                class="point-tab-btn px-4 py-2 font-medium text-slate-500 hover:text-blue-600 transition-colors whitespace-nowrap">Input Poin</button>
                             <button onclick="openPointTab('redeem', this)"
-                                class="point-tab-btn px-4 py-2 font-medium text-slate-500 hover:text-blue-600 transition-colors">Tukar
-                                Poin</button>
+                                class="point-tab-btn px-4 py-2 font-medium text-slate-500 hover:text-blue-600 transition-colors whitespace-nowrap">Tukar Poin</button>
                             <button onclick="openPointTab('history', this)"
                                 class="point-tab-btn px-4 py-2 font-medium text-slate-500 hover:text-blue-600 transition-colors">Riwayat</button>
                             <button onclick="openPointTab('master', this)"
@@ -1911,6 +1919,272 @@
                                     </thead>
                                     <tbody id="leaderboard-table"></tbody>
                                 </table>
+                            </div>
+                        </div>
+
+                        <!-- Tab: Skor Komposit (Leaderboard Baru) -->
+                        <div id="point-komposit" class="point-tab-content">
+                            <!-- Info Banner -->
+                            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 mb-4">
+                                <div class="flex items-start gap-3">
+                                    <i data-lucide="info" class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0"></i>
+                                    <div class="text-sm text-blue-800">
+                                        <p class="font-bold mb-1">Sistem Skor Komposit "3 REKA + 1 KONVERSI"</p>
+                                        <p>Skor = (30% × Indeks Kehadiran) + (50% × Poin Prestasi) + (20% × (100 - Beban Pelanggaran))</p>
+                                        <button onclick="recalcAllScores()" class="mt-2 text-xs bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 transition">
+                                            Hitung Ulang Semua Skor
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Filter -->
+                            <div class="flex gap-3 mb-4">
+                                <select id="komposit-class-filter" onchange="loadKompositLeaderboard()" class="border rounded-lg px-3 py-2 text-sm">
+                                    <option value="">Semua Kelas</option>
+                                    {{range .Classes}}
+                                    <option value="{{.ID}}">{{.Name}}</option>
+                                    {{end}}
+                                </select>
+                            </div>
+
+                            <!-- Leaderboard Table -->
+                            <div class="bg-white rounded-xl border shadow-sm overflow-hidden">
+                                <table class="w-full text-left text-sm">
+                                    <thead class="bg-slate-50 border-b">
+                                        <tr>
+                                            <th class="px-4 py-3 text-xs font-semibold uppercase">Rank</th>
+                                            <th class="px-4 py-3 text-xs font-semibold uppercase">Nama</th>
+                                            <th class="px-4 py-3 text-xs font-semibold uppercase">Kelas</th>
+                                            <th class="px-4 py-3 text-xs font-semibold uppercase text-center">Kehadiran</th>
+                                            <th class="px-4 py-3 text-xs font-semibold uppercase text-center">Prestasi</th>
+                                            <th class="px-4 py-3 text-xs font-semibold uppercase text-center">Pelanggaran</th>
+                                            <th class="px-4 py-3 text-xs font-semibold uppercase text-right">Skor Komposit</th>
+                                            <th class="px-4 py-3 text-xs font-semibold uppercase text-center">Detail</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="komposit-leaderboard-body">
+                                        <tr><td colspan="8" class="text-center py-8 text-slate-400">Klik tab untuk memuat data</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Tab: Approval Prestasi -->
+                        <div id="point-prestasi" class="point-tab-content hidden">
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <!-- Submit Prestasi -->
+                                <div class="bg-white rounded-xl border shadow-sm p-6">
+                                    <h3 class="font-bold text-lg mb-4">Ajukan Prestasi</h3>
+                                    <form onsubmit="submitAchievement(event)" class="space-y-4">
+                                        <div class="relative">
+                                            <label class="block text-sm font-medium mb-1">Cari Siswa</label>
+                                            <input type="text" id="prestasi-student-search" placeholder="Ketik nama atau NIS..."
+                                                class="border rounded-lg p-2.5 w-full bg-yellow-50 focus:bg-white transition-colors"
+                                                oninput="searchStudentForPrestasi(this.value)" autocomplete="off">
+                                            <input type="hidden" id="prestasi-student-id" name="student_id">
+                                            <div id="prestasi-student-results" class="hidden absolute z-50 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto"></div>
+                                            <div id="prestasi-student-preview" class="text-sm font-bold mt-2 text-blue-600 min-h-[20px]"></div>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium mb-1">Pilih Prestasi</label>
+                                            <select id="prestasi-rule-select" name="rule_id" class="w-full border rounded-lg p-2.5 bg-white" required>
+                                                <option value="">Loading...</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium mb-1">Keterangan</label>
+                                            <textarea id="prestasi-description" name="description" rows="2" placeholder="Contoh: Juara 1 lomba cerdas cermat"
+                                                class="w-full border rounded-lg p-2.5"></textarea>
+                                        </div>
+                                        <div id="prestasi-proof-section" class="hidden">
+                                            <label class="block text-sm font-medium mb-1">URL Bukti (Foto/Sertifikat) <span class="text-red-500">*</span></label>
+                                            <input type="text" id="prestasi-proof-url" name="proof_url" placeholder="/uploads/certificates/..."
+                                                class="w-full border rounded-lg p-2.5">
+                                            <p class="text-xs text-amber-600 mt-1">Wajib untuk poin >= 50</p>
+                                        </div>
+                                        <input type="hidden" id="prestasi-requested-by" name="requested_by" value="Admin">
+                                        <button type="submit" class="w-full bg-blue-600 text-white rounded-lg py-3 hover:bg-blue-700 font-medium">Ajukan Prestasi</button>
+                                    </form>
+                                </div>
+
+                                <!-- Pending Approvals -->
+                                <div class="bg-white rounded-xl border shadow-sm">
+                                    <div class="flex justify-between items-center p-4 border-b">
+                                        <h3 class="font-bold text-lg">Pengajuan Menunggu Approval</h3>
+                                        <span id="prestasi-pending-count" class="bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded-full">0</span>
+                                    </div>
+                                    <div id="prestasi-pending-list" class="divide-y max-h-[500px] overflow-y-auto">
+                                        <div class="p-4 text-center text-slate-400">Memuat data...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tab: Pelanggaran -->
+                        <div id="point-pelanggaran" class="point-tab-content hidden">
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <!-- Catat Pelanggaran -->
+                                <div class="bg-white rounded-xl border shadow-sm p-6">
+                                    <h3 class="font-bold text-lg mb-4">Catat Pelanggaran</h3>
+                                    <form onsubmit="submitViolation(event)" class="space-y-4">
+                                        <div class="relative">
+                                            <label class="block text-sm font-medium mb-1">Cari Siswa</label>
+                                            <input type="text" id="violation-student-search" placeholder="Ketik nama atau NIS..."
+                                                class="border rounded-lg p-2.5 w-full bg-yellow-50 focus:bg-white transition-colors"
+                                                oninput="searchStudentForViolation(this.value)" autocomplete="off">
+                                            <input type="hidden" id="violation-student-id" name="student_id">
+                                            <div id="violation-student-results" class="hidden absolute z-50 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto"></div>
+                                            <div id="violation-student-preview" class="text-sm font-bold mt-2 text-blue-600 min-h-[20px]"></div>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium mb-1">Pilih Pelanggaran</label>
+                                            <select id="violation-rule-select" name="rule_id" class="w-full border rounded-lg p-2.5 bg-white" required>
+                                                <option value="">Loading...</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium mb-1">Keterangan</label>
+                                            <textarea id="violation-description" name="description" rows="2" placeholder="Detail pelanggaran (opsional)"
+                                                class="w-full border rounded-lg p-2.5"></textarea>
+                                        </div>
+                                        <input type="hidden" id="violation-recorded-by" name="recorded_by" value="Admin">
+                                        <button type="submit" class="w-full bg-red-600 text-white rounded-lg py-3 hover:bg-red-700 font-medium">Catat Pelanggaran</button>
+                                    </form>
+                                </div>
+
+                                <!-- Violation History -->
+                                <div class="bg-white rounded-xl border shadow-sm">
+                                    <div class="flex justify-between items-center p-4 border-b">
+                                        <h3 class="font-bold text-lg">Riwayat Pelanggaran</h3>
+                                        <select id="violation-history-class" onchange="loadViolationHistory()" class="text-sm border rounded-lg px-2 py-1">
+                                            <option value="">Pilih Kelas</option>
+                                            {{range .Classes}}
+                                            <option value="{{.ID}}">{{.Name}}</option>
+                                            {{end}}
+                                        </select>
+                                    </div>
+                                    <div id="violation-history-list" class="divide-y max-h-[500px] overflow-y-auto">
+                                        <div class="p-4 text-center text-slate-400">Pilih kelas untuk melihat riwayat</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tab: Pemulihan -->
+                        <div id="point-pemulihan" class="point-tab-content hidden">
+                            <div class="bg-white rounded-xl border shadow-sm">
+                                <div class="flex justify-between items-center p-4 border-b">
+                                    <h3 class="font-bold text-lg">Pengajuan Pemulihan (Kerja Positif)</h3>
+                                    <span id="pemulihan-pending-count" class="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-1 rounded-full">0</span>
+                                </div>
+                                <div id="pemulihan-pending-list" class="divide-y max-h-[600px] overflow-y-auto">
+                                    <div class="p-4 text-center text-slate-400">Memuat data...</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tab: Kelola Poin (Reset & Adjust) -->
+                        <div id="point-kelola" class="point-tab-content hidden">
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <!-- Adjust Points (Satuan) -->
+                                <div class="bg-white rounded-xl border shadow-sm p-6">
+                                    <h3 class="font-bold text-lg mb-4">Tambah/Kurangi Poin (Satuan)</h3>
+                                    <form onsubmit="adjustStudentPoints(event)" class="space-y-4">
+                                        <div class="relative">
+                                            <label class="block text-sm font-medium mb-1">Cari Siswa</label>
+                                            <input type="text" id="kelola-student-search" placeholder="Ketik nama atau NIS..."
+                                                class="border rounded-lg p-2.5 w-full bg-yellow-50 focus:bg-white transition-colors"
+                                                oninput="searchStudentForKelola(this.value)" autocomplete="off">
+                                            <input type="hidden" id="kelola-student-id" name="student_id">
+                                            <div id="kelola-student-results" class="hidden absolute z-50 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto"></div>
+                                            <div id="kelola-student-preview" class="text-sm font-bold mt-2 text-blue-600 min-h-[20px]"></div>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium mb-1">Jumlah Poin (+ / -)</label>
+                                            <div class="flex gap-2">
+                                                <input type="number" id="kelola-points" name="points" placeholder="Contoh: 10 atau -10" required
+                                                    class="flex-1 border rounded-lg p-2.5">
+                                                <button type="button" onclick="document.getElementById('kelola-points').value=''" class="px-3 py-2 text-slate-400 hover:text-slate-600 border rounded-lg">Clear</button>
+                                            </div>
+                                            <p class="text-xs text-slate-500 mt-1">Positif = tambah, Negatif = kurang</p>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium mb-1">Keterangan</label>
+                                            <textarea id="kelola-description" name="description" rows="2" placeholder="Alasan penambahan/pengurangan poin"
+                                                class="w-full border rounded-lg p-2.5"></textarea>
+                                        </div>
+                                        <input type="hidden" id="kelola-adjusted-by" name="adjusted_by" value="Admin">
+                                        <button type="submit" class="w-full bg-blue-600 text-white rounded-lg py-3 hover:bg-blue-700 font-medium">Simpan Penyesuaian</button>
+                                    </form>
+                                </div>
+
+                                <!-- Bulk Operations -->
+                                <div class="space-y-6">
+                                    <!-- Bulk Adjust -->
+                                    <div class="bg-white rounded-xl border shadow-sm p-6">
+                                        <h3 class="font-bold text-lg mb-4">Tambah/Kurangi Bulk</h3>
+                                        <form onsubmit="bulkAdjustPoints(event)" class="space-y-4">
+                                            <div>
+                                                <label class="block text-sm font-medium mb-1">Pilih Kelas</label>
+                                                <select id="kelola-bulk-class" class="w-full border rounded-lg p-2.5 bg-white" required>
+                                                    <option value="">Pilih Kelas</option>
+                                                    {{range .Classes}}
+                                                    <option value="{{.ID}}">{{.Name}}</option>
+                                                    {{end}}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium mb-1">Jumlah Poin (+ / -)</label>
+                                                <input type="number" id="kelola-bulk-points" name="points" placeholder="Contoh: 5 atau -5" required
+                                                    class="w-full border rounded-lg p-2.5">
+                                                <p class="text-xs text-slate-500 mt-1">Akan diterapkan ke SEMUA siswa di kelas</p>
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium mb-1">Keterangan</label>
+                                                <textarea id="kelola-bulk-description" name="description" rows="2" placeholder="Alasan penyesuaian bulk"
+                                                    class="w-full border rounded-lg p-2.5"></textarea>
+                                            </div>
+                                            <input type="hidden" id="kelola-bulk-adjusted-by" name="adjusted_by" value="Admin">
+                                            <button type="submit" class="w-full bg-amber-600 text-white rounded-lg py-3 hover:bg-amber-700 font-medium">Terapkan ke Semua Siswa</button>
+                                        </form>
+                                    </div>
+
+                                    <!-- Reset Points -->
+                                    <div class="bg-white rounded-xl border-2 border-red-200 shadow-sm p-6">
+                                        <h3 class="font-bold text-lg mb-4 text-red-700">Reset Poin</h3>
+                                        <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                                            <i data-lucide="alert-triangle" class="w-4 h-4 inline mb-0.5"></i>
+                                            <strong>Peringatan:</strong> Reset akan menghapus SEMUA poin siswa (prestasi, pelanggaran, pemulihan). Tidak bisa dibatalkan.
+                                        </div>
+                                        <div class="space-y-4">
+                                            <!-- Reset Satuan -->
+                                            <div class="border-t pt-4">
+                                                <label class="block text-sm font-medium mb-2">Reset Satuan</label>
+                                                <div class="relative mb-2">
+                                                    <input type="text" id="kelola-reset-search" placeholder="Cari nama siswa..."
+                                                        class="border rounded-lg p-2.5 w-full bg-yellow-50 focus:bg-white transition-colors text-sm"
+                                                        oninput="searchStudentForReset(this.value)" autocomplete="off">
+                                                    <input type="hidden" id="kelola-reset-id">
+                                                    <div id="kelola-reset-results" class="hidden absolute z-50 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto"></div>
+                                                    <div id="kelola-reset-preview" class="text-sm font-bold mt-2 text-red-600 min-h-[20px]"></div>
+                                                </div>
+                                                <button type="button" onclick="resetStudentPoints(event); return false;" class="w-full bg-red-600 text-white rounded-lg py-2.5 hover:bg-red-700 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed">Reset Poin Siswa Ini</button>
+                                            </div>
+                                            <!-- Reset Bulk -->
+                                            <div class="border-t pt-4">
+                                                <label class="block text-sm font-medium mb-2">Reset per Kelas</label>
+                                                <select id="kelola-reset-class" class="w-full border rounded-lg p-2.5 bg-white mb-2">
+                                                    <option value="">Pilih Kelas</option>
+                                                    {{range .Classes}}
+                                                    <option value="{{.ID}}">{{.Name}}</option>
+                                                    {{end}}
+                                                </select>
+                                                <button type="button" onclick="bulkResetPoints(event); return false;" class="w-full bg-red-600 text-white rounded-lg py-2.5 hover:bg-red-700 font-medium text-sm">Reset Semua Siswa di Kelas</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -2693,10 +2967,17 @@
                         <textarea id="manual-note" name="note" rows="3" 
                             placeholder="Masukkan keterangan (opsional untuk sakit, wajib untuk dispensasi)"
                             class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
-                        <div class="flex items-center mt-2" id="has-letter-section">
-                            <input type="checkbox" id="manual-has-letter" name="has_letter" 
-                                class="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500">
-                            <label for="manual-has-letter" class="ml-2 text-sm text-slate-700">Dengan Surat Keterangan</label>
+                        <div id="has-letter-section" class="hidden space-y-2 mt-2">
+                            <div class="flex items-center">
+                                <input type="radio" id="manual-with-letter" name="letter_status" value="with" 
+                                    class="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500">
+                                <label for="manual-with-letter" class="ml-2 text-sm text-slate-700">Dengan Surat Keterangan</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="radio" id="manual-without-letter" name="letter_status" value="without" 
+                                    class="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500">
+                                <label for="manual-without-letter" class="ml-2 text-sm text-slate-700">Tanpa Surat Keterangan</label>
+                            </div>
                         </div>
                     </div>
                     
@@ -3377,7 +3658,9 @@
                 } else {
                     html += `
                                 <th style="padding: 8px 10px; text-align: center; font-weight: 700;">Status</th>
-                                <th style="padding: 8px 10px; text-align: center; font-weight: 700;">Waktu</th>`;
+                                <th style="padding: 8px 10px; text-align: center; font-weight: 700;">Jam Hadir</th>
+                                <th style="padding: 8px 10px; text-align: center; font-weight: 700;">Jam Pulang</th>
+                                <th style="padding: 8px 10px; text-align: left; font-weight: 700;">Keterangan</th>`;
                 }
 
                 html += `</tr></thead><tbody>`;
@@ -3402,12 +3685,19 @@
                         <td style="padding: 7px 10px; text-align: center; color: #dc2626;">${record.AbsentCount || 0}</td>
                         <td style="padding: 7px 10px; text-align: center; font-weight: 800; color: ${rateColor}; background: ${rateBg}; border-radius: 4px;">${rate.toFixed(1)}%</td>`;
                     } else {
-                        const statusColors = { 'Datang':'#16a34a','Hadir':'#16a34a','Terlambat':'#ea580c','Sakit':'#2563eb','Izin':'#9333ea','Alpha':'#dc2626','Tidak Hadir':'#dc2626' };
+                        const statusColors = { 'Datang':'#16a34a','Hadir':'#16a34a','Terlambat':'#ea580c','Sakit':'#2563eb','Sakit (Dengan Surat)':'#2563eb','Sakit (Tanpa Surat)':'#0891b2','Dispensasi':'#9333ea','Izin':'#9333ea','Alpha':'#dc2626','Tidak Hadir':'#dc2626' };
                         const sc = statusColors[record.Status] || '#475569';
-                        const t = record.Time && record.Time.length >= 16 ? record.Time.substring(11, 16) : '-';
+                        // Parse jam hadir (check-in time)
+                        const timeIn = record.Time && record.Time.length >= 16 ? record.Time.substring(11, 16) : '-';
+                        // Parse jam pulang (check-out time) - from TimeOut field or second record
+                        const timeOut = record.TimeOut && record.TimeOut.length >= 16 ? record.TimeOut.substring(11, 16) : '-';
+                        // Keterangan from note field
+                        const note = record.Note || record.Keterangan || '';
                         html += `
                         <td style="padding: 7px 10px; text-align: center; font-weight: 700; color: ${sc};">${record.Status || '-'}</td>
-                        <td style="padding: 7px 10px; text-align: center; color: #475569;">${t}</td>`;
+                        <td style="padding: 7px 10px; text-align: center; color: #475569;">${timeIn}</td>
+                        <td style="padding: 7px 10px; text-align: center; color: #475569;">${timeOut}</td>
+                        <td style="padding: 7px 10px; color: #475569; font-size: 11px;">${note}</td>`;
                     }
                     html += `</tr>`;
                 });
@@ -3766,7 +4056,7 @@
                 document.getElementById('manual-status').value = '';
                 document.getElementById('manual-time').value = '';
                 document.getElementById('manual-note').value = '';
-                document.getElementById('manual-has-letter').checked = false;
+                document.querySelectorAll('input[name="letter_status"]').forEach(r => r.checked = false);
                 document.querySelectorAll('.status-btn').forEach(btn => {
                     btn.classList.remove('ring-4', 'ring-offset-2', 'ring-green-400', 'ring-orange-400', 'ring-blue-400', 'ring-red-400', 'ring-purple-400');
                 });
@@ -3851,7 +4141,7 @@
                     formData.append('time', time);
                 }
 
-                // Append note and has_letter for Sakit/Dispensasi
+                // Append note and letter_status for Sakit/Dispensasi
                 if (status === 'Sakit' || status === 'Dispensasi') {
                     const note = document.getElementById('manual-note').value;
                     if (status === 'Dispensasi' && !note.trim()) {
@@ -3859,9 +4149,12 @@
                         return;
                     }
                     if (note) formData.append('note', note);
+                    
                     if (status === 'Sakit') {
-                        const hasLetter = document.getElementById('manual-has-letter').checked;
-                        formData.append('has_letter', hasLetter ? 'true' : 'false');
+                        const letterStatus = document.querySelector('input[name="letter_status"]:checked');
+                        if (letterStatus) {
+                            formData.append('letter_status', letterStatus.value);
+                        }
                     }
                 }
 
@@ -5010,11 +5303,12 @@
                     let html = '';
                     students.forEach((s, index) => {
                         const status = s.status || 'Unknown';
-                        const isHadir = status == 'Hadir' ? 'checked' : '';
-                        const isSakit = status == 'Sakit' ? 'checked' : '';
-                        const isIzin = status == 'Izin' ? 'checked' : '';
-                        const isAlpha = status == 'Alpha' ? 'checked' : '';
-                        const isUnknown = status == 'Unknown' ? 'checked' : '';
+                        const isHadir = status === 'Hadir' ? 'checked' : '';
+                        const isTerlambat = status === 'Terlambat' ? 'checked' : '';
+                        const isSakit = status === 'Sakit' || status === 'Sakit (Dengan Surat)' || status === 'Sakit (Tanpa Surat)' ? 'checked' : '';
+                        const isDispensasi = status === 'Dispensasi' ? 'checked' : '';
+                        const isAlpha = status === 'Alpha' ? 'checked' : '';
+                        const isUnknown = (status === 'Unknown' || status === '') ? 'checked' : '';
 
                         html += `
                         <tr class="hover:bg-slate-50 transition student-att-row" data-id="${s.student_id}">
@@ -5022,18 +5316,22 @@
                             <td class="px-4 py-3 text-slate-600 font-mono text-xs">${s.nis || '-'}</td>
                             <td class="px-4 py-3 font-medium text-slate-800">${s.name || '-'}</td>
                             <td class="px-4 py-3 text-center">
-                                <div class="flex justify-center gap-4">
+                                <div class="flex justify-center flex-wrap gap-3">
                                     <label class="flex items-center gap-1 cursor-pointer">
                                         <input type="radio" name="att-${s.student_id}" value="Hadir" ${isHadir} class="text-emerald-600 focus:ring-emerald-500">
                                         <span class="text-xs font-medium text-emerald-700">Hadir</span>
                                     </label>
                                     <label class="flex items-center gap-1 cursor-pointer">
-                                        <input type="radio" name="att-${s.student_id}" value="Sakit" ${isSakit} class="text-amber-600 focus:ring-amber-500">
-                                        <span class="text-xs font-medium text-amber-700">Sakit</span>
+                                        <input type="radio" name="att-${s.student_id}" value="Terlambat" ${isTerlambat} class="text-orange-600 focus:ring-orange-500">
+                                        <span class="text-xs font-medium text-orange-700">Terlambat</span>
                                     </label>
                                     <label class="flex items-center gap-1 cursor-pointer">
-                                        <input type="radio" name="att-${s.student_id}" value="Izin" ${isIzin} class="text-blue-600 focus:ring-blue-500">
-                                        <span class="text-xs font-medium text-blue-700">Izin</span>
+                                        <input type="radio" name="att-${s.student_id}" value="Sakit" ${isSakit} class="text-blue-600 focus:ring-blue-500">
+                                        <span class="text-xs font-medium text-blue-700">Sakit</span>
+                                    </label>
+                                    <label class="flex items-center gap-1 cursor-pointer">
+                                        <input type="radio" name="att-${s.student_id}" value="Dispensasi" ${isDispensasi} class="text-purple-600 focus:ring-purple-500">
+                                        <span class="text-xs font-medium text-purple-700">Dispensasi</span>
                                     </label>
                                     <label class="flex items-center gap-1 cursor-pointer">
                                         <input type="radio" name="att-${s.student_id}" value="Alpha" ${isAlpha} class="text-red-600 focus:ring-red-500">
@@ -5075,23 +5373,19 @@
                     // Check selected radio
                     const checked = row.querySelector(`input[name="att-${studentID}"]:checked`);
 
-                    if (checked) {
+                    if (checked && checked.value !== 'Unknown') {
                         students.push({
                             student_id: studentID,
                             status: checked.value
                         });
-                    } else {
-                        // Default to Unknown if unselected? Or maybe force selection?
-                        // Usually we only send what is set. 
-                        // But for manual, maybe we want to send 'Unknown' if unchecked?
-                        // Let's assume user must select. Or we treat unselected as "No Change" if it was already set, or "Alpha" if new?
-                        // Simplest: Send "Unknown" if nothing checked, backend handles it.
-                        students.push({
-                            student_id: studentID,
-                            status: 'Unknown'
-                        });
                     }
+                    // Skip if nothing selected or Unknown selected
                 });
+
+                if (students.length === 0) {
+                    Swal.fire('Peringatan', 'Tidak ada siswa yang dipilih untuk presensi', 'warning');
+                    return;
+                }
 
                 try {
                     const res = await fetch('/admin/attendance/bulk', {
@@ -5105,9 +5399,10 @@
                         Swal.fire('Berhasil', data.message, 'success');
                         loadAttendanceSheet(); // Reload to show updated times if any
                     } else {
-                        Swal.fire('Gagal', data.message, 'error');
+                        Swal.fire('Gagal', data.message || 'Gagal menyimpan presensi', 'error');
                     }
                 } catch (err) {
+                    console.error(err);
                     Swal.fire('Error', 'Gagal menyimpan presensi', 'error');
                 }
             }
@@ -5586,7 +5881,7 @@ achievement,Piket Bersih,15,Melaksanakan piket dengan baik</pre>
             // Tab Switching
             function openPointTab(tabName, btn) {
                 // Hide all tabs
-                ['leaderboard', 'input', 'redeem', 'history', 'master'].forEach(t => {
+                ['komposit', 'prestasi', 'pelanggaran', 'pemulihan', 'leaderboard', 'kelola', 'input', 'redeem', 'history', 'master'].forEach(t => {
                     const el = document.getElementById('point-' + t);
                     if (el) el.classList.add('hidden');
                 });
@@ -5605,11 +5900,639 @@ achievement,Piket Bersih,15,Melaksanakan piket dengan baik</pre>
                     btn.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
                 }
 
+                if (tabName === 'komposit') loadKompositLeaderboard();
+                if (tabName === 'prestasi') { loadAchievementRules(); loadPendingAchievements(); }
+                if (tabName === 'pelanggaran') loadViolationRules();
+                if (tabName === 'pemulihan') loadPendingRedemptions();
                 if (tabName === 'leaderboard') loadLeaderboard();
                 if (tabName === 'master') { loadPointRules(); loadPointRewards(); }
                 if (tabName === 'input') loadRuleOptions();
                 if (tabName === 'redeem') loadRewardOptions();
                 if (tabName === 'history') loadPointHistory();
+            }
+
+            // ===== KOMPOSIT LEADERBOARD =====
+            async function loadKompositLeaderboard() {
+                const classID = document.getElementById('komposit-class-filter')?.value || '';
+                const tbody = document.getElementById('komposit-leaderboard-body');
+                if (!tbody) return;
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-slate-400">Memuat...</td></tr>';
+
+                try {
+                    const url = `/admin/scoring/composite?semester_id=1${classID ? '&class_id=' + classID : ''}`;
+                    const res = await fetch(url);
+                    const data = await res.json();
+
+                    if (!data.results || data.results.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-slate-400">Belum ada data. Klik "Hitung Ulang" untuk menghitung skor.</td></tr>';
+                        return;
+                    }
+
+                    tbody.innerHTML = data.results.map(r => {
+                        const rankBadge = r.rank === 1 ? 'bg-amber-100 text-amber-700' :
+                                          r.rank === 2 ? 'bg-slate-200 text-slate-700' :
+                                          r.rank === 3 ? 'bg-orange-100 text-orange-700' : 'bg-slate-50 text-slate-500';
+                        const scoreColor = r.composite_score >= 80 ? 'text-green-600' :
+                                           r.composite_score >= 50 ? 'text-blue-600' : 'text-slate-600';
+                        return `
+                        <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                            <td class="px-4 py-3"><span class="inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold ${rankBadge}">${r.rank}</span></td>
+                            <td class="px-4 py-3 font-medium text-slate-800">${r.student_name}</td>
+                            <td class="px-4 py-3 text-slate-600 text-xs">${r.class_name || '-'}</td>
+                            <td class="px-4 py-3 text-center font-medium text-green-600">${r.attendance_index.toFixed(1)}</td>
+                            <td class="px-4 py-3 text-center font-medium text-blue-600">${r.achievement_points}</td>
+                            <td class="px-4 py-3 text-center font-medium ${r.violation_points > 0 ? 'text-red-600' : 'text-slate-400'}">${r.violation_points}${r.redemption_points > 0 ? ' <span class="text-green-500 text-xs">(-' + r.redemption_points + ')</span>' : ''}</td>
+                            <td class="px-4 py-3 text-right font-bold text-lg ${scoreColor}">${r.composite_score.toFixed(2)}</td>
+                            <td class="px-4 py-3 text-center">
+                                <button onclick="viewCompositeDetail(${r.student_id})" class="text-blue-600 hover:text-blue-800 text-xs font-medium">Lihat</button>
+                            </td>
+                        </tr>`;
+                    }).join('');
+                    lucide.createIcons();
+                } catch (err) {
+                    console.error(err);
+                    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-red-500">Gagal memuat data</td></tr>';
+                }
+            }
+
+            async function recalcAllScores() {
+                try {
+                    Swal.fire({ title: 'Memproses...', text: 'Menghitung ulang semua skor...', timer: 3000, showConfirmButton: false, didOpen: () => Swal.showLoading() });
+                    
+                    // Step 1: Recalculate attendance index
+                    await fetch('/admin/scoring/attendance-index');
+                    
+                    // Step 2: Reload leaderboard
+                    loadKompositLeaderboard();
+                    
+                    Swal.fire('Berhasil!', 'Semua skor komposit telah dihitung ulang', 'success');
+                } catch (err) {
+                    Swal.fire('Error', 'Gagal menghitung ulang', 'error');
+                }
+            }
+
+            async function viewCompositeDetail(studentID) {
+                try {
+                    const res = await fetch(`/admin/scoring/composite?student_id=${studentID}`);
+                    const data = await res.json();
+                    const r = data.result;
+                    const b = data.breakdown;
+
+                    Swal.fire({
+                        title: r.student_name,
+                        html: `
+                            <div class="text-left text-sm space-y-3">
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div class="bg-green-50 p-3 rounded">
+                                        <p class="text-xs text-green-600 font-bold">KEHADIRAN (30%)</p>
+                                        <p class="text-2xl font-black text-green-700">${r.attendance_index.toFixed(1)}</p>
+                                        <p class="text-xs text-slate-500">Hadir: ${r.attendance_days} | Telat: ${r.late_days} | Absen: ${r.absent_days}</p>
+                                        <p class="text-xs text-slate-500">Streak: ${r.streak_days} hari (bonus: +${r.streak_bonus})</p>
+                                    </div>
+                                    <div class="bg-blue-50 p-3 rounded">
+                                        <p class="text-xs text-blue-600 font-bold">PRESTASI (50%)</p>
+                                        <p class="text-2xl font-black text-blue-700">${r.achievement_normalized.toFixed(1)}</p>
+                                        <p class="text-xs text-slate-500">Total poin: ${r.achievement_points}</p>
+                                    </div>
+                                </div>
+                                <div class="bg-red-50 p-3 rounded">
+                                    <p class="text-xs text-red-600 font-bold">PELANGGARAN (20%)</p>
+                                    <div class="flex justify-between items-center">
+                                        <p class="text-2xl font-black text-red-700">${r.violation_burden.toFixed(1)}</p>
+                                        <div class="text-xs text-slate-500 text-right">
+                                            <p>Total: ${r.violation_points} | Dilunasi: ${r.redemption_points}</p>
+                                            <p>Beban: ${r.violation_burden.toFixed(1)}/100</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="bg-slate-800 text-white p-4 rounded text-center">
+                                    <p class="text-xs font-bold uppercase">Skor Komposit</p>
+                                    <p class="text-4xl font-black">${r.composite_score.toFixed(2)}</p>
+                                </div>
+                                <div class="text-xs text-slate-500 text-center">
+                                    Kehadiran: ${(b.attendance.score).toFixed(2)} + Prestasi: ${(b.achievement.score).toFixed(2)} + Pelanggaran: ${(b.violation.score).toFixed(2)}
+                                </div>
+                            </div>
+                        `,
+                        confirmButtonColor: '#1d4ed8',
+                        confirmButtonText: 'Tutup',
+                        width: 500
+                    });
+                } catch (err) {
+                    Swal.fire('Error', 'Gagal memuat detail', 'error');
+                }
+            }
+
+            // ===== ACHIEVEMENT APPROVAL =====
+            async function loadAchievementRules() {
+                try {
+                    const res = await fetch('/admin/v2/achievement-rules');
+                    const data = await res.json();
+                    const select = document.getElementById('prestasi-rule-select');
+                    if (!data || data.length === 0) { select.innerHTML = '<option value="">Tidak ada rule</option>'; return; }
+
+                    // Group by category
+                    let currentCat = '';
+                    let html = '<option value="">Pilih prestasi...</option>';
+                    data.forEach(r => {
+                        if (r.category !== currentCat) {
+                            html += `<optgroup label="${r.category}">`;
+                            currentCat = r.category;
+                        }
+                        html += `<option value="${r.id}">${r.code} - ${r.name} (${r.points} poin)</option>`;
+                    });
+                    html += '</optgroup>';
+                    select.innerHTML = html;
+
+                    // Show/hide proof section based on points
+                    select.onchange = function() {
+                        const selected = data.find(r => r.id == this.value);
+                        if (selected && selected.points >= 50) {
+                            document.getElementById('prestasi-proof-section').classList.remove('hidden');
+                        } else {
+                            document.getElementById('prestasi-proof-section').classList.add('hidden');
+                        }
+                    };
+                } catch (err) { console.error(err); }
+            }
+
+            async function searchStudentForPrestasi(query) {
+                if (query.length < 2) return;
+                try {
+                    const res = await fetch(`/admin/points/search-student?q=${encodeURIComponent(query)}`);
+                    const data = await res.json();
+                    const resultsDiv = document.getElementById('prestasi-student-results');
+                    if (!data || data.length === 0) { resultsDiv.classList.add('hidden'); return; }
+
+                    resultsDiv.innerHTML = data.map(s => `
+                        <div onclick="selectPrestasiStudent('${s.id}', '${s.name}')" class="p-2 hover:bg-blue-50 cursor-pointer text-sm">
+                            ${s.name} <span class="text-xs text-slate-400">(${s.nis || '-'})</span>
+                        </div>
+                    `).join('');
+                    resultsDiv.classList.remove('hidden');
+                } catch (err) { console.error(err); }
+            }
+
+            function selectPrestasiStudent(id, name) {
+                document.getElementById('prestasi-student-id').value = id;
+                document.getElementById('prestasi-student-preview').textContent = name;
+                document.getElementById('prestasi-student-search').value = name;
+                document.getElementById('prestasi-student-results').classList.add('hidden');
+            }
+
+            async function submitAchievement(event) {
+                event.preventDefault();
+                const studentID = document.getElementById('prestasi-student-id').value;
+                if (!studentID) { alert('Pilih siswa dulu'); return; }
+
+                const ruleSelect = document.getElementById('prestasi-rule-select');
+                const ruleID = ruleSelect.value;
+                if (!ruleID) { alert('Pilih prestasi dulu'); return; }
+
+                const body = {
+                    student_id: parseInt(studentID),
+                    rule_id: parseInt(ruleID),
+                    description: document.getElementById('prestasi-description').value,
+                    proof_url: document.getElementById('prestasi-proof-url').value,
+                    requested_by: document.getElementById('prestasi-requested-by').value
+                };
+
+                try {
+                    const res = await fetch('/admin/scoring/achievement/submit', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        Swal.fire('Berhasil!', data.message, 'success');
+                        event.target.reset();
+                        document.getElementById('prestasi-student-preview').textContent = '';
+                        document.getElementById('prestasi-proof-section').classList.add('hidden');
+                        loadPendingAchievements();
+                    } else {
+                        Swal.fire('Gagal', data.error || 'Gagal mengajukan', 'error');
+                    }
+                } catch (err) { Swal.fire('Error', 'Terjadi kesalahan', 'error'); }
+            }
+
+            async function loadPendingAchievements() {
+                try {
+                    const res = await fetch('/admin/scoring/achievement/pending?status=pending');
+                    const data = await res.json();
+                    const listDiv = document.getElementById('prestasi-pending-list');
+                    const countBadge = document.getElementById('prestasi-pending-count');
+
+                    if (!data.results || data.results.length === 0) {
+                        listDiv.innerHTML = '<div class="p-4 text-center text-slate-400">Tidak ada pengajuan pending</div>';
+                        countBadge.textContent = '0';
+                        return;
+                    }
+
+                    countBadge.textContent = data.results.length;
+                    listDiv.innerHTML = data.results.map(r => `
+                        <div class="p-4 hover:bg-slate-50 transition">
+                            <div class="flex justify-between items-start gap-3">
+                                <div class="flex-1">
+                                    <p class="font-bold text-slate-800 text-sm">${r.student_name} <span class="text-xs text-slate-400">(${r.nis})</span></p>
+                                    <p class="text-xs text-blue-600 font-medium">${r.rule_code} - ${r.rule_name}</p>
+                                    <p class="text-xs text-slate-500">${r.category} · +${r.points} poin</p>
+                                    <p class="text-xs text-slate-400 mt-1">${r.description || ''}</p>
+                                    ${r.proof_url ? `<a href="${r.proof_url}" target="_blank" class="text-xs text-blue-500 underline">Lihat bukti</a>` : ''}
+                                    <p class="text-xs text-slate-400 mt-1">Diajukan oleh: ${r.requested_by}</p>
+                                </div>
+                                <div class="flex flex-col gap-2 flex-shrink-0">
+                                    <button onclick="approveAchievement(${r.id})" class="bg-green-100 text-green-700 text-xs font-medium px-3 py-1.5 rounded hover:bg-green-200 transition">Setujui</button>
+                                    <button onclick="rejectAchievement(${r.id})" class="bg-red-100 text-red-700 text-xs font-medium px-3 py-1.5 rounded hover:bg-red-200 transition">Tolak</button>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                } catch (err) { console.error(err); }
+            }
+
+            async function approveAchievement(pendingID) {
+                try {
+                    const res = await fetch('/admin/scoring/achievement/approve', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ pending_id: pendingID, action: 'approve', approved_by: 'Admin' })
+                    });
+                    const data = await res.json();
+                    if (res.ok) { Swal.fire('Berhasil!', data.message, 'success'); loadPendingAchievements(); }
+                    else { Swal.fire('Gagal', data.error, 'error'); }
+                } catch (err) { Swal.fire('Error', 'Terjadi kesalahan', 'error'); }
+            }
+
+            async function rejectAchievement(pendingID) {
+                const { value: reason } = await Swal.fire({
+                    title: 'Alasan Penolakan', input: 'text', inputPlaceholder: 'Masukkan alasan...',
+                    showCancelButton: true, confirmButtonText: 'Tolak', cancelButtonText: 'Batal'
+                });
+                if (!reason) return;
+
+                try {
+                    const res = await fetch('/admin/scoring/achievement/approve', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ pending_id: pendingID, action: 'reject', approved_by: 'Admin', rejection_reason: reason })
+                    });
+                    const data = await res.json();
+                    if (res.ok) { Swal.fire('Berhasil!', data.message, 'success'); loadPendingAchievements(); }
+                    else { Swal.fire('Gagal', data.error, 'error'); }
+                } catch (err) { Swal.fire('Error', 'Terjadi kesalahan', 'error'); }
+            }
+
+            // ===== VIOLATION =====
+            async function loadViolationRules() {
+                try {
+                    const res = await fetch('/admin/v2/violation-rules');
+                    const data = await res.json();
+                    const select = document.getElementById('violation-rule-select');
+                    if (!data || data.length === 0) { select.innerHTML = '<option value="">Tidak ada rule</option>'; return; }
+
+                    let currentCat = '';
+                    let html = '<option value="">Pilih pelanggaran...</option>';
+                    data.forEach(r => {
+                        if (r.category !== currentCat) { html += `<optgroup label="${r.category}">`; currentCat = r.category; }
+                        html += `<option value="${r.id}">${r.code} - ${r.name} (${r.points1}/${r.points2}/${r.points3} poin)</option>`;
+                    });
+                    html += '</optgroup>';
+                    select.innerHTML = html;
+                } catch (err) { console.error(err); }
+            }
+
+            async function searchStudentForViolation(query) {
+                if (query.length < 2) return;
+                try {
+                    const res = await fetch(`/admin/points/search-student?q=${encodeURIComponent(query)}`);
+                    const data = await res.json();
+                    const resultsDiv = document.getElementById('violation-student-results');
+                    if (!data || data.length === 0) { resultsDiv.classList.add('hidden'); return; }
+
+                    resultsDiv.innerHTML = data.map(s => `
+                        <div onclick="selectViolationStudent('${s.id}', '${s.name}')" class="p-2 hover:bg-red-50 cursor-pointer text-sm">
+                            ${s.name} <span class="text-xs text-slate-400">(${s.nis || '-'})</span>
+                        </div>
+                    `).join('');
+                    resultsDiv.classList.remove('hidden');
+                } catch (err) { console.error(err); }
+            }
+
+            function selectViolationStudent(id, name) {
+                document.getElementById('violation-student-id').value = id;
+                document.getElementById('violation-student-preview').textContent = name;
+                document.getElementById('violation-student-search').value = name;
+                document.getElementById('violation-student-results').classList.add('hidden');
+            }
+
+            async function submitViolation(event) {
+                event.preventDefault();
+                const studentID = document.getElementById('violation-student-id').value;
+                if (!studentID) { alert('Pilih siswa dulu'); return; }
+                const ruleID = document.getElementById('violation-rule-select').value;
+                if (!ruleID) { alert('Pilih pelanggaran dulu'); return; }
+
+                const body = {
+                    student_id: parseInt(studentID),
+                    rule_id: parseInt(ruleID),
+                    description: document.getElementById('violation-description').value,
+                    recorded_by: document.getElementById('violation-recorded-by').value
+                };
+
+                try {
+                    const res = await fetch('/admin/scoring/violation/record', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        let html = `<p>${data.message}</p>`;
+                        if (data.data.sp_warning) {
+                            const sp = data.data.sp_warning;
+                            html += `<p class="text-red-600 font-bold mt-2">⚠ ${sp.level} tercapai! ${sp.recommendation}</p>`;
+                        }
+                        Swal.fire({ title: 'Tercatat', html: html, icon: 'success' });
+                        event.target.reset();
+                        document.getElementById('violation-student-preview').textContent = '';
+                    } else {
+                        Swal.fire('Gagal', data.error, 'error');
+                    }
+                } catch (err) { Swal.fire('Error', 'Terjadi kesalahan', 'error'); }
+            }
+
+            async function loadViolationHistory() {
+                // Implementation simplified - load all violations for now
+                try {
+                    const res = await fetch('/admin/scoring/violation/list?semester_id=1');
+                    const data = await res.json();
+                    const listDiv = document.getElementById('violation-history-list');
+
+                    if (!data.results || data.results.length === 0) {
+                        listDiv.innerHTML = '<div class="p-4 text-center text-slate-400">Tidak ada riwayat pelanggaran</div>';
+                        return;
+                    }
+
+                    listDiv.innerHTML = data.results.map(r => {
+                        const escLevel = r.escalation_level;
+                        const escBadge = escLevel === 1 ? 'bg-yellow-100 text-yellow-700' :
+                                        escLevel === 2 ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700';
+                        const redemptionBadge = r.redemption_status === 'fully_redeemed' ? '<span class="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full ml-2">Lunas</span>' :
+                                               r.redemption_status === 'partially_redeemed' ? '<span class="bg-amber-100 text-amber-700 text-xs px-2 py-0.5 rounded-full ml-2">Sebagian</span>' : '';
+                        return `
+                        <div class="p-4 hover:bg-slate-50 transition">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <p class="font-bold text-slate-800 text-sm">${r.rule_name} ${redemptionBadge}</p>
+                                    <p class="text-xs text-slate-500">${r.category} · ${r.points} poin (sisa: ${r.remaining})</p>
+                                    <p class="text-xs text-slate-400 mt-1">${r.description || ''}</p>
+                                    <p class="text-xs text-slate-400">Dicatat oleh: ${r.recorded_by} · ${r.recorded_at}</p>
+                                </div>
+                                <span class="text-xs font-bold px-2 py-1 rounded ${escBadge}">Eskalasi ${escLevel}</span>
+                            </div>
+                        </div>`;
+                    }).join('');
+                } catch (err) { console.error(err); }
+            }
+
+            // ===== REDEMPTION (PEMULIHAN) =====
+            async function loadPendingRedemptions() {
+                try {
+                    const res = await fetch('/admin/scoring/redemption/pending?status=pending');
+                    const data = await res.json();
+                    const listDiv = document.getElementById('pemulihan-pending-list');
+                    const countBadge = document.getElementById('pemulihan-pending-count');
+
+                    if (!data.results || data.results.length === 0) {
+                        listDiv.innerHTML = '<div class="p-4 text-center text-slate-400">Tidak ada pengajuan pemulihan</div>';
+                        countBadge.textContent = '0';
+                        return;
+                    }
+
+                    countBadge.textContent = data.results.length;
+                    const typeLabel = { 'piket': 'Piket Ekstra', 'mentoring': 'Mentoring', 'kerja_sosial': 'Kerja Sosial', 'lainnya': 'Lainnya' };
+
+                    listDiv.innerHTML = data.results.map(r => `
+                        <div class="p-4 hover:bg-slate-50 transition">
+                            <div class="flex justify-between items-start gap-3">
+                                <div class="flex-1">
+                                    <p class="font-bold text-slate-800 text-sm">${r.student_name} <span class="text-xs text-slate-400">(${r.nis})</span></p>
+                                    <p class="text-xs text-purple-600 font-medium">${typeLabel[r.redemption_type] || r.redemption_type} · ${r.points_redeemed} poin</p>
+                                    <p class="text-xs text-slate-500 mt-1">${r.redemption_description || ''}</p>
+                                    <p class="text-xs text-slate-400">Diajukan: ${r.created_at}</p>
+                                </div>
+                                <div class="flex flex-col gap-2 flex-shrink-0">
+                                    <button onclick="verifyRedemption(${r.id}, 'approve')" class="bg-green-100 text-green-700 text-xs font-medium px-3 py-1.5 rounded hover:bg-green-200 transition">Setujui</button>
+                                    <button onclick="verifyRedemption(${r.id}, 'reject')" class="bg-red-100 text-red-700 text-xs font-medium px-3 py-1.5 rounded hover:bg-red-200 transition">Tolak</button>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                } catch (err) { console.error(err); }
+            }
+
+            async function verifyRedemption(redemptionID, action) {
+                try {
+                    const res = await fetch('/admin/scoring/redemption/verify', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ redemption_id: redemptionID, action: action, verified_by: 'Admin' })
+                    });
+                    const data = await res.json();
+                    if (res.ok) { Swal.fire('Berhasil!', data.message, 'success'); loadPendingRedemptions(); }
+                    else { Swal.fire('Gagal', data.error, 'error'); }
+                } catch (err) { Swal.fire('Error', 'Terjadi kesalahan', 'error'); }
+            }
+
+            // ===== KELOLA POIN (Reset & Adjust) =====
+            async function searchStudentForKelola(query) {
+                if (query.length < 2) return;
+                try {
+                    const res = await fetch(`/admin/points/search-student?q=${encodeURIComponent(query)}`);
+                    const data = await res.json();
+                    const resultsDiv = document.getElementById('kelola-student-results');
+                    if (!data || data.length === 0) { resultsDiv.classList.add('hidden'); return; }
+
+                    resultsDiv.innerHTML = data.map(s => `
+                        <div onclick="selectKelolaStudent('${s.id}', '${s.name}')" class="p-2 hover:bg-blue-50 cursor-pointer text-sm">
+                            ${s.name} <span class="text-xs text-slate-400">(${s.nis || '-'})</span>
+                        </div>
+                    `).join('');
+                    resultsDiv.classList.remove('hidden');
+                } catch (err) { console.error(err); }
+            }
+
+            function selectKelolaStudent(id, name) {
+                document.getElementById('kelola-student-id').value = id;
+                document.getElementById('kelola-student-preview').textContent = name;
+                document.getElementById('kelola-student-search').value = name;
+                document.getElementById('kelola-student-results').classList.add('hidden');
+            }
+
+            async function adjustStudentPoints(event) {
+                event.preventDefault();
+                const studentID = document.getElementById('kelola-student-id').value;
+                if (!studentID) { alert('Pilih siswa dulu'); return; }
+                const points = parseInt(document.getElementById('kelola-points').value);
+                if (!points || points === 0) { alert('Jumlah poin tidak boleh 0'); return; }
+
+                const body = {
+                    student_id: parseInt(studentID),
+                    points: points,
+                    description: document.getElementById('kelola-description').value,
+                    adjusted_by: document.getElementById('kelola-adjusted-by').value
+                };
+
+                try {
+                    const res = await fetch('/admin/points/adjust', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        Swal.fire('Berhasil!', data.message, 'success');
+                        event.target.reset();
+                        document.getElementById('kelola-student-preview').textContent = '';
+                    } else {
+                        Swal.fire('Gagal', data.error || 'Gagal menyesuaikan poin', 'error');
+                    }
+                } catch (err) { Swal.fire('Error', 'Terjadi kesalahan', 'error'); }
+            }
+
+            async function bulkAdjustPoints(event) {
+                event.preventDefault();
+                const classID = document.getElementById('kelola-bulk-class').value;
+                const points = parseInt(document.getElementById('kelola-bulk-points').value);
+                if (!classID) { alert('Pilih kelas dulu'); return; }
+                if (!points || points === 0) { alert('Jumlah poin tidak boleh 0'); return; }
+
+                const confirm = await Swal.fire({
+                    title: 'Konfirmasi Bulk Adjust',
+                    text: `Terapkan ${points > 0 ? '+' : ''}${points} poin ke SEMUA siswa di kelas ini?`,
+                    icon: 'question', showCancelButton: true,
+                    confirmButtonText: 'Ya, Terapkan', cancelButtonText: 'Batal'
+                });
+                if (!confirm.isConfirmed) return;
+
+                const body = {
+                    class_id: parseInt(classID),
+                    points: points,
+                    description: document.getElementById('kelola-bulk-description').value,
+                    adjusted_by: document.getElementById('kelola-bulk-adjusted-by').value
+                };
+
+                try {
+                    const res = await fetch('/admin/points/adjust-bulk', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        Swal.fire('Berhasil!', data.message, 'success');
+                        event.target.reset();
+                    } else {
+                        Swal.fire('Gagal', data.error || 'Gagal bulk adjust', 'error');
+                    }
+                } catch (err) { Swal.fire('Error', 'Terjadi kesalahan', 'error'); }
+            }
+
+            async function resetStudentPoints(event) {
+                if (event) event.preventDefault();
+                const studentID = document.getElementById('kelola-reset-id').value;
+                if (!studentID) { alert('Cari dan pilih siswa dulu'); return; }
+
+                const studentName = document.getElementById('kelola-reset-preview').textContent;
+                const confirm = await Swal.fire({
+                    title: 'Konfirmasi Reset Poin',
+                    html: `Semua poin <strong>${studentName}</strong> akan dihapus.<br>Tidak bisa dibatalkan!`,
+                    icon: 'warning', showCancelButton: true,
+                    confirmButtonColor: '#dc2626',
+                    confirmButtonText: 'Ya, Reset Semua', cancelButtonText: 'Batal'
+                });
+                if (!confirm.isConfirmed) return;
+
+                try {
+                    const res = await fetch(`/admin/points/reset/${studentID}`, { method: 'POST' });
+                    const data = await res.json();
+                    if (res.ok) {
+                        Swal.fire('Berhasil!', data.message, 'success');
+                        document.getElementById('kelola-reset-search').value = '';
+                        document.getElementById('kelola-reset-id').value = '';
+                        document.getElementById('kelola-reset-preview').textContent = '';
+                    } else {
+                        Swal.fire('Gagal', data.error || 'Gagal reset', 'error');
+                    }
+                } catch (err) { Swal.fire('Error', 'Terjadi kesalahan', 'error'); }
+            }
+
+            async function searchStudentForReset(query) {
+                if (query.length < 2) return;
+                try {
+                    const res = await fetch(`/admin/points/search-student?q=${encodeURIComponent(query)}`);
+                    const data = await res.json();
+                    const resultsDiv = document.getElementById('kelola-reset-results');
+                    if (!data || data.length === 0) { resultsDiv.classList.add('hidden'); return; }
+
+                    resultsDiv.innerHTML = data.map(s => `
+                        <div onclick="selectResetStudent('${s.id}', '${s.name}')" class="p-2 hover:bg-red-50 cursor-pointer text-sm">
+                            ${s.name} <span class="text-xs text-slate-400">(${s.nis || '-'})</span>
+                        </div>
+                    `).join('');
+                    resultsDiv.classList.remove('hidden');
+                } catch (err) { console.error(err); }
+            }
+
+            function selectResetStudent(id, name) {
+                document.getElementById('kelola-reset-id').value = id;
+                document.getElementById('kelola-reset-preview').textContent = name;
+                document.getElementById('kelola-reset-search').value = name;
+                document.getElementById('kelola-reset-results').classList.add('hidden');
+            }
+
+            async function bulkResetPoints(event) {
+                if (event) event.preventDefault();
+                const classID = document.getElementById('kelola-reset-class').value;
+                if (!classID) { alert('Pilih kelas dulu'); return; }
+
+                const confirm = await Swal.fire({
+                    title: 'Konfirmasi Reset Bulk',
+                    text: 'Semua poin SEMUA siswa di kelas ini akan dihapus. Tidak bisa dibatalkan!',
+                    icon: 'warning', showCancelButton: true,
+                    confirmButtonColor: '#dc2626',
+                    confirmButtonText: 'Ya, Reset Semua', cancelButtonText: 'Batal'
+                });
+                if (!confirm.isConfirmed) return;
+
+                const body = {
+                    class_id: parseInt(classID),
+                    reset_by: 'Admin'
+                };
+
+                try {
+                    const res = await fetch('/admin/points/reset-bulk', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        Swal.fire('Berhasil!', data.message, 'success');
+                    } else {
+                        Swal.fire('Gagal', data.error || 'Gagal reset bulk', 'error');
+                    }
+                } catch (err) { Swal.fire('Error', 'Terjadi kesalahan', 'error'); }
+            }
+
+            async function deletePointLog(logID) {
+                const confirm = await Swal.fire({
+                    title: 'Hapus Log Poin?',
+                    text: 'Log ini akan dihapus permanen.',
+                    icon: 'warning', showCancelButton: true,
+                    confirmButtonColor: '#dc2626',
+                    confirmButtonText: 'Ya, Hapus', cancelButtonText: 'Batal'
+                });
+                if (!confirm.isConfirmed) return;
+
+                try {
+                    const res = await fetch(`/admin/points/log/${logID}`, { method: 'DELETE' });
+                    const data = await res.json();
+                    if (res.ok) {
+                        Swal.fire('Berhasil!', data.message, 'success');
+                        loadPointHistory();
+                    } else {
+                        Swal.fire('Gagal', data.error, 'error');
+                    }
+                } catch (err) { Swal.fire('Error', 'Terjadi kesalahan', 'error'); }
             }
 
             // --- MASTER DATA ---

@@ -59,6 +59,13 @@ func InitDB() *sql.DB {
 		log.Println("✅ Audit trail migration completed successfully")
 	}
 
+	// Run semester scores migration
+	if err := MigrationSemesterScores(db); err != nil {
+		log.Printf("Warning: Semester scores migration failed: %v", err)
+	} else {
+		log.Println("✅ Semester scores migration completed successfully")
+	}
+
 	return db
 }
 

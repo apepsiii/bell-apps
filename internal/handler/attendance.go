@@ -507,11 +507,15 @@ func GetClassAttendanceSheet(db *sql.DB) echo.HandlerFunc {
 
 func BulkAttendance(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		type AttendanceItem struct {
+			StudentID int    `json:"student_id"`
+			Status    string `json:"status"`
+		}
+		
 		type Request struct {
-			Attendance []struct {
-				StudentID int    `json:"student_id"`
-				Status    string `json:"status"`
-			} `json:"attendance"`
+			ClassID  int              `json:"class_id"`
+			Date     string           `json:"date"`
+			Students []AttendanceItem `json:"students"`
 		}
 
 		var req Request
@@ -519,13 +523,36 @@ func BulkAttendance(db *sql.DB) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid request"})
 		}
 
-		dateStr := time.Now().Format("2006-01-02")
-		timestamp := time.Now().Format("2006-01-02 15:04:05")
+		// Use provided date or default to today
+		dateStr := req.Date
+		if dateStr == "" {
+			dateStr = time.Now().Format("2006-01-02")
+		}
+		
+		// Parse the date to build timestamp
+		dateParsed, err := time.Parse("2006-01-02", dateStr)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid date format"})
+		}
+		
+		// Use current time on the specified date
+		now := time.Now()
+		timestamp := time.Date(dateParsed.Year(), dateParsed.Month(), dateParsed.Day(), 
+			now.Hour(), now.Minute(), now.Second(), 0, time.Local).Format("2006-01-02 15:04:05")
 
-		tx, _ := db.Begin()
+		tx, err := db.Begin()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to start transaction"})
+		}
+		
 		successCount := 0
 
-		for _, att := range req.Attendance {
+		for _, att := range req.Students {
+			// Skip Unknown status (not selected)
+			if att.Status == "Unknown" || att.Status == "" {
+				continue
+			}
+			
 			var rfid, name string
 			err := db.QueryRow("SELECT rfid_uid, name FROM students WHERE id=?", att.StudentID).Scan(&rfid, &name)
 			if err != nil {
@@ -539,7 +566,11 @@ func BulkAttendance(db *sql.DB) echo.HandlerFunc {
 			}
 		}
 
-		tx.Commit()
-		return c.JSON(http.StatusOK, map[string]string{"status": "success", "message": fmt.Sprintf("%d attendance recorded", successCount)})
+		if err := tx.Commit(); err != nil {
+			tx.Rollback()
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to save attendance"})
+		}
+		
+		return c.JSON(http.StatusOK, map[string]string{"status": "success", "message": fmt.Sprintf("%d kehadiran berhasil disimpan", successCount)})
 	}
 }

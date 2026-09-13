@@ -1429,7 +1429,7 @@ func (a *App) ManualAttendanceHandler(c echo.Context) error {
 	status := c.FormValue("status") // Hadir, Terlambat, Sakit, Dispensasi, Alpha
 	timeStr := c.FormValue("time")
 	note := c.FormValue("note")
-	hasLetter := c.FormValue("has_letter") == "true"
+	letterStatus := c.FormValue("letter_status") // "with" or "without"
 
 	// 1. Get Student Data
 	var rfid, name string
@@ -1457,11 +1457,12 @@ func (a *App) ManualAttendanceHandler(c echo.Context) error {
 	// 3. Build extended status for Sakit
 	finalStatus := status
 	if status == "Sakit" {
-		if hasLetter {
-			finalStatus = "Sakit (Surat)"
-		} else if note != "" {
-			finalStatus = "Sakit (Keterangan)"
+		if letterStatus == "with" {
+			finalStatus = "Sakit (Dengan Surat)"
+		} else if letterStatus == "without" {
+			finalStatus = "Sakit (Tanpa Surat)"
 		}
+		// else: just "Sakit" if no radio selected
 	}
 
 	// 4. Insert Log with note field

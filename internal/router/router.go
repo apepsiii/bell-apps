@@ -158,6 +158,16 @@ func Register(e *echo.Echo, db *sql.DB, viewsFS embed.FS, app AppHandlers) {
 	admin.POST("/points/transaction", handler.AddPointTransaction(db))
 	admin.GET("/points/leaderboard", handler.GetLeaderboard(db))
 	admin.GET("/points/history", handler.GetPointHistory(db))
+	admin.DELETE("/points/log/:id", handler.DeletePointLog(db))
+
+	// Point Management: Reset & Adjust
+	admin.POST("/points/reset/:id", handler.ResetStudentPoints(db))
+	admin.GET("/points/reset/:id", handler.ResetStudentPoints(db))
+	admin.POST("/points/reset-bulk", handler.BulkResetPoints(db))
+	admin.GET("/points/reset-bulk", handler.BulkResetPoints(db))
+	admin.POST("/points/adjust", handler.AdjustStudentPoints(db))
+	admin.POST("/points/adjust-bulk", handler.BulkAdjustPoints(db))
+
 	admin.GET("/points/student-profile", func(c echo.Context) error {
 		return c.Render(http.StatusOK, "student_point_profile.html", nil)
 	})
@@ -205,6 +215,22 @@ func Register(e *echo.Echo, db *sql.DB, viewsFS embed.FS, app AppHandlers) {
 	admin.GET("/report/daily", handler.DailyReport(db))
 	admin.GET("/report/weekly", handler.WeeklyReport(db))
 	admin.GET("/report/monthly", handler.MonthlyReport(db))
+
+	// --- COMPOSITE SCORING (Phase 1) ---
+	admin.GET("/scoring/attendance-index", handler.CalculateAttendanceIndex(db))
+
+	// --- COMPOSITE SCORING (Phase 2) ---
+	admin.POST("/scoring/achievement/submit", handler.SubmitAchievement(db))
+	admin.POST("/scoring/achievement/approve", handler.ApproveAchievement(db))
+	admin.GET("/scoring/achievement/pending", handler.GetPendingAchievements(db))
+	admin.GET("/scoring/composite", handler.GetCompositeScores(db))
+
+	// --- COMPOSITE SCORING (Phase 3) ---
+	admin.POST("/scoring/violation/record", handler.RecordViolation(db))
+	admin.GET("/scoring/violation/list", handler.GetStudentViolations(db))
+	admin.POST("/scoring/redemption/submit", handler.SubmitRedemption(db))
+	admin.POST("/scoring/redemption/verify", handler.VerifyRedemption(db))
+	admin.GET("/scoring/redemption/pending", handler.GetPendingRedemptions(db))
 
 	// --- OPERATOR ROUTES ---
 	serveEmbedPage := func(path string) echo.HandlerFunc {

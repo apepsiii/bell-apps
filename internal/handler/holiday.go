@@ -2,6 +2,7 @@ package handler
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -268,31 +269,92 @@ func ImportNationalHolidays(db *sql.DB) echo.HandlerFunc {
 			yearStr = time.Now().Format("2006")
 		}
 
-		fixedHolidays := map[string]string{
-			"01-01": "Tahun Baru Masehi",
-			"05-01": "Hari Buruh Internasional",
-			"06-01": "Hari Lahir Pancasila",
-			"08-17": "Hari Kemerdekaan RI",
-			"12-25": "Hari Raya Natal",
+		// Data resmi Hari Libur Nasional & Cuti Bersama Tahun 2026
+		// Sumber: Keputusan Bersama Menag, Menaker, dan MenPANRB Nomor 1497/2025, 2/2025, 5/2025
+		// https://jdih.kemenkoinfra.go.id/pemerintah-tetapkan-hari-libur-nasional-dan-cuti-bersama-tahun-2026
+		type holidayData struct {
+			date string
+			name string
+			typ  string // "national" atau "cuti_bersama"
+		}
+
+		var holidays []holidayData
+
+		if yearStr == "2026" {
+			holidays = []holidayData{
+				// === HARI LIBUR NASIONAL (16 hari) ===
+				{"2026-01-01", "Tahun Baru 2026 Masehi", "national"},
+				{"2026-01-16", "Isra Mikraj Nabi Muhammad S.A.W.", "national"},
+				{"2026-02-17", "Tahun Baru Imlek 2577 Kongzili", "national"},
+				{"2026-03-19", "Hari Suci Nyepi (Tahun Baru Saka 1948)", "national"},
+				{"2026-03-21", "Idul Fitri 1447 Hijriah", "national"},
+				{"2026-03-22", "Idul Fitri 1447 Hijriah", "national"},
+				{"2026-04-03", "Wafat Yesus Kristus", "national"},
+				{"2026-04-05", "Kebangkitan Yesus Kristus (Paskah)", "national"},
+				{"2026-05-01", "Hari Buruh Internasional", "national"},
+				{"2026-05-14", "Kenaikan Yesus Kristus", "national"},
+				{"2026-05-27", "Idul Adha 1447 Hijriah", "national"},
+				{"2026-05-31", "Hari Raya Waisak 2570 BE", "national"},
+				{"2026-06-01", "Hari Lahir Pancasila", "national"},
+				{"2026-06-16", "1 Muharam Tahun Baru Islam 1448 Hijriah", "national"},
+				{"2026-08-17", "Proklamasi Kemerdekaan RI", "national"},
+				{"2026-08-25", "Maulid Nabi Muhammad S.A.W.", "national"},
+				{"2026-12-25", "Kelahiran Yesus Kristus (Natal)", "national"},
+
+				// === CUTI BERSAMA (6 hari) ===
+				{"2026-02-16", "Cuti Bersama Tahun Baru Imlek 2577 Kongzili", "cuti_bersama"},
+				{"2026-03-18", "Cuti Bersama Hari Suci Nyepi (Tahun Baru Saka 1948)", "cuti_bersama"},
+				{"2026-03-20", "Cuti Bersama Idul Fitri 1447 Hijriah", "cuti_bersama"},
+				{"2026-03-23", "Cuti Bersama Idul Fitri 1447 Hijriah", "cuti_bersama"},
+				{"2026-03-24", "Cuti Bersama Idul Fitri 1447 Hijriah", "cuti_bersama"},
+				{"2026-05-15", "Cuti Bersama Kenaikan Yesus Kristus", "cuti_bersama"},
+				{"2026-05-28", "Cuti Bersama Idul Adha 1447 Hijriah", "cuti_bersama"},
+				{"2026-12-24", "Cuti Bersama Kelahiran Yesus Kristus", "cuti_bersama"},
+			}
+		} else {
+			// Untuk tahun lain, gunakan hari libur fix (tanggal sama tiap tahun)
+			fixedHolidays := []holidayData{
+				{yearStr + "-01-01", "Tahun Baru Masehi", "national"},
+				{yearStr + "-05-01", "Hari Buruh Internasional", "national"},
+				{yearStr + "-06-01", "Hari Lahir Pancasila", "national"},
+				{yearStr + "-08-17", "Hari Kemerdekaan RI", "national"},
+				{yearStr + "-12-25", "Hari Raya Natal", "national"},
+			}
+			holidays = fixedHolidays
 		}
 
 		addedCount := 0
-		for dateSuffix, name := range fixedHolidays {
-			date := yearStr + "-" + dateSuffix
+		skippedCount := 0
+		var added []string
+		var skipped []string
 
+		for _, h := range holidays {
 			var count int
-			db.QueryRow("SELECT COUNT(*) FROM holidays WHERE date=?", date).Scan(&count)
+			db.QueryRow("SELECT COUNT(*) FROM holidays WHERE date=?", h.date).Scan(&count)
 			if count == 0 {
-				_, err := db.Exec("INSERT INTO holidays (date, name, type, description) VALUES (?, ?, 'national', 'Libur Nasional Standar')", date, name)
+				_, err := db.Exec(
+					"INSERT INTO holidays (date, name, type, description) VALUES (?, ?, ?, ?)",
+					h.date, h.name, h.typ, "Import Nasional Standar (SKB 3 Menteri 2025)",
+				)
 				if err == nil {
 					addedCount++
+					added = append(added, h.date+" "+h.name)
 				}
+			} else {
+				skippedCount++
+				skipped = append(skipped, h.date+" "+h.name)
 			}
 		}
 
 		return c.JSON(http.StatusOK, map[string]interface{}{
-			"message": "Import selesai",
+			"status":  "success",
+			"message": fmt.Sprintf("Import selesai: %d hari libur ditambahkan, %d sudah ada", addedCount, skippedCount),
 			"added":   addedCount,
+			"skipped": skippedCount,
+			"added_list":   added,
+			"skipped_list": skipped,
+			"year":    yearStr,
+			"source":  "Keputusan Bersama Menag, Menaker, MenPANRB Nomor 1497/2025",
 		})
 	}
 }

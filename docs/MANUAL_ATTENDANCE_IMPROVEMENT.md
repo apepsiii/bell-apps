@@ -16,14 +16,14 @@ Peningkatan sistem absensi manual dengan opsi status yang lebih lengkap dan penc
 - Behavior: Catat sebagai "Terlambat" dengan timestamp custom
 
 ### 3. **Sakit**
-- Dua opsi:
-  - **Dengan Surat Keterangan**: Checkbox "Dengan Surat Keterangan" dicentang
-  - **Dengan Keterangan**: Textarea diisi tanpa centang checkbox
-  - **Tanpa Keterangan**: Textarea kosong, checkbox tidak dicentang
+- Dua opsi radio button:
+  - **Dengan Surat Keterangan**: Radio "Dengan Surat Keterangan" dipilih
+  - **Tanpa Surat Keterangan**: Radio "Tanpa Surat Keterangan" dipilih
+- Input: keterangan (textarea, opsional) + radio button pilihan surat
 - Status disimpan sebagai:
-  - `Sakit (Surat)` jika ada surat
-  - `Sakit (Keterangan)` jika ada keterangan teks
-  - `Sakit` jika tanpa keterangan
+  - `Sakit (Dengan Surat)` jika radio "with" dipilih
+  - `Sakit (Tanpa Surat)` jika radio "without" dipilih
+  - `Sakit` jika tidak ada radio yang dipilih
 
 ### 4. **Dispensasi**
 - Izin dengan keterangan wajib
@@ -61,7 +61,7 @@ student_id: string (required)
 status: string (required) - "Hadir", "Terlambat", "Sakit", "Dispensasi", "Alpha"
 time: string (optional) - Format "HH:MM", required untuk Hadir/Terlambat
 note: string (optional) - Keterangan, required untuk Dispensasi
-has_letter: boolean (optional) - true/false, hanya untuk status Sakit
+letter_status: string (optional) - "with" atau "without", hanya untuk status Sakit
 ```
 
 **Response:**
@@ -80,13 +80,14 @@ has_letter: boolean (optional) - true/false, hanya untuk status Sakit
 - **Conditional Sections**:
   - Time input: tampil untuk Hadir/Terlambat
   - Note textarea: tampil untuk Sakit/Dispensasi
-  - Has letter checkbox: tampil untuk Sakit
+  - Radio button (Dengan/Tanpa Surat): tampil untuk Sakit
 
 ### Form Validation
 - Status wajib dipilih
 - Waktu wajib diisi untuk Hadir/Terlambat
 - Keterangan wajib diisi untuk Dispensasi
 - Keterangan opsional untuk Sakit
+- Radio button surat opsional untuk Sakit
 
 ## WhatsApp Notification
 
@@ -102,24 +103,67 @@ Migrasi kolom `note` dilakukan otomatis saat aplikasi start melalui:
 - `runMySQLMigrations()` untuk MySQL
 
 ## Files Changed
-1. `views/admin.html` - UI modal dan JavaScript
+1. `views/admin.html` - UI modal, JavaScript, dan status colors
 2. `main.go` - Handler `ManualAttendanceHandler`
 3. `internal/repository/db.go` - Migration untuk kolom `note`
+4. `views/profile.html` - Kalender legend dan render status baru
+5. `docs/MANUAL_ATTENDANCE_IMPROVEMENT.md` - Dokumentasi
 
 ## Testing Checklist
 - [ ] Absen Hadir dengan jam custom
 - [ ] Absen Terlambat dengan jam custom
-- [ ] Sakit tanpa keterangan
-- [ ] Sakit dengan keterangan teks
+- [ ] Sakit tanpa surat keterangan
 - [ ] Sakit dengan surat keterangan
+- [ ] Sakit tanpa pilih radio (hanya "Sakit")
 - [ ] Dispensasi dengan keterangan (wajib)
 - [ ] Alpha tanpa keterangan
 - [ ] Validasi form (wajib waktu, wajib keterangan)
 - [ ] WA notification untuk Hadir/Terlambat
 - [ ] Data tersimpan dengan benar di DB
+- [ ] Tampilan status baru di kalender profile
+- [ ] Tampilan status baru di laporan admin
 
 ## Future Improvements
 - [ ] History log untuk melihat keterangan
 - [ ] Upload attachment untuk surat keterangan
 - [ ] Approval workflow untuk dispensasi
 - [ ] Statistik berdasarkan jenis status
+
+## Bulk Attendance (Presensi Manual Kelas)
+
+### Endpoint: `POST /admin/attendance/bulk`
+
+**Request Body (JSON):**
+```json
+{
+  "class_id": 1,
+  "date": "2026-09-13",
+  "students": [
+    {"student_id": 1, "status": "Hadir"},
+    {"student_id": 2, "status": "Terlambat"},
+    {"student_id": 3, "status": "Sakit"},
+    {"student_id": 4, "status": "Dispensasi"},
+    {"student_id": 5, "status": "Alpha"}
+  ]
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "5 kehadiran berhasil disimpan"
+}
+```
+
+### Status yang Tersedia di Bulk
+- Hadir
+- Terlambat
+- Sakit
+- Dispensasi
+- Alpha
+
+### Catatan
+- Siswa dengan status "Unknown" atau tidak dipilih akan di-skip
+- Timestamp menggunakan tanggal yang dipilih + waktu saat ini
+- Jika siswa sudah punya log di tanggal tersebut, data akan di-update (bukan di-insert ulang)

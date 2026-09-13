@@ -16,6 +16,8 @@ type ReportRecord struct {
 	ClassOrRole     string
 	Status          string
 	Time            string
+	TimeOut         string
+	Note            string
 	PresentCount    int
 	LateCount       int
 	SickCount       int
@@ -171,14 +173,27 @@ func queryDailyReport(db *sql.DB, date, reportType, classID string) ReportData {
 	if reportType == "student" {
 		query = `
 			SELECT s.nis, s.name, c.name as class_name, 
-			       al.status, al.timestamp
+			       COALESCE(al_in.status, 'Tidak Hadir') as status,
+			       COALESCE(al_in.timestamp, '') as time_in,
+			       COALESCE(al_out.timestamp, '') as time_out,
+			       COALESCE(al_in.note, '') as note
 			FROM students s
 			LEFT JOIN classes c ON s.class_id = c.id
-			LEFT JOIN attendance_logs al ON s.rfid_uid = al.rfid_uid 
-			    AND DATE(al.timestamp) = ?
+			LEFT JOIN attendance_logs al_in ON s.rfid_uid = al_in.rfid_uid 
+			    AND DATE(al_in.timestamp) = ?
+			    AND al_in.id = (
+			        SELECT MAX(id) FROM attendance_logs 
+			        WHERE rfid_uid = s.rfid_uid AND DATE(timestamp) = ? AND status != 'Pulang'
+			    )
+			LEFT JOIN attendance_logs al_out ON s.rfid_uid = al_out.rfid_uid 
+			    AND DATE(al_out.timestamp) = ?
+			    AND al_out.id = (
+			        SELECT MAX(id) FROM attendance_logs 
+			        WHERE rfid_uid = s.rfid_uid AND DATE(timestamp) = ? AND status = 'Pulang'
+			    )
 			WHERE s.status = 'active'
 		`
-		args = append(args, date)
+		args = append(args, date, date, date, date)
 
 		if classID != "" {
 			query += " AND s.class_id = ?"
@@ -189,13 +204,26 @@ func queryDailyReport(db *sql.DB, date, reportType, classID string) ReportData {
 	} else {
 		query = `
 			SELECT st.nip, st.name, st.role,
-			       al.status, al.timestamp
+			       COALESCE(al_in.status, 'Tidak Hadir') as status,
+			       COALESCE(al_in.timestamp, '') as time_in,
+			       COALESCE(al_out.timestamp, '') as time_out,
+			       COALESCE(al_in.note, '') as note
 			FROM staff st
-			LEFT JOIN attendance_logs al ON st.rfid_uid = al.rfid_uid 
-			    AND DATE(al.timestamp) = ?
+			LEFT JOIN attendance_logs al_in ON st.rfid_uid = al_in.rfid_uid 
+			    AND DATE(al_in.timestamp) = ?
+			    AND al_in.id = (
+			        SELECT MAX(id) FROM attendance_logs 
+			        WHERE rfid_uid = st.rfid_uid AND DATE(timestamp) = ? AND status != 'Pulang'
+			    )
+			LEFT JOIN attendance_logs al_out ON st.rfid_uid = al_out.rfid_uid 
+			    AND DATE(al_out.timestamp) = ?
+			    AND al_out.id = (
+			        SELECT MAX(id) FROM attendance_logs 
+			        WHERE rfid_uid = st.rfid_uid AND DATE(timestamp) = ? AND status = 'Pulang'
+			    )
 			ORDER BY st.name
 		`
-		args = append(args, date)
+		args = append(args, date, date, date, date)
 	}
 
 	rows, _ := db.Query(query, args...)
@@ -204,33 +232,32 @@ func queryDailyReport(db *sql.DB, date, reportType, classID string) ReportData {
 	no := 1
 	for rows.Next() {
 		var record ReportRecord
-		var status, timestamp sql.NullString
+		var status, timeIn, timeOut, note string
 
 		if reportType == "student" {
-			rows.Scan(&record.ID, &record.Name, &record.ClassOrRole, &status, &timestamp)
+			rows.Scan(&record.ID, &record.Name, &record.ClassOrRole, &status, &timeIn, &timeOut, &note)
 		} else {
-			rows.Scan(&record.ID, &record.Name, &record.ClassOrRole, &status, &timestamp)
+			rows.Scan(&record.ID, &record.Name, &record.ClassOrRole, &status, &timeIn, &timeOut, &note)
 		}
 
 		record.No = no
-		if status.Valid {
-			record.Status = status.String
-			record.Time = timestamp.String
+		record.Status = status
+		record.Time = timeIn
+		record.TimeOut = timeOut
+		record.Note = note
 
-			switch status.String {
-			case "Datang", "Hadir":
-				data.TotalPresent++
-			case "Terlambat":
-				data.TotalLate++
-			case "Sakit":
-				data.TotalSick++
-			case "Izin":
-				data.TotalPermission++
-			case "Alpha":
-				data.TotalAbsent++
-			}
-		} else {
-			record.Status = "Tidak Hadir"
+		switch status {
+		case "Datang", "Hadir":
+			data.TotalPresent++
+		case "Terlambat":
+			data.TotalLate++
+		case "Sakit", "Sakit (Dengan Surat)", "Sakit (Tanpa Surat)":
+			data.TotalSick++
+		case "Dispensasi", "Izin":
+			data.TotalPermission++
+		case "Alpha":
+			data.TotalAbsent++
+		case "Tidak Hadir":
 			data.TotalAbsent++
 		}
 
