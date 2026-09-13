@@ -655,6 +655,7 @@ func runSQLiteMigrations(db *sql.DB) {
 		alter  string
 	}{
 		{"attendance_logs", "method", "ALTER TABLE attendance_logs ADD COLUMN method TEXT DEFAULT 'RFID'"},
+		{"attendance_logs", "note", "ALTER TABLE attendance_logs ADD COLUMN note TEXT DEFAULT ''"},
 		{"classes", "wa_group_id", "ALTER TABLE classes ADD COLUMN wa_group_id TEXT DEFAULT ''"},
 		{"prayer_logs", "status", "ALTER TABLE prayer_logs ADD COLUMN status TEXT DEFAULT 'Hadir'"},
 		{"students", "parent_name", "ALTER TABLE students ADD COLUMN parent_name TEXT DEFAULT ''"},
@@ -1153,6 +1154,7 @@ func runMySQLMigrations(db *sql.DB) {
 		alter  string
 	}{
 		{"attendance_logs", "method", "ALTER TABLE attendance_logs ADD COLUMN method VARCHAR(50) DEFAULT 'RFID'"},
+		{"attendance_logs", "note", "ALTER TABLE attendance_logs ADD COLUMN note TEXT DEFAULT ''"},
 		{"classes", "wa_group_id", "ALTER TABLE classes ADD COLUMN wa_group_id VARCHAR(255) DEFAULT ''"},
 		{"prayer_logs", "status", "ALTER TABLE prayer_logs ADD COLUMN status VARCHAR(50) DEFAULT 'Hadir'"},
 		{"students", "parent_name", "ALTER TABLE students ADD COLUMN parent_name VARCHAR(255) DEFAULT ''"},

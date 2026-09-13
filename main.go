@@ -1426,7 +1426,10 @@ func (a *App) ImportStaffHandler(c echo.Context) error {
 
 func (a *App) ManualAttendanceHandler(c echo.Context) error {
 	studentID := c.FormValue("student_id")
-	status := c.FormValue("status") // Hadir, Sakit, Izin, Alpha
+	status := c.FormValue("status") // Hadir, Terlambat, Sakit, Dispensasi, Alpha
+	timeStr := c.FormValue("time")
+	note := c.FormValue("note")
+	hasLetter := c.FormValue("has_letter") == "true"
 
 	// 1. Get Student Data
 	var rfid, name string
@@ -1435,14 +1438,37 @@ func (a *App) ManualAttendanceHandler(c echo.Context) error {
 		return c.JSON(http.StatusNotFound, map[string]string{"message": "Siswa tidak ditemukan"})
 	}
 
-	// 2. Prepare Data
+	// 2. Prepare timestamp
 	now := time.Now()
-	timestamp := now.Format("2006-01-02 15:04:05")
+	var timestamp string
 	dateStr := now.Format("2006-01-02")
 
-	// 3. Insert Log
-	_, err = a.DB.Exec("INSERT INTO attendance_logs (rfid_uid, user_name, user_type, status, method, timestamp, date) VALUES (?, ?, 'Siswa', ?, 'MANUAL', ?, ?)",
-		rfid, name, status, timestamp, dateStr)
+	// For Hadir/Terlambat: use provided time, else use current time
+	if (status == "Hadir" || status == "Terlambat") && timeStr != "" {
+		// Validate time format
+		if _, err := time.Parse("15:04", timeStr); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{"message": "Format jam tidak valid"})
+		}
+		timestamp = fmt.Sprintf("%s %s:00", dateStr, timeStr)
+	} else {
+		timestamp = now.Format("2006-01-02 15:04:05")
+	}
+
+	// 3. Build extended status for Sakit
+	finalStatus := status
+	if status == "Sakit" {
+		if hasLetter {
+			finalStatus = "Sakit (Surat)"
+		} else if note != "" {
+			finalStatus = "Sakit (Keterangan)"
+		}
+	}
+
+	// 4. Insert Log with note field
+	_, err = a.DB.Exec(`INSERT INTO attendance_logs 
+		(rfid_uid, user_name, user_type, status, method, timestamp, date, note) 
+		VALUES (?, ?, 'Siswa', ?, 'MANUAL', ?, ?, ?)`,
+		rfid, name, finalStatus, timestamp, dateStr, note)
 
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
@@ -1452,21 +1478,17 @@ func (a *App) ManualAttendanceHandler(c echo.Context) error {
 	// Ambil Settings
 	wa := getSettingsMap(a.DB, "onesender_api_url", "onesender_api_token", "wa_template_in", "wa_template_late", "wa_template_out", "wa_template_staff", "wa_image_link")
 
-	// Determine Template based on Status/Type
-	// Note: Manual handler hardcodes 'Siswa', logic here needs to be generic if staff manual added, but currently only students in manual list
+	// Determine Template based on Status
 	var msgTemplate string
-	if status == "Datang" {
+	if status == "Hadir" {
 		msgTemplate = wa["wa_template_in"]
 	}
 	if status == "Terlambat" {
 		msgTemplate = wa["wa_template_late"]
 	}
-	if status == "Pulang" {
-		msgTemplate = wa["wa_template_out"]
-	}
 	if msgTemplate == "" {
 		msgTemplate = wa["wa_template_in"]
-	} // Fallback
+	}
 
 	// Ambil Data HP Ortu & Grup Kelas
 	var parentPhone, classGroup string
@@ -1476,22 +1498,25 @@ func (a *App) ManualAttendanceHandler(c echo.Context) error {
 		JOIN classes c ON s.class_id = c.id 
 		WHERE s.rfid_uid=?`, rfid).Scan(&parentPhone, &classGroup)
 
-	go func() {
-		// Replace Template Variables
-		msg := msgTemplate
-		msg = strings.ReplaceAll(msg, "{name}", name)
-		msg = strings.ReplaceAll(msg, "{time}", time.Now().Format("15:04"))
-		msg = strings.ReplaceAll(msg, "{status}", status)
+	// Only send WA for Hadir/Terlambat status
+	if status == "Hadir" || status == "Terlambat" {
+		go func() {
+			// Replace Template Variables
+			msg := msgTemplate
+			msg = strings.ReplaceAll(msg, "{name}", name)
+			msg = strings.ReplaceAll(msg, "{time}", timeStr)
+			msg = strings.ReplaceAll(msg, "{status}", status)
 
-		// 1. Send to Parent
-		if parentPhone != "" {
-			a.SendOneSenderMessage(parentPhone, msg, wa["onesender_api_token"], wa["onesender_api_url"], "individual", wa["wa_image_link"])
-		}
-		// 2. Send to Class Group
-		if classGroup != "" {
-			a.SendOneSenderMessage(classGroup, msg, wa["onesender_api_token"], wa["onesender_api_url"], "group", wa["wa_image_link"])
-		}
-	}()
+			// 1. Send to Parent
+			if parentPhone != "" {
+				a.SendOneSenderMessage(parentPhone, msg, wa["onesender_api_token"], wa["onesender_api_url"], "individual", wa["wa_image_link"])
+			}
+			// 2. Send to Class Group
+			if classGroup != "" {
+				a.SendOneSenderMessage(classGroup, msg, wa["onesender_api_token"], wa["onesender_api_url"], "group", wa["wa_image_link"])
+			}
+		}()
+	}
 
 	return c.JSON(http.StatusOK, map[string]string{"status": "success", "message": "Absensi manual berhasil disimpan"})
 }
