@@ -294,7 +294,7 @@
                                     class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 hidden group-hover:block animate-fade-in-down z-50">
                                     <div class="px-4 py-2 text-xs text-slate-500 border-b border-slate-100">
                                         Administrator<br>
-                                        <span class="font-light">v{{.AppVersion}}</span>
+                                        <span class="font-light">{{.AppVersion}}</span>
                                     </div>
                                     <button onclick="handleLogout()"
                                         class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
@@ -2762,20 +2762,34 @@
                     <!-- WA Gateway Settings -->
                     <div>
                         <h4 class="font-bold text-xs uppercase text-slate-500 mb-2 border-b pb-1">Integrasi WhatsApp
-                            (OneSender)</h4>
+                            (Gowa Gateway)</h4>
                         <div class="space-y-3">
                             <div>
                                 <label class="text-sm font-medium">API Base URL</label>
                                 <input type="text" name="onesender_api_url"
                                     value="{{index .AttendanceSettings "onesender_api_url"}}"
-                                    placeholder="https://onesender.my.id/api/v1/messages"
+                                    placeholder="http://127.0.0.1:8053"
                                     class="w-full border rounded p-2 text-sm font-mono">
                             </div>
                             <div>
-                                <label class="text-sm font-medium">API Token</label>
+                                <label class="text-sm font-medium">Password (Basic Auth)</label>
                                 <input type="password" name="onesender_api_token"
                                     value="{{index .AttendanceSettings "onesender_api_token"}}"
-                                    placeholder="Bearer Token..." class="w-full border rounded p-2 text-sm font-mono">
+                                    placeholder="Password Gowa..." class="w-full border rounded p-2 text-sm font-mono">
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-sm font-medium">Username (Basic Auth)</label>
+                                    <input type="text" name="onesender_username"
+                                        value="{{index .AttendanceSettings "onesender_username"}}"
+                                        placeholder="admin" class="w-full border rounded p-2 text-sm font-mono">
+                                </div>
+                                <div>
+                                    <label class="text-sm font-medium">Device ID</label>
+                                    <input type="text" name="onesender_device_id"
+                                        value="{{index .AttendanceSettings "onesender_device_id"}}"
+                                        placeholder="Pionir" class="w-full border rounded p-2 text-sm font-mono">
+                                </div>
                             </div>
                             <div>
                                 <label class="text-sm font-medium">Template Pesan WhatsApp</label>
@@ -7449,7 +7463,31 @@ achievement,Piket Bersih,15,Melaksanakan piket dengan baik</pre>
             if(!d.length){tb.innerHTML='<tr><td colspan="6" class="text-center text-slate-400 py-8">Tidak ada data</td></tr>';return;}
             tb.innerHTML=d.map(s=>'<tr class="border-b"><td class="px-4 py-3">'+s.name+'</td><td class="px-4 py-3">'+(s.class_name||'-')+'</td><td class="px-4 py-3 text-center">🔥 '+s.current_streak+'</td><td class="px-4 py-3 text-center font-bold text-blue-600">'+s.total_xp+'</td><td class="px-4 py-3 text-center text-green-600">'+s.approved+'</td><td class="px-4 py-3 text-center">'+s.total_sub+'</td></tr>').join('');
         }
+        async function testWA(){
+            const target=document.getElementById('test-wa-target').value.trim();
+            if(!target){
+                Swal.fire({icon:'warning',title:'Nomor tujuan kosong',text:'Isi nomor WhatsApp tujuan dulu, contoh: 62812345...',toast:true,position:'top-end',showConfirmButton:false,timer:2500});
+                return;
+            }
+            const fd=new FormData();
+            fd.append('target_phone',target);
+            Swal.fire({title:'Mengirim...',text:'Mengirim pesan test via WhatsApp',allowOutsideClick:false,didOpen:()=>{Swal.showLoading();}});
+            try{
+                const r=await fetch('/api/attendance/test-wa',{method:'POST',body:fd});
+                const d=await r.json();
+                if(r.ok){
+                    Swal.fire({icon:'success',title:'Terkirim',text:d.message||'Request terkirim ke gateway'});
+                }else{
+                    Swal.fire({icon:'error',title:'Gagal',text:d.message||'Gagal mengirim pesan test'});
+                }
+            }catch(err){
+                Swal.fire({icon:'error',title:'Error',text:err.message||'Gagal menghubungi server'});
+            }
+        }
         </script>
+        <footer class="text-center text-xs text-slate-400 py-4 border-t mt-8">
+            {{.AppName}} {{.AppVersion}} &middot; Build {{.BuildDate}} &middot; {{.GitCommit}}
+        </footer>
     </body>
 
 </html>

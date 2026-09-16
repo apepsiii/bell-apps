@@ -33,22 +33,30 @@ func (s *WhatsAppService) Send(to, message, recipientType string) error {
 	settings := s.GetSettings()
 	apiURL := settings["onesender_api_url"]
 	token := settings["onesender_api_token"]
+	username := settings["onesender_username"]
+	deviceID := settings["onesender_device_id"]
 	imageURL := settings["wa_image_link"]
 
 	if to == "" || token == "" || apiURL == "" {
 		return nil
 	}
 
-	client := onesender.NewClient(apiURL, token)
+	client := onesender.NewClient(apiURL, token, username, deviceID)
 	var err error
+	var resp string
 	if imageURL != "" {
-		_, err = client.SendImageMessage(to, recipientType, imageURL, message)
+		resp, err = client.SendImageMessage(to, recipientType, imageURL, message)
 	} else {
-		_, err = client.SendTextMessage(to, recipientType, message)
+		resp, err = client.SendTextMessage(to, recipientType, message)
 	}
 
-	s.logMessage(to, message, "success", "")
-	return err
+	if err != nil {
+		s.logMessage(to, message, "failed", err.Error())
+		return err
+	}
+
+	s.logMessage(to, message, "success", resp)
+	return nil
 }
 
 func (s *WhatsAppService) logMessage(target, message, status, response string) {
@@ -90,12 +98,14 @@ func (s *WhatsAppService) Test(target string) (string, error) {
 	settings := s.GetSettings()
 	apiURL := settings["onesender_api_url"]
 	token := settings["onesender_api_token"]
+	username := settings["onesender_username"]
+	deviceID := settings["onesender_device_id"]
 
 	if token == "" {
 		return "", nil
 	}
 
-	client := onesender.NewClient(apiURL, token)
+	client := onesender.NewClient(apiURL, token, username, deviceID)
 	resp, err := client.SendTextMessage(target, "individual", "Test Koneksi SMK NIBA Super Apps: Berhasil terhubung!")
 	if err != nil {
 		s.logMessage(target, "Test Koneksi", "failed", err.Error())

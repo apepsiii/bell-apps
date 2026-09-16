@@ -2,17 +2,38 @@ package onesender
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 )
 
 type Client struct {
-	APIURL  string
-	Token   string
-	Timeout time.Duration
+	APIURL   string
+	Token    string
+	Username string
+	DeviceID string
+	Timeout  time.Duration
+}
+
+type GowaTextPayload struct {
+	Phone   string `json:"phone"`
+	Message string `json:"message"`
+}
+
+type GowaImagePayload struct {
+	Phone   string `json:"phone"`
+	Message string `json:"message"`
+	Image   string `json:"image"`
+}
+
+type GowaResponse struct {
+	Status  bool   `json:"status"`
+	Message string `json:"message"`
 }
 
 type MessagePayload struct {
@@ -37,17 +58,42 @@ type Response struct {
 	Message string `json:"message"`
 }
 
-func NewClient(apiURL, token string) *Client {
-	return &Client{
+func NewClient(apiURL, token string, options ...string) *Client {
+	client := &Client{
 		APIURL:  apiURL,
 		Token:   token,
 		Timeout: 10 * time.Second,
 	}
+	if len(options) > 0 {
+		client.Username = options[0]
+	}
+	if len(options) > 1 {
+		client.DeviceID = options[1]
+	}
+	return client
+}
+
+func normalizePhone(phone string) string {
+	phone = strings.TrimSpace(phone)
+	phone = strings.TrimPrefix(phone, "+")
+	if strings.HasPrefix(phone, "0") {
+		phone = "62" + phone[1:]
+	}
+	if !strings.HasPrefix(phone, "62") {
+		phone = "62" + phone
+	}
+	return phone
 }
 
 func (c *Client) SendImageMessage(to, recipientType, imageURL, caption string) (string, error) {
 	if to == "" || c.Token == "" || c.APIURL == "" {
 		return "", nil
+	}
+
+	to = normalizePhone(to)
+
+	if c.Username != "" && c.DeviceID != "" {
+		return c.sendGowaText(to, caption)
 	}
 
 	payload := MessagePayload{
@@ -66,6 +112,12 @@ func (c *Client) SendImageMessage(to, recipientType, imageURL, caption string) (
 func (c *Client) SendTextMessage(to, recipientType, body string) (string, error) {
 	if to == "" || c.Token == "" || c.APIURL == "" {
 		return "", nil
+	}
+
+	to = normalizePhone(to)
+
+	if c.Username != "" && c.DeviceID != "" {
+		return c.sendGowaText(to, body)
 	}
 
 	payload := MessagePayload{
@@ -101,5 +153,44 @@ func (c *Client) send(payload MessagePayload) (string, error) {
 	defer resp.Body.Close()
 
 	body, _ := io.ReadAll(resp.Body)
+	return string(body), nil
+}
+
+func (c *Client) sendGowaText(phone, message string) (string, error) {
+	payload := GowaTextPayload{
+		Phone:   phone,
+		Message: message,
+	}
+
+	jsonPayload, _ := json.Marshal(payload)
+
+	url := fmt.Sprintf("%s/api/whatsapp/send", strings.TrimRight(c.APIURL, "/"))
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		log.Println("Gowa Error (Req):", err)
+		return "", err
+	}
+
+	authStr := base64.StdEncoding.EncodeToString([]byte(c.Username + ":" + c.Token))
+	req.Header.Set("Authorization", "Basic "+authStr)
+	req.Header.Set("X-Device-Id", c.DeviceID)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: c.Timeout}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println("Gowa Error (Do):", err)
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	
+	var gowaResp GowaResponse
+	if err := json.Unmarshal(body, &gowaResp); err == nil {
+		result, _ := json.Marshal(gowaResp)
+		return string(result), nil
+	}
+
 	return string(body), nil
 }

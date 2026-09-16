@@ -16,8 +16,10 @@ set -e
 #    sh build.sh amd64        # build amd64 only
 # ============================================================
 
-VERSION="${VERSION:-v1.3.0}"
-LDFLAGS="-s -w"
+VERSION="${VERSION:-2.1.0}"
+BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+GIT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+LDFLAGS="-s -w -X main.Version=${VERSION} -X main.BuildDate=${BUILD_DATE} -X main.GitCommit=${GIT_COMMIT}"
 DIST="dist"
 
 ARCH_ARG="${1:-both}"
@@ -30,8 +32,9 @@ esac
 
 echo ""
 echo "========================================"
-echo "  SMK NIBA Super Apps - Build"
-echo "  ${VERSION}  |  $(date +%Y-%m-%d)"
+echo "  NIBA SuperApps - Build"
+echo "  v${VERSION}  |  ${BUILD_DATE}"
+echo "  commit: ${GIT_COMMIT}"
 echo "========================================"
 
 rm -rf "$DIST"

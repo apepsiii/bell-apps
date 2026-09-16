@@ -51,7 +51,7 @@ func InitDB() *sql.DB {
 	SeedAttendanceInsights(db)
 	SeedAssetData(db)
 	SeedDualTrackPointRules(db)
-	
+
 	// Run audit trail migration
 	if err := MigrationAuditTrail(db); err != nil {
 		log.Printf("Warning: Audit trail migration failed: %v", err)
@@ -78,7 +78,7 @@ func SeedPointRules(db *sql.DB) {
 
 	rules := []struct {
 		code, category, name, description, tier string
-		points int
+		points                                  int
 	}{
 		// A.1.1 Ibadah Shalat
 		{"A.1.1.1", "A.1 - Keagamaan", "Shalat Dhuhur/Ashar insidental (diawasi)", "Melaksanakan shalat fardhu Dhuhur/Ashar di sekolah (insidental/diawasi)", "Dasar", 5},
@@ -1201,6 +1201,8 @@ func seedSQLiteData(db *sql.DB) {
 	db.Exec("INSERT INTO attendance_settings VALUES (?, ?)", "departure_end", "17:00")
 	db.Exec("INSERT INTO attendance_settings VALUES (?, ?)", "onesender_api_url", "https://onesender.my.id/api/v1/messages")
 	db.Exec("INSERT INTO attendance_settings VALUES (?, ?)", "onesender_api_token", "")
+	db.Exec("INSERT INTO attendance_settings VALUES (?, ?)", "onesender_username", "")
+	db.Exec("INSERT INTO attendance_settings VALUES (?, ?)", "onesender_device_id", "")
 	db.Exec("INSERT INTO attendance_settings VALUES (?, ?)", "wa_template_in", "Halo, Ananda {name} telah hadir di sekolah pada pukul {time}. Status: {status}.")
 	db.Exec("INSERT INTO attendance_settings VALUES (?, ?)", "wa_template_late", "Halo, Ananda {name} terlambat hadir di sekolah pada pukul {time}.")
 	db.Exec("INSERT INTO attendance_settings VALUES (?, ?)", "wa_template_out", "Halo, Ananda {name} telah pulang sekolah pada pukul {time}.")
@@ -1229,6 +1231,8 @@ func seedMySQLData(db *sql.DB) {
 	db.Exec("INSERT IGNORE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "departure_end", "17:00")
 	db.Exec("INSERT IGNORE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "onesender_api_url", "https://onesender.my.id/api/v1/messages")
 	db.Exec("INSERT IGNORE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "onesender_api_token", "")
+	db.Exec("INSERT IGNORE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "onesender_username", "")
+	db.Exec("INSERT IGNORE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "onesender_device_id", "")
 	db.Exec("INSERT IGNORE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "wa_template_in", "Halo, Ananda {name} telah hadir di sekolah pada pukul {time}. Status: {status}.")
 	db.Exec("INSERT IGNORE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "wa_template_late", "Halo, Ananda {name} terlambat hadir di sekolah pada pukul {time}.")
 	db.Exec("INSERT IGNORE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "wa_template_out", "Halo, Ananda {name} telah pulang sekolah pada pukul {time}.")
@@ -1282,7 +1286,7 @@ func SeedAttendanceInsights(db *sql.DB) {
 	if count > 0 {
 		return
 	}
-	
+
 	insights := []struct {
 		category string
 		message  string
@@ -1293,28 +1297,28 @@ func SeedAttendanceInsights(db *sql.DB) {
 		{"early", "Wow! {minutes} menit lebih cepat dari kemarin. Amazing! ⚡"},
 		{"early", "Keren! Hari ini kamu {minutes} menit lebih pagi. Keep going! 💪"},
 		{"early", "Luar biasa! Lebih cepat {minutes} menit. Disiplin sekali! 🌟"},
-		
+
 		// On time messages
 		{"ontime", "Tepat waktu seperti biasa. Keep it up! 💪"},
 		{"ontime", "Konsisten! Terus pertahankan kedisiplinanmu. 🌟"},
 		{"ontime", "Perfect timing! Kamu selalu on time. Excellent! ✨"},
 		{"ontime", "Disiplin adalah kunci kesuksesan. Great! 🎯"},
 		{"ontime", "Selalu tepat waktu, kamu memang bisa diandalkan! 💯"},
-		
+
 		// Late messages
 		{"late", "Kamu terlambat {minutes} menit hari ini. Besok lebih awal ya! ⏰"},
 		{"late", "Ayo, besok datang lebih pagi! Kamu bisa! 💪"},
 		{"late", "Terlambat {minutes} menit. Mari perbaiki besok! 🚀"},
 		{"late", "Besok coba berangkat lebih pagi ya. Semangat! ⚡"},
 		{"late", "Jangan sampai terlambat lagi. Kamu pasti bisa! 🎯"},
-		
+
 		// Sick messages
 		{"sick", "Semoga lekas sembuh ya! 🏥💚"},
 		{"sick", "Istirahat yang cukup dan jaga kesehatan. Get well soon! 🌈"},
 		{"sick", "Semoga cepat pulih dan bisa kembali sekolah. Stay strong! 💪"},
 		{"sick", "Jaga kesehatan dan minum obat teratur. Semoga cepat sehat! 🙏"},
 		{"sick", "Sakit memang tidak enak. Semoga segera sembuh! 💖"},
-		
+
 		// Permission messages
 		{"permission", "Ada keperluan hari ini. Semoga lancar! 🙏"},
 		{"permission", "Semoga urusannya berjalan lancar. 📝"},
@@ -1322,7 +1326,7 @@ func SeedAttendanceInsights(db *sql.DB) {
 		{"permission", "Semoga keperluan hari ini berjalan baik. See you! 🌟"},
 		{"permission", "Hati-hati di jalan. Sampai jumpa lagi! 🚗"},
 	}
-	
+
 	for _, ins := range insights {
 		db.Exec(`INSERT INTO attendance_insights (category, message, is_active) VALUES (?, ?, 1)`,
 			ins.category, ins.message)

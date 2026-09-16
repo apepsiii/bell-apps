@@ -22,7 +22,52 @@ type templateRenderer struct {
 }
 
 func (t *templateRenderer) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
+	data = withVersionData(data)
 	return t.templates.ExecuteTemplate(w, name, data)
+}
+
+func withVersionData(data interface{}) interface{} {
+	versionInfo := map[string]string{
+		"version":    os.Getenv("APP_VERSION"),
+		"build_date": os.Getenv("BUILD_DATE"),
+		"git_commit": os.Getenv("GIT_COMMIT"),
+		"app_name":   os.Getenv("APP_NAME"),
+	}
+	if versionInfo["version"] == "" {
+		versionInfo["version"] = "2.1.0"
+	}
+	if versionInfo["app_name"] == "" {
+		versionInfo["app_name"] = "NIBA SuperApps"
+	}
+	if versionInfo["build_date"] == "" {
+		versionInfo["build_date"] = "unknown"
+	}
+	if versionInfo["git_commit"] == "" {
+		versionInfo["git_commit"] = "unknown"
+	}
+
+	appVersion := "v" + versionInfo["version"]
+
+	if data == nil {
+		return map[string]interface{}{
+			"AppVersion":  appVersion,
+			"AppName":     versionInfo["app_name"],
+			"BuildDate":   versionInfo["build_date"],
+			"GitCommit":   versionInfo["git_commit"],
+			"FullVersion": versionInfo["app_name"] + " " + appVersion + " (build " + versionInfo["build_date"] + ")",
+			"VersionInfo": versionInfo,
+		}
+	}
+	if m, ok := data.(map[string]interface{}); ok {
+		m["AppVersion"] = appVersion
+		m["AppName"] = versionInfo["app_name"]
+		m["BuildDate"] = versionInfo["build_date"]
+		m["GitCommit"] = versionInfo["git_commit"]
+		m["FullVersion"] = versionInfo["app_name"] + " " + appVersion + " (build " + versionInfo["build_date"] + ")"
+		m["VersionInfo"] = versionInfo
+		return m
+	}
+	return data
 }
 
 // AppHandlers contains handlers that are still methods on the main App struct.
@@ -37,6 +82,7 @@ type AppHandlers interface {
 	VerifyFaceAttendanceHandler(c echo.Context) error
 	SyncHandler(c echo.Context) error
 	PublicLeaderboardHandler(c echo.Context) error
+	VersionHandler(c echo.Context) error
 }
 
 // Register sets up all routes on the given Echo instance.
@@ -79,6 +125,7 @@ func Register(e *echo.Echo, db *sql.DB, viewsFS embed.FS, app AppHandlers) {
 
 	e.POST("/api/login", handler.Login(), appMiddleware.AuthRateLimiter())
 	e.POST("/api/logout", handler.Logout())
+	e.GET("/api/version", app.VersionHandler)
 	e.GET("/api/sync", app.SyncHandler)
 	e.GET("/api/leaderboard", app.PublicLeaderboardHandler)
 	e.GET("/api/point-rules", handler.GetPointRulesV2(db))
@@ -353,7 +400,7 @@ func Register(e *echo.Echo, db *sql.DB, viewsFS embed.FS, app AppHandlers) {
 	admin.DELETE("/v2/violation/:id", handler.DeleteViolationPoint(db))
 	admin.GET("/v2/leaderboard", handler.GetDualPointLeaderboard(db))
 	admin.GET("/v2/class-summary", handler.GetClassDualPointSummary(db))
-	
+
 	// Dual-Track Point System Pages
 	admin.GET("/dual-point/dashboard", func(c echo.Context) error {
 		return c.Render(http.StatusOK, "admin_dual_point_dashboard.html", nil)

@@ -20,6 +20,8 @@ func UpdateAttendanceSettings(db *sql.DB) echo.HandlerFunc {
 
 		waURL := c.FormValue("onesender_api_url")
 		waToken := c.FormValue("onesender_api_token")
+		waUsername := c.FormValue("onesender_username")
+		waDeviceID := c.FormValue("onesender_device_id")
 		waTemplateIn := c.FormValue("wa_template_in")
 		waTemplateLate := c.FormValue("wa_template_late")
 		waTemplateOut := c.FormValue("wa_template_out")
@@ -45,6 +47,8 @@ func UpdateAttendanceSettings(db *sql.DB) echo.HandlerFunc {
 
 		tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "onesender_api_url", waURL)
 		tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "onesender_api_token", waToken)
+		tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "onesender_username", waUsername)
+		tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "onesender_device_id", waDeviceID)
 		tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "wa_template_in", waTemplateIn)
 		tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "wa_template_late", waTemplateLate)
 		tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "wa_template_out", waTemplateOut)
@@ -511,7 +515,7 @@ func BulkAttendance(db *sql.DB) echo.HandlerFunc {
 			StudentID int    `json:"student_id"`
 			Status    string `json:"status"`
 		}
-		
+
 		type Request struct {
 			ClassID  int              `json:"class_id"`
 			Date     string           `json:"date"`
@@ -528,23 +532,23 @@ func BulkAttendance(db *sql.DB) echo.HandlerFunc {
 		if dateStr == "" {
 			dateStr = time.Now().Format("2006-01-02")
 		}
-		
+
 		// Parse the date to build timestamp
 		dateParsed, err := time.Parse("2006-01-02", dateStr)
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid date format"})
 		}
-		
+
 		// Use current time on the specified date
 		now := time.Now()
-		timestamp := time.Date(dateParsed.Year(), dateParsed.Month(), dateParsed.Day(), 
+		timestamp := time.Date(dateParsed.Year(), dateParsed.Month(), dateParsed.Day(),
 			now.Hour(), now.Minute(), now.Second(), 0, time.Local).Format("2006-01-02 15:04:05")
 
 		tx, err := db.Begin()
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to start transaction"})
 		}
-		
+
 		successCount := 0
 
 		for _, att := range req.Students {
@@ -552,7 +556,7 @@ func BulkAttendance(db *sql.DB) echo.HandlerFunc {
 			if att.Status == "Unknown" || att.Status == "" {
 				continue
 			}
-			
+
 			var rfid, name string
 			err := db.QueryRow("SELECT rfid_uid, name FROM students WHERE id=?", att.StudentID).Scan(&rfid, &name)
 			if err != nil {
@@ -570,7 +574,7 @@ func BulkAttendance(db *sql.DB) echo.HandlerFunc {
 			tx.Rollback()
 			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to save attendance"})
 		}
-		
+
 		return c.JSON(http.StatusOK, map[string]string{"status": "success", "message": fmt.Sprintf("%d kehadiran berhasil disimpan", successCount)})
 	}
 }

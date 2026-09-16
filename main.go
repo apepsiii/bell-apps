@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"embed"
+	"encoding/base64"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -94,7 +95,32 @@ type Template struct {
 }
 
 func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
+	data = withVersionData(data)
 	return t.templates.ExecuteTemplate(w, name, data)
+}
+
+func withVersionData(data interface{}) interface{} {
+	versionInfo := GetVersionInfo()
+	if data == nil {
+		return map[string]interface{}{
+			"AppVersion":  GetVersionString(),
+			"AppName":     AppName,
+			"BuildDate":   BuildDate,
+			"GitCommit":   GitCommit,
+			"FullVersion": GetFullVersionString(),
+			"VersionInfo": versionInfo,
+		}
+	}
+	if m, ok := data.(map[string]interface{}); ok {
+		m["AppVersion"] = GetVersionString()
+		m["AppName"] = AppName
+		m["BuildDate"] = BuildDate
+		m["GitCommit"] = GitCommit
+		m["FullVersion"] = GetFullVersionString()
+		m["VersionInfo"] = versionInfo
+		return m
+	}
+	return data
 }
 
 type Schedule struct {
@@ -272,16 +298,21 @@ type DashboardData struct {
 	Leaderboard []LeaderboardItem
 
 	Stats struct {
-		TotalSchedules  int
-		NextBell        string
-		OnlineDevices   int
-		TotalDevices    int
-		TotalStudents   int
-		TotalStaff      int
-		ActiveStudents  int
+		TotalSchedules   int
+		NextBell         string
+		OnlineDevices    int
+		TotalDevices     int
+		TotalStudents    int
+		TotalStaff       int
+		ActiveStudents   int
 		InactiveStudents int
 	}
 	AppVersion string
+	AppName    string
+	BuildDate  string
+	GitCommit  string
+	FullVersion string
+	VersionInfo map[string]string
 }
 
 type LeaderboardItem struct {
@@ -339,9 +370,35 @@ func DateToIndo(t time.Time) string {
 	return fmt.Sprintf("%s, %d %s %d", day, t.Day(), month, t.Year())
 }
 
+func (a *App) VersionHandler(c echo.Context) error {
+	return c.JSON(http.StatusOK, GetVersionInfo())
+}
+
+func normalizePhoneNumber(phone string) string {
+	phone = strings.TrimSpace(phone)
+	phone = strings.TrimPrefix(phone, "+")
+	if strings.HasPrefix(phone, "0") {
+		phone = "62" + phone[1:]
+	}
+	if !strings.HasPrefix(phone, "62") {
+		phone = "62" + phone
+	}
+	return phone
+}
+
 func (a *App) SendOneSenderMessage(to, message, token, apiUrl, recipientType, imageUrl string) (string, error) {
 	if to == "" || token == "" || apiUrl == "" {
 		return "", nil
+	}
+
+	to = normalizePhoneNumber(to)
+
+	var username, deviceID string
+	a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='onesender_username'").Scan(&username)
+	a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='onesender_device_id'").Scan(&deviceID)
+
+	if username != "" && deviceID != "" {
+		return a.sendGowaMessage(to, message, token, apiUrl, username, deviceID, imageUrl)
 	}
 
 	var payload map[string]interface{}
@@ -357,7 +414,6 @@ func (a *App) SendOneSenderMessage(to, message, token, apiUrl, recipientType, im
 			},
 		}
 	} else {
-		// Fallback to text format (assuming it follows standard structure)
 		payload = map[string]interface{}{
 			"to":             to,
 			"recipient_type": recipientType,
@@ -384,6 +440,53 @@ func (a *App) SendOneSenderMessage(to, message, token, apiUrl, recipientType, im
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Println("WA Error (Do):", err)
+		a.DB.Exec("INSERT INTO whatsapp_logs (target, message, status, response) VALUES (?, ?, ?, ?)", to, message, "failed", err.Error())
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	responseStr := string(body)
+
+	status := "success"
+	if resp.StatusCode >= 400 {
+		status = "failed"
+	}
+
+	a.DB.Exec("INSERT INTO whatsapp_logs (target, message, status, response) VALUES (?, ?, ?, ?)", to, message, status, responseStr)
+
+	return responseStr, nil
+}
+
+func (a *App) sendGowaMessage(to, message, password, apiUrl, username, deviceID, imageUrl string) (string, error) {
+	// NOTE: Gowa image endpoint expects multipart form data.
+	// We send text-only for now to ensure delivery works.
+	// TODO: Implement multipart image upload when needed.
+	endpoint := strings.TrimRight(apiUrl, "/") + "/api/whatsapp/send"
+
+	payload := map[string]string{
+		"phone":   to,
+		"message": message,
+	}
+
+	jsonPayload, _ := json.Marshal(payload)
+
+	req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		log.Println("Gowa Error (Req):", err)
+		a.DB.Exec("INSERT INTO whatsapp_logs (target, message, status, response) VALUES (?, ?, ?, ?)", to, message, "failed", err.Error())
+		return "", err
+	}
+
+	authStr := base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
+	req.Header.Set("Authorization", "Basic "+authStr)
+	req.Header.Set("X-Device-Id", deviceID)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println("Gowa Error (Do):", err)
 		a.DB.Exec("INSERT INTO whatsapp_logs (target, message, status, response) VALUES (?, ?, ?, ?)", to, message, "failed", err.Error())
 		return "", err
 	}
@@ -534,6 +637,7 @@ func (a *App) LogoutHandler(c echo.Context) error {
 }
 
 func (a *App) DashboardHandler(c echo.Context) error {
+	config.AppVersion = GetVersionString()
 	rows, _ := a.DB.Query("SELECT id, time, label, audio_file FROM schedules ORDER BY time ASC")
 	var schedules []Schedule
 	for rows.Next() {
@@ -892,7 +996,12 @@ func (a *App) DashboardHandler(c echo.Context) error {
 		ChartStatus:        string(jsonChart2),
 		ChartArrival:       string(jsonChart3),
 		Leaderboard:        leaderboard,
-		AppVersion:         config.AppVersion,
+		AppVersion:         GetVersionString(),
+		AppName:            AppName,
+		BuildDate:          BuildDate,
+		GitCommit:          GitCommit,
+		FullVersion:        GetFullVersionString(),
+		VersionInfo:        GetVersionInfo(),
 	}
 	data.Stats.TotalSchedules = len(schedules)
 	data.Stats.NextBell = a.GetNextBell()
@@ -2684,7 +2793,7 @@ func (a *App) PublicLeaderboardHandler(c echo.Context) error {
 		ID        int    `json:"id"`
 		Name      string `json:"name"`
 		ClassName string `json:"class_name"`
-		Points   int    `json:"points"`
+		Points    int    `json:"points"`
 	}
 
 	var entries []LeaderboardEntry
@@ -2743,13 +2852,13 @@ func (a *App) FaceRegisterPageHandler(c echo.Context) error {
 
 	data := map[string]interface{}{
 		"ID":         s.ID,
-		"Name":        s.Name,
-		"ExtraInfo":   s.ClassName,
-		"Photo":       s.Photo,
-		"IdentityNo":   s.IdentityNo,
-		"RFID":        s.RFID,
-		"Phone":       s.Phone,
-		"Type":        "Siswa",
+		"Name":       s.Name,
+		"ExtraInfo":  s.ClassName,
+		"Photo":      s.Photo,
+		"IdentityNo": s.IdentityNo,
+		"RFID":       s.RFID,
+		"Phone":      s.Phone,
+		"Type":       "Siswa",
 	}
 
 	return c.Render(http.StatusOK, "face_register.html", data)
@@ -2940,11 +3049,11 @@ func (a *App) markAlphaStudents() {
 	defer rows.Close()
 
 	type studentInfo struct {
-		ID           int
-		Name         string
-		RFID         string
-		ClassName    string
-		ParentPhone  string
+		ID          int
+		Name        string
+		RFID        string
+		ClassName   string
+		ParentPhone string
 	}
 
 	var students []studentInfo
@@ -3136,7 +3245,13 @@ func main() {
 	if err := config.InitLogging(config.GetLogDir()); err != nil {
 		log.Fatalf("Failed to init logging: %v", err)
 	}
-	slog.Info("starting SMK NIBA Super Apps", "version", config.AppVersion)
+
+	// Sync version info: ldflags/env (version.go) is source of truth.
+	// Config also reads APP_VERSION env, so keep them consistent.
+	if Version != "" {
+		config.AppVersion = GetVersionString()
+	}
+	slog.Info("starting "+AppName, "version", GetVersionString(), "build", BuildDate, "commit", GitCommit)
 
 	app := &App{}
 
@@ -3151,7 +3266,6 @@ func main() {
 
 	e := echo.New()
 	router.Register(e, db, viewsFS, app)
-
 
 }
 
