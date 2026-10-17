@@ -18,10 +18,12 @@ echo -e "${CYAN}======================================================${NC}"
 
 DIST_DIR="dist"
 APP_NAME="bell-apps"
-PACKAGE_NAME="${APP_NAME}-vps-linux-amd64.tar.gz"
+# Format penamaan dengan penanda waktu: TAHUNBULANTANGGAL_JAMMENIT (cth: bell-apps-vps-20261017_2135.zip)
+TIMESTAMP=$(date +"%Y%m%d_%H%M")
+ZIP_NAME="${APP_NAME}-vps-${TIMESTAMP}.zip"
 
 echo -e "\n${BLUE}[1/6] Membersihkan direktori build sebelumnya...${NC}"
-rm -rf "${DIST_DIR}" "${PACKAGE_NAME}"
+rm -rf "${DIST_DIR}" "${APP_NAME}-vps-"*.zip
 mkdir -p "${DIST_DIR}"
 mkdir -p "${DIST_DIR}/logs"
 mkdir -p "${DIST_DIR}/public/assets/audio"
@@ -102,15 +104,16 @@ if [ "$(pwd)" != "${INSTALL_DIR}" ]; then
     cp -f bell-apps "${INSTALL_DIR}/"
     [ -f config.yaml ] && cp -n config.yaml "${INSTALL_DIR}/"
     cp -rn public "${INSTALL_DIR}/" 2>/dev/null || true
+    [ -f "${SERVICE_NAME}.service" ] && cp -f "${SERVICE_NAME}.service" "${INSTALL_DIR}/"
 fi
 
 # 3. Beri permission eksekusi
 chmod +x "${INSTALL_DIR}/bell-apps"
 
 # 4. Pasang Systemd Service
-if [ -f "${SERVICE_NAME}.service" ]; then
+if [ -f "${SERVICE_NAME}.service" ] || [ -f "/etc/systemd/system/${SERVICE_NAME}.service" ]; then
     echo "Memasang systemd service..."
-    cp "${SERVICE_NAME}.service" "/etc/systemd/system/${SERVICE_NAME}.service"
+    [ -f "${SERVICE_NAME}.service" ] && cp -f "${SERVICE_NAME}.service" "/etc/systemd/system/${SERVICE_NAME}.service"
     systemctl daemon-reload
     systemctl enable "${SERVICE_NAME}"
     systemctl restart "${SERVICE_NAME}"
@@ -125,23 +128,46 @@ EOF
 chmod +x "${DIST_DIR}/install.sh" 2>/dev/null || true
 echo -e "    ✓ Script installer VPS dibuat: ${DIST_DIR}/install.sh"
 
-echo -e "\n${BLUE}[6/6] Mengompresi paket distribusi menjadi arsip tar.gz...${NC}"
-# Buat arsip di luar dist lalu pindahkan ke dalam dist
-tar -czf "${PACKAGE_NAME}" -C "${DIST_DIR}" .
-mv "${PACKAGE_NAME}" "${DIST_DIR}/${PACKAGE_NAME}"
+echo -e "\n${BLUE}[6/6] Mengompresi paket distribusi menjadi arsip .zip (${ZIP_NAME})...${NC}"
 
-echo -e "${GREEN}✓ Arsip berhasil dibuat: ${DIST_DIR}/${PACKAGE_NAME}${NC}"
+# Buat arsip ZIP riil (Deflate zip archive)
+if command -v python >/dev/null 2>&1 || command -v python3 >/dev/null 2>&1; then
+    PY_BIN="python"
+    command -v python3 >/dev/null 2>&1 && PY_BIN="python3"
+    $PY_BIN - << PYEOF
+import zipfile, os
+
+dist_dir = "${DIST_DIR}"
+zip_name = "${ZIP_NAME}"
+zip_path = os.path.join(dist_dir, zip_name)
+
+with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as z:
+    for root, dirs, files in os.walk(dist_dir):
+        for f in files:
+            if f.endswith('.zip') or f.endswith('.tar.gz'):
+                continue
+            full_path = os.path.join(root, f)
+            rel_path = os.path.relpath(full_path, dist_dir)
+            z.write(full_path, rel_path)
+PYEOF
+elif command -v zip >/dev/null 2>&1; then
+    (cd "${DIST_DIR}" && zip -r -q "${ZIP_NAME}" . -x "*.zip" -x "*.tar.gz")
+else
+    powershell.exe -NoProfile -Command "Compress-Archive -Path '${DIST_DIR}/*' -DestinationPath '${DIST_DIR}/${ZIP_NAME}' -Force"
+fi
+
+echo -e "${GREEN}✓ Arsip ZIP berhasil dibuat: ${DIST_DIR}/${ZIP_NAME}${NC}"
 
 echo -e "\n${GREEN}======================================================${NC}"
 echo -e "${GREEN}   BUILD SELESAI DENGAN SUKSES!                       ${NC}"
 echo -e "${GREEN}======================================================${NC}"
-echo -e "Folder hasil: ${YELLOW}${DIST_DIR}/${NC}"
-echo -e "File arsip  : ${YELLOW}${DIST_DIR}/${PACKAGE_NAME}${NC}"
+echo -e "Folder hasil : ${YELLOW}${DIST_DIR}/${NC}"
+echo -e "File arsip   : ${YELLOW}${DIST_DIR}/${ZIP_NAME}${NC}"
 echo -e ""
-echo -e "Cara upload & jalankan di VPS:"
-echo -e "  1. Upload ${YELLOW}${DIST_DIR}/${PACKAGE_NAME}${NC} ke VPS (via scp/sftp/cPanel):"
-echo -e "     ${CYAN}scp ${DIST_DIR}/${PACKAGE_NAME} root@IP_VPS:/tmp/${NC}"
+echo -e "Cara upload & deploy di VPS:"
+echo -e "  1. Upload ${YELLOW}${DIST_DIR}/${ZIP_NAME}${NC} ke VPS:"
+echo -e "     ${CYAN}scp ${DIST_DIR}/${ZIP_NAME} root@IP_VPS:/tmp/${NC}"
 echo -e "  2. Di terminal VPS, ekstrak dan jalankan installer:"
-echo -e "     ${CYAN}mkdir -p /var/www/bell-apps && tar -xzf /tmp/${PACKAGE_NAME} -C /var/www/bell-apps${NC}"
+echo -e "     ${CYAN}mkdir -p /var/www/bell-apps && unzip -o /tmp/${ZIP_NAME} -d /var/www/bell-apps${NC}"
 echo -e "     ${CYAN}cd /var/www/bell-apps && bash install.sh${NC}"
 echo -e ""
