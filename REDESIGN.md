@@ -162,8 +162,27 @@ flowchart TD
 
 ---
 
+### [x] Fase 7: Redesain Portal Siswa & Fitur Doa Harian (SELESAI ✅)
+> **Tujuan:** Merombak antarmuka siswa menjadi pengalaman mobile-first bertema FinTech Electric Violet yang modern, bersih, dan interaktif.
+
+- [x] **7.1. Login Siswa (`views/student/login.html`):**
+  - Desain mobile-first modern tanpa ornamen berlebih (indikator status bar/baterai dibuang).
+  - Skema warna gradient violet elegan dengan input PIN responsif dan visualisasi error yang jelas.
+- [x] **7.2. Dashboard & Shell Siswa (`views/student/app.html`):**
+  - Layout mobile-first terpusat di desktop (`.mobile-container` max-width 480px).
+  - Floating Hero Card Presensi Gerbang realtime (`#todayInTime`, `#todayOutTime`, live badge `#todayDateBadge`, label kedatangan `#todayInLabel`).
+  - Pembersihan layout quick action bar berulang dan penataan grid Menu & Layanan.
+- [x] **7.3. Modul Profil & Doa Harian:**
+  - Halaman profil siswa yang lebih rapi dan intuitif.
+  - Penambahan menu & modal interaktif Doa Harian & Dzikir terintegrasi API `equran.id` melalui proxy backend Go ber-cache (`internal/handler/doa.go`).
+- [x] **7.4. Kontras & Kerapian Tampilan:**
+  - Standardisasi teks kontras tinggi (`text-white`, `text-purple-300`) pada seluruh widget berlatar gradient gelap.
+
+---
+
 ## 📌 Aturan Pengerjaan bagi Asisten / Pengembang
 1. **Selalu centang `[x]` pada roadmap** di dokumen ini setiap kali sebuah sub-tugas selesai diimplementasikan.
 2. **Jangan menghapus fungsionalitas JavaScript yang ada**, pastikan selector ID/Class yang dipakai JS dipertahankan atau diperbarui secara cermat.
 3. **Selalu uji responsivitas mobile & desktop** serta mode **Light & Dark** pada setiap halaman yang selesai diredesain.
+
 

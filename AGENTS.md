@@ -38,6 +38,21 @@ File ini adalah instruksi operasional untuk AI Coding Agent (Gemini, Claude, Cop
   - Elemen modal/dialog yang dibuka via JavaScript atau SweetAlert2.
 - **CSRF Token:** Semua request mutating (`POST`, `PUT`, `DELETE`) wajib menyertakan CSRF header via `window.getCsrfToken()`. Jangan pernah merusak fungsi interceptor fetch di `layout_head.html`.
 
+### 4. Pedoman Portal Siswa (`views/student/app.html` & `views/student/login.html`)
+- **Prinsip Mobile-First & Desktop Centering:**
+  - Tampilan dirancang native mobile, namun pada desktop harus selalu rapi berada di tengah dalam `.mobile-container` (max-width 480px, centered dengan border/shadow halus).
+  - Pastikan seluruh view section (Home, Presensi, QR, Poin, English, Notifikasi, Cuaca, Profil) berada di dalam `div.mobile-container > main#main-content`. Jangan pernah membiarkan penutup `</div>` ganda yang memotong container lebih awal.
+- **Palet Warna Electric Violet FinTech:**
+  - Kartu hero & header menggunakan gradient gelap elegan: `linear-gradient(135deg, #1A0B2E 0%, #2E1065 60%, #4C1D95 100%)`.
+  - Teks di atas kartu gelap **wajib kontras terang**: `text-white` untuk jam/angka utama, `text-purple-200` atau `text-purple-300` untuk label dan unit (WIB).
+- **Hero Attendance Card (Presensi Gerbang):**
+  - Menggantikan quick actions bar lama di posisi floating hero (`-mt-7 relative z-20`).
+  - DOM IDs wajib dijaga untuk binding JavaScript: `#todayDateBadge`, `#todayInStatus`, `#todayInTime`, `#todayInLabel`, `#todayOutTime`, `#todayOutLabel`, `#holidayNoteHome`.
+  - Fungsi `renderTodayAttendance(today)` di JS **dilarang** meng-override teks jam menjadi gelap (`text-text-main` / `text-text-muted`). Selalu gunakan `text-white` dan badge semi-transparan `bg-emerald-500/25 text-emerald-300 border border-emerald-500/30`.
+- **Modul Doa Harian & Dzikir:**
+  - Endpoint backend terpusat di `internal/handler/doa.go` (`GET /api/student/doa`) dengan cache in-memory 1 jam.
+  - UI modal berada di `#doaModal`, dipanggil via `openDoaModal()`.
+
 ---
 
 ## 📋 Alur Kerja Migrasi Bertahap (Roadmap Tracking)
@@ -54,6 +69,10 @@ Setiap agen yang mengerjakan tugas redesain **WAJIB** membaca status terakhir di
    - File target: `dashboard.html`, `academics.html`, `attendance.html`, `schedules.html`, `points.html`, `reports.html`, `student_detail.html`.
 5. **Fase 5: Kiosk & Public Views**
    - File target: `scan.html`, `scan_sholat.html`, `attendance_face.html`, `face_register.html`, `login.html`, `idcard_single.html`.
+6. **Fase 6: Sarpras & Asset Management**
+   - File target: `views/admin/sarpras.html`, `internal/handler/sarpras_page.go`, `internal/handler/asset_excel.go`.
+7. **Fase 7: Portal Siswa (Mobile-First Redesign)**
+   - File target: `views/student/app.html`, `views/student/login.html`, `internal/handler/doa.go`.
 
 ---
 
@@ -68,7 +87,12 @@ Setiap agen yang mengerjakan tugas redesain **WAJIB** membaca status terakhir di
 - **Cek Kompilasi Go Template & Syntax:**
   ```powershell
   go vet ./...
-  go build -o /dev/null
+  go build -o nul .
+  ```
+
+- **Jalankan Test Suite:**
+  ```powershell
+  go test ./tests/...
   ```
 
 ---

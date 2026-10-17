@@ -14,12 +14,22 @@ Sistem informasi sekolah terpadu untuk SMK berbasis web — menggabungkan absens
 - Notifikasi WhatsApp real-time ke orang tua (via OneSender)
 
 ### Portal Siswa (Mobile-First SPA)
-- Login NIS + PIN, session 7 hari
-- Dashboard: rekap kehadiran, saldo poin, bel berikutnya, pengumuman
-- Kartu Pelajar Digital dengan QR Code (auto-refresh 30 detik)
-- Kalender kehadiran bulanan dengan status berwarna
-- Riwayat & saldo poin lengkap
+- **Modern FinTech Violet UI Redesign**: desain mobile-first modern bertema Electric Violet Gradient (`views/student/app.html`)
+- Login NIS + PIN dengan tampilan responsif modern (`views/student/login.html`)
+- **Hero Attendance Card**: widget presensi gerbang realtime (Jam Masuk, Jam Pulang, live status badge)
+- **Doa Harian & Dzikir**: modul doa interaktif terintegrasi API `equran.id` (caching in-memory, pencarian, dan salin doa)
+- Kartu Pelajar Digital dengan QR Code dinamis (auto-refresh 30 detik)
+- Kalender kehadiran bulanan interaktif dengan visualisasi status
+- Riwayat & saldo poin (Poin Karakter / Panca & Poin Prestasi)
+- Widget cuaca lokal dan pengingat jadwal bel berikutnya
 - Ganti PIN mandiri
+
+### Manajemen Sarpras & Inventaris (KIB)
+- Katalog aset berstandar KIB (KIB A s.d. E: Tanah, Bangunan, Mesin/Peralatan, dll.)
+- Sirkulasi peminjaman barang (Siswa & Guru) dengan workflow persetujuan & pengembalian
+- Manajemen tiket perawatan & pelaporan kerusakan barang
+- Generator stiker label QR Code otomatis untuk setiap aset
+- Export rekap inventaris ke spreadsheet Microsoft Excel (.xlsx)
 
 ### English Daily Quest (Gamifikasi)
 - Quest harian: Written, Vocabulary, Quiz, Voice
@@ -96,15 +106,18 @@ bell-apps/
 │   │   ├── ai_quest.go          # AI quest generation
 │   │   ├── ai_settings.go       # AI settings CRUD + test
 │   │   ├── announcement.go      # Announcements
+│   │   ├── asset_excel.go       # Sarpras Excel export
+│   │   ├── asset_management.go  # Sarpras asset CRUD & QR
 │   │   ├── attendance.go        # Attendance handlers
 │   │   ├── audio.go             # Audio library
 │   │   ├── auth.go              # Authentication
+│   │   ├── doa.go               # Daily Prayer (equran.id proxy + cache)
 │   │   ├── english.go           # English Daily Quest
 │   │   ├── face.go              # Face recognition
 │   │   ├── holiday.go           # Holiday management
-│   │   ├── point.go             # Point system
-│   │   ├── point_history.go     # Point transaction history
-│   │   ├── report.go            # Reports (PDF)
+│   │   ├── point_management.go  # Point & rules management
+│   │   ├── report.go            # Reports (PDF & preview)
+│   │   ├── sarpras_page.go      # Sarpras integrated page
 │   │   ├── student.go           # Student CRUD
 │   │   ├── student_portal.go    # Student portal API
 │   │   ├── staff.go             # Staff CRUD
@@ -123,19 +136,29 @@ bell-apps/
 │   ├── onesender/               # WhatsApp client
 │   └── utils/                   # Utilities (phone format, file, photo)
 ├── views/
-│   ├── admin.html               # Admin SPA (hash-based navigation)
+│   ├── admin/                   # Modular Admin UI (Shadcn SSR)
+│   │   ├── layout_head.html     # Semantic tokens, Tailwind, CSRF setup
+│   │   ├── layout_sidebar.html  # Clean sidebar navigation
+│   │   ├── layout_topbar.html   # Sticky topbar & dark mode toggle
+│   │   ├── layout_footer.html   # Clean minimalist footer
+│   │   ├── dashboard.html       # Admin stat cards & live feed
+│   │   ├── academics.html       # Master Siswa, Guru, Kelas, Jurusan
+│   │   ├── attendance.html      # Rekap & log kehadiran harian
+│   │   ├── points.html          # Sistem poin karakter & prestasi
+│   │   ├── sarpras.html         # Inventaris aset, pinjam, tiket
+│   │   ├── schedules.html       # Pengaturan bel terjadwal
+│   │   ├── settings.html        # Pengaturan sistem & sekolah
+│   │   └── student_detail.html  # Detail & biodata siswa
 │   ├── student/
-│   │   ├── app.html             # Student portal SPA (mobile-first)
-│   │   └── login.html           # Student login
+│   │   ├── app.html             # Student portal SPA (Mobile-first violet)
+│   │   └── login.html           # Student login modern
 │   ├── scan.html                # RFID scan terminal
 │   ├── scan_prayer.html         # Prayer scan terminal
-│   ├── idcard.html              # ID Card generator
-│   └── index.html               # Public leaderboard
+│   ├── idcard_single.html       # Digital PVC ID Card generator
+│   └── index.html               # Public landing page
+├── tests/                       # Modular test suite
 ├── migrations/                  # SQL migration files
 ├── face_service/                # Python face recognition microservice
-│   ├── main.py
-│   └── requirements.txt
-├── *_test.go                    # Integration tests (package main)
 └── FEATURE.md                   # Feature documentation
 ```
 
