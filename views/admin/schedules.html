@@ -1,0 +1,134 @@
+{{template "admin_head" .}}
+<!-- Header -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-zinc-900 p-5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs">
+    <div>
+        <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 flex items-center justify-center">
+                <i data-lucide="bell-ring" class="w-4 h-4"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold text-zinc-900 dark:text-zinc-100">Manajemen Jadwal Bel</h1>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400">Konfigurasi jadwal bel otomatis harian untuk jam masuk, istirahat, dan kepulangan</p>
+            </div>
+        </div>
+    </div>
+    <div class="flex items-center gap-2">
+        <button onclick="openModal('modal-add-schedule')"
+            class="inline-flex items-center gap-2 px-3.5 py-2 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-medium shadow-xs transition-colors">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Tambah Jadwal</span>
+        </button>
+    </div>
+</div>
+
+<!-- Schedules Timeline List -->
+<div class="space-y-3">
+    {{range .Schedules}}
+    <div
+        class="group bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 shadow-xs hover:shadow-sm p-4 sm:p-5 flex items-center gap-4 transition-all">
+        <!-- Time Display -->
+        <div class="w-24 text-center border-r border-zinc-100 dark:border-zinc-800 pr-4 flex-shrink-0">
+            <span class="block text-2xl font-black text-zinc-900 dark:text-zinc-100 tracking-tight font-mono">{{.Time}}</span>
+            <span class="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 tracking-wider uppercase">WIB</span>
+        </div>
+
+        <!-- Label & Audio Info -->
+        <div class="flex-1 min-w-0">
+            <h3 class="font-semibold text-sm sm:text-base text-zinc-900 dark:text-zinc-100 truncate">{{.Label}}</h3>
+            <div class="flex items-center gap-2 mt-1.5 flex-wrap">
+                <div
+                    class="inline-flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 px-2.5 py-0.5 rounded-md text-xs font-mono border border-zinc-200 dark:border-zinc-700">
+                    <i data-lucide="music-2" class="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400"></i>
+                    <span class="truncate max-w-[200px]">{{.AudioFile}}</span>
+                </div>
+                <button type="button" onclick="previewAudio(this, '/assets/audio/{{.AudioFile}}')"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 text-xs text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
+                    title="Putar Nada">
+                    <i data-lucide="play-circle" class="w-3.5 h-3.5"></i>
+                    <span>Preview</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center gap-1 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+            <button type="button" onclick="editSchedule('{{.ID}}', '{{.Time}}', '{{.Label}}', '{{.AudioFile}}')"
+                class="p-2 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                title="Edit Jadwal">
+                <i data-lucide="edit-3" class="w-4 h-4"></i>
+            </button>
+            <button type="button" onclick="deleteItem('schedule', {{.ID}})"
+                class="p-2 text-zinc-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-colors"
+                title="Hapus Jadwal">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+        </div>
+    </div>
+    {{else}}
+    <div class="text-center py-16 bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200/80 dark:border-zinc-800 border-dashed">
+        <div class="w-12 h-12 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 flex items-center justify-center mx-auto mb-3">
+            <i data-lucide="calendar-off" class="w-6 h-6"></i>
+        </div>
+        <p class="font-semibold text-zinc-800 dark:text-zinc-200 text-sm">Belum ada jadwal bel</p>
+        <p class="text-xs text-zinc-400 dark:text-zinc-500 mt-1">Klik tombol Tambah Jadwal di atas untuk membuat jadwal baru.</p>
+    </div>
+    {{end}}
+</div>
+
+<!-- Modal Add / Edit Schedule -->
+<div id="modal-add-schedule"
+    class="modal-wrapper hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-xl w-full max-w-md p-6 animate-in fade-in zoom-in-95 duration-150">
+        <div class="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800 mb-4">
+            <div class="flex items-center gap-2">
+                <i data-lucide="clock" class="w-4 h-4 text-zinc-500"></i>
+                <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100" id="schedule-modal-title">Form Jadwal Bel</h3>
+            </div>
+            <button type="button" onclick="closeModal('modal-add-schedule')"
+                class="p-1 rounded-md text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <form id="schedule-form" action="/admin/schedule/add" method="POST" onsubmit="handleFormSubmit(event)"
+            class="space-y-4">
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Waktu Bel (WIB)</label>
+                <input type="time" name="time" id="sched-time" required
+                    class="w-full bg-transparent dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20 dark:focus:ring-zinc-300/20 focus:border-zinc-900 dark:focus:border-zinc-100 transition-all">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Keterangan / Label</label>
+                <input type="text" name="label" id="sched-label" placeholder="Contoh: Bel Masuk Kelas" required
+                    class="w-full bg-transparent dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-950/20 dark:focus:ring-zinc-300/20 focus:border-zinc-900 dark:focus:border-zinc-100 transition-all">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">File Audio Bel</label>
+                <select name="audio_file" id="sched-audio" required
+                    class="w-full bg-transparent dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20 dark:focus:ring-zinc-300/20 focus:border-zinc-900 dark:focus:border-zinc-100 transition-all">
+                    <option value="" class="bg-white dark:bg-zinc-900">-- Pilih File Audio --</option>
+                    {{range .AudioFiles}}
+                    <option value="{{.FileName}}" class="bg-white dark:bg-zinc-900">{{.DisplayName}} ({{.FileName}})</option>
+                    {{end}}
+                </select>
+            </div>
+            <div class="flex justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <button type="button" onclick="closeModal('modal-add-schedule')"
+                    class="px-4 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors">Batal</button>
+                <button type="submit"
+                    class="px-4 py-2 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-medium shadow-xs transition-colors">Simpan Jadwal</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function editSchedule(id, time, label, audio) {
+        document.getElementById('schedule-form').action = `/admin/schedule/update/${id}`;
+        document.getElementById('schedule-modal-title').textContent = 'Edit Jadwal Bel';
+        document.getElementById('sched-time').value = time;
+        document.getElementById('sched-label').value = label;
+        document.getElementById('sched-audio').value = audio;
+        openModal('modal-add-schedule');
+    }
+</script>
+{{template "admin_footer" .}}

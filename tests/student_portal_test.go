@@ -1,61 +1,20 @@
-package main
+package tests
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/crypto/bcrypt"
 
-	"belsekolah/internal/config"
 	"belsekolah/internal/handler"
-	"belsekolah/internal/repository"
 )
-
-func setupTestApp(t *testing.T) (*App, func()) {
-	db, err := sql.Open("sqlite", ":memory:")
-	if err != nil {
-		t.Fatalf("failed to open in-memory db: %v", err)
-	}
-	repository.RunMigrations(db)
-	repository.SeedDefaultData(db)
-	repository.SeedPointRules(db)
-
-	app := &App{DB: db}
-	os.MkdirAll(config.GetUploadPath(), 0755)
-
-	teardown := func() {
-		db.Close()
-		os.RemoveAll("./public")
-	}
-	return app, teardown
-}
-
-func seedStudent(t *testing.T, app *App, nis, name, password string, active bool) {
-	status := "active"
-	if !active {
-		status = "inactive"
-	}
-	hash := ""
-	if password != "" {
-		h, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-		hash = string(h)
-	}
-	_, err := app.DB.Exec(
-		"INSERT INTO students (rfid_uid, nis, name, password, status) VALUES (?, ?, ?, ?, ?)",
-		"rfid-"+nis, nis, name, hash, status,
-	)
-	assert.NoError(t, err)
-}
 
 func TestStudentLogin_Success(t *testing.T) {
 	app, teardown := setupTestApp(t)
@@ -479,3 +438,4 @@ func TestGetMyCalendar(t *testing.T) {
 	assert.True(t, ok, "stats should be a map")
 	assert.Equal(t, float64(1), stats["present"])
 }
+

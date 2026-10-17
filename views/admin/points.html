@@ -1,0 +1,914 @@
+{{template "admin_head" .}}
+<!-- Header -->
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white dark:bg-zinc-900 p-5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs">
+    <div>
+        <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 flex items-center justify-center">
+                <i data-lucide="award" class="w-4 h-4"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold text-zinc-900 dark:text-zinc-100">Sistem Poin & Karakter Siswa</h1>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400">Formula skor komposit "3 REKA + 1 KONVERSI" untuk memantau prestasi, kehadiran, dan kedisiplinan</p>
+            </div>
+        </div>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+        <a href="/admin/dual-point/dashboard"
+            class="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors">
+            <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i>
+            <span>Portal Dual-Track</span>
+        </a>
+        <!-- Navigation Tabs -->
+        <div class="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800/80 p-1 rounded-lg border border-zinc-200/60 dark:border-zinc-700/60 overflow-x-auto">
+            <button type="button" onclick="switchPointTab('komposit')" id="point-tab-btn-komposit"
+                class="point-nav-btn active px-3 py-1.5 rounded-md text-xs font-medium text-zinc-900 dark:text-zinc-100 bg-white dark:bg-zinc-900 shadow-xs transition-all flex items-center gap-1.5">
+                <i data-lucide="trophy" class="w-3.5 h-3.5"></i>
+                <span>Skor Komposit</span>
+            </button>
+            <button type="button" onclick="switchPointTab('prestasi')" id="point-tab-btn-prestasi"
+                class="point-nav-btn px-3 py-1.5 rounded-md text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all flex items-center gap-1.5">
+                <i data-lucide="award" class="w-3.5 h-3.5"></i>
+                <span>Input Prestasi</span>
+            </button>
+            <button type="button" onclick="switchPointTab('pelanggaran')" id="point-tab-btn-pelanggaran"
+                class="point-nav-btn px-3 py-1.5 rounded-md text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all flex items-center gap-1.5">
+                <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+                <span>Pelanggaran</span>
+            </button>
+            <button type="button" onclick="switchPointTab('rules')" id="point-tab-btn-rules"
+                class="point-nav-btn px-3 py-1.5 rounded-md text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all flex items-center gap-1.5">
+                <i data-lucide="sliders" class="w-3.5 h-3.5"></i>
+                <span>Aturan Poin</span>
+            </button>
+            <button type="button" onclick="switchPointTab('reset')" id="point-tab-btn-reset"
+                class="point-nav-btn px-3 py-1.5 rounded-md text-xs font-medium text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 transition-all flex items-center gap-1.5">
+                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                <span>Reset Poin</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- TAB 1: SKOR KOMPOSIT -->
+<div id="point-view-komposit" class="point-view-content space-y-4">
+    <!-- Info Banner -->
+    <div
+        class="bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex items-start gap-3">
+            <div
+                class="w-8 h-8 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 flex items-center justify-center flex-shrink-0 shadow-xs">
+                <i data-lucide="calculator" class="w-4 h-4"></i>
+            </div>
+            <div>
+                <h4 class="font-semibold text-xs text-zinc-900 dark:text-zinc-100 tracking-wide uppercase">Formula Skor Komposit "3 REKA + 1 KONVERSI"</h4>
+                <p class="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5 font-mono">Skor = (30% × Kehadiran) + (50% × Prestasi) + (20% × Kedisiplinan [100 - Beban Pelanggaran])</p>
+            </div>
+        </div>
+        <button type="button" onclick="recalcAllScores()"
+            class="px-3 py-1.5 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-medium flex items-center gap-1.5 shadow-xs transition-colors flex-shrink-0">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+            <span>Hitung Ulang Skor</span>
+        </button>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white dark:bg-zinc-900 p-3.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs flex items-center justify-between gap-3">
+        <div class="w-64">
+            <select id="komposit-class-filter" onchange="loadKompositLeaderboard()"
+                class="w-full bg-transparent dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20 dark:focus:ring-zinc-300/20 focus:border-zinc-900 dark:focus:border-zinc-100">
+                <option value="" class="bg-white dark:bg-zinc-900">Semua Kelas</option>
+                {{range .Classes}}
+                <option value="{{.ID}}" class="bg-white dark:bg-zinc-900">{{.Name}}</option>
+                {{end}}
+            </select>
+        </div>
+    </div>
+
+    <!-- Leaderboard Table -->
+    <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-zinc-50/80 dark:bg-zinc-800/40 border-b border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400">
+                    <tr>
+                        <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider w-12 text-center">Rank</th>
+                        <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Nama Siswa</th>
+                        <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Kelas</th>
+                        <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-center">Kehadiran (30%)</th>
+                        <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-center">Prestasi (50%)</th>
+                        <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-center">Kedisiplinan (20%)</th>
+                        <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-right">Skor Akhir</th>
+                    </tr>
+                </thead>
+                <tbody id="komposit-leaderboard-body" class="divide-y divide-zinc-100 dark:divide-zinc-800 text-zinc-700 dark:text-zinc-300">
+                    <tr>
+                        <td colspan="7" class="text-center py-12 text-zinc-400 dark:text-zinc-500 text-xs">Memuat data papan peringkat...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div
+            class="px-4 py-3 bg-zinc-50/70 dark:bg-zinc-800/30 border-t border-zinc-200/80 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-zinc-500 dark:text-zinc-400">
+            <div class="flex items-center gap-1.5">
+                <i data-lucide="info" class="w-3.5 h-3.5 text-zinc-400 flex-shrink-0"></i>
+                <span><strong>Keterangan Formula:</strong> Kedisiplinan bernilai 100% (+20 pt) bila 0 beban pelanggaran. Nilai berkurang jika ada pelanggaran. Kehadiran dihitung dari persentase presensi (maks +30 pt).</span>
+            </div>
+            <div class="text-zinc-400 dark:text-zinc-500 font-mono text-[10px]">Formula: Presensi + Prestasi + Kedisiplinan</div>
+        </div>
+    </div>
+</div>
+
+<!-- TAB 2: INPUT PRESTASI -->
+<div id="point-view-prestasi" class="point-view-content hidden space-y-4">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs p-6">
+            <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100 mb-4 flex items-center gap-2">
+                <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-600 dark:text-emerald-400"></i>
+                Ajukan Poin Prestasi Siswa
+            </h3>
+            <form onsubmit="submitAchievement(event)" class="space-y-4">
+                <div class="relative">
+                    <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Cari Siswa</label>
+                    <input type="text" id="prestasi-student-search" placeholder="Ketik nama atau NIS..." autocomplete="off"
+                        class="w-full bg-transparent dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-950/20 dark:focus:ring-zinc-300/20 focus:border-zinc-900 dark:focus:border-zinc-100 transition-all"
+                        oninput="searchStudentForPrestasi(this.value)">
+                    <input type="hidden" id="prestasi-student-id" name="student_id" required>
+                    <div id="prestasi-student-results"
+                        class="hidden absolute left-0 right-0 z-50 mt-1 border border-zinc-200 dark:border-zinc-800 rounded-lg bg-white dark:bg-zinc-900 shadow-lg max-h-48 overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-800">
+                    </div>
+                    <div id="prestasi-student-preview" class="text-xs font-semibold text-zinc-900 dark:text-zinc-100 mt-1.5"></div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Pilih Aturan Prestasi</label>
+                    <select id="prestasi-rule-select" name="rule_id" required
+                        class="w-full bg-transparent dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20 dark:focus:ring-zinc-300/20 focus:border-zinc-900 dark:focus:border-zinc-100 transition-all">
+                        <option value="" class="bg-white dark:bg-zinc-900">Memuat aturan...</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Keterangan Prestasi</label>
+                    <textarea id="prestasi-description" name="description" rows="3"
+                        placeholder="Contoh: Juara 1 Lomba Web Design Tingkat Provinsi"
+                        class="w-full bg-transparent dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-950/20 dark:focus:ring-zinc-300/20 focus:border-zinc-900 dark:focus:border-zinc-100 transition-all"></textarea>
+                </div>
+                <button type="submit"
+                    class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium shadow-xs transition-colors flex items-center justify-center gap-1.5">
+                    <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                    <span>Simpan Poin Prestasi</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Pending Approvals -->
+        <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs p-6">
+            <div class="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800 mb-4">
+                <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Menunggu Approval</h3>
+                <span id="prestasi-pending-count"
+                    class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50">0</span>
+            </div>
+            <div id="prestasi-pending-list" class="space-y-2 max-h-96 overflow-y-auto">
+                <div class="text-center py-10 text-zinc-400 dark:text-zinc-500 text-xs">Tidak ada pengajuan prestasi pending.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TAB 3: PELANGGARAN -->
+<div id="point-view-pelanggaran" class="point-view-content hidden space-y-4">
+    <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs p-6 max-w-xl">
+        <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100 mb-4 flex items-center gap-2">
+            <i data-lucide="alert-octagon" class="w-4 h-4 text-rose-500"></i>
+            Catat Pelanggaran Tata Tertib
+        </h3>
+        <form onsubmit="submitViolation(event)" class="space-y-4">
+            <div class="relative">
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Cari Siswa</label>
+                <input type="text" id="violation-student-search" placeholder="Ketik nama atau NIS..." autocomplete="off"
+                    class="w-full bg-transparent dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-950/20 dark:focus:ring-zinc-300/20 focus:border-zinc-900 dark:focus:border-zinc-100 transition-all"
+                    oninput="searchStudentForViolation(this.value)">
+                <input type="hidden" id="violation-student-id" name="student_id" required>
+                <div id="violation-student-results"
+                    class="hidden absolute left-0 right-0 z-50 mt-1 border border-zinc-200 dark:border-zinc-800 rounded-lg bg-white dark:bg-zinc-900 shadow-lg max-h-48 overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-800">
+                </div>
+                <div id="violation-student-preview" class="text-xs font-semibold text-rose-600 dark:text-rose-400 mt-1.5"></div>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Pilih Jenis Pelanggaran</label>
+                <select id="violation-rule-select" name="rule_id" required
+                    class="w-full bg-transparent dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20 dark:focus:ring-zinc-300/20 focus:border-zinc-900 dark:focus:border-zinc-100 transition-all">
+                    <option value="" class="bg-white dark:bg-zinc-900">Memuat jenis pelanggaran...</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Keterangan / Kronologi Singkat</label>
+                <textarea id="violation-description" name="description" rows="3"
+                    placeholder="Contoh: Terlambat masuk gerbang lebih dari 15 menit tanpa surat izin"
+                    class="w-full bg-transparent dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-950/20 dark:focus:ring-zinc-300/20 focus:border-zinc-900 dark:focus:border-zinc-100 transition-all"></textarea>
+            </div>
+            <button type="submit"
+                class="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-medium shadow-xs transition-colors flex items-center justify-center gap-1.5">
+                <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                <span>Catat Pelanggaran</span>
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- TAB 4: ATURAN POIN -->
+<div id="point-view-rules" class="point-view-content hidden space-y-4">
+    <div class="bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+            <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Master Aturan Poin</h3>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400">Daftar bobot skor prestasi dan penalti pelanggaran</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="/admin/dual-point/rules"
+                class="px-3 py-1.5 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg text-xs font-medium flex items-center gap-1.5 shadow-xs transition-colors">
+                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                <span>Kelola Master Penuh</span>
+            </a>
+            <button type="button" onclick="openModal('modal-add-point-rule')"
+                class="px-3.5 py-1.5 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-medium flex items-center gap-1.5 shadow-xs transition-colors">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>Tambah Aturan</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm" id="point-rules-table">
+                <thead class="bg-zinc-50/80 dark:bg-zinc-800/40 border-b border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400">
+                    <tr>
+                        <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Tipe</th>
+                        <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Nama Aturan / Pelanggaran</th>
+                        <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Kategori</th>
+                        <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-right">Poin</th>
+                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider">Kode</th>
+                    </tr>
+                </thead>
+                <tbody id="rules-tbody" class="divide-y divide-zinc-100 dark:divide-zinc-800 text-zinc-700 dark:text-zinc-300">
+                    <tr>
+                        <td colspan="5" class="text-center py-10 text-zinc-400 dark:text-zinc-500 text-xs">Memuat aturan poin...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- TAB 5: RESET POIN -->
+<div id="point-view-reset" class="point-view-content hidden space-y-5">
+    <!-- Warning Banner -->
+    <div
+        class="bg-rose-50/70 dark:bg-rose-950/20 border border-rose-200/80 dark:border-rose-900/40 rounded-xl p-4 flex items-start gap-3 shadow-xs">
+        <div class="w-8 h-8 rounded-lg bg-rose-600 text-white flex items-center justify-center flex-shrink-0 shadow-xs">
+            <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+        </div>
+        <div>
+            <h4 class="font-semibold text-xs text-rose-900 dark:text-rose-200 uppercase tracking-wider">Perhatian: Fitur Reset Poin Siswa</h4>
+            <p class="text-xs text-rose-700 dark:text-rose-400 mt-0.5 leading-relaxed">
+                Tindakan reset akan mengembalikan seluruh skor dan riwayat poin siswa (poin presensi, prestasi,
+                pelanggaran, klaim poin, dan English XP) ke <strong>0</strong>. Tindakan ini <strong>tidak dapat
+                    dibatalkan</strong>.
+            </p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Card 1: Reset Per Siswa -->
+        <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs p-6 flex flex-col justify-between">
+            <div>
+                <div class="flex items-center gap-2 mb-1">
+                    <div class="w-7 h-7 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+                        <i data-lucide="user-x" class="w-4 h-4"></i>
+                    </div>
+                    <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Reset Poin Satuan (Per Siswa)</h3>
+                </div>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-4">Cari siswa tertentu yang ingin direset poinnya ke 0.</p>
+
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Cari Nama / NIS Siswa</label>
+                        <div class="relative">
+                            <input type="text" id="reset-student-search" placeholder="Ketik minimal 2 huruf nama/NIS..."
+                                class="w-full bg-transparent dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
+                                oninput="searchStudentForReset(this.value)" autocomplete="off">
+                            <input type="hidden" id="reset-student-id">
+                            <input type="hidden" id="reset-student-selected-name">
+                            <div id="reset-student-results"
+                                class="hidden absolute left-0 right-0 z-50 mt-1 border border-zinc-200 dark:border-zinc-800 rounded-lg bg-white dark:bg-zinc-900 shadow-xl max-h-48 overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-800">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Selected Student Preview Box -->
+                    <div id="reset-student-preview-box"
+                        class="hidden p-3 bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 rounded-lg text-xs">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <span class="font-semibold text-rose-900 dark:text-rose-200 block" id="reset-student-name">-</span>
+                                <span class="text-rose-600 dark:text-rose-400 text-[11px]" id="reset-student-info">-</span>
+                            </div>
+                            <button type="button" onclick="clearResetStudentSelection()"
+                                class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-xs font-medium">
+                                Ganti
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-5 mt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <button type="button" id="btn-do-reset-student" onclick="executeSingleReset()" disabled
+                    class="w-full py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg text-xs font-medium shadow-xs transition-colors flex items-center justify-center gap-1.5">
+                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                    <span>Reset Poin Siswa Ini</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Card 2: Reset Massal Per Kelas -->
+        <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs p-6 flex flex-col justify-between">
+            <div>
+                <div class="flex items-center gap-2 mb-1">
+                    <div class="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                        <i data-lucide="users" class="w-4 h-4"></i>
+                    </div>
+                    <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Reset Poin Massal (Per Kelas)</h3>
+                </div>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-4">Reset seluruh poin untuk seluruh siswa aktif di suatu kelas (misal: pergantian semester/tahun ajaran).</p>
+
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Pilih Kelas Target</label>
+                        <select id="reset-class-select" onchange="onResetClassChanged(this)"
+                            class="w-full bg-transparent dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all">
+                            <option value="" class="bg-white dark:bg-zinc-900">-- Pilih Kelas --</option>
+                            {{range .Classes}}
+                            <option value="{{.ID}}" class="bg-white dark:bg-zinc-900">{{.Name}}</option>
+                            {{end}}
+                        </select>
+                    </div>
+
+                    <div id="reset-class-notice"
+                        class="hidden p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-lg text-xs text-amber-800 dark:text-amber-300">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="info" class="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0"></i>
+                            <span>Semua siswa aktif di kelas ini akan direset poinnya ke 0.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-5 mt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <button type="button" id="btn-do-reset-class" onclick="executeClassBulkReset()" disabled
+                    class="w-full py-2.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg text-xs font-medium shadow-xs transition-colors flex items-center justify-center gap-1.5">
+                    <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+                    <span>Reset Semua Siswa di Kelas</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Add Point Rule -->
+<div id="modal-add-point-rule"
+    class="modal-wrapper hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-xl w-full max-w-md p-6 animate-in fade-in zoom-in-95 duration-150">
+        <div class="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800 mb-4">
+            <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Tambah Aturan Poin</h3>
+            <button type="button" onclick="closeModal('modal-add-point-rule')"
+                class="p-1 rounded-md text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <form action="/admin/point-rules/add" method="POST" onsubmit="handleFormSubmit(event)" class="space-y-3.5">
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Tipe Aturan</label>
+                <select name="type" required
+                    class="w-full bg-transparent dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20 dark:focus:ring-zinc-300/20 focus:border-zinc-900 dark:focus:border-zinc-100">
+                    <option value="prestasi" class="bg-white dark:bg-zinc-900">Prestasi (Poin Positif)</option>
+                    <option value="pelanggaran" class="bg-white dark:bg-zinc-900">Pelanggaran (Poin Negatif)</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Nama Aturan</label>
+                <input type="text" name="name" required placeholder="Contoh: Juara Kelas / Terlambat"
+                    class="w-full bg-transparent dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-950/20 dark:focus:ring-zinc-300/20 focus:border-zinc-900 dark:focus:border-zinc-100">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Kategori</label>
+                <input type="text" name="category" placeholder="Akademik / Kedisiplinan / Karakter"
+                    class="w-full bg-transparent dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-950/20 dark:focus:ring-zinc-300/20 focus:border-zinc-900 dark:focus:border-zinc-100">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Jumlah Poin</label>
+                <input type="number" name="points" required placeholder="Misal: 10 atau 25"
+                    class="w-full bg-transparent dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-950/20 dark:focus:ring-zinc-300/20 focus:border-zinc-900 dark:focus:border-zinc-100">
+            </div>
+            <div class="flex justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <button type="button" onclick="closeModal('modal-add-point-rule')"
+                    class="px-4 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors">Batal</button>
+                <button type="submit"
+                    class="px-4 py-2 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-medium shadow-xs transition-colors">Simpan Aturan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        loadKompositLeaderboard();
+        loadPointRules();
+    });
+
+    function switchPointTab(tab) {
+        document.querySelectorAll('.point-view-content').forEach(el => el.classList.add('hidden'));
+        document.querySelectorAll('.point-nav-btn').forEach(btn => {
+            btn.classList.remove('bg-white', 'dark:bg-zinc-900', 'text-zinc-900', 'dark:text-zinc-100', 'shadow-xs');
+            btn.classList.add('text-zinc-600', 'dark:text-zinc-400');
+        });
+        const content = document.getElementById(`point-view-${tab}`);
+        const btn = document.getElementById(`point-tab-btn-${tab}`);
+        if (content) content.classList.remove('hidden');
+        if (btn) {
+            btn.classList.add('bg-white', 'dark:bg-zinc-900', 'text-zinc-900', 'dark:text-zinc-100', 'shadow-xs');
+            btn.classList.remove('text-zinc-600', 'dark:text-zinc-400');
+        }
+        if (tab === 'komposit') loadKompositLeaderboard();
+        if (tab === 'rules') loadPointRules();
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    async function loadKompositLeaderboard() {
+        const classFilter = document.getElementById('komposit-class-filter')?.value || '';
+        const tbody = document.getElementById('komposit-leaderboard-body');
+        if (!tbody) return;
+
+        try {
+            const res = await fetch(`/api/composite-scores/leaderboard?class_id=${classFilter}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            tbody.innerHTML = '';
+
+            const list = Array.isArray(data) ? data : (data.results || []);
+
+            if (!list || list.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-10 text-zinc-400 dark:text-zinc-500 text-xs">Belum ada skor komposit terhitung. Klik tombol "Hitung Ulang Skor" untuk kalkulasi awal.</td></tr>';
+                return;
+            }
+
+            list.forEach((row, i) => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40 transition-colors';
+                const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`;
+                const attIdx = typeof row.attendance_index === 'number' ? row.attendance_index : parseFloat(row.attendance_index || 0);
+                const attScore = (attIdx * 0.3).toFixed(1);
+                const achPts = row.achievement_points || 0;
+                const achNorm = typeof row.achievement_normalized === 'number' ? row.achievement_normalized : parseFloat(row.achievement_normalized || 0);
+                const achScore = (achNorm * 0.5).toFixed(1);
+                const violBurden = typeof row.violation_burden === 'number' ? row.violation_burden : parseFloat(row.violation_burden || 0);
+                const disciplineIndex = Math.max(0, 100 - violBurden);
+                const disciplineScore = (disciplineIndex * 0.2).toFixed(1);
+                const compScore = typeof row.composite_score === 'number' ? row.composite_score.toFixed(1) : (parseFloat(row.composite_score || 0)).toFixed(1);
+
+                tr.innerHTML = `
+                    <td class="px-4 py-3 text-center font-bold text-xs">${medal}</td>
+                    <td class="px-4 py-3">
+                        <div class="font-semibold text-zinc-900 dark:text-zinc-100 text-xs">${row.student_name}</div>
+                        ${row.nis ? `<div class="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono">NIS: ${row.nis}</div>` : ''}
+                    </td>
+                    <td class="px-4 py-3 text-xs text-zinc-500 dark:text-zinc-400">${row.class_name || '-'}</td>
+                    <td class="px-4 py-3 text-center">
+                        <div class="font-mono font-bold text-xs text-zinc-900 dark:text-zinc-100">${attIdx.toFixed(1)}%</div>
+                        <div class="text-[10px] font-mono font-semibold text-emerald-600 dark:text-emerald-400">+${attScore} pt</div>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <div class="font-mono font-bold text-xs text-zinc-900 dark:text-zinc-100">${achPts} pt</div>
+                        <div class="text-[10px] font-mono font-semibold text-zinc-800 dark:text-zinc-200">+${achScore} pt</div>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <div class="font-mono font-bold text-xs ${violBurden > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-900 dark:text-zinc-100'}">${disciplineIndex.toFixed(1)}%</div>
+                        <div class="flex items-center justify-center gap-1 text-[10px] font-mono">
+                            <span class="font-semibold text-zinc-800 dark:text-zinc-200">+${disciplineScore} pt</span>
+                            ${violBurden > 0 ? `<span class="text-rose-500 font-normal">(-${violBurden.toFixed(1)})</span>` : `<span class="text-zinc-400 font-normal">(0 beban)</span>`}
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                        <div class="font-black text-sm text-zinc-900 dark:text-zinc-100 font-mono">${compScore}</div>
+                        <div class="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono">Total</div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (e) {
+            console.error('Error loading composite leaderboard:', e);
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-10 text-rose-500 text-xs">Gagal memuat papan skor komposit</td></tr>';
+        }
+    }
+
+    async function recalcAllScores() {
+        Swal.fire({
+            title: 'Hitung Ulang Semua Skor?',
+            text: 'Sistem akan mengkalkulasi ulang seluruh indikator kehadiran, prestasi, dan penalti',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Ya, Hitung Ulang',
+            confirmButtonColor: '#18181b'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    const res = await fetch('/api/composite-scores/recalculate-all', { method: 'POST' });
+                    if (res.ok) {
+                        Swal.fire({ icon: 'success', title: 'Berhasil', text: 'Skor komposit berhasil diperbarui', timer: 1500, showConfirmButton: false });
+                        loadKompositLeaderboard();
+                    }
+                } catch (e) {
+                    Swal.fire('Error', 'Gagal memproses kalkulasi', 'error');
+                }
+            }
+        });
+    }
+
+    async function loadPointRules() {
+        const tbody = document.getElementById('rules-tbody');
+        const prestasiSelect = document.getElementById('prestasi-rule-select');
+        const violationSelect = document.getElementById('violation-rule-select');
+
+        try {
+            const [resAch, resVio] = await Promise.all([
+                fetch('/admin/v2/achievement-rules'),
+                fetch('/admin/v2/violation-rules')
+            ]);
+            const achRules = await resAch.json();
+            const vioRules = await resVio.json();
+
+            if (tbody) tbody.innerHTML = '';
+            if (prestasiSelect) prestasiSelect.innerHTML = '<option value="" class="bg-white dark:bg-zinc-900">-- Pilih Aturan Prestasi --</option>';
+            if (violationSelect) violationSelect.innerHTML = '<option value="" class="bg-white dark:bg-zinc-900">-- Pilih Aturan Pelanggaran --</option>';
+
+            // Populate Prestasi rules
+            if (Array.isArray(achRules)) {
+                achRules.forEach(r => {
+                    if (prestasiSelect) {
+                        const opt = document.createElement('option');
+                        opt.value = r.id;
+                        opt.textContent = `${r.name} (+${r.points} pt)`;
+                        opt.className = 'bg-white dark:bg-zinc-900';
+                        prestasiSelect.appendChild(opt);
+                    }
+                    if (tbody) {
+                        const tr = document.createElement('tr');
+                        tr.className = 'hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40 transition-colors';
+                        tr.innerHTML = `
+                            <td class="px-4 py-3 text-xs">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40">
+                                    Prestasi
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 font-semibold text-zinc-900 dark:text-zinc-100 text-xs">
+                                ${r.name}
+                                ${r.description ? `<div class="text-[11px] text-zinc-400 dark:text-zinc-500 font-normal mt-0.5">${r.description}</div>` : ''}
+                            </td>
+                            <td class="px-4 py-3 text-xs text-zinc-500 dark:text-zinc-400">${r.category || r.category_code || '-'}</td>
+                            <td class="px-4 py-3 text-right font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400">
+                                +${r.points}
+                            </td>
+                            <td class="px-4 py-3 text-right">
+                                <span class="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono">${r.code || '-'}</span>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    }
+                });
+            }
+
+            // Populate Pelanggaran rules
+            if (Array.isArray(vioRules)) {
+                vioRules.forEach(r => {
+                    if (violationSelect) {
+                        const opt = document.createElement('option');
+                        opt.value = r.id;
+                        opt.textContent = `${r.name} (${r.points_1} pt)`;
+                        opt.className = 'bg-white dark:bg-zinc-900';
+                        violationSelect.appendChild(opt);
+                    }
+                    if (tbody) {
+                        const tr = document.createElement('tr');
+                        tr.className = 'hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40 transition-colors';
+                        tr.innerHTML = `
+                            <td class="px-4 py-3 text-xs">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800/40">
+                                    Pelanggaran
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 font-semibold text-zinc-900 dark:text-zinc-100 text-xs">
+                                ${r.name}
+                                ${r.description ? `<div class="text-[11px] text-zinc-400 dark:text-zinc-500 font-normal mt-0.5">${r.description}</div>` : ''}
+                            </td>
+                            <td class="px-4 py-3 text-xs text-zinc-500 dark:text-zinc-400">${r.category || r.category_code || '-'}</td>
+                            <td class="px-4 py-3 text-right font-mono font-bold text-xs text-rose-600 dark:text-rose-400">
+                                -${r.points_1} (II:${r.points_2}, III:${r.points_3})
+                            </td>
+                            <td class="px-4 py-3 text-right">
+                                <span class="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono">${r.code || '-'}</span>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    }
+                });
+            }
+
+            if (tbody && tbody.children.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10 text-zinc-400 dark:text-zinc-500 text-xs">Belum ada aturan poin V2</td></tr>';
+            }
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        } catch (e) {
+            console.error('Error loadPointRules:', e);
+        }
+    }
+
+    async function searchStudentForPrestasi(q) {
+        if (!q || q.length < 2) return;
+        const resBox = document.getElementById('prestasi-student-results');
+        try {
+            const res = await fetch(`/admin/points/search-student?q=${encodeURIComponent(q)}`);
+            const students = await res.json();
+            resBox.innerHTML = '';
+            resBox.classList.remove('hidden');
+            students.forEach(s => {
+                const item = document.createElement('div');
+                item.className = 'p-2.5 text-xs text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer transition-colors';
+                item.textContent = `${s.name} (${s.class_name || 'Tanpa Kelas'}) - NIS: ${s.nis}`;
+                item.onclick = () => {
+                    document.getElementById('prestasi-student-id').value = s.id;
+                    document.getElementById('prestasi-student-search').value = s.name;
+                    document.getElementById('prestasi-student-preview').textContent = `Terpilih: ${s.name} (${s.class_name || '-'})`;
+                    resBox.classList.add('hidden');
+                };
+                resBox.appendChild(item);
+            });
+        } catch (e) { }
+    }
+
+    async function searchStudentForViolation(q) {
+        if (!q || q.length < 2) return;
+        const resBox = document.getElementById('violation-student-results');
+        try {
+            const res = await fetch(`/admin/points/search-student?q=${encodeURIComponent(q)}`);
+            const students = await res.json();
+            resBox.innerHTML = '';
+            resBox.classList.remove('hidden');
+            students.forEach(s => {
+                const item = document.createElement('div');
+                item.className = 'p-2.5 text-xs text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer transition-colors';
+                item.textContent = `${s.name} (${s.class_name || 'Tanpa Kelas'}) - NIS: ${s.nis}`;
+                item.onclick = () => {
+                    document.getElementById('violation-student-id').value = s.id;
+                    document.getElementById('violation-student-search').value = s.name;
+                    document.getElementById('violation-student-preview').textContent = `Terpilih: ${s.name} (${s.class_name || '-'})`;
+                    resBox.classList.add('hidden');
+                };
+                resBox.appendChild(item);
+            });
+        } catch (e) { }
+    }
+
+    async function submitAchievement(e) {
+        e.preventDefault();
+        const studentId = document.getElementById('prestasi-student-id').value;
+        const ruleId = document.getElementById('prestasi-rule-select').value;
+        const desc = document.getElementById('prestasi-description').value;
+        if (!studentId || !ruleId) {
+            Swal.fire('Perhatian', 'Pilih siswa dan aturan prestasi', 'warning');
+            return;
+        }
+
+        try {
+            const res = await fetch('/admin/v2/student/achievement', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ student_id: parseInt(studentId), rule_id: parseInt(ruleId), description: desc })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                Swal.fire({ icon: 'success', title: 'Berhasil', text: 'Prestasi berhasil dicatat: +' + (data.points || '') + ' poin', timer: 1500, showConfirmButton: false });
+                e.target.reset();
+                document.getElementById('prestasi-student-preview').textContent = '';
+                document.getElementById('prestasi-student-id').value = '';
+                loadKompositLeaderboard();
+            } else {
+                Swal.fire('Gagal', data.error || data.message || 'Gagal menyimpan', 'error');
+            }
+        } catch (e) {
+            Swal.fire('Error', 'Kesalahan server', 'error');
+        }
+    }
+
+    async function submitViolation(e) {
+        e.preventDefault();
+        const studentId = document.getElementById('violation-student-id').value;
+        const ruleId = document.getElementById('violation-rule-select').value;
+        const desc = document.getElementById('violation-description').value;
+        if (!studentId || !ruleId) {
+            Swal.fire('Perhatian', 'Pilih siswa dan jenis pelanggaran', 'warning');
+            return;
+        }
+
+        try {
+            const res = await fetch('/admin/v2/student/violation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ student_id: parseInt(studentId), rule_id: parseInt(ruleId), description: desc })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                Swal.fire({ icon: 'success', title: 'Tercatat', text: `Pelanggaran berhasil dicatat: +${data.points || ''} poin (Total: ${data.total_violation || data.points || 0})`, timer: 1500, showConfirmButton: false });
+                e.target.reset();
+                document.getElementById('violation-student-preview').textContent = '';
+                document.getElementById('violation-student-id').value = '';
+                loadKompositLeaderboard();
+            } else {
+                Swal.fire('Gagal', data.error || data.message || 'Gagal menyimpan', 'error');
+            }
+        } catch (e) {
+            Swal.fire('Error', 'Kesalahan server', 'error');
+        }
+    }
+
+    // ==========================================
+    // FITUR RESET POIN SISWA (SATUAN & MASSAL)
+    // ==========================================
+
+    async function searchStudentForReset(q) {
+        const resBox = document.getElementById('reset-student-results');
+        if (!q || q.trim().length < 2) {
+            if (resBox) resBox.classList.add('hidden');
+            return;
+        }
+
+        try {
+            const res = await fetch(`/admin/points/search-student?q=${encodeURIComponent(q.trim())}`);
+            const students = await res.json();
+            if (!resBox) return;
+
+            resBox.innerHTML = '';
+            if (!students || students.length === 0) {
+                resBox.innerHTML = '<div class="p-3 text-xs text-zinc-400 dark:text-zinc-500 text-center">Siswa tidak ditemukan</div>';
+                resBox.classList.remove('hidden');
+                return;
+            }
+
+            students.forEach(s => {
+                const item = document.createElement('div');
+                item.className = 'p-2.5 text-xs text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer transition-colors';
+                const cls = s.class_name || 'Tanpa Kelas';
+                item.innerHTML = `<div class="font-semibold text-zinc-900 dark:text-zinc-100">${s.name}</div><div class="text-[11px] text-zinc-500 dark:text-zinc-400">${cls} · NIS: ${s.nis || '-'}</div>`;
+                item.onclick = () => selectResetStudent(s.id, s.name, s.nis, cls);
+                resBox.appendChild(item);
+            });
+            resBox.classList.remove('hidden');
+        } catch (e) {
+            console.error('Error search student for reset:', e);
+        }
+    }
+
+    function selectResetStudent(id, name, nis, className) {
+        document.getElementById('reset-student-id').value = id;
+        document.getElementById('reset-student-selected-name').value = name;
+        document.getElementById('reset-student-name').textContent = name;
+        document.getElementById('reset-student-info').textContent = `NIS: ${nis || '-'} · Kelas: ${className || '-'}`;
+        document.getElementById('reset-student-preview-box').classList.remove('hidden');
+        document.getElementById('reset-student-results').classList.add('hidden');
+        document.getElementById('reset-student-search').value = '';
+        document.getElementById('btn-do-reset-student').disabled = false;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function clearResetStudentSelection() {
+        document.getElementById('reset-student-id').value = '';
+        document.getElementById('reset-student-selected-name').value = '';
+        document.getElementById('reset-student-preview-box').classList.add('hidden');
+        document.getElementById('btn-do-reset-student').disabled = true;
+    }
+
+    async function executeSingleReset() {
+        const studentId = document.getElementById('reset-student-id').value;
+        const studentName = document.getElementById('reset-student-selected-name').value;
+        if (!studentId) {
+            Swal.fire('Perhatian', 'Pilih siswa terlebih dahulu', 'warning');
+            return;
+        }
+
+        const confirm = await Swal.fire({
+            title: 'Konfirmasi Reset Poin',
+            html: `Apakah Anda yakin ingin mereset seluruh poin siswa <strong>${studentName}</strong>?<br><br><span class="text-xs text-rose-600 font-semibold">Semua riwayat prestasi, pelanggaran, klaim, dan English XP akan dihapus menjadi 0.</span>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e11d48',
+            confirmButtonText: 'Ya, Reset Poin',
+            cancelButtonText: 'Batal'
+        });
+
+        if (!confirm.isConfirmed) return;
+
+        try {
+            const btn = document.getElementById('btn-do-reset-student');
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>Memproses...</span>';
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+
+            const res = await fetch(`/admin/points/reset/${studentId}`, { method: 'POST' });
+            const data = await res.json();
+
+            if (res.ok) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Poin Berhasil Direset',
+                    text: data.message || `Seluruh poin ${studentName} telah direset ke 0.`,
+                    confirmButtonColor: '#18181b'
+                });
+                clearResetStudentSelection();
+                loadKompositLeaderboard();
+            } else {
+                Swal.fire('Gagal Reset', data.error || 'Terjadi kesalahan saat mereset poin', 'error');
+            }
+        } catch (e) {
+            Swal.fire('Error', 'Kesalahan koneksi saat mereset poin', 'error');
+        } finally {
+            const btn = document.getElementById('btn-do-reset-student');
+            btn.innerHTML = '<i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i><span>Reset Poin Siswa Ini</span>';
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+    }
+
+    function onResetClassChanged(selectEl) {
+        const classId = selectEl.value;
+        const noticeEl = document.getElementById('reset-class-notice');
+        const btn = document.getElementById('btn-do-reset-class');
+        if (classId) {
+            noticeEl.classList.remove('hidden');
+            btn.disabled = false;
+        } else {
+            noticeEl.classList.add('hidden');
+            btn.disabled = true;
+        }
+    }
+
+    async function executeClassBulkReset() {
+        const selectEl = document.getElementById('reset-class-select');
+        const classId = selectEl.value;
+        const className = selectEl.options[selectEl.selectedIndex]?.text || '';
+        if (!classId) {
+            Swal.fire('Perhatian', 'Pilih kelas terlebih dahulu', 'warning');
+            return;
+        }
+
+        const confirm = await Swal.fire({
+            title: 'Konfirmasi Reset Massal',
+            html: `Apakah Anda yakin ingin mereset seluruh poin untuk <strong>SEMUA SISWA</strong> di kelas <strong>${className}</strong>?<br><br><span class="text-xs text-rose-600 font-semibold">Tindakan ini menghapus seluruh catatan poin siswa kelas ini dan tidak dapat dibatalkan.</span>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d97706',
+            confirmButtonText: 'Ya, Reset Kelas Ini',
+            cancelButtonText: 'Batal'
+        });
+
+        if (!confirm.isConfirmed) return;
+
+        try {
+            const btn = document.getElementById('btn-do-reset-class');
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>Memproses Massal...</span>';
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+
+            const res = await fetch('/admin/points/reset-bulk', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ class_id: parseInt(classId), reset_by: 'Admin' })
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Reset Massal Berhasil',
+                    text: data.message || `Poin siswa kelas ${className} telah direset ke 0.`,
+                    confirmButtonColor: '#18181b'
+                });
+                selectEl.value = '';
+                onResetClassChanged(selectEl);
+                loadKompositLeaderboard();
+            } else {
+                Swal.fire('Gagal Reset', data.error || 'Terjadi kesalahan saat reset massal', 'error');
+            }
+        } catch (e) {
+            Swal.fire('Error', 'Kesalahan koneksi saat reset massal', 'error');
+        } finally {
+            const btn = document.getElementById('btn-do-reset-class');
+            btn.innerHTML = '<i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i><span>Reset Semua Siswa di Kelas</span>';
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+    }
+</script>
+{{template "admin_footer" .}}

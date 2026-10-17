@@ -124,6 +124,7 @@ type StudentStatus struct {
 }
 
 type DashboardData struct {
+	PageTitle          string
 	Username           string
 	Schedules          []Schedule
 	AudioFiles         []AudioFile
@@ -142,15 +143,30 @@ type DashboardData struct {
 	ChartWeeklyClass   string
 	ChartStatus        string
 	ChartArrival       string
+	Leaderboard        []LeaderboardItem
 	Stats              struct {
-		TotalSchedules int
-		NextBell       string
-		OnlineDevices  int
-		TotalDevices   int
-		TotalStudents  int
-		TotalStaff     int
+		TotalSchedules   int
+		NextBell         string
+		OnlineDevices    int
+		TotalDevices     int
+		TotalStudents    int
+		TotalStaff       int
+		ActiveStudents   int
+		InactiveStudents int
 	}
-	AppVersion string
+	AppVersion  string
+	AppName     string
+	BuildDate   string
+	GitCommit   string
+	FullVersion string
+	VersionInfo map[string]string
+}
+
+type LeaderboardItem struct {
+	ID        int    `json:"id"`
+	Name      string `json:"name"`
+	ClassName string `json:"class_name"`
+	Points    int    `json:"points"`
 }
 
 type Announcement struct {

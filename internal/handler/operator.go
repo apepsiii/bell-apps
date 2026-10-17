@@ -57,22 +57,31 @@ func OperatorLogin(db *sql.DB) echo.HandlerFunc {
 		}
 
 		token := GenerateSessionToken()
+		expiresAt := time.Now().Add(24 * time.Hour)
+
+		// Opportunistic cleanup of expired operator sessions
+		_, _ = db.Exec("DELETE FROM operator_sessions WHERE expires_at < ?", time.Now())
 
 		cookie := new(http.Cookie)
 		cookie.Name = "operator_session"
 		cookie.Value = token
 		cookie.Path = "/"
-		cookie.Expires = time.Now().Add(24 * time.Hour)
+		cookie.Expires = expiresAt
 		cookie.HttpOnly = true
 		cookie.SameSite = http.SameSiteLaxMode
+		cookie.Secure = c.Request().TLS != nil || c.Request().Header.Get("X-Forwarded-Proto") == "https"
 		c.SetCookie(cookie)
 
-		sessionKey := "session_" + token
-		_, err = db.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", sessionKey, strconv.Itoa(op.ID))
+		// Save session to operator_sessions with TTL
+		_, err = db.Exec("REPLACE INTO operator_sessions (token, operator_id, expires_at) VALUES (?, ?, ?)",
+			token, op.ID, expiresAt)
 		if err != nil {
-			c.Logger().Errorf("Failed to save session: %v", err)
-			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Gagal menyimpan session: " + err.Error()})
+			c.Logger().Errorf("Failed to save session to operator_sessions: %v", err)
 		}
+
+		// Also keep legacy write for transitional safety
+		sessionKey := "session_" + token
+		_, _ = db.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", sessionKey, strconv.Itoa(op.ID))
 
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"message": "Login berhasil",
@@ -89,9 +98,10 @@ func OperatorLogin(db *sql.DB) echo.HandlerFunc {
 func OperatorLogout(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		cookie, err := c.Cookie("operator_session")
-		if err == nil {
+		if err == nil && cookie.Value != "" {
+			_, _ = db.Exec("DELETE FROM operator_sessions WHERE token = ?", cookie.Value)
 			sessionKey := "session_" + cookie.Value
-			db.Exec("DELETE FROM attendance_settings WHERE setting_key = ?", sessionKey)
+			_, _ = db.Exec("DELETE FROM attendance_settings WHERE setting_key = ?", sessionKey)
 		}
 
 		cookie = new(http.Cookie)
@@ -109,12 +119,26 @@ func OperatorAuth(db *sql.DB) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			cookie, err := c.Cookie("operator_session")
-			if err != nil {
+			if err != nil || cookie.Value == "" {
 				return c.Redirect(http.StatusSeeOther, "/operator/login")
 			}
 
-			sessionKey := "session_" + cookie.Value
 			var operatorID string
+			var expiresAt time.Time
+			// Check operator_sessions table with TTL first
+			err = db.QueryRow("SELECT CAST(operator_id AS TEXT), expires_at FROM operator_sessions WHERE token = ?", cookie.Value).Scan(&operatorID, &expiresAt)
+			if err == nil {
+				if time.Now().After(expiresAt) {
+					// Session expired
+					_, _ = db.Exec("DELETE FROM operator_sessions WHERE token = ?", cookie.Value)
+					return c.Redirect(http.StatusSeeOther, "/operator/login")
+				}
+				c.Set("operator_id", operatorID)
+				return next(c)
+			}
+
+			// Fallback: check legacy attendance_settings
+			sessionKey := "session_" + cookie.Value
 			err = db.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key = ?", sessionKey).Scan(&operatorID)
 			if err != nil {
 				return c.Redirect(http.StatusSeeOther, "/operator/login")
@@ -211,12 +235,12 @@ func GetOperatorPrayerStats(db *sql.DB) echo.HandlerFunc {
 		db.QueryRow("SELECT COUNT(*) FROM students").Scan(&totalStudents)
 
 		var dzuhurHadir, dzuhurPMS int
-		db.QueryRow("SELECT COUNT(DISTINCT rfid_uid) FROM prayer_logs WHERE date = ? AND prayer_type = 'Dzuhur' AND status = 'Hadir'", today).Scan(&dzuhurHadir)
-		db.QueryRow("SELECT COUNT(DISTINCT rfid_uid) FROM prayer_logs WHERE date = ? AND prayer_type = 'Dzuhur' AND status = 'PMS'", today).Scan(&dzuhurPMS)
+		db.QueryRow("SELECT COUNT(DISTINCT CASE WHEN student_id > 0 THEN student_id ELSE rfid_uid END) FROM prayer_logs WHERE date = ? AND prayer_type = 'Dzuhur' AND status = 'Hadir'", today).Scan(&dzuhurHadir)
+		db.QueryRow("SELECT COUNT(DISTINCT CASE WHEN student_id > 0 THEN student_id ELSE rfid_uid END) FROM prayer_logs WHERE date = ? AND prayer_type = 'Dzuhur' AND status = 'PMS'", today).Scan(&dzuhurPMS)
 
 		var asharHadir, asharPMS int
-		db.QueryRow("SELECT COUNT(DISTINCT rfid_uid) FROM prayer_logs WHERE date = ? AND prayer_type = 'Ashar' AND status = 'Hadir'", today).Scan(&asharHadir)
-		db.QueryRow("SELECT COUNT(DISTINCT rfid_uid) FROM prayer_logs WHERE date = ? AND prayer_type = 'Ashar' AND status = 'PMS'", today).Scan(&asharPMS)
+		db.QueryRow("SELECT COUNT(DISTINCT CASE WHEN student_id > 0 THEN student_id ELSE rfid_uid END) FROM prayer_logs WHERE date = ? AND prayer_type = 'Ashar' AND status = 'Hadir'", today).Scan(&asharHadir)
+		db.QueryRow("SELECT COUNT(DISTINCT CASE WHEN student_id > 0 THEN student_id ELSE rfid_uid END) FROM prayer_logs WHERE date = ? AND prayer_type = 'Ashar' AND status = 'PMS'", today).Scan(&asharPMS)
 
 		dzuhurBelum := totalStudents - dzuhurHadir - dzuhurPMS
 		asharBelum := totalStudents - asharHadir - asharPMS

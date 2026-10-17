@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="id">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Kartu Siswa - {{.Name}} - SMK NIBA Super Apps</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script src="https://unpkg.com/lucide@latest"></script>
+        <style>
+            @media print {
+                @page {
+                    size: portrait;
+                    margin: 0;
+                }
+
+                body {
+                    margin: 0;
+                    padding: 0;
+                    background: white !important;
+                    color: black !important;
+                }
+
+                .no-print {
+                    display: none !important;
+                }
+
+                .print-container {
+                    padding: 0 !important;
+                    margin: 0 !important;
+                }
+
+                .id-card {
+                    border: 1px solid #000;
+                    width: 5.4cm !important;
+                    height: 8.5cm !important;
+                    margin: 1cm auto;
+                    page-break-inside: avoid;
+                    box-shadow: none !important;
+                }
+            }
+
+            .id-card {
+                width: 5.4cm;
+                height: 8.5cm;
+                border: 1px solid #e4e4e7;
+                border-radius: 12px;
+                overflow: hidden;
+                background: white;
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+            }
+        </style>
+    </head>
+
+    <body class="bg-zinc-50 min-h-screen flex flex-col font-sans text-zinc-900 antialiased">
+
+        <!-- Top Action Bar (hidden on print) -->
+        <header class="bg-white border-b border-zinc-200 sticky top-0 z-30 shadow-2xs no-print">
+            <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <a href="/admin/academics"
+                        class="p-2 hover:bg-zinc-100 rounded-lg text-zinc-600 transition-colors"
+                        title="Kembali ke Akademik">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                    </a>
+                    <div>
+                        <h1 class="font-bold text-sm text-zinc-900 leading-tight">Kartu Siswa (ID Card)</h1>
+                        <p class="text-xs text-zinc-500">{{.Name}} · {{.ClassName}}</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <a href="/admin/student/{{.ID}}"
+                        class="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5">
+                        <i data-lucide="user" class="w-3.5 h-3.5"></i>
+                        <span>Detail Siswa</span>
+                    </a>
+                    <button onclick="window.print()"
+                        class="px-3.5 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-medium rounded-lg shadow-xs transition-colors flex items-center gap-1.5">
+                        <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                        <span>Cetak Kartu</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Card Preview Section -->
+        <main class="flex-1 flex flex-col items-center justify-center p-6 print-container">
+            <div class="id-card flex flex-col">
+                <!-- Header: School Branding -->
+                <div class="px-3 pt-3 pb-2.5 bg-zinc-900 text-white">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[8px] uppercase tracking-wider font-semibold text-zinc-300">Kartu Pelajar Digital</span>
+                        <span class="text-[8px] font-mono text-zinc-400">{{.NIS}}</span>
+                    </div>
+                    <div class="text-[11px] font-bold tracking-tight leading-tight mt-0.5">SMK NIBA Business School</div>
+                </div>
+
+                <!-- Student Profile Information -->
+                <div class="px-3 pt-2.5 pb-1 flex items-center gap-2.5">
+                    <div
+                        class="w-10 h-10 rounded-full bg-zinc-100 border border-zinc-200 flex items-center justify-center shrink-0 overflow-hidden text-zinc-400">
+                        <i data-lucide="user" class="w-5 h-5"></i>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <div class="text-[12px] font-bold text-zinc-900 leading-tight truncate" title="{{.Name}}">{{.Name}}</div>
+                        <div class="text-[10px] text-zinc-600 font-semibold mt-0.5 truncate">{{.ClassName}}</div>
+                        {{if .RFID}}
+                        <div class="text-[8px] text-zinc-400 font-mono">UID: {{.RFID}}</div>
+                        {{end}}
+                    </div>
+                </div>
+
+                <!-- QR Code Section -->
+                <div
+                    class="flex-1 flex items-center justify-center bg-zinc-50 p-3 min-h-0 border-y border-zinc-100">
+                    {{if .QRImage}}
+                    <img class="qr-image w-full h-full object-contain max-h-44" src="{{.QRImage}}"
+                        alt="QR Code {{.Name}}">
+                    {{else}}
+                    <div class="text-xs text-zinc-400 text-center">QR Code belum dibuat</div>
+                    {{end}}
+                </div>
+
+                <!-- Footer Section -->
+                <div class="bg-white px-3 py-2 text-center">
+                    <div class="text-[8px] text-zinc-500 font-medium leading-tight">
+                        Scan QR Code ini pada Kios Presensi & Kegiatan Sekolah
+                    </div>
+                    <div class="text-[7px] text-zinc-400 mt-0.5 font-mono">
+                        ID: {{.ID}} · NIS: {{.NIS}}
+                    </div>
+                </div>
+            </div>
+
+            <p class="mt-4 text-xs text-zinc-400 text-center no-print">
+                Tips: Gunakan kertas PVC Card atau kertas foto tebal untuk hasil cetak terbaik. Ukuran standar kartu:
+                54mm x 85mm.
+            </p>
+        </main>
+
+        <script>
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        </script>
+    </body>
+
+</html>

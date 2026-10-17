@@ -85,26 +85,31 @@ func RecordViolation(db *sql.DB) echo.HandlerFunc {
 		}
 
 		// Insert into student_violation_points
-		var violationID int
-		err = db.QueryRow(`
+		res, err := db.Exec(`
 			INSERT INTO student_violation_points
 			(student_id, rule_id, points, escalation_level, description, recorded_by, recorded_at, semester_id, redemption_status)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'none')
 		`, req.StudentID, req.RuleID, points, escalationLevel, description,
-			req.RecordedBy, time.Now(), semesterID).Scan(&violationID)
+			req.RecordedBy, time.Now(), semesterID)
 
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Gagal mencatat pelanggaran: " + err.Error()})
 		}
+		insertID, _ := res.LastInsertId()
+		violationID := int(insertID)
 
 		// Update semester_scores violation_points
-		_, err = db.Exec(`
+		resUpdate, err := db.Exec(`
 			UPDATE semester_scores
 			SET violation_points = violation_points + ?
 			WHERE student_id = ? AND semester_id = ?
 		`, points, req.StudentID, semesterID)
 
-		if err != nil {
+		rowsAffected := int64(0)
+		if resUpdate != nil {
+			rowsAffected, _ = resUpdate.RowsAffected()
+		}
+		if err != nil || rowsAffected == 0 {
 			// Try insert if no row exists
 			db.Exec(`
 				INSERT INTO semester_scores (student_id, semester_id, violation_points)

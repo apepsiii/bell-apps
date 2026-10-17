@@ -10,7 +10,7 @@ import (
 )
 
 // ResetStudentPoints resets ALL points for a single student
-// Deletes all student_points records and resets semester_scores
+// Deletes all student_points records, achievement/violation points, claims, and resets english_streaks & semester_scores
 func ResetStudentPoints(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		studentID := c.Param("id")
@@ -38,68 +38,49 @@ func ResetStudentPoints(db *sql.DB) echo.HandlerFunc {
 		// 1. Log the current total before reset (for audit trail)
 		var currentTotal int
 		tx.QueryRow("SELECT COALESCE(SUM(points_change), 0) FROM student_points WHERE student_id = ?", studentID).Scan(&currentTotal)
+		var englishXP int
+		tx.QueryRow("SELECT COALESCE(total_xp, 0) FROM english_streaks WHERE student_id = ?", studentID).Scan(&englishXP)
+		currentTotal += englishXP
 
 		// 2. Delete all student_points records
-		_, err = tx.Exec("DELETE FROM student_points WHERE student_id = ?", studentID)
-		if err != nil {
-			tx.Rollback()
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Gagal menghapus student_points: " + err.Error()})
-		}
+		_, _ = tx.Exec("DELETE FROM student_points WHERE student_id = ?", studentID)
 
-		// 3. Delete all student_achievement_points (Phase 2)
-		_, err = tx.Exec("DELETE FROM student_achievement_points WHERE student_id = ?", studentID)
-		if err != nil {
-			tx.Rollback()
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Gagal menghapus achievement_points: " + err.Error()})
-		}
+		// 3. Delete all student_achievement_points
+		_, _ = tx.Exec("DELETE FROM student_achievement_points WHERE student_id = ?", studentID)
 
-		// 4. Delete all student_violation_points (Phase 3)
-		_, err = tx.Exec("DELETE FROM student_violation_points WHERE student_id = ?", studentID)
-		if err != nil {
-			tx.Rollback()
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Gagal menghapus violation_points: " + err.Error()})
-		}
+		// 4. Delete all student_violation_points
+		_, _ = tx.Exec("DELETE FROM student_violation_points WHERE student_id = ?", studentID)
 
-		// 5. Delete all pending_achievement_points
-		_, err = tx.Exec("DELETE FROM pending_achievement_points WHERE student_id = ?", studentID)
-		if err != nil {
-			tx.Rollback()
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Gagal menghapus pending_achievements: " + err.Error()})
-		}
+		// 5. Reset english_streaks XP and streaks
+		_, _ = tx.Exec("UPDATE english_streaks SET total_xp = 0, current_streak = 0, longest_streak = 0 WHERE student_id = ?", studentID)
 
-		// 6. Delete all violation_redemptions
-		_, err = tx.Exec("DELETE FROM violation_redemptions WHERE student_id = ?", studentID)
-		if err != nil {
-			tx.Rollback()
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Gagal menghapus redemptions: " + err.Error()})
-		}
+		// 6. Delete all point_claims
+		_, _ = tx.Exec("DELETE FROM point_claims WHERE student_id = ?", studentID)
 
-		// 7. Reset semester_scores
-		_, err = tx.Exec(`
+		// 7. Delete all pending_achievement_points
+		_, _ = tx.Exec("DELETE FROM pending_achievement_points WHERE student_id = ?", studentID)
+
+		// 8. Delete all violation_redemptions
+		_, _ = tx.Exec("DELETE FROM violation_redemptions WHERE student_id = ?", studentID)
+
+		// 9. Reset semester_scores
+		_, _ = tx.Exec(`
 			UPDATE semester_scores 
 			SET achievement_points = 0, achievement_normalized = 0,
 			    violation_points = 0, violation_burden = 0,
 			    redemption_points = 0, composite_score = 0
 			WHERE student_id = ?
 		`, studentID)
-		if err != nil {
-			tx.Rollback()
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Gagal reset semester_scores: " + err.Error()})
-		}
 
-		// 8. Reset attendance_streaks
-		_, err = tx.Exec(`
+		// 10. Reset attendance_streaks
+		_, _ = tx.Exec(`
 			UPDATE attendance_streaks 
 			SET current_streak = 0, longest_streak = 0, last_attendance_date = NULL
 			WHERE student_id = ?
 		`, studentID)
-		if err != nil {
-			tx.Rollback()
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Gagal reset streaks: " + err.Error()})
-		}
 
-		// 9. Log to audit trail
-		_, err = tx.Exec(`
+		// 11. Log to audit trail (if point_audit_log exists)
+		_, _ = tx.Exec(`
 			INSERT INTO point_audit_log (action, table_name, record_id, old_data, new_data, performed_by, performed_at, reason)
 			VALUES ('RESET_POINTS', 'student_points', ?, ?, ?, ?, ?, ?)
 		`, studentID,
@@ -108,16 +89,13 @@ func ResetStudentPoints(db *sql.DB) echo.HandlerFunc {
 			adminName, time.Now(),
 			fmt.Sprintf("Reset poin siswa: %s", studentName))
 
-		if err != nil {
-			tx.Rollback()
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Gagal log audit: " + err.Error()})
+		if err := tx.Commit(); err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Gagal menyimpan perubahan reset"})
 		}
-
-		tx.Commit()
 
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"status":  "success",
-			"message": fmt.Sprintf("Poin siswa %s berhasil direset (sebelumnya: %d poin)", studentName, currentTotal),
+			"message": fmt.Sprintf("Poin siswa %s berhasil direset ke 0 (sebelumnya: %d poin)", studentName, currentTotal),
 		})
 	}
 }
@@ -174,25 +152,28 @@ func BulkResetPoints(db *sql.DB) echo.HandlerFunc {
 		successCount := 0
 		for _, sid := range studentIDs {
 			// Delete student_points
-			_, err := tx.Exec("DELETE FROM student_points WHERE student_id = ?", sid)
-			if err != nil {
-				continue
-			}
+			_, _ = tx.Exec("DELETE FROM student_points WHERE student_id = ?", sid)
 
 			// Delete student_achievement_points
-			tx.Exec("DELETE FROM student_achievement_points WHERE student_id = ?", sid)
+			_, _ = tx.Exec("DELETE FROM student_achievement_points WHERE student_id = ?", sid)
 
 			// Delete student_violation_points
-			tx.Exec("DELETE FROM student_violation_points WHERE student_id = ?", sid)
+			_, _ = tx.Exec("DELETE FROM student_violation_points WHERE student_id = ?", sid)
+
+			// Reset english_streaks
+			_, _ = tx.Exec("UPDATE english_streaks SET total_xp = 0, current_streak = 0, longest_streak = 0 WHERE student_id = ?", sid)
+
+			// Delete point_claims
+			_, _ = tx.Exec("DELETE FROM point_claims WHERE student_id = ?", sid)
 
 			// Delete pending_achievement_points
-			tx.Exec("DELETE FROM pending_achievement_points WHERE student_id = ?", sid)
+			_, _ = tx.Exec("DELETE FROM pending_achievement_points WHERE student_id = ?", sid)
 
 			// Delete violation_redemptions
-			tx.Exec("DELETE FROM violation_redemptions WHERE student_id = ?", sid)
+			_, _ = tx.Exec("DELETE FROM violation_redemptions WHERE student_id = ?", sid)
 
 			// Reset semester_scores
-			tx.Exec(`
+			_, _ = tx.Exec(`
 				UPDATE semester_scores 
 				SET achievement_points = 0, achievement_normalized = 0,
 				    violation_points = 0, violation_burden = 0,
@@ -201,7 +182,7 @@ func BulkResetPoints(db *sql.DB) echo.HandlerFunc {
 			`, sid)
 
 			// Reset attendance_streaks
-			tx.Exec(`
+			_, _ = tx.Exec(`
 				UPDATE attendance_streaks 
 				SET current_streak = 0, longest_streak = 0, last_attendance_date = NULL
 				WHERE student_id = ?
@@ -211,7 +192,7 @@ func BulkResetPoints(db *sql.DB) echo.HandlerFunc {
 		}
 
 		// Log to audit trail
-		tx.Exec(`
+		_, _ = tx.Exec(`
 			INSERT INTO point_audit_log (action, table_name, record_id, old_data, new_data, performed_by, performed_at, reason)
 			VALUES ('BULK_RESET_POINTS', 'student_points', 0, ?, ?, ?, ?, ?)
 		`,
@@ -220,11 +201,13 @@ func BulkResetPoints(db *sql.DB) echo.HandlerFunc {
 			req.ResetBy, time.Now(),
 			fmt.Sprintf("Bulk reset %d siswa", successCount))
 
-		tx.Commit()
+		if err := tx.Commit(); err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Gagal menyimpan perubahan bulk reset"})
+		}
 
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"status":  "success",
-			"message": fmt.Sprintf("%d siswa berhasil direset poinnya", successCount),
+			"message": fmt.Sprintf("%d siswa berhasil direset poinnya ke 0", successCount),
 			"count":   successCount,
 		})
 	}

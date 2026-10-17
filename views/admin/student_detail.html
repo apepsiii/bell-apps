@@ -1,0 +1,574 @@
+{{template "admin_head" .}}
+
+<!-- Header & Quick Actions -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-zinc-900 p-5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs">
+    <div class="flex items-center gap-3">
+        <a href="/admin/academics"
+            class="p-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-lg transition-colors"
+            title="Kembali ke Data Akademik">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+        </a>
+        <div>
+            <div class="flex items-center gap-2">
+                <h1 class="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">{{.Name}}</h1>
+                <span
+                    class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold {{if eq .Status "active"}}bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40{{else}}bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700{{end}}">
+                    {{if eq .Status "active"}}Aktif{{else}}Nonaktif{{end}}
+                </span>
+            </div>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                NIS: <span class="font-mono font-semibold text-zinc-800 dark:text-zinc-200">{{.NIS}}</span>
+                {{if .ClassName}} · Kelas: <span class="font-medium text-zinc-800 dark:text-zinc-200">{{.ClassName}}</span>{{end}}
+            </p>
+        </div>
+    </div>
+
+    <div class="flex items-center gap-2 flex-wrap">
+        <a href="/admin/student/idcard/{{.ID}}" target="_blank"
+            class="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-medium transition-colors shadow-xs flex items-center gap-1.5">
+            <i data-lucide="qr-code" class="w-3.5 h-3.5"></i>
+            <span>Cetak Kartu Siswa</span>
+        </a>
+        <a href="/admin/face/register/{{.ID}}"
+            class="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-medium transition-colors shadow-xs flex items-center gap-1.5">
+            <i data-lucide="scan-face" class="w-3.5 h-3.5"></i>
+            <span>Daftarkan Wajah</span>
+        </a>
+        <button type="button" onclick="confirmResetPoints('{{.ID}}', '{{.Name}}')"
+            class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 dark:hover:bg-rose-950/50 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/40 rounded-lg text-xs font-medium transition-colors shadow-xs flex items-center gap-1.5">
+            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+            <span>Reset Poin</span>
+        </button>
+    </div>
+</div>
+
+<!-- Profile Summary & Hero Card -->
+<div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs p-6">
+    <div class="flex flex-col md:flex-row gap-6 items-start">
+        <!-- Avatar / Photo -->
+        <div class="relative shrink-0">
+            <div
+                class="w-24 h-24 sm:w-28 sm:h-28 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 overflow-hidden flex items-center justify-center text-zinc-400 relative">
+                {{if .Photo}}
+                <img src="/assets/photos/{{.Photo}}" alt="{{.Name}}" class="w-full h-full object-cover"
+                    onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">
+                <div
+                    class="hidden w-full h-full flex items-center justify-center font-bold text-3xl text-zinc-700 dark:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 select-none">
+                    {{if .Name}}{{slice .Name 0 1}}{{else}}S{{end}}
+                </div>
+                {{else}}
+                <div
+                    class="w-full h-full flex items-center justify-center font-bold text-3xl text-zinc-700 dark:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 select-none">
+                    {{if .Name}}{{slice .Name 0 1}}{{else}}S{{end}}
+                </div>
+                {{end}}
+            </div>
+            <div
+                class="absolute -bottom-2 -right-2 p-1.5 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 rounded-lg shadow-md border-2 border-white dark:border-zinc-900">
+                <i data-lucide="graduation-cap" class="w-3.5 h-3.5"></i>
+            </div>
+        </div>
+
+        <!-- Details Grid -->
+        <div class="flex-1 min-w-0 space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div class="bg-zinc-50 dark:bg-zinc-800/40 p-3 rounded-lg border border-zinc-200/60 dark:border-zinc-800">
+                    <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block mb-1">Nomor Induk Siswa</span>
+                    <div class="font-mono font-bold text-sm text-zinc-900 dark:text-zinc-100">{{.NIS}}</div>
+                    {{if .NISSiswa}}
+                    <div class="text-[11px] font-mono text-zinc-500 dark:text-zinc-400 mt-0.5">NISN: {{.NISSiswa}}</div>
+                    {{end}}
+                </div>
+
+                <div class="bg-zinc-50 dark:bg-zinc-800/40 p-3 rounded-lg border border-zinc-200/60 dark:border-zinc-800">
+                    <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block mb-1">Kelas Akademik</span>
+                    <div class="font-semibold text-sm text-zinc-900 dark:text-zinc-100">{{if .ClassName}}{{.ClassName}}{{else}}-{{end}}</div>
+                    <div class="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">Tahun Ajaran Aktif</div>
+                </div>
+
+                <div class="bg-zinc-50 dark:bg-zinc-800/40 p-3 rounded-lg border border-zinc-200/60 dark:border-zinc-800">
+                    <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block mb-1">Kartu RFID / UID</span>
+                    <div class="font-mono font-bold text-sm text-zinc-900 dark:text-zinc-100 truncate" title="{{.RFID}}">{{if .RFID}}{{.RFID}}{{else}}-{{end}}</div>
+                    <div class="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">Tap Kios Absensi</div>
+                </div>
+
+                <div class="bg-zinc-50 dark:bg-zinc-800/40 p-3 rounded-lg border border-zinc-200/60 dark:border-zinc-800">
+                    <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block mb-1">Kontak Orang Tua / Wali</span>
+                    <div class="font-semibold text-sm text-zinc-900 dark:text-zinc-100 truncate">
+                        {{if .ParentPhone}}
+                        <a href="https://wa.me/{{.ParentPhone}}" target="_blank"
+                            class="text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1.5">
+                            <i data-lucide="phone" class="w-3.5 h-3.5"></i>
+                            {{.ParentPhone}}
+                        </a>
+                        {{else}}
+                        <span class="text-zinc-400">-</span>
+                        {{end}}
+                    </div>
+                    <div class="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">{{if .ParentName}}{{.ParentName}}{{else}}Wali Murid{{end}}</div>
+                </div>
+            </div>
+
+            {{if .Birthday}}
+            <div class="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                <i data-lucide="cake" class="w-3.5 h-3.5 text-zinc-400"></i>
+                <span>Tanggal Lahir: <strong class="text-zinc-800 dark:text-zinc-200">{{.Birthday}}</strong></span>
+            </div>
+            {{end}}
+        </div>
+    </div>
+</div>
+
+<!-- Stats Metric Cards (4 Cards) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- Stat 1: Kehadiran -->
+    <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs p-5 relative overflow-hidden">
+        <div class="flex items-center justify-between">
+            <div>
+                <span class="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Tingkat Hadir</span>
+                <div class="text-2xl font-black text-zinc-900 dark:text-zinc-100 mt-1 font-mono" id="stat-rate">{{printf "%.1f" .AttendanceRate}}%</div>
+            </div>
+            <div class="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <i data-lucide="calendar-check" class="w-5 h-5"></i>
+            </div>
+        </div>
+        <div class="mt-3 text-xs text-zinc-500 dark:text-zinc-400 flex items-center justify-between border-t border-zinc-100 dark:border-zinc-800 pt-2">
+            <span>Hari Kerja Bulan Ini</span>
+            <span class="font-semibold text-zinc-800 dark:text-zinc-200" id="stat-working-days">{{.WorkingDays}} Hari</span>
+        </div>
+    </div>
+
+    <!-- Stat 2: Hadir / Telat -->
+    <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs p-5 relative overflow-hidden">
+        <div class="flex items-center justify-between">
+            <div>
+                <span class="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Hadir & Terlambat</span>
+                <div class="flex items-baseline gap-2 mt-1">
+                    <span class="text-2xl font-black text-emerald-600 dark:text-emerald-400 font-mono" id="stat-present">{{.PresentDays}}</span>
+                    <span class="text-xs text-zinc-400">hadir</span>
+                    <span class="text-lg font-black text-amber-500 font-mono ml-1" id="stat-late">{{.LateDays}}</span>
+                    <span class="text-xs text-zinc-400">telat</span>
+                </div>
+            </div>
+            <div class="w-10 h-10 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 flex items-center justify-center">
+                <i data-lucide="clock" class="w-5 h-5"></i>
+            </div>
+        </div>
+        <div class="mt-3 text-xs text-zinc-500 dark:text-zinc-400 flex items-center justify-between border-t border-zinc-100 dark:border-zinc-800 pt-2">
+            <span>Kedisiplinan Waktu</span>
+            <span class="font-semibold text-zinc-800 dark:text-zinc-200">Presensi Kios</span>
+        </div>
+    </div>
+
+    <!-- Stat 3: Izin / Sakit / Alpha -->
+    <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs p-5 relative overflow-hidden">
+        <div class="flex items-center justify-between">
+            <div>
+                <span class="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Absen / Izin</span>
+                <div class="flex items-baseline gap-2 mt-1">
+                    <span class="text-lg font-bold text-zinc-800 dark:text-zinc-200 font-mono" id="stat-permission">{{.PermissionDays}}</span>
+                    <span class="text-xs text-zinc-400">izin</span>
+                    <span class="text-lg font-bold text-zinc-800 dark:text-zinc-200 font-mono" id="stat-sick">{{.SickDays}}</span>
+                    <span class="text-xs text-zinc-400">sakit</span>
+                    <span class="text-lg font-bold text-rose-500 font-mono ml-1" id="stat-alpha">{{.AlphaDays}}</span>
+                    <span class="text-xs text-zinc-400">alpha</span>
+                </div>
+            </div>
+            <div class="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                <i data-lucide="file-question" class="w-5 h-5"></i>
+            </div>
+        </div>
+        <div class="mt-3 text-xs text-zinc-500 dark:text-zinc-400 flex items-center justify-between border-t border-zinc-100 dark:border-zinc-800 pt-2">
+            <span>Total Ketidakhadiran</span>
+            <span class="font-semibold text-rose-600 dark:text-rose-400">{{.TotalAbsentDays}} Hari</span>
+        </div>
+    </div>
+
+    <!-- Stat 4: Poin Karakter -->
+    <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs p-5 relative overflow-hidden">
+        <div class="flex items-center justify-between">
+            <div>
+                <span class="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Poin Karakter</span>
+                <div class="text-2xl font-black text-zinc-900 dark:text-zinc-100 mt-1 font-mono">{{.TotalPoints}} <span
+                        class="text-xs font-normal text-zinc-400">pt</span></div>
+            </div>
+            <div class="w-10 h-10 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                <i data-lucide="award" class="w-5 h-5"></i>
+            </div>
+        </div>
+        <div class="mt-3 text-xs text-zinc-500 dark:text-zinc-400 flex items-center justify-between border-t border-zinc-100 dark:border-zinc-800 pt-2">
+            <span class="text-emerald-600 dark:text-emerald-400 font-semibold">+{{.AchievementPts}} Prestasi</span>
+            <span class="text-rose-600 dark:text-rose-400 font-semibold">-{{.ViolationPts}} Pelanggaran</span>
+        </div>
+    </div>
+</div>
+
+<!-- Two-Column Interactive Sections -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <!-- Left Column: ID Card & Face Status -->
+    <div class="space-y-6">
+        <!-- Digital ID Card Card -->
+        <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs p-5">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                    <i data-lucide="credit-card" class="w-4 h-4 text-zinc-500"></i>
+                    Kartu Siswa Digital
+                </h3>
+                <a href="/admin/student/idcard/{{.ID}}" target="_blank"
+                    class="text-xs text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 font-medium flex items-center gap-1 transition-colors">
+                    <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                    Cetak
+                </a>
+            </div>
+
+            <!-- Card Mockup (Standard 5.4cm x 8.5cm Ratio) -->
+            <div class="mx-auto w-56 rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden shadow-sm bg-white dark:bg-zinc-950">
+                <!-- Card Header -->
+                <div class="px-3 py-2 bg-zinc-900 dark:bg-zinc-800 text-white">
+                    <div class="text-[8px] uppercase tracking-wider opacity-80">Kartu Pelajar</div>
+                    <div class="text-[10px] font-bold leading-tight">SMK NIBA Business School</div>
+                </div>
+                <!-- Card Body -->
+                <div class="p-2.5 text-center">
+                    <div class="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">{{.Name}}</div>
+                    <div class="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">{{.ClassName}}</div>
+                    <div class="text-[9px] text-zinc-400 dark:text-zinc-500 font-mono mt-0.5">NIS: {{.NIS}}</div>
+                    <!-- QR Image -->
+                    <div class="my-2 p-2 bg-zinc-50 dark:bg-zinc-900 rounded-lg flex items-center justify-center min-h-[140px] border border-zinc-100 dark:border-zinc-800">
+                        {{if .QRImage}}
+                        <img src="{{.QRImage}}" alt="QR Code" class="w-32 h-32 object-contain"
+                            onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">
+                        <div
+                            class="hidden w-32 h-32 flex flex-col items-center justify-center text-zinc-400 text-[10px] gap-1 select-none">
+                            <i data-lucide="qr-code" class="w-8 h-8 text-zinc-300"></i>
+                            <span>Gagal memuat QR</span>
+                        </div>
+                        {{else}}
+                        <div
+                            class="w-32 h-32 flex flex-col items-center justify-center text-zinc-400 text-[10px] gap-1 select-none">
+                            <i data-lucide="qr-code" class="w-8 h-8 text-zinc-300"></i>
+                            <span>QR belum dibuat</span>
+                        </div>
+                        {{end}}
+                    </div>
+                    <div class="text-[8px] text-zinc-400">Scan pada Kios Presensi</div>
+                </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex gap-2">
+                <a href="/admin/student/idcard/{{.ID}}" target="_blank"
+                    class="flex-1 py-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 rounded-lg text-xs font-medium text-center transition-colors">
+                    Buka Tampilan Cetak
+                </a>
+            </div>
+        </div>
+
+        <!-- Face Recognition Status Card -->
+        <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs p-5">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                    <i data-lucide="scan-face" class="w-4 h-4 text-purple-600 dark:text-purple-400"></i>
+                    Face Recognition
+                </h3>
+                <span id="face-badge"
+                    class="px-2 py-0.5 rounded-full text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
+                    Memeriksa...
+                </span>
+            </div>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed mb-4">
+                Wajah yang terdaftar dapat digunakan siswa untuk presensi otomatis melalui kamera AI Kios.
+            </p>
+            <div class="flex items-center gap-2">
+                <a href="/admin/face/register/{{.ID}}"
+                    class="flex-1 py-2 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-medium text-center shadow-xs transition-colors flex items-center justify-center gap-1.5">
+                    <i data-lucide="camera" class="w-3.5 h-3.5"></i>
+                    <span>Daftarkan / Perbarui Wajah</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Interactive Attendance Calendar -->
+    <div class="lg:col-span-2 space-y-6">
+        <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs overflow-hidden">
+            <!-- Calendar Controls Header -->
+            <div
+                class="p-5 border-b border-zinc-100 dark:border-zinc-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-zinc-50/50 dark:bg-zinc-850/50">
+                <div>
+                    <h3 class="font-semibold text-sm sm:text-base text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                        <i data-lucide="calendar-days" class="w-4 h-4 text-zinc-500"></i>
+                        Riwayat Kehadiran Siswa
+                    </h3>
+                    <p class="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">Pilih bulan dan tahun untuk melihat rekapan</p>
+                </div>
+
+                <div class="flex items-center gap-2 bg-white dark:bg-zinc-900 p-1 rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-2xs">
+                    <select id="filter-month" onchange="loadStudentCalendar()"
+                        class="bg-transparent text-xs font-medium text-zinc-800 dark:text-zinc-200 px-2 py-1 rounded-md outline-none cursor-pointer">
+                        <option value="01" class="bg-white dark:bg-zinc-900">Januari</option>
+                        <option value="02" class="bg-white dark:bg-zinc-900">Februari</option>
+                        <option value="03" class="bg-white dark:bg-zinc-900">Maret</option>
+                        <option value="04" class="bg-white dark:bg-zinc-900">April</option>
+                        <option value="05" class="bg-white dark:bg-zinc-900">Mei</option>
+                        <option value="06" class="bg-white dark:bg-zinc-900">Juni</option>
+                        <option value="07" class="bg-white dark:bg-zinc-900">Juli</option>
+                        <option value="08" class="bg-white dark:bg-zinc-900">Agustus</option>
+                        <option value="09" class="bg-white dark:bg-zinc-900">September</option>
+                        <option value="10" class="bg-white dark:bg-zinc-900">Oktober</option>
+                        <option value="11" class="bg-white dark:bg-zinc-900">November</option>
+                        <option value="12" class="bg-white dark:bg-zinc-900">Desember</option>
+                    </select>
+                    <div class="w-px h-4 bg-zinc-200 dark:bg-zinc-700"></div>
+                    <select id="filter-year" onchange="loadStudentCalendar()"
+                        class="bg-transparent text-xs font-medium text-zinc-800 dark:text-zinc-200 px-2 py-1 rounded-md outline-none cursor-pointer">
+                    </select>
+                </div>
+            </div>
+
+            <!-- Calendar Grid Body -->
+            <div class="p-5">
+                <!-- Day names -->
+                <div class="grid grid-cols-7 mb-3 text-center">
+                    <div class="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider py-1">Min</div>
+                    <div class="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider py-1">Sen</div>
+                    <div class="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider py-1">Sel</div>
+                    <div class="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider py-1">Rab</div>
+                    <div class="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider py-1">Kam</div>
+                    <div class="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider py-1">Jum</div>
+                    <div class="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider py-1">Sab</div>
+                </div>
+
+                <!-- Dates grid container -->
+                <div id="calendar-grid" class="grid grid-cols-7 gap-2 min-h-64">
+                    <div
+                        class="col-span-7 py-16 text-center text-xs text-zinc-400 dark:text-zinc-500 flex items-center justify-center gap-2">
+                        <i data-lucide="loader-2" class="w-4 h-4 animate-spin text-zinc-500"></i>
+                        Memuat kalender kehadiran...
+                    </div>
+                </div>
+
+                <!-- Legend -->
+                <div
+                    class="mt-6 pt-4 border-t border-zinc-100 dark:border-zinc-800 flex flex-wrap items-center gap-4 text-xs text-zinc-600 dark:text-zinc-400">
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                        <span>Hadir</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                        <span>Terlambat</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                        <span>Izin</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+                        <span>Sakit</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                        <span>Alpha</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const STUDENT_ID = "{{.ID}}";
+
+    // Initialize Year Selector
+    (function initCalendarFilters() {
+        const now = new Date();
+        const yearSelect = document.getElementById('filter-year');
+        const currentYear = now.getFullYear();
+        if (yearSelect) {
+            for (let y = currentYear; y >= currentYear - 2; y--) {
+                const opt = document.createElement('option');
+                opt.value = y;
+                opt.textContent = y;
+                opt.className = 'bg-white dark:bg-zinc-900';
+                yearSelect.appendChild(opt);
+            }
+        }
+        const monthSelect = document.getElementById('filter-month');
+        if (monthSelect) {
+            monthSelect.value = String(now.getMonth() + 1).padStart(2, '0');
+        }
+    })();
+
+    // Check Face Registration Status
+    async function checkFaceStatus() {
+        try {
+            const res = await fetch(`/admin/face/status?student_id=${STUDENT_ID}`);
+            const data = await res.json();
+            const badge = document.getElementById('face-badge');
+            if (badge) {
+                if (data.registered) {
+                    badge.className = 'px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40';
+                    badge.textContent = 'Terdaftar';
+                } else {
+                    badge.className = 'px-2 py-0.5 rounded-md text-[11px] font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700';
+                    badge.textContent = 'Belum Ada';
+                }
+            }
+        } catch (e) {
+            console.error('Error checking face status:', e);
+        }
+    }
+
+    // Load Student Attendance Calendar
+    async function loadStudentCalendar() {
+        const month = document.getElementById('filter-month').value;
+        const year = document.getElementById('filter-year').value;
+        const container = document.getElementById('calendar-grid');
+
+        container.innerHTML = `
+            <div class="col-span-7 py-16 text-center text-xs text-zinc-400 dark:text-zinc-500 flex items-center justify-center gap-2">
+                <i data-lucide="loader-2" class="w-4 h-4 animate-spin text-zinc-500"></i>
+                Memuat data presensi...
+            </div>
+        `;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+
+        try {
+            const res = await fetch(`/admin/student/calendar?id=${STUDENT_ID}&month=${month}&year=${year}`);
+            const response = await res.json();
+
+            // Update stats if returned
+            if (response.stats) {
+                const rateEl = document.getElementById('stat-rate');
+                if (rateEl) rateEl.textContent = (response.stats.attendance_rate || 0).toFixed(1) + '%';
+                const workEl = document.getElementById('stat-working-days');
+                if (workEl) workEl.textContent = (response.stats.working_days || 0) + ' Hari';
+                const presEl = document.getElementById('stat-present');
+                if (presEl) presEl.textContent = response.stats.present || 0;
+                const lateEl = document.getElementById('stat-late');
+                if (lateEl) lateEl.textContent = response.stats.late || 0;
+                const permEl = document.getElementById('stat-permission');
+                if (permEl) permEl.textContent = response.stats.permission || 0;
+                const sickEl = document.getElementById('stat-sick');
+                if (sickEl) sickEl.textContent = response.stats.sick || 0;
+                const alphaEl = document.getElementById('stat-alpha');
+                if (alphaEl) alphaEl.textContent = response.stats.alpha || 0;
+            }
+
+            renderCalendarGrid(year, month, response.calendar || {});
+        } catch (err) {
+            console.error('Failed to load calendar:', err);
+            container.innerHTML = `
+                <div class="col-span-7 py-16 text-center text-xs text-rose-500">
+                    Gagal memuat kalender kehadiran. Silakan coba kembali.
+                </div>
+            `;
+        }
+    }
+
+    function renderCalendarGrid(year, month, logs) {
+        const container = document.getElementById('calendar-grid');
+        container.innerHTML = '';
+
+        const firstDay = new Date(year, parseInt(month) - 1, 1).getDay();
+        const daysInMonth = new Date(year, parseInt(month), 0).getDate();
+
+        // Empty slots for preceding days of week
+        for (let i = 0; i < firstDay; i++) {
+            const emptyCell = document.createElement('div');
+            emptyCell.className = 'h-16 rounded-lg bg-zinc-50/50 dark:bg-zinc-800/20 border border-dashed border-zinc-200/50 dark:border-zinc-800/50';
+            container.appendChild(emptyCell);
+        }
+
+        // Days
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dayCell = document.createElement('div');
+            dayCell.className = 'h-16 rounded-lg border border-zinc-200/80 dark:border-zinc-800 p-1.5 flex flex-col justify-between transition-all hover:border-zinc-400 dark:hover:border-zinc-600 bg-white dark:bg-zinc-900 shadow-2xs';
+
+            const dayNum = document.createElement('div');
+            dayNum.className = 'text-xs font-semibold text-zinc-700 dark:text-zinc-300';
+            dayNum.textContent = day;
+            dayCell.appendChild(dayNum);
+
+            const dayLogs = logs[day];
+            if (dayLogs && dayLogs.length > 0) {
+                const log = dayLogs[0];
+                const badge = document.createElement('div');
+                let badgeClass = 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300';
+                let label = log.status || 'Hadir';
+
+                if (log.status === 'Datang' || log.status === 'Hadir') {
+                    badgeClass = 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40';
+                    label = 'Hadir';
+                } else if (log.status === 'Terlambat') {
+                    badgeClass = 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40';
+                    label = 'Telat';
+                } else if (log.status && log.status.startsWith('Sakit')) {
+                    badgeClass = 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/40';
+                    label = 'Sakit';
+                } else if (log.status && log.status.startsWith('Izin')) {
+                    badgeClass = 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/40';
+                    label = 'Izin';
+                } else if (log.status === 'Alpha') {
+                    badgeClass = 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800/40';
+                    label = 'Alpha';
+                }
+
+                badge.className = `text-[9px] font-semibold px-1.5 py-0.5 rounded truncate text-center ${badgeClass}`;
+                badge.textContent = label;
+                if (log.time) {
+                    badge.title = `${label} (${log.time})`;
+                }
+                dayCell.appendChild(badge);
+            }
+
+            container.appendChild(dayCell);
+        }
+
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    // Reset Poin Siswa
+    async function confirmResetPoints(studentId, studentName) {
+        const confirm = await Swal.fire({
+            title: 'Konfirmasi Reset Poin',
+            html: `Apakah Anda yakin ingin mereset seluruh poin untuk <strong>${studentName}</strong>?<br><br><span class="text-xs text-rose-600 font-semibold">Seluruh poin prestasi, pelanggaran, klaim, dan English XP siswa ini akan dihapus menjadi 0.</span>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e11d48',
+            confirmButtonText: 'Ya, Reset Poin',
+            cancelButtonText: 'Batal'
+        });
+
+        if (!confirm.isConfirmed) return;
+
+        try {
+            const res = await fetch(`/admin/points/reset/${studentId}`, { method: 'POST' });
+            const data = await res.json();
+
+            if (res.ok) {
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'Poin Berhasil Direset',
+                    text: data.message || `Seluruh poin ${studentName} berhasil direset ke 0.`,
+                    confirmButtonColor: '#18181b'
+                });
+                window.location.reload();
+            } else {
+                Swal.fire('Gagal Reset', data.error || 'Terjadi kesalahan saat mereset poin', 'error');
+            }
+        } catch (e) {
+            Swal.fire('Error', 'Kesalahan koneksi saat mereset poin', 'error');
+        }
+    }
+
+    // Auto load on ready
+    document.addEventListener('DOMContentLoaded', () => {
+        loadStudentCalendar();
+        checkFaceStatus();
+    });
+</script>
+
+{{template "admin_footer" .}}

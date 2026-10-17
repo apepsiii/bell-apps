@@ -81,8 +81,8 @@ func ScanQR(db *sql.DB) echo.HandlerFunc {
 
 		today := time.Now().Format("2006-01-02")
 		var exists int
-		db.QueryRow("SELECT COUNT(*) FROM prayer_logs WHERE rfid_uid = ? AND date = ? AND prayer_type = ?",
-			rfid, today, req.PrayerType).Scan(&exists)
+		db.QueryRow("SELECT COUNT(*) FROM prayer_logs WHERE ((student_id > 0 AND student_id = ?) OR (rfid_uid = ? AND rfid_uid != '')) AND date = ? AND prayer_type = ?",
+			studentID, rfid, today, req.PrayerType).Scan(&exists)
 
 		if exists > 0 {
 			return c.JSON(http.StatusOK, map[string]interface{}{
@@ -96,9 +96,9 @@ func ScanQR(db *sql.DB) echo.HandlerFunc {
 		timestamp := now.Format("2006-01-02 15:04:05")
 
 		_, err = db.Exec(`
-			INSERT INTO prayer_logs (rfid_uid, name, class_name, prayer_type, timestamp, date, status, recorded_by)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-			rfid, studentName, className, req.PrayerType, timestamp, today, "Hadir", "QR")
+			INSERT INTO prayer_logs (student_id, rfid_uid, name, class_name, prayer_type, timestamp, date, status, recorded_by)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			studentID, rfid, studentName, className, req.PrayerType, timestamp, today, "Hadir", "QR")
 
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Gagal menyimpan data"})
@@ -227,8 +227,8 @@ func GetPrayerAttendance(db *sql.DB) echo.HandlerFunc {
 			var status sql.NullString
 			db.QueryRow(`
 				SELECT status FROM prayer_logs 
-				WHERE rfid_uid = ? AND date = ? AND prayer_type = ?`,
-				s.RFID, date, prayerType).Scan(&status)
+				WHERE ((student_id > 0 AND student_id = ?) OR (rfid_uid = ? AND rfid_uid != '')) AND date = ? AND prayer_type = ?`,
+				s.ID, s.RFID, date, prayerType).Scan(&status)
 
 			if status.Valid {
 				s.IsPresent = true
@@ -312,27 +312,27 @@ func BulkPrayerAttendance(db *sql.DB) echo.HandlerFunc {
 
 			if present && (inputStatus == "Hadir" || inputStatus == "PMS") {
 				var exists int
-				tx.QueryRow("SELECT COUNT(*) FROM prayer_logs WHERE rfid_uid=? AND date=? AND prayer_type=?",
-					student.RFID, req.Date, req.PrayerType).Scan(&exists)
+				tx.QueryRow("SELECT COUNT(*) FROM prayer_logs WHERE ((student_id > 0 AND student_id = ?) OR (rfid_uid = ? AND rfid_uid != '')) AND date=? AND prayer_type=?",
+					id, student.RFID, req.Date, req.PrayerType).Scan(&exists)
 
 				if exists == 0 {
 					_, err = tx.Exec(`
-						INSERT INTO prayer_logs (rfid_uid, name, class_name, prayer_type, timestamp, date, status) 
-						VALUES (?, ?, ?, ?, ?, ?, ?)`,
-						student.RFID, student.Name, className, req.PrayerType, timestampStr, req.Date, inputStatus)
+						INSERT INTO prayer_logs (student_id, rfid_uid, name, class_name, prayer_type, timestamp, date, status) 
+						VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+						id, student.RFID, student.Name, className, req.PrayerType, timestampStr, req.Date, inputStatus)
 				} else {
 					_, err = tx.Exec(`
-						UPDATE prayer_logs SET status = ? 
-						WHERE rfid_uid=? AND date=? AND prayer_type=?`,
-						inputStatus, student.RFID, req.Date, req.PrayerType)
+						UPDATE prayer_logs SET student_id = ?, status = ? 
+						WHERE ((student_id > 0 AND student_id = ?) OR (rfid_uid = ? AND rfid_uid != '')) AND date=? AND prayer_type=?`,
+						id, inputStatus, id, student.RFID, req.Date, req.PrayerType)
 				}
 				if err != nil {
 					tx.Rollback()
 					return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Gagal menyimpan data: " + err.Error()})
 				}
 			} else {
-				_, err = tx.Exec("DELETE FROM prayer_logs WHERE rfid_uid=? AND date=? AND prayer_type=?",
-					student.RFID, req.Date, req.PrayerType)
+				_, err = tx.Exec("DELETE FROM prayer_logs WHERE ((student_id > 0 AND student_id = ?) OR (rfid_uid = ? AND rfid_uid != '')) AND date=? AND prayer_type=?",
+					id, student.RFID, req.Date, req.PrayerType)
 				if err != nil {
 					tx.Rollback()
 					return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Gagal menghapus data: " + err.Error()})

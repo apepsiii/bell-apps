@@ -1,0 +1,610 @@
+{{template "admin_head" .}}
+<!-- Section Header -->
+<div
+    class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-zinc-900/60 p-5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs">
+    <div>
+        <h1 class="text-xl font-bold text-zinc-900 dark:text-zinc-100">Dashboard Operasional Sekolah</h1>
+        <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Pantauan terpusat bel otomatis, smart attendance, IoT
+            scanner, dan gateway komunikasi</p>
+    </div>
+    <div class="flex items-center gap-2">
+        <span
+            class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 shadow-2xs">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            Smart System Active
+        </span>
+    </div>
+</div>
+
+<!-- Card Statistics -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+    <!-- Card 1: Siswa Hadir Hari Ini -->
+    <div
+        class="bg-white dark:bg-zinc-900/60 p-5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors flex items-start gap-3.5">
+        <div
+            class="w-10 h-10 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 flex items-center justify-center flex-shrink-0 border border-zinc-200/60 dark:border-zinc-700/60">
+            <i data-lucide="user-check" class="w-5 h-5"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+            <p class="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Siswa Hadir Hari Ini</p>
+            <div class="flex items-baseline gap-2 mt-1">
+                <h3 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">{{len .PresentStudents}}</h3>
+                <span class="text-xs text-zinc-400 dark:text-zinc-500 font-medium">/ {{.Stats.TotalStudents}}</span>
+            </div>
+            <p class="text-xs text-emerald-600 dark:text-emerald-400 font-medium mt-1 flex items-center gap-1">
+                <i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Real-time tap masuk
+            </p>
+        </div>
+    </div>
+
+    <!-- Card 2: Belum Hadir / Alpha -->
+    <div
+        class="bg-white dark:bg-zinc-900/60 p-5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors flex items-start gap-3.5">
+        <div
+            class="w-10 h-10 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center flex-shrink-0 border border-rose-200/60 dark:border-rose-800/40">
+            <i data-lucide="user-x" class="w-5 h-5"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+            <p class="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Belum Hadir / Alpha</p>
+            <div class="flex items-baseline gap-2 mt-1">
+                <h3 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">{{len .AbsentStudents}}</h3>
+                <span class="text-xs text-zinc-400 dark:text-zinc-500 font-medium">siswa</span>
+            </div>
+            <p class="text-xs text-rose-600 dark:text-rose-400 font-medium mt-1 flex items-center gap-1">
+                <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i> Butuh konfirmasi
+            </p>
+        </div>
+    </div>
+
+    <!-- Card 3: Bel Berikutnya & Countdown -->
+    <div
+        class="bg-white dark:bg-zinc-900/60 p-5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors flex items-start gap-3.5">
+        <div
+            class="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center flex-shrink-0 border border-amber-200/60 dark:border-amber-800/40">
+            <i data-lucide="bell-ring" class="w-5 h-5"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+            <p class="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Bel Berikutnya</p>
+            <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate mt-1.5" id="next-bell-label"
+                title="{{.Stats.NextBell}}">{{.Stats.NextBell}}</h3>
+            <p class="text-xs text-amber-600 dark:text-amber-400 font-medium mt-1 flex items-center gap-1" id="next-bell-countdown">
+                <i data-lucide="timer" class="w-3.5 h-3.5"></i> Menghitung...
+            </p>
+        </div>
+    </div>
+
+    <!-- Card 4: Total Guru & Staff -->
+    <div
+        class="bg-white dark:bg-zinc-900/60 p-5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors flex items-start gap-3.5">
+        <div
+            class="w-10 h-10 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 flex items-center justify-center flex-shrink-0 border border-zinc-200/60 dark:border-zinc-700/60">
+            <i data-lucide="user-cog" class="w-5 h-5"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+            <p class="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Total Guru & Staff</p>
+            <div class="flex items-baseline gap-2 mt-1">
+                <h3 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">{{.Stats.TotalStaff}}</h3>
+                <span class="text-xs text-zinc-400 dark:text-zinc-500 font-medium">orang</span>
+            </div>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1 flex items-center gap-1">
+                <i data-lucide="cpu" class="w-3.5 h-3.5 text-zinc-400"></i>
+                {{.Stats.OnlineDevices}}/{{.Stats.TotalDevices}} Scanner Online
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions Toolbar -->
+<div class="bg-white dark:bg-zinc-900/60 p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs">
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 flex items-center justify-center font-bold">
+                <i data-lucide="zap" class="w-4 h-4"></i>
+            </div>
+            <span class="text-xs font-semibold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Aksi Cepat Admin</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <button onclick="openModal('modal-manual-attendance')"
+                class="px-3.5 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 text-xs font-semibold rounded-lg shadow-xs flex items-center gap-2 transition-all">
+                <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+                <span>+ Absensi Manual</span>
+            </button>
+            <button onclick="openModal('modal-announcement')"
+                class="px-3.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 text-xs font-semibold rounded-lg shadow-xs flex items-center gap-2 transition-all">
+                <i data-lucide="megaphone" class="w-3.5 h-3.5"></i>
+                <span>Pengumuman Kilat</span>
+            </button>
+            <button onclick="quickTestBell(this)"
+                class="px-3.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 text-xs font-semibold rounded-lg shadow-xs flex items-center gap-2 transition-all">
+                <i data-lucide="bell" class="w-3.5 h-3.5"></i>
+                <span>Test Bunyi Bel</span>
+            </button>
+            <a href="/admin/reports"
+                class="px-3.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 text-xs font-semibold rounded-lg shadow-xs flex items-center gap-2 transition-all">
+                <i data-lucide="file-down" class="w-3.5 h-3.5"></i>
+                <span>Unduh Rekap</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Hardware IoT & Gateway Status Bar -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="bg-white dark:bg-zinc-900/60 p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0 border border-emerald-200/60 dark:border-emerald-800/40">
+            <i data-lucide="scan" class="w-4.5 h-4.5"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+            <p class="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">RFID Gate Scanner</p>
+            <div class="flex items-center gap-1.5 mt-0.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span class="text-xs font-semibold text-zinc-800 dark:text-zinc-200">Online & Siap Tap</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-zinc-900/60 p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 flex items-center justify-center flex-shrink-0 border border-zinc-200/60 dark:border-zinc-700/60">
+            <i data-lucide="tablet" class="w-4.5 h-4.5"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+            <p class="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Terminal Sholat & Lab</p>
+            <div class="flex items-center gap-1.5 mt-0.5">
+                <span
+                    class="w-1.5 h-1.5 rounded-full {{if gt .Stats.OnlineDevices 0}}bg-emerald-500{{else}}bg-zinc-400{{end}}"></span>
+                <span class="text-xs font-semibold text-zinc-800 dark:text-zinc-200">{{.Stats.OnlineDevices}} /
+                    {{.Stats.TotalDevices}} Terkoneksi</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-zinc-900/60 p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0 border border-emerald-200/60 dark:border-emerald-800/40">
+            <i data-lucide="message-circle" class="w-4.5 h-4.5"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+            <p class="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">WhatsApp Gateway</p>
+            <div class="flex items-center gap-1.5 mt-0.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span class="text-xs font-semibold text-zinc-800 dark:text-zinc-200">Gateway Aktif</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-zinc-900/60 p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center flex-shrink-0 border border-amber-200/60 dark:border-amber-800/40">
+            <i data-lucide="volume-2" class="w-4.5 h-4.5"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+            <p class="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Mesin Audio Bel</p>
+            <div class="flex items-center gap-1.5 mt-0.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span class="text-xs font-semibold text-zinc-800 dark:text-zinc-200">{{.Stats.TotalSchedules}} Jadwal Aktif</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Section -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Chart 1: Progress Kelas -->
+    <div class="bg-white dark:bg-zinc-900/60 p-6 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs">
+        <div class="flex items-center justify-between mb-4 border-b border-zinc-100 dark:border-zinc-800 pb-3">
+            <h3 class="font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2 text-sm">
+                <i data-lucide="bar-chart-2" class="w-4 h-4 text-zinc-700 dark:text-zinc-300"></i> Progress Presensi Mingguan
+                (Per Kelas)
+            </h3>
+        </div>
+        <canvas id="chartWeeklyClass"></canvas>
+    </div>
+
+    <div class="space-y-6">
+        <!-- Chart 2: Status Distribusi -->
+        <div class="bg-white dark:bg-zinc-900/60 p-6 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex flex-col">
+            <div class="flex items-center justify-between mb-4 border-b border-zinc-100 dark:border-zinc-800 pb-3">
+                <h3 class="font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2 text-sm">
+                    <i data-lucide="pie-chart" class="w-4 h-4 text-zinc-700 dark:text-zinc-300"></i> Sebaran Status Presensi
+                    (Mingguan)
+                </h3>
+            </div>
+            <div class="h-48 relative flex justify-center">
+                <canvas id="chartStatus"></canvas>
+            </div>
+        </div>
+
+        <!-- Chart 3: Jam Kedatangan -->
+        <div class="bg-white dark:bg-zinc-900/60 p-6 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs">
+            <div class="flex items-center justify-between mb-4 border-b border-zinc-100 dark:border-zinc-800 pb-3">
+                <h3 class="font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2 text-sm">
+                    <i data-lucide="clock" class="w-4 h-4 text-zinc-700 dark:text-zinc-300"></i> Tren Jam Kedatangan (Mingguan)
+                </h3>
+            </div>
+            <div class="h-48">
+                <canvas id="chartArrival"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Leaderboard & Recent Activity Dual Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Leaderboard Section -->
+    <div class="bg-white dark:bg-zinc-900/60 p-6 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex flex-col justify-between">
+        <div>
+            <div class="flex justify-between items-center mb-4 border-b border-zinc-100 dark:border-zinc-800 pb-3">
+                <h3 class="font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2 text-sm">
+                    <i data-lucide="trophy" class="w-4 h-4 text-amber-500"></i>
+                    Papan Poin Siswa Teratas
+                </h3>
+                <a href="/admin/points"
+                    class="text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center gap-1 transition-colors">
+                    Lihat Semua <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                </a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-zinc-50/80 dark:bg-zinc-900/80 border-b border-zinc-200/80 dark:border-zinc-800">
+                        <tr>
+                            <th class="px-4 py-2.5 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase">#</th>
+                            <th class="px-4 py-2.5 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase">Nama Siswa</th>
+                            <th class="px-4 py-2.5 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase">Kelas</th>
+                            <th class="px-4 py-2.5 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase text-right">Poin</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800/80" id="leaderboard-body">
+                        {{range .Leaderboard}}
+                        <tr class="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/30 transition">
+                            <td class="px-4 py-2.5">
+                                <span class="text-zinc-400 font-mono text-xs">-</span>
+                            </td>
+                            <td class="px-4 py-2.5 font-semibold text-zinc-900 dark:text-zinc-100 text-xs">{{.Name}}</td>
+                            <td class="px-4 py-2.5 text-zinc-500 dark:text-zinc-400 text-xs">{{.ClassName}}</td>
+                            <td class="px-4 py-2.5 text-right">
+                                <span
+                                    class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold {{if gt .Points 0}}bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60{{else if lt .Points 0}}bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800/60{{else}}bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700{{end}}">
+                                    {{.Points}}
+                                </span>
+                            </td>
+                        </tr>
+                        {{else}}
+                        <tr>
+                            <td colspan="4" class="px-4 py-8 text-center text-zinc-400 dark:text-zinc-500 text-xs">Belum ada
+                                data poin siswa</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity Section -->
+    <div class="bg-white dark:bg-zinc-900/60 p-6 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex flex-col justify-between">
+        <div>
+            <div class="flex justify-between items-center mb-4 border-b border-zinc-100 dark:border-zinc-800 pb-3">
+                <h3 class="font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2 text-sm">
+                    <i data-lucide="activity" class="w-4 h-4 text-zinc-700 dark:text-zinc-300"></i> Aktivitas Sistem Terbaru
+                </h3>
+                <button onclick="loadRecentActivity()"
+                    class="text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center gap-1 transition-colors">
+                    <i data-lucide="refresh-cw" class="w-3 h-3"></i> Refresh
+                </button>
+            </div>
+            <div id="recent-activity-list" class="space-y-2 max-h-80 overflow-y-auto pr-1">
+                <div class="text-center py-8 text-zinc-400 dark:text-zinc-500 text-xs">Memuat aktivitas...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal Quick Announcement -->
+<div id="modal-announcement"
+    class="modal-wrapper hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-xl shadow-xl w-full max-w-lg p-6">
+        <div class="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800 mb-4">
+            <h3 class="font-semibold text-base text-zinc-900 dark:text-zinc-100">Buat Pengumuman Baru</h3>
+            <button type="button" onclick="closeModal('modal-announcement')" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <form id="announcement-form" onsubmit="handleAnnouncementSubmit(event)" class="space-y-4">
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Judul Pengumuman</label>
+                <input type="text" name="title" required
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Isi Pesan (Akan diubah menjadi suara bel)</label>
+                <textarea name="message" rows="4" required
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all"></textarea>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Jadwalkan Waktu (Opsional)</label>
+                <input type="datetime-local" name="scheduled_at"
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+            </div>
+            <div class="flex justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <button type="button" onclick="closeModal('modal-announcement')"
+                    class="px-4 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200">Batal</button>
+                <button type="submit"
+                    class="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 px-5 py-2 rounded-lg text-xs font-semibold shadow-xs transition-all">Simpan
+                    & Putar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Quick Manual Attendance -->
+<div id="modal-manual-attendance"
+    class="modal-wrapper hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-xl shadow-xl w-full max-w-md p-6">
+        <div class="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800 mb-4">
+            <h3 class="font-semibold text-base text-zinc-900 dark:text-zinc-100">Proses Kehadiran Manual</h3>
+            <button type="button" onclick="closeModal('modal-manual-attendance')" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <form id="manual-attendance-form" onsubmit="submitManualAttendance(event)" class="space-y-4">
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Pilih Siswa</label>
+                <select name="student_id" required
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                    <option value="">-- Pilih Siswa --</option>
+                    {{range .Students}}
+                    <option value="{{.ID}}">{{.Name}} ({{.ClassName}})</option>
+                    {{end}}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Pilih Status</label>
+                <select name="status" required
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                    <option value="Hadir">Hadir</option>
+                    <option value="Terlambat">Terlambat</option>
+                    <option value="Sakit">Sakit</option>
+                    <option value="Dispensasi">Dispensasi</option>
+                    <option value="Alpha">Alpha</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Keterangan / Alasan</label>
+                <textarea name="note" rows="2" placeholder="Keterangan opsional..."
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all"></textarea>
+            </div>
+            <div class="flex justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <button type="button" onclick="closeModal('modal-manual-attendance')"
+                    class="px-4 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200">Batal</button>
+                <button type="submit"
+                    class="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 px-5 py-2 rounded-lg text-xs font-semibold shadow-xs transition-all">Simpan
+                    Kehadiran</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Dashboard Scripts -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Init Charts
+        try {
+            const dataWeeklyClass = JSON.parse('{{.ChartWeeklyClass}}');
+            const dataStatus = JSON.parse('{{.ChartStatus}}');
+            const dataArrival = JSON.parse('{{.ChartArrival}}');
+
+            if (document.getElementById('chartWeeklyClass') && dataWeeklyClass && dataWeeklyClass.datasets && dataWeeklyClass.datasets.length > 0) {
+                new Chart(document.getElementById('chartWeeklyClass'), {
+                    type: 'line',
+                    data: dataWeeklyClass,
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { position: 'bottom' } },
+                        interaction: { mode: 'index', intersect: false }
+                    }
+                });
+            }
+
+            if (document.getElementById('chartStatus') && dataStatus && dataStatus.datasets && dataStatus.datasets.length > 0) {
+                new Chart(document.getElementById('chartStatus'), {
+                    type: 'doughnut',
+                    data: dataStatus,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom' } }
+                    }
+                });
+            }
+
+            if (document.getElementById('chartArrival') && dataArrival && dataArrival.datasets && dataArrival.datasets.length > 0) {
+                new Chart(document.getElementById('chartArrival'), {
+                    type: 'line',
+                    data: dataArrival,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }
+        } catch (e) {
+            console.error('Chart init error:', e);
+        }
+
+        // Leaderboard Ranks
+        const tbody = document.getElementById('leaderboard-body');
+        if (tbody) {
+            const rows = tbody.querySelectorAll('tr');
+            rows.forEach((row, index) => {
+                const firstCell = row.querySelector('td:first-child');
+                if (firstCell && firstCell.querySelector('span.text-zinc-400')) {
+                    const medals = ['🥇', '🥈', '🥉'];
+                    if (index < 3) {
+                        firstCell.innerHTML = '<span class="font-bold text-sm">' + medals[index] + '</span>';
+                    } else {
+                        firstCell.innerHTML = '<span class="text-zinc-400 dark:text-zinc-500 text-xs font-mono">' + (index + 1) + '</span>';
+                    }
+                }
+            });
+        }
+
+        // Load Recent Activity
+        loadRecentActivity();
+
+        // Next Bell Countdown
+        initNextBellCountdown();
+    });
+
+    async function loadRecentActivity() {
+        const container = document.getElementById('recent-activity-list');
+        if (!container) return;
+        try {
+            const res = await fetch('/admin/recent-activity');
+            if (!res.ok) throw new Error('Failed to load');
+            const activities = await res.json();
+            if (!activities || activities.length === 0) {
+                container.innerHTML = '<div class="text-center py-6 text-zinc-400 dark:text-zinc-500 text-xs">Belum ada aktivitas baru hari ini</div>';
+                return;
+            }
+            const icons = {
+                'attendance': 'user-check', 'point': 'award', 'english': 'book-open',
+                'claim': 'check-circle', 'student': 'users', 'announcement': 'megaphone'
+            };
+            const colors = {
+                'attendance': 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400',
+                'point': 'text-amber-600 bg-amber-50 dark:bg-amber-950/40 dark:text-amber-400',
+                'english': 'text-purple-600 bg-purple-50 dark:bg-purple-950/40 dark:text-purple-400',
+                'claim': 'text-blue-600 bg-blue-50 dark:bg-blue-950/40 dark:text-blue-400',
+                'student': 'text-zinc-600 bg-zinc-100 dark:bg-zinc-800 dark:text-zinc-300',
+                'announcement': 'text-pink-600 bg-pink-50 dark:bg-pink-950/40 dark:text-pink-400'
+            };
+            container.innerHTML = activities.map(act => {
+                const icon = icons[act.type] || 'activity';
+                const color = colors[act.type] || 'text-zinc-600 bg-zinc-100 dark:bg-zinc-800 dark:text-zinc-300';
+                return `
+                    <div class="flex gap-3 items-center p-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/40 border border-transparent hover:border-zinc-100 dark:hover:border-zinc-800 transition">
+                        <div class="flex-shrink-0 w-7 h-7 rounded-md ${color} flex items-center justify-center">
+                            <i data-lucide="${icon}" class="w-3.5 h-3.5"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs font-medium text-zinc-800 dark:text-zinc-200 truncate">${act.description}</p>
+                            <p class="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5 font-mono">${act.time_ago}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        } catch (err) {
+            container.innerHTML = '<div class="text-center py-6 text-rose-500 text-xs">Gagal memuat aktivitas</div>';
+        }
+    }
+
+    function initNextBellCountdown() {
+        const nextBellEl = document.getElementById('next-bell-label');
+        const countdownEl = document.getElementById('next-bell-countdown');
+        if (!nextBellEl || !countdownEl) return;
+        const rawText = nextBellEl.textContent.trim();
+        const timeMatch = rawText.match(/(\d{1,2}):(\d{2})/);
+        if (!timeMatch) {
+            countdownEl.innerHTML = '<span class="text-zinc-400 dark:text-zinc-500">Tidak ada jadwal aktif</span>';
+            return;
+        }
+        const targetH = parseInt(timeMatch[1], 10);
+        const targetM = parseInt(timeMatch[2], 10);
+
+        function updateCountdown() {
+            const now = new Date();
+            const target = new Date();
+            target.setHours(targetH, targetM, 0, 0);
+            let diffSec = Math.floor((target - now) / 1000);
+            if (diffSec < 0) {
+                countdownEl.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1"><i data-lucide="check" class="w-3 h-3"></i> Telah Berbunyi</span>';
+                if (window.lucide) lucide.createIcons();
+                return;
+            }
+            const h = Math.floor(diffSec / 3600);
+            const m = Math.floor((diffSec % 3600) / 60);
+            const s = diffSec % 60;
+            let timeStr = '';
+            if (h > 0) timeStr += `${h}j `;
+            timeStr += `${m}m ${s}d`;
+            countdownEl.innerHTML = `<i data-lucide="timer" class="w-3.5 h-3.5 text-amber-500"></i> <span class="font-mono font-bold text-amber-600 dark:text-amber-400">${timeStr}</span> lagi`;
+            if (window.lucide) lucide.createIcons();
+        }
+        updateCountdown();
+        setInterval(updateCountdown, 1000);
+    }
+
+    function quickTestBell(btn) {
+        Swal.fire({
+            title: 'Uji Coba Bunyi Bel?',
+            text: 'Sistem akan memutar nada audio bel untuk memastikan sound output speaker berfungsi normal.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#18181b',
+            cancelButtonColor: '#71717a',
+            confirmButtonText: '🔔 Ya, Bunyikan!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const audio = new Audio('/assets/audio/bell.mp3');
+                audio.play().then(() => {
+                    Swal.fire({
+                        title: 'Bel Berbunyi!',
+                        text: 'Audio bel uji coba sedang diputar...',
+                        icon: 'success',
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
+                }).catch(e => {
+                    window.location.href = '/admin/audio';
+                });
+            }
+        });
+    }
+
+    async function handleAnnouncementSubmit(e) {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+        try {
+            const res = await fetch('/admin/announcement/add', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (res.ok) {
+                Swal.fire({ icon: 'success', title: 'Berhasil', text: 'Pengumuman berhasil dibuat', timer: 1500 });
+                closeModal('modal-announcement');
+                form.reset();
+            } else {
+                Swal.fire({ icon: 'error', title: 'Gagal', text: data.message || 'Gagal menyimpan pengumuman' });
+            }
+        } catch (err) {
+            Swal.fire({ icon: 'error', title: 'Kesalahan', text: 'Gagal terhubung ke server' });
+        }
+    }
+
+    async function submitManualAttendance(e) {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+        try {
+            const res = await fetch('/admin/attendance/manual', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (res.ok) {
+                Swal.fire({ icon: 'success', title: 'Tersimpan', text: 'Kehadiran manual berhasil dicatat', timer: 1500 });
+                closeModal('modal-manual-attendance');
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                Swal.fire({ icon: 'error', title: 'Gagal', text: data.message || 'Gagal mencatat kehadiran' });
+            }
+        } catch (err) {
+            Swal.fire({ icon: 'error', title: 'Kesalahan', text: 'Gagal terhubung ke server' });
+        }
+    }
+</script>
+{{template "admin_footer" .}}

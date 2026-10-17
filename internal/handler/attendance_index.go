@@ -105,11 +105,11 @@ func (calc *AttendanceIndexCalculator) calculateForStudent(studentID, semesterID
 	// Get attendance statistics
 	query := `
 		SELECT 
-			COUNT(CASE WHEN status IN ('Hadir', 'Datang') THEN 1 END) as hadir,
-			COUNT(CASE WHEN status = 'Terlambat' THEN 1 END) as terlambat,
-			COUNT(CASE WHEN status IN ('Alpha', 'Sakit', 'Sakit (Dengan Surat)', 'Sakit (Tanpa Surat)', 'Dispensasi') THEN 1 END) as absent
+			COUNT(CASE WHEN al.status IN ('Hadir', 'Datang') THEN 1 END) as hadir,
+			COUNT(CASE WHEN al.status = 'Terlambat' THEN 1 END) as terlambat,
+			COUNT(CASE WHEN al.status IN ('Alpha', 'Sakit', 'Sakit (Dengan Surat)', 'Sakit (Tanpa Surat)', 'Dispensasi') THEN 1 END) as absent
 		FROM attendance_logs al
-		JOIN students s ON al.rfid_uid = s.rfid_uid
+		JOIN students s ON (al.student_id > 0 AND al.student_id = s.id) OR (al.rfid_uid != '' AND al.rfid_uid = s.rfid_uid)
 		WHERE s.id = ? AND DATE(al.timestamp) BETWEEN ? AND ?
 		  AND al.status != 'Pulang'
 	`
@@ -151,18 +151,22 @@ func (calc *AttendanceIndexCalculator) calculateForStudent(studentID, semesterID
 }
 
 func (calc *AttendanceIndexCalculator) calculateForAllStudents(semesterID, startDate, endDate string) ([]AttendanceIndexResult, error) {
-	var results []AttendanceIndexResult
-
 	rows, err := calc.db.Query("SELECT id FROM students WHERE status = 'active'")
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
+	var studentIDs []int
 	for rows.Next() {
 		var studentID int
-		rows.Scan(&studentID)
+		if err := rows.Scan(&studentID); err == nil {
+			studentIDs = append(studentIDs, studentID)
+		}
+	}
+	rows.Close()
 
+	var results []AttendanceIndexResult
+	for _, studentID := range studentIDs {
 		result, err := calc.calculateForStudent(fmt.Sprintf("%d", studentID), semesterID, startDate, endDate)
 		if err != nil {
 			continue // skip errors, continue with next student
@@ -188,12 +192,22 @@ func (calc *AttendanceIndexCalculator) countWorkingDays(startDate, endDate strin
 	return count
 }
 
+// hasMissedWorkingDay checks if there is any active school working day between prevDate and currDate
+func (calc *AttendanceIndexCalculator) hasMissedWorkingDay(prevDate, currDate time.Time) bool {
+	for d := prevDate.AddDate(0, 0, 1); d.Before(currDate); d = d.AddDate(0, 0, 1) {
+		if isWorking, _ := IsWorkingDay(calc.db, d); isWorking {
+			return true
+		}
+	}
+	return false
+}
+
 func (calc *AttendanceIndexCalculator) calculateStreak(studentID, startDate, endDate string) (int, int) {
 	// Get all attendance dates for this student in the period
 	query := `
 		SELECT DISTINCT DATE(al.timestamp) as date
 		FROM attendance_logs al
-		JOIN students s ON al.rfid_uid = s.rfid_uid
+		JOIN students s ON (al.student_id > 0 AND al.student_id = s.id) OR (al.rfid_uid != '' AND al.rfid_uid = s.rfid_uid)
 		WHERE s.id = ? AND DATE(al.timestamp) BETWEEN ? AND ?
 		  AND al.status IN ('Hadir', 'Datang', 'Terlambat')
 		ORDER BY date ASC
@@ -220,18 +234,24 @@ func (calc *AttendanceIndexCalculator) calculateStreak(studentID, startDate, end
 	longestStreak := 1
 	
 	for i := 1; i < len(dates); i++ {
-		dayDiff := int(dates[i].Sub(dates[i-1]).Hours() / 24)
-		
-		if dayDiff == 1 {
-			// Consecutive day
+		if !calc.hasMissedWorkingDay(dates[i-1], dates[i]) {
+			// No working days missed: streak continues!
 			currentStreak++
 			if currentStreak > longestStreak {
 				longestStreak = currentStreak
 			}
 		} else {
-			// Break in streak
+			// Break in streak due to missed working day
 			currentStreak = 1
 		}
+	}
+
+	// Check if the current streak is still active relative to today
+	now := time.Now()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
+	lastAttDate := dates[len(dates)-1]
+	if lastAttDate.Before(today) && calc.hasMissedWorkingDay(lastAttDate, today) {
+		currentStreak = 0
 	}
 
 	return currentStreak, longestStreak

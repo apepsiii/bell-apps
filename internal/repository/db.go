@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"strings"
 
 	_ "github.com/go-sql-driver/mysql"
 	_ "modernc.org/sqlite"
@@ -27,6 +28,13 @@ func InitDB() *sql.DB {
 	} else {
 		driverName = "sqlite"
 		dsn = cfg.Path
+		if dsn != ":memory:" && !strings.Contains(dsn, "_pragma") {
+			separator := "?"
+			if strings.Contains(dsn, "?") {
+				separator = "&"
+			}
+			dsn += separator + "_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=foreign_keys(ON)"
+		}
 		log.Printf("Connecting to SQLite: %s", cfg.Path)
 	}
 
@@ -37,6 +45,15 @@ func InitDB() *sql.DB {
 
 	if cfg.Driver == "mysql" {
 		db.SetMaxOpenConns(25)
+		db.SetMaxIdleConns(5)
+	} else {
+		db.Exec("PRAGMA busy_timeout = 5000;")
+		db.Exec("PRAGMA foreign_keys = ON;")
+		if cfg.Path != ":memory:" {
+			db.Exec("PRAGMA journal_mode = WAL;")
+			db.Exec("PRAGMA synchronous = NORMAL;")
+		}
+		db.SetMaxOpenConns(10)
 		db.SetMaxIdleConns(5)
 	}
 
@@ -234,6 +251,7 @@ func runSQLiteMigrations(db *sql.DB) {
 		)`,
 		`CREATE TABLE IF NOT EXISTS attendance_logs (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			student_id INTEGER,
 			rfid_uid TEXT,
 			user_name TEXT,
 			user_type TEXT,
@@ -249,6 +267,7 @@ func runSQLiteMigrations(db *sql.DB) {
 		)`,
 		`CREATE TABLE IF NOT EXISTS prayer_logs (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			student_id INTEGER,
 			rfid_uid TEXT,
 			name TEXT,
 			class_name TEXT,
@@ -258,6 +277,22 @@ func runSQLiteMigrations(db *sql.DB) {
 			status TEXT DEFAULT 'Hadir',
 			recorded_by TEXT DEFAULT 'RFID'
 		)`,
+		`CREATE TABLE IF NOT EXISTS student_sessions (
+			token TEXT PRIMARY KEY,
+			student_id INTEGER NOT NULL,
+			expires_at DATETIME NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (student_id) REFERENCES students(id)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_student_sessions_expires ON student_sessions(expires_at)`,
+		`CREATE TABLE IF NOT EXISTS operator_sessions (
+			token TEXT PRIMARY KEY,
+			operator_id INTEGER NOT NULL,
+			expires_at DATETIME NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (operator_id) REFERENCES operators(id)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_operator_sessions_expires ON operator_sessions(expires_at)`,
 		`CREATE TABLE IF NOT EXISTS whatsapp_logs (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			target TEXT,
@@ -459,11 +494,18 @@ func runSQLiteMigrations(db *sql.DB) {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			student_id INTEGER NOT NULL,
 			rule_id INTEGER,
+			pending_id INTEGER,
 			points INTEGER NOT NULL DEFAULT 0,
 			description TEXT,
 			recorded_by TEXT DEFAULT 'Admin',
+			approved_by TEXT,
+			approved_at DATETIME,
 			academic_year TEXT,
+			semester_id INTEGER DEFAULT 1,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			deleted_at DATETIME,
+			deleted_by TEXT,
+			deletion_reason TEXT,
 			FOREIGN KEY(student_id) REFERENCES students(id),
 			FOREIGN KEY(rule_id) REFERENCES achievement_rules(id)
 		)`,
@@ -473,10 +515,18 @@ func runSQLiteMigrations(db *sql.DB) {
 			rule_id INTEGER,
 			occurrence INTEGER DEFAULT 1,
 			points INTEGER NOT NULL DEFAULT 0,
+			escalation_level INTEGER DEFAULT 1,
 			description TEXT,
 			recorded_by TEXT DEFAULT 'Admin',
+			recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			academic_year TEXT,
+			semester_id INTEGER DEFAULT 1,
+			redemption_status TEXT DEFAULT 'none',
+			redemption_points INTEGER DEFAULT 0,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			deleted_at DATETIME,
+			deleted_by TEXT,
+			deletion_reason TEXT,
 			FOREIGN KEY(student_id) REFERENCES students(id),
 			FOREIGN KEY(rule_id) REFERENCES violation_rules(id)
 		)`,
@@ -663,8 +713,10 @@ func runSQLiteMigrations(db *sql.DB) {
 	}{
 		{"attendance_logs", "method", "ALTER TABLE attendance_logs ADD COLUMN method TEXT DEFAULT 'RFID'"},
 		{"attendance_logs", "note", "ALTER TABLE attendance_logs ADD COLUMN note TEXT DEFAULT ''"},
+		{"attendance_logs", "student_id", "ALTER TABLE attendance_logs ADD COLUMN student_id INTEGER"},
 		{"classes", "wa_group_id", "ALTER TABLE classes ADD COLUMN wa_group_id TEXT DEFAULT ''"},
 		{"prayer_logs", "status", "ALTER TABLE prayer_logs ADD COLUMN status TEXT DEFAULT 'Hadir'"},
+		{"prayer_logs", "student_id", "ALTER TABLE prayer_logs ADD COLUMN student_id INTEGER"},
 		{"students", "parent_name", "ALTER TABLE students ADD COLUMN parent_name TEXT DEFAULT ''"},
 		{"prayer_logs", "recorded_by", "ALTER TABLE prayer_logs ADD COLUMN recorded_by TEXT DEFAULT 'RFID'"},
 		{"students", "birthday", "ALTER TABLE students ADD COLUMN birthday TEXT DEFAULT ''"},
@@ -672,6 +724,18 @@ func runSQLiteMigrations(db *sql.DB) {
 		{"students", "nis_siswa", "ALTER TABLE students ADD COLUMN nis_siswa TEXT DEFAULT ''"},
 		{"students", "password", "ALTER TABLE students ADD COLUMN password TEXT DEFAULT ''"},
 		{"attendance_settings", "point_claim_enabled", "ALTER TABLE attendance_settings ADD COLUMN point_claim_enabled TEXT DEFAULT 'true'"},
+		{"student_violation_points", "escalation_level", "ALTER TABLE student_violation_points ADD COLUMN escalation_level INTEGER DEFAULT 1"},
+		{"student_violation_points", "semester_id", "ALTER TABLE student_violation_points ADD COLUMN semester_id INTEGER DEFAULT 1"},
+		{"student_violation_points", "redemption_status", "ALTER TABLE student_violation_points ADD COLUMN redemption_status TEXT DEFAULT 'none'"},
+		{"student_violation_points", "redemption_points", "ALTER TABLE student_violation_points ADD COLUMN redemption_points INTEGER DEFAULT 0"},
+		{"student_violation_points", "recorded_at", "ALTER TABLE student_violation_points ADD COLUMN recorded_at DATETIME"},
+		{"student_achievement_points", "pending_id", "ALTER TABLE student_achievement_points ADD COLUMN pending_id INTEGER"},
+		{"student_achievement_points", "approved_by", "ALTER TABLE student_achievement_points ADD COLUMN approved_by TEXT"},
+		{"student_achievement_points", "approved_at", "ALTER TABLE student_achievement_points ADD COLUMN approved_at DATETIME"},
+		{"student_achievement_points", "semester_id", "ALTER TABLE student_achievement_points ADD COLUMN semester_id INTEGER DEFAULT 1"},
+		{"student_violation_points", "deleted_at", "ALTER TABLE student_violation_points ADD COLUMN deleted_at DATETIME"},
+		{"student_violation_points", "deleted_by", "ALTER TABLE student_violation_points ADD COLUMN deleted_by TEXT"},
+		{"student_violation_points", "deletion_reason", "ALTER TABLE student_violation_points ADD COLUMN deletion_reason TEXT"},
 	}
 
 	for _, m := range migrations {
@@ -731,6 +795,7 @@ func runMySQLMigrations(db *sql.DB) {
 		)`,
 		`CREATE TABLE IF NOT EXISTS attendance_logs (
 			id INT PRIMARY KEY AUTO_INCREMENT,
+			student_id INT,
 			rfid_uid VARCHAR(100),
 			user_name VARCHAR(255),
 			user_type VARCHAR(20),
@@ -746,6 +811,7 @@ func runMySQLMigrations(db *sql.DB) {
 		)`,
 		`CREATE TABLE IF NOT EXISTS prayer_logs (
 			id INT PRIMARY KEY AUTO_INCREMENT,
+			student_id INT,
 			rfid_uid VARCHAR(100),
 			name VARCHAR(255),
 			class_name VARCHAR(255),
@@ -754,6 +820,20 @@ func runMySQLMigrations(db *sql.DB) {
 			date DATE,
 			status VARCHAR(50) DEFAULT 'Hadir',
 			recorded_by VARCHAR(50) DEFAULT 'RFID'
+		)`,
+		`CREATE TABLE IF NOT EXISTS student_sessions (
+			token VARCHAR(64) PRIMARY KEY,
+			student_id INT NOT NULL,
+			expires_at DATETIME NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (student_id) REFERENCES students(id)
+		)`,
+		`CREATE TABLE IF NOT EXISTS operator_sessions (
+			token VARCHAR(64) PRIMARY KEY,
+			operator_id INT NOT NULL,
+			expires_at DATETIME NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (operator_id) REFERENCES operators(id)
 		)`,
 		`CREATE TABLE IF NOT EXISTS whatsapp_logs (
 			id INT PRIMARY KEY AUTO_INCREMENT,
@@ -949,11 +1029,18 @@ func runMySQLMigrations(db *sql.DB) {
 			id INT PRIMARY KEY AUTO_INCREMENT,
 			student_id INT NOT NULL,
 			rule_id INT,
+			pending_id INT,
 			points INT NOT NULL DEFAULT 0,
 			description TEXT,
 			recorded_by VARCHAR(100) DEFAULT 'Admin',
+			approved_by VARCHAR(100),
+			approved_at DATETIME,
 			academic_year VARCHAR(20),
+			semester_id INT DEFAULT 1,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			deleted_at DATETIME,
+			deleted_by VARCHAR(100),
+			deletion_reason TEXT,
 			FOREIGN KEY(student_id) REFERENCES students(id),
 			FOREIGN KEY(rule_id) REFERENCES achievement_rules(id)
 		)`,
@@ -963,10 +1050,18 @@ func runMySQLMigrations(db *sql.DB) {
 			rule_id INT,
 			occurrence INT DEFAULT 1,
 			points INT NOT NULL DEFAULT 0,
+			escalation_level INT DEFAULT 1,
 			description TEXT,
 			recorded_by VARCHAR(100) DEFAULT 'Admin',
+			recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			academic_year VARCHAR(20),
+			semester_id INT DEFAULT 1,
+			redemption_status VARCHAR(50) DEFAULT 'none',
+			redemption_points INT DEFAULT 0,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			deleted_at DATETIME,
+			deleted_by VARCHAR(100),
+			deletion_reason TEXT,
 			FOREIGN KEY(student_id) REFERENCES students(id),
 			FOREIGN KEY(rule_id) REFERENCES violation_rules(id)
 		)`,
@@ -1147,6 +1242,14 @@ func runMySQLMigrations(db *sql.DB) {
 			FOREIGN KEY (expected_location_id) REFERENCES asset_locations(id),
 			FOREIGN KEY (actual_location_id) REFERENCES asset_locations(id)
 		)`,
+		`CREATE TABLE IF NOT EXISTS student_faces (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			student_id INTEGER NOT NULL UNIQUE,
+			descriptor TEXT NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+		)`,
 	}
 	for _, ddl := range schema {
 		if _, err := db.Exec(ddl); err != nil {
@@ -1162,8 +1265,10 @@ func runMySQLMigrations(db *sql.DB) {
 	}{
 		{"attendance_logs", "method", "ALTER TABLE attendance_logs ADD COLUMN method VARCHAR(50) DEFAULT 'RFID'"},
 		{"attendance_logs", "note", "ALTER TABLE attendance_logs ADD COLUMN note TEXT DEFAULT ''"},
+		{"attendance_logs", "student_id", "ALTER TABLE attendance_logs ADD COLUMN student_id INT"},
 		{"classes", "wa_group_id", "ALTER TABLE classes ADD COLUMN wa_group_id VARCHAR(255) DEFAULT ''"},
 		{"prayer_logs", "status", "ALTER TABLE prayer_logs ADD COLUMN status VARCHAR(50) DEFAULT 'Hadir'"},
+		{"prayer_logs", "student_id", "ALTER TABLE prayer_logs ADD COLUMN student_id INT"},
 		{"students", "parent_name", "ALTER TABLE students ADD COLUMN parent_name VARCHAR(255) DEFAULT ''"},
 		{"prayer_logs", "recorded_by", "ALTER TABLE prayer_logs ADD COLUMN recorded_by VARCHAR(50) DEFAULT 'RFID'"},
 		{"students", "birthday", "ALTER TABLE students ADD COLUMN birthday VARCHAR(20) DEFAULT ''"},
@@ -1171,6 +1276,18 @@ func runMySQLMigrations(db *sql.DB) {
 		{"students", "nis_siswa", "ALTER TABLE students ADD COLUMN nis_siswa VARCHAR(50) DEFAULT ''"},
 		{"students", "password", "ALTER TABLE students ADD COLUMN password VARCHAR(255) DEFAULT ''"},
 		{"attendance_settings", "point_claim_enabled", "ALTER TABLE attendance_settings ADD COLUMN point_claim_enabled VARCHAR(10) DEFAULT 'true'"},
+		{"student_violation_points", "escalation_level", "ALTER TABLE student_violation_points ADD COLUMN escalation_level INT DEFAULT 1"},
+		{"student_violation_points", "semester_id", "ALTER TABLE student_violation_points ADD COLUMN semester_id INT DEFAULT 1"},
+		{"student_violation_points", "redemption_status", "ALTER TABLE student_violation_points ADD COLUMN redemption_status VARCHAR(50) DEFAULT 'none'"},
+		{"student_violation_points", "redemption_points", "ALTER TABLE student_violation_points ADD COLUMN redemption_points INT DEFAULT 0"},
+		{"student_violation_points", "recorded_at", "ALTER TABLE student_violation_points ADD COLUMN recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP"},
+		{"student_achievement_points", "pending_id", "ALTER TABLE student_achievement_points ADD COLUMN pending_id INT"},
+		{"student_achievement_points", "approved_by", "ALTER TABLE student_achievement_points ADD COLUMN approved_by VARCHAR(100)"},
+		{"student_achievement_points", "approved_at", "ALTER TABLE student_achievement_points ADD COLUMN approved_at DATETIME"},
+		{"student_achievement_points", "semester_id", "ALTER TABLE student_achievement_points ADD COLUMN semester_id INT DEFAULT 1"},
+		{"student_violation_points", "deleted_at", "ALTER TABLE student_violation_points ADD COLUMN deleted_at DATETIME"},
+		{"student_violation_points", "deleted_by", "ALTER TABLE student_violation_points ADD COLUMN deleted_by VARCHAR(100)"},
+		{"student_violation_points", "deletion_reason", "ALTER TABLE student_violation_points ADD COLUMN deletion_reason TEXT"},
 	}
 
 	for _, m := range migrations {

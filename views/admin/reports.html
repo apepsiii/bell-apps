@@ -1,0 +1,294 @@
+{{template "admin_head" .}}
+<!-- Header -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-zinc-900 p-5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs">
+    <div>
+        <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 flex items-center justify-center">
+                <i data-lucide="file-bar-chart" class="w-4 h-4"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold text-zinc-900 dark:text-zinc-100">Pusat Laporan & English Quest</h1>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400">Cetak rekapitulasi kehadiran PDF resmi dan pantau tugas English Quest siswa</p>
+            </div>
+        </div>
+    </div>
+    <!-- Navigation Tabs -->
+    <div class="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800/80 p-1 rounded-lg border border-zinc-200/60 dark:border-zinc-700/60 overflow-x-auto">
+        <button type="button" onclick="switchReportTab('attendance')" id="report-tab-btn-attendance"
+            class="report-nav-btn active px-3.5 py-1.5 rounded-md text-xs font-medium text-zinc-900 dark:text-zinc-100 bg-white dark:bg-zinc-900 shadow-xs transition-all flex items-center gap-1.5">
+            <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+            <span>Laporan Kehadiran</span>
+        </button>
+        <button type="button" onclick="switchReportTab('english')" id="report-tab-btn-english"
+            class="report-nav-btn px-3.5 py-1.5 rounded-md text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all flex items-center gap-1.5">
+            <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+            <span>English Quest</span>
+        </button>
+    </div>
+</div>
+
+<!-- TAB 1: LAPORAN KEHADIRAN -->
+<div id="report-view-attendance" class="report-view-content space-y-6">
+    <!-- Filter Card -->
+    <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs p-6">
+        <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100 mb-4 flex items-center gap-2">
+            <i data-lucide="sliders-horizontal" class="w-4 h-4 text-zinc-500"></i>
+            Parameter Rekapitulasi
+        </h3>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Periode Waktu</label>
+                <select id="reportPeriodType" onchange="toggleDateInputs()"
+                    class="w-full bg-transparent dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20 dark:focus:ring-zinc-300/20 focus:border-zinc-900 dark:focus:border-zinc-100 transition-all">
+                    <option value="daily" class="bg-white dark:bg-zinc-900">Harian</option>
+                    <option value="weekly" class="bg-white dark:bg-zinc-900">Mingguan</option>
+                    <option value="monthly" class="bg-white dark:bg-zinc-900">Bulanan</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Subjek Presensi</label>
+                <select id="reportSubjectType" onchange="toggleClassFilter()"
+                    class="w-full bg-transparent dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20 dark:focus:ring-zinc-300/20 focus:border-zinc-900 dark:focus:border-zinc-100 transition-all">
+                    <option value="student" class="bg-white dark:bg-zinc-900">Siswa</option>
+                    <option value="staff" class="bg-white dark:bg-zinc-900">Guru & Staff</option>
+                </select>
+            </div>
+            <div id="classFilterDiv">
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Pilihan Kelas</label>
+                <select id="reportClassFilter"
+                    class="w-full bg-transparent dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20 dark:focus:ring-zinc-300/20 focus:border-zinc-900 dark:focus:border-zinc-100 transition-all">
+                    <option value="" class="bg-white dark:bg-zinc-900">Semua Kelas</option>
+                    {{range .Classes}}
+                    <option value="{{.ID}}" class="bg-white dark:bg-zinc-900">{{.Name}}</option>
+                    {{end}}
+                </select>
+            </div>
+        </div>
+
+        <!-- Date Range Inputs -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+            <div id="dailyDateDiv">
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Pilih Tanggal</label>
+                <input type="date" id="reportDailyDate"
+                    class="w-full bg-transparent dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20 dark:focus:ring-zinc-300/20 focus:border-zinc-900 dark:focus:border-zinc-100 transition-all">
+            </div>
+            <div id="weeklyStartDiv" class="hidden">
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Tanggal Mulai</label>
+                <input type="date" id="reportWeeklyStart"
+                    class="w-full bg-transparent dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20 dark:focus:ring-zinc-300/20 focus:border-zinc-900 dark:focus:border-zinc-100 transition-all">
+            </div>
+            <div id="weeklyEndDiv" class="hidden">
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Tanggal Akhir</label>
+                <input type="date" id="reportWeeklyEnd"
+                    class="w-full bg-transparent dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20 dark:focus:ring-zinc-300/20 focus:border-zinc-900 dark:focus:border-zinc-100 transition-all">
+            </div>
+            <div id="monthlyMonthDiv" class="hidden">
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Pilih Bulan</label>
+                <input type="month" id="reportMonthlyMonth"
+                    class="w-full bg-transparent dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20 dark:focus:ring-zinc-300/20 focus:border-zinc-900 dark:focus:border-zinc-100 transition-all">
+            </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3 mt-6 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+            <button type="button" onclick="generateReport('preview')"
+                class="px-4 py-2 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-medium flex items-center gap-1.5 shadow-xs transition-colors">
+                <i data-lucide="eye" class="w-4 h-4"></i>
+                <span>Preview Laporan</span>
+            </button>
+            <button type="button" onclick="generateReport('pdf')"
+                class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-medium flex items-center gap-1.5 shadow-xs transition-colors">
+                <i data-lucide="file-down" class="w-4 h-4"></i>
+                <span>Download PDF</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Preview Area -->
+    <div id="reportPreviewContainer"
+        class="hidden bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs p-6 overflow-hidden">
+        <div class="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800 mb-4">
+            <div class="flex items-center gap-2">
+                <i data-lucide="table" class="w-4 h-4 text-zinc-500"></i>
+                <h4 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100" id="previewTitle">Pratinjau Rekapitulasi</h4>
+            </div>
+        </div>
+        <div id="reportPreviewTable" class="overflow-x-auto text-zinc-900 dark:text-zinc-100"></div>
+    </div>
+</div>
+
+<!-- TAB 2: ENGLISH QUEST -->
+<div id="report-view-english" class="report-view-content hidden space-y-6">
+    <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs p-6">
+        <div class="flex items-center justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800 mb-4">
+            <div>
+                <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                    <i data-lucide="graduation-cap" class="w-4 h-4 text-purple-600 dark:text-purple-400"></i>
+                    Submisi Tantangan English Quest
+                </h3>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Tinjau audio rekaman speaking atau esai bahasa Inggris yang dikirim siswa</p>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left" id="english-submissions-table">
+                <thead class="bg-zinc-50/80 dark:bg-zinc-800/40 border-b border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400">
+                    <tr>
+                        <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Siswa</th>
+                        <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Judul Quest</th>
+                        <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Waktu Kirim</th>
+                        <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wider">Status</th>
+                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider">Review</th>
+                    </tr>
+                </thead>
+                <tbody id="english-submissions-tbody" class="divide-y divide-zinc-100 dark:divide-zinc-800 text-zinc-700 dark:text-zinc-300">
+                    <tr>
+                        <td colspan="5" class="text-center py-10 text-zinc-400 dark:text-zinc-500 text-xs">Memuat submisi...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const today = new Date().toISOString().split('T')[0];
+        if (document.getElementById('reportDailyDate')) document.getElementById('reportDailyDate').value = today;
+        if (document.getElementById('reportWeeklyStart')) document.getElementById('reportWeeklyStart').value = today;
+        if (document.getElementById('reportWeeklyEnd')) document.getElementById('reportWeeklyEnd').value = today;
+        if (document.getElementById('reportMonthlyMonth')) document.getElementById('reportMonthlyMonth').value = today.substring(0, 7);
+    });
+
+    function switchReportTab(tab) {
+        document.querySelectorAll('.report-view-content').forEach(el => el.classList.add('hidden'));
+        document.querySelectorAll('.report-nav-btn').forEach(btn => {
+            btn.classList.remove('bg-white', 'dark:bg-zinc-900', 'text-zinc-900', 'dark:text-zinc-100', 'shadow-xs');
+            btn.classList.add('text-zinc-600', 'dark:text-zinc-400');
+        });
+        const content = document.getElementById(`report-view-${tab}`);
+        const btn = document.getElementById(`report-tab-btn-${tab}`);
+        if (content) content.classList.remove('hidden');
+        if (btn) {
+            btn.classList.add('bg-white', 'dark:bg-zinc-900', 'text-zinc-900', 'dark:text-zinc-100', 'shadow-xs');
+            btn.classList.remove('text-zinc-600', 'dark:text-zinc-400');
+        }
+        if (tab === 'english') loadEnglishSubmissions();
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function toggleDateInputs() {
+        const period = document.getElementById('reportPeriodType').value;
+        const dailyDiv = document.getElementById('dailyDateDiv');
+        const wStartDiv = document.getElementById('weeklyStartDiv');
+        const wEndDiv = document.getElementById('weeklyEndDiv');
+        const mDiv = document.getElementById('monthlyMonthDiv');
+
+        dailyDiv.classList.add('hidden');
+        wStartDiv.classList.add('hidden');
+        wEndDiv.classList.add('hidden');
+        mDiv.classList.add('hidden');
+
+        if (period === 'daily') dailyDiv.classList.remove('hidden');
+        if (period === 'weekly') { wStartDiv.classList.remove('hidden'); wEndDiv.classList.remove('hidden'); }
+        if (period === 'monthly') mDiv.classList.remove('hidden');
+    }
+
+    function toggleClassFilter() {
+        const sub = document.getElementById('reportSubjectType').value;
+        const div = document.getElementById('classFilterDiv');
+        if (sub === 'staff') div.classList.add('hidden');
+        else div.classList.remove('hidden');
+    }
+
+    async function generateReport(action) {
+        const period = document.getElementById('reportPeriodType').value;
+        const subject = document.getElementById('reportSubjectType').value;
+        const classId = document.getElementById('reportClassFilter').value;
+
+        let query = `period=${period}&subject=${subject}`;
+        if (subject === 'student' && classId) query += `&class_id=${classId}`;
+
+        if (period === 'daily') query += `&date=${document.getElementById('reportDailyDate').value}`;
+        if (period === 'weekly') query += `&start_date=${document.getElementById('reportWeeklyStart').value}&end_date=${document.getElementById('reportWeeklyEnd').value}`;
+        if (period === 'monthly') query += `&month=${document.getElementById('reportMonthlyMonth').value}`;
+
+        if (action === 'pdf') {
+            window.open(`/admin/reports/pdf?${query}`, '_blank');
+            return;
+        }
+
+        // Preview
+        try {
+            const res = await fetch(`/admin/reports/preview?${query}`);
+            const html = await res.text();
+            const container = document.getElementById('reportPreviewContainer');
+            const previewBox = document.getElementById('reportPreviewTable');
+            container.classList.remove('hidden');
+            previewBox.innerHTML = html;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        } catch (e) {
+            Swal.fire('Error', 'Gagal memuat pratinjau laporan', 'error');
+        }
+    }
+
+    async function loadEnglishSubmissions() {
+        const tbody = document.getElementById('english-submissions-tbody');
+        if (!tbody) return;
+        try {
+            const res = await fetch('/admin/english/submissions');
+            const data = await res.json();
+            tbody.innerHTML = '';
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10 text-zinc-400 dark:text-zinc-500 text-xs">Belum ada submisi tugas</td></tr>';
+                return;
+            }
+            data.forEach(sub => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40 transition-colors';
+                const statusBadge = sub.status === 'approved' 
+                    ? '<span class="inline-flex px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40">approved</span>'
+                    : sub.status === 'rejected'
+                    ? '<span class="inline-flex px-2 py-0.5 rounded-md text-[10px] font-semibold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800/40">rejected</span>'
+                    : '<span class="inline-flex px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40">pending</span>';
+
+                tr.innerHTML = `
+                    <td class="px-4 py-3 font-semibold text-zinc-900 dark:text-zinc-100 text-xs">${sub.student_name} (${sub.class_name || '-'})</td>
+                    <td class="px-4 py-3 text-xs text-zinc-600 dark:text-zinc-400">${sub.quest_title}</td>
+                    <td class="px-4 py-3 font-mono text-xs text-zinc-400 dark:text-zinc-500">${sub.created_at}</td>
+                    <td class="px-4 py-3 text-xs">
+                        ${statusBadge}
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                        <button type="button" onclick="reviewSubmission(${sub.id})" class="px-2.5 py-1 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-md text-xs font-medium shadow-xs transition-colors">Tinjau</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (e) { }
+    }
+
+    async function reviewSubmission(id) {
+        const { value: status } = await Swal.fire({
+            title: 'Tinjau Submisi English Quest',
+            input: 'select',
+            inputOptions: { 'approved': 'Setujui & Beri Poin', 'rejected': 'Tolak' },
+            showCancelButton: true,
+            confirmButtonColor: '#18181b',
+            confirmButtonText: 'Proses'
+        });
+        if (status) {
+            try {
+                const res = await fetch(`/admin/english/submissions/${id}/review`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: status })
+                });
+                if (res.ok) {
+                    Swal.fire({ icon: 'success', title: 'Tersimpan', text: 'Submisi telah dinilai', timer: 1500, showConfirmButton: false });
+                    loadEnglishSubmissions();
+                }
+            } catch (e) { }
+        }
+    }
+</script>
+{{template "admin_footer" .}}

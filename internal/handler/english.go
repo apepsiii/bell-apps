@@ -122,8 +122,8 @@ func ReviewEnglishSubmission(db *sql.DB) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, map[string]string{"message": "action harus approve atau reject"})
 		}
 		var studentID, questID, xpReward int
-		var questTitle string
-		err := db.QueryRow("SELECT es.student_id, es.quest_id, eq.xp_reward, eq.title FROM english_submissions es JOIN english_quests eq ON es.quest_id = eq.id WHERE es.id = ? AND es.status = 'pending'", id).Scan(&studentID, &questID, &xpReward, &questTitle)
+		var questTitle, questDate string
+		err := db.QueryRow("SELECT es.student_id, es.quest_id, eq.xp_reward, eq.title, eq.date FROM english_submissions es JOIN english_quests eq ON es.quest_id = eq.id WHERE es.id = ? AND es.status = 'pending'", id).Scan(&studentID, &questID, &xpReward, &questTitle, &questDate)
 		if err != nil {
 			return c.JSON(http.StatusNotFound, map[string]string{"message": "Submission tidak ditemukan atau sudah direview"})
 		}
@@ -136,7 +136,7 @@ func ReviewEnglishSubmission(db *sql.DB) echo.HandlerFunc {
 		tx, _ := db.Begin()
 		tx.Exec("UPDATE english_submissions SET status=?, feedback=?, xp_earned=?, reviewed_at=CURRENT_TIMESTAMP, reviewed_by='admin' WHERE id=?", status, feedback, xpEarned, id)
 		if action == "approve" {
-			englishUpdateStreak(tx, studentID, xpEarned)
+			englishUpdateStreak(tx, studentID, questDate, xpEarned)
 			englishCheckBadges(tx, studentID)
 			// Mirror the XP into the main student_points system so it shows up
 			// in the unified leaderboard and student point profile.
@@ -335,27 +335,64 @@ func GetMyEnglishProfile(db *sql.DB) echo.HandlerFunc {
 	}
 }
 
-func englishUpdateStreak(tx *sql.Tx, studentID, xpEarned int) {
-	today := time.Now().Format("2006-01-02")
-	yesterday := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
+func englishUpdateStreak(tx *sql.Tx, studentID int, questDate string, xpEarned int) {
+	if questDate == "" {
+		questDate = time.Now().Format("2006-01-02")
+	}
+	questTime, err := time.Parse("2006-01-02", questDate)
+	if err != nil {
+		questTime = time.Now()
+		questDate = questTime.Format("2006-01-02")
+	}
+	prevDay := questTime.AddDate(0, 0, -1).Format("2006-01-02")
+
 	var current, longest int
 	var lastDate string
-	tx.QueryRow("SELECT current_streak, longest_streak, last_submit_date FROM english_streaks WHERE student_id = ?", studentID).
+	err = tx.QueryRow("SELECT current_streak, longest_streak, COALESCE(last_submit_date, '') FROM english_streaks WHERE student_id = ?", studentID).
 		Scan(&current, &longest, &lastDate)
-	if lastDate == today {
+	if err == sql.ErrNoRows {
+		current = 0
+		longest = 0
+		lastDate = ""
+	}
+
+	if lastDate == questDate {
+		// Already credited for this date, just accumulate XP
 		tx.Exec("UPDATE english_streaks SET total_xp = total_xp + ? WHERE student_id = ?", xpEarned, studentID)
 		return
 	}
-	if lastDate == yesterday {
+
+	if lastDate == prevDay {
+		// Yesterday was completed: streak increments!
 		current++
-	} else {
+	} else if lastDate == "" {
+		// First ever submission
 		current = 1
+	} else if lastDate < prevDay {
+		// Check if the gap is only weekend (Friday to Monday)
+		lastTime, err := time.Parse("2006-01-02", lastDate)
+		if err == nil {
+			diffDays := int(questTime.Sub(lastTime).Hours() / 24)
+			if diffDays == 3 && lastTime.Weekday() == time.Friday && questTime.Weekday() == time.Monday {
+				current++
+			} else {
+				current = 1
+			}
+		} else {
+			current = 1
+		}
+	} else {
+		// Out of order review (reviewing older quest after newer one):
+		// Simply add XP without regressing streak or last_submit_date
+		tx.Exec("UPDATE english_streaks SET total_xp = total_xp + ? WHERE student_id = ?", xpEarned, studentID)
+		return
 	}
+
 	if current > longest {
 		longest = current
 	}
 	tx.Exec("INSERT INTO english_streaks (student_id, current_streak, longest_streak, total_xp, last_submit_date) VALUES (?, ?, ?, ?, ?) ON CONFLICT(student_id) DO UPDATE SET current_streak=?, longest_streak=?, total_xp=total_xp+?, last_submit_date=?",
-		studentID, current, longest, xpEarned, today, current, longest, xpEarned, today)
+		studentID, current, longest, xpEarned, questDate, current, longest, xpEarned, questDate)
 }
 
 func englishCheckBadges(tx *sql.Tx, studentID int) {

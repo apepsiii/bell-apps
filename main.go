@@ -26,6 +26,7 @@ import (
 	_ "modernc.org/sqlite"
 
 	"belsekolah/internal/config"
+	"belsekolah/internal/handler"
 	"belsekolah/internal/repository"
 	"belsekolah/internal/router"
 )
@@ -75,7 +76,7 @@ func queryOrEmpty(db *sql.DB, query string, args ...interface{}) *sql.Rows {
 	return rows
 }
 
-//go:embed views/*.html views/mobile/*.html views/student/*.html
+//go:embed views/*.html views/admin/*.html views/mobile/*.html views/student/*.html
 var viewsFS embed.FS
 
 //go:embed config.yaml
@@ -269,6 +270,7 @@ type ChartStruct struct {
 }
 
 type DashboardData struct {
+	PageTitle          string
 	Username           string
 	Schedules          []Schedule
 	AudioFiles         []AudioFile
@@ -636,7 +638,7 @@ func (a *App) LogoutHandler(c echo.Context) error {
 	return c.Redirect(http.StatusSeeOther, "/login")
 }
 
-func (a *App) DashboardHandler(c echo.Context) error {
+func (a *App) getDashboardData() DashboardData {
 	config.AppVersion = GetVersionString()
 	rows, _ := a.DB.Query("SELECT id, time, label, audio_file FROM schedules ORDER BY time ASC")
 	var schedules []Schedule
@@ -704,7 +706,7 @@ func (a *App) DashboardHandler(c echo.Context) error {
 		SELECT s.id, s.rfid_uid, s.nis, s.nis_siswa, s.name, s.parent_phone, s.class_id, c.name, s.photo, s.birthday, s.status
 		FROM students s
 		LEFT JOIN classes c ON s.class_id = c.id
-		ORDER BY s.name ASC`)
+		ORDER BY (CASE WHEN s.status = 'inactive' THEN 1 ELSE 0 END) ASC, s.name ASC`)
 	var students []Student
 	for rowsStudent.Next() {
 		var s Student
@@ -738,7 +740,7 @@ func (a *App) DashboardHandler(c echo.Context) error {
 	rowsLog, _ := a.DB.Query(`
 		SELECT a.id, a.rfid_uid, a.user_name, a.user_type, a.status, a.method, a.timestamp, a.date, s.photo
 		FROM attendance_logs a
-		LEFT JOIN students s ON a.rfid_uid = s.rfid_uid
+		LEFT JOIN students s ON (a.student_id > 0 AND a.student_id = s.id) OR (a.rfid_uid != '' AND a.rfid_uid = s.rfid_uid)
 		WHERE a.date = ? 
 		ORDER BY a.timestamp DESC`, today)
 
@@ -875,7 +877,7 @@ func (a *App) DashboardHandler(c echo.Context) error {
 	rowsChart1, _ := a.DB.Query(`
 		SELECT c.name, a.date, COUNT(a.id)
 		FROM attendance_logs a
-		JOIN students s ON a.rfid_uid = s.rfid_uid
+		JOIN students s ON (a.student_id > 0 AND a.student_id = s.id) OR (a.rfid_uid != '' AND a.rfid_uid = s.rfid_uid)
 		JOIN classes c ON s.class_id = c.id
 		WHERE a.user_type = 'Siswa' 
 		  AND (a.status = 'Datang' OR a.status = 'Terlambat')
@@ -1023,7 +1025,13 @@ func (a *App) DashboardHandler(c echo.Context) error {
 	data.Stats.ActiveStudents = activeCount
 	data.Stats.InactiveStudents = inactiveCount
 
-	return c.Render(http.StatusOK, "admin.html", data)
+	return data
+}
+
+func (a *App) DashboardHandler(c echo.Context) error {
+	data := a.getDashboardData()
+	data.PageTitle = "Dashboard"
+	return c.Render(http.StatusOK, "dashboard.html", data)
 }
 
 // --- SCHEDULE CRUD ---
@@ -1245,7 +1253,11 @@ func (a *App) AddStudentHandler(c echo.Context) error {
 		}
 	}
 
-	_, err = a.DB.Exec("INSERT INTO students (rfid_uid, nis, nis_siswa, name, parent_phone, class_id, photo, birthday, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active')", rfid, nis, nisSiswa, name, phone, classID, photoFile, birthday)
+	var rfidVal interface{} = rfid
+	if rfid == "" {
+		rfidVal = nil
+	}
+	_, err = a.DB.Exec("INSERT INTO students (rfid_uid, nis, nis_siswa, name, parent_phone, class_id, photo, birthday, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active')", rfidVal, nis, nisSiswa, name, phone, classID, photoFile, birthday)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Gagal (Mungkin RFID/NIS duplikat): " + err.Error()})
 	}
@@ -1254,6 +1266,10 @@ func (a *App) AddStudentHandler(c echo.Context) error {
 func (a *App) UpdateStudentHandler(c echo.Context) error {
 	id := c.Param("id")
 	rfid := c.FormValue("rfid_uid")
+	var rfidVal interface{} = rfid
+	if rfid == "" {
+		rfidVal = nil
+	}
 	nis := c.FormValue("nis")
 	nisSiswa := c.FormValue("nis_siswa")
 	name := c.FormValue("name")
@@ -1278,12 +1294,12 @@ func (a *App) UpdateStudentHandler(c echo.Context) error {
 				io.Copy(dst, src)
 
 				// Update with photo
-				_, err = a.DB.Exec("UPDATE students SET rfid_uid=?, nis=?, nis_siswa=?, name=?, parent_phone=?, class_id=?, photo=?, birthday=? WHERE id=?", rfid, nis, nisSiswa, name, phone, classID, newFilename, birthday, id)
+				_, err = a.DB.Exec("UPDATE students SET rfid_uid=?, nis=?, nis_siswa=?, name=?, parent_phone=?, class_id=?, photo=?, birthday=? WHERE id=?", rfidVal, nis, nisSiswa, name, phone, classID, newFilename, birthday, id)
 			}
 		}
 	} else {
 		// No new photo, keep old
-		_, err = a.DB.Exec("UPDATE students SET rfid_uid=?, nis=?, nis_siswa=?, name=?, parent_phone=?, class_id=?, birthday=? WHERE id=?", rfid, nis, nisSiswa, name, phone, classID, birthday, id)
+		_, err = a.DB.Exec("UPDATE students SET rfid_uid=?, nis=?, nis_siswa=?, name=?, parent_phone=?, class_id=?, birthday=? WHERE id=?", rfidVal, nis, nisSiswa, name, phone, classID, birthday, id)
 	}
 
 	if err != nil {
@@ -1576,9 +1592,9 @@ func (a *App) ManualAttendanceHandler(c echo.Context) error {
 
 	// 4. Insert Log with note field
 	_, err = a.DB.Exec(`INSERT INTO attendance_logs 
-		(rfid_uid, user_name, user_type, status, method, timestamp, date, note) 
-		VALUES (?, ?, 'Siswa', ?, 'MANUAL', ?, ?, ?)`,
-		rfid, name, finalStatus, timestamp, dateStr, note)
+		(student_id, rfid_uid, user_name, user_type, status, method, timestamp, date, note) 
+		VALUES (?, ?, ?, 'Siswa', ?, 'MANUAL', ?, ?, ?)`,
+		studentID, rfid, name, finalStatus, timestamp, dateStr, note)
 
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
@@ -1754,12 +1770,12 @@ func (a *App) GetStudentCalendarHandler(c echo.Context) error {
 	query := `
 		SELECT status, timestamp, date 
 		FROM attendance_logs 
-		WHERE rfid_uid = ? 
+		WHERE ((student_id > 0 AND student_id = ?) OR (rfid_uid = ? AND rfid_uid != '')) 
 		  AND strftime('%m', date) = ? 
 		  AND strftime('%Y', date) = ?
 		ORDER BY timestamp ASC`
 
-	rows, err := a.DB.Query(query, rfid, month, year)
+	rows, err := a.DB.Query(query, studentID, rfid, month, year)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
 	}
@@ -2150,7 +2166,7 @@ func (a *App) ExportAttendanceHandler(c echo.Context) error {
 	baseQuery := `
 		SELECT a.date, a.timestamp, s.nis, s.name, c.name, a.status, a.method 
 		FROM attendance_logs a
-		LEFT JOIN students s ON a.rfid_uid = s.rfid_uid
+		LEFT JOIN students s ON (a.student_id > 0 AND a.student_id = s.id) OR (a.rfid_uid != '' AND a.rfid_uid = s.rfid_uid)
 		LEFT JOIN classes c ON s.class_id = c.id
 		WHERE a.user_type = 'Siswa'`
 
@@ -2238,30 +2254,36 @@ func (a *App) TestWAHandler(c echo.Context) error {
 // Endpoint: /api/attendance/record?rfid=...
 func (a *App) RecordAttendanceHandler(c echo.Context) error {
 	rfid := c.QueryParam("rfid")
-	// QR-card path: the ID-card QR encodes the student id, not the RFID.
-	// Resolve it to the student's rfid_uid so the rest of the handler works.
-	if rfid == "" {
-		studentID := c.QueryParam("student_id")
-		if studentID == "" {
-			return c.JSON(http.StatusBadRequest, map[string]string{"message": "RFID kosong"})
-		}
-		err := a.DB.QueryRow("SELECT rfid_uid FROM students WHERE id=?", studentID).Scan(&rfid)
-		if err != nil {
-			return c.JSON(http.StatusNotFound, map[string]string{"message": "Siswa tidak ditemukan"})
-		}
+	studentIDParam := c.QueryParam("student_id")
+	if rfid == "" && studentIDParam == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "RFID kosong"})
 	}
 
 	// 1. Identify User
+	var studentID int
 	var name, userType, photo, identityNo, className string
 	var photoNull, classNameNull sql.NullString
 	var studentStatus string
 
-	// Try Student first
-	err := a.DB.QueryRow(`
-		SELECT s.name, s.photo, s.nis, c.name, s.status
-		FROM students s 
-		LEFT JOIN classes c ON s.class_id = c.id 
-		WHERE s.rfid_uid=?`, rfid).Scan(&name, &photoNull, &identityNo, &classNameNull, &studentStatus)
+	var err error
+	if studentIDParam != "" {
+		var rfidNull sql.NullString
+		err = a.DB.QueryRow(`
+			SELECT s.id, s.rfid_uid, s.name, s.photo, s.nis, c.name, s.status
+			FROM students s 
+			LEFT JOIN classes c ON s.class_id = c.id 
+			WHERE s.id=?`, studentIDParam).Scan(&studentID, &rfidNull, &name, &photoNull, &identityNo, &classNameNull, &studentStatus)
+		if err == nil {
+			rfid = rfidNull.String
+		}
+	} else {
+		// Try Student first by RFID
+		err = a.DB.QueryRow(`
+			SELECT s.id, s.name, s.photo, s.nis, c.name, s.status
+			FROM students s 
+			LEFT JOIN classes c ON s.class_id = c.id 
+			WHERE s.rfid_uid=?`, rfid).Scan(&studentID, &name, &photoNull, &identityNo, &classNameNull, &studentStatus)
+	}
 
 	if err == nil {
 		// Reject inactive students
@@ -2319,14 +2341,14 @@ func (a *App) RecordAttendanceHandler(c echo.Context) error {
 		status = "Datang"
 		// Cek duplikasi hari ini
 		var count int
-		a.DB.QueryRow("SELECT COUNT(*) FROM attendance_logs WHERE rfid_uid=? AND date=? AND status='Datang'", rfid, dateStr).Scan(&count)
+		a.DB.QueryRow("SELECT COUNT(*) FROM attendance_logs WHERE ((student_id > 0 AND student_id = ?) OR (rfid_uid = ? AND rfid_uid != '')) AND date=? AND status='Datang'", studentID, rfid, dateStr).Scan(&count)
 		if count > 0 {
 			return c.JSON(http.StatusOK, map[string]string{"status": "duplicate", "message": "Sudah absen datang hari ini", "name": name})
 		}
 	} else if timeStr >= depStart && timeStr <= depEnd {
 		status = "Pulang"
 		var count int
-		a.DB.QueryRow("SELECT COUNT(*) FROM attendance_logs WHERE rfid_uid=? AND date=? AND status='Pulang'", rfid, dateStr).Scan(&count)
+		a.DB.QueryRow("SELECT COUNT(*) FROM attendance_logs WHERE ((student_id > 0 AND student_id = ?) OR (rfid_uid = ? AND rfid_uid != '')) AND date=? AND status='Pulang'", studentID, rfid, dateStr).Scan(&count)
 		if count > 0 {
 			return c.JSON(http.StatusOK, map[string]string{"status": "duplicate", "message": "Sudah absen pulang hari ini", "name": name})
 		}
@@ -2336,7 +2358,7 @@ func (a *App) RecordAttendanceHandler(c echo.Context) error {
 			status = "Terlambat"
 			// Cek duplikat
 			var count int
-			a.DB.QueryRow("SELECT COUNT(*) FROM attendance_logs WHERE rfid_uid=? AND date=? AND (status='Datang' OR status='Terlambat')", rfid, dateStr).Scan(&count)
+			a.DB.QueryRow("SELECT COUNT(*) FROM attendance_logs WHERE ((student_id > 0 AND student_id = ?) OR (rfid_uid = ? AND rfid_uid != '')) AND date=? AND (status='Datang' OR status='Terlambat')", studentID, rfid, dateStr).Scan(&count)
 			if count > 0 {
 				return c.JSON(http.StatusOK, map[string]string{"status": "duplicate", "message": "Sudah absen hari ini", "name": name})
 			}
@@ -2349,14 +2371,12 @@ func (a *App) RecordAttendanceHandler(c echo.Context) error {
 	var pointsChange int
 	var pointDescription string
 	if userType == "Siswa" {
-		// Parse arrival time
-		arrivalTime, _ := time.Parse("2006-01-02 15:04:05", fmt.Sprintf("2026-01-01 %s:05", timeStr))
-
 		switch status {
 		case "Datang":
 			// Base +20, bonus if before 06:30
 			pointsChange = 20
-			bonusCutoff := time.Date(2026, 1, 1, 6, 30, 0, 0, time.Local)
+			arrivalTime, _ := time.Parse("15:04", timeStr)
+			bonusCutoff, _ := time.Parse("15:04", "06:30")
 			if arrivalTime.Before(bonusCutoff) {
 				minutesEarly := int(bonusCutoff.Sub(arrivalTime).Minutes())
 				bonus := minutesEarly * 1 // 1 point per minute early
@@ -2369,10 +2389,10 @@ func (a *App) RecordAttendanceHandler(c echo.Context) error {
 			pointsChange = -10
 			pointDescription = "Terlambat (-10)"
 		case "Pulang":
-			// Check if early departure (before scheduled end)
-			depEndTime, _ := time.Parse("15:04", depEnd)
+			// Check if early departure (before scheduled departure start)
+			depStartTime, _ := time.Parse("15:04", depStart)
 			arrDepTime, _ := time.Parse("15:04", timeStr)
-			if arrDepTime.Before(depEndTime) {
+			if depStart != "" && arrDepTime.Before(depStartTime) {
 				pointsChange = -10
 				pointDescription = "Pulang Cepat (-10)"
 			} else {
@@ -2383,25 +2403,24 @@ func (a *App) RecordAttendanceHandler(c echo.Context) error {
 	}
 
 	// 3. Record Attendance
-	_, err = a.DB.Exec("INSERT INTO attendance_logs (rfid_uid, user_name, user_type, status, method, timestamp, date) VALUES (?, ?, ?, ?, 'RFID', ?, ?)",
-		rfid, name, userType, status, timestamp, dateStr)
+	var sID interface{}
+	if studentID > 0 {
+		sID = studentID
+	}
+	_, err = a.DB.Exec("INSERT INTO attendance_logs (student_id, rfid_uid, user_name, user_type, status, method, timestamp, date) VALUES (?, ?, ?, ?, ?, 'RFID', ?, ?)",
+		sID, rfid, name, userType, status, timestamp, dateStr)
 
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
 	}
 
 	// 3b. Record Point Transaction for Students
-	if userType == "Siswa" && pointsChange != 0 {
-		// Get student ID
-		var studentID int
-		a.DB.QueryRow("SELECT id FROM students WHERE rfid_uid=?", rfid).Scan(&studentID)
-		if studentID > 0 {
-			_, err = a.DB.Exec("INSERT INTO student_points (student_id, points_change, description, recorded_by) VALUES (?, ?, ?, ?)",
-				studentID, pointsChange, pointDescription, "System-Auto")
-			if err != nil {
-				// Log error but don't fail the attendance
-				log.Printf("Failed to record point: %v", err)
-			}
+	if userType == "Siswa" && pointsChange != 0 && studentID > 0 {
+		_, err = a.DB.Exec("INSERT INTO student_points (student_id, points_change, description, recorded_by) VALUES (?, ?, ?, ?)",
+			studentID, pointsChange, pointDescription, "System-Auto")
+		if err != nil {
+			// Log error but don't fail the attendance
+			log.Printf("Failed to record point: %v", err)
 		}
 	}
 
@@ -2505,129 +2524,252 @@ func (a *App) RecordAttendanceHandler(c echo.Context) error {
 }
 
 // API for Face Recognition Attendance
+// API for Face Recognition Attendance
 // Endpoint: /api/attendance/verify-face
 func (a *App) VerifyFaceAttendanceHandler(c echo.Context) error {
 	type VerifyRequest struct {
-		ImageBase64 string `json:"image_base64"`
+		StudentID   interface{} `json:"student_id"`
+		Distance    float64     `json:"distance"`
+		ImageBase64 string      `json:"image_base64"`
 	}
 
 	var req VerifyRequest
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid request"})
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid request body"})
 	}
 
-	if req.ImageBase64 == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Image required"})
+	var studentID int
+	switch v := req.StudentID.(type) {
+	case float64:
+		studentID = int(v)
+	case int:
+		studentID = v
+	case string:
+		studentID, _ = strconv.Atoi(v)
 	}
 
-	// Call Face Service for verification
-	faceURL := "http://localhost:8001/verify"
-	payload, _ := json.Marshal(map[string]string{"image_base64": req.ImageBase64})
+	if studentID <= 0 {
+		studentID, _ = strconv.Atoi(c.FormValue("student_id"))
+		if studentID <= 0 {
+			studentID, _ = strconv.Atoi(c.QueryParam("student_id"))
+		}
+	}
 
-	resp, err := http.Post(faceURL, "application/json", bytes.NewBuffer(payload))
+	if studentID <= 0 {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Valid student_id required"})
+	}
+
+	// 1. Get Student Data
+	var name, className, rfid, photo string
+	var photoNull, rfidNull, classNull sql.NullString
+	err := a.DB.QueryRow(`
+		SELECT s.name, COALESCE(c.name, ''), s.rfid_uid, s.photo
+		FROM students s
+		LEFT JOIN classes c ON s.class_id = c.id
+		WHERE s.id = ?`, studentID).Scan(&name, &classNull, &rfidNull, &photoNull)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Face service error: " + err.Error()})
+		return c.JSON(http.StatusNotFound, map[string]string{"message": "Siswa tidak ditemukan"})
 	}
-	defer resp.Body.Close()
-
-	body, _ := io.ReadAll(resp.Body)
-
-	if resp.StatusCode != http.StatusOK {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"message": fmt.Sprintf("Face service returned %d", resp.StatusCode)})
-	}
-
-	var faceResult struct {
-		Matched   bool    `json:"matched"`
-		StudentID int     `json:"student_id"`
-		Name      string  `json:"name"`
-		ClassName string  `json:"class_name"`
-		Distance  float64 `json:"distance"`
-		Message   string  `json:"message"`
-	}
-
-	if err := json.Unmarshal(body, &faceResult); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Invalid response from face service"})
-	}
-
-	if !faceResult.Matched {
-		return c.JSON(http.StatusOK, map[string]string{
-			"status":  "not_matched",
-			"message": faceResult.Message,
-		})
-	}
-
-	// Face matched - now record attendance
-	// Get student info
-	var rfid, photo string
-	var photoNull sql.NullString
-	err = a.DB.QueryRow("SELECT rfid_uid, photo FROM students WHERE id=?", faceResult.StudentID).Scan(&rfid, &photoNull)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Student not found"})
-	}
+	className = classNull.String
+	rfid = rfidNull.String
 	photo = photoNull.String
 
-	// Check duplicate
+	// 2. Fetch Settings for Attendance Window
+	settings := getAllSettings(a.DB)
+	arrStart := settings["arrival_start"]
+	if arrStart == "" {
+		arrStart = "06:00"
+	}
+	arrEnd := settings["arrival_end"]
+	if arrEnd == "" {
+		arrEnd = "07:15"
+	}
+	depStart := settings["departure_start"]
+	if depStart == "" {
+		depStart = "15:00"
+	}
+	depEnd := settings["departure_end"]
+	if depEnd == "" {
+		depEnd = "18:00"
+	}
+
 	now := time.Now()
 	timeStr := now.Format("15:04")
 	dateStr := now.Format("2006-01-02")
 	timestamp := now.Format("2006-01-02 15:04:05")
 
-	var count int
-	a.DB.QueryRow("SELECT COUNT(*) FROM attendance_logs WHERE rfid_uid=? AND date=? AND (status='Datang' OR status='Terlambat')", rfid, dateStr).Scan(&count)
-	if count > 0 {
+	// 3. Determine Check-In vs Check-Out & Duplicate Control based on Schedule Windows
+	var status string
+	var pointsChange int
+	var pointDescription string
+
+	// Check if already checked in today (Datang or Terlambat)
+	var checkInCount int
+	a.DB.QueryRow(`
+		SELECT COUNT(*) FROM attendance_logs
+		WHERE ((student_id > 0 AND student_id = ?) OR (rfid_uid = ? AND rfid_uid != ''))
+		  AND date = ? AND (status = 'Datang' OR status = 'Terlambat')`,
+		studentID, rfid, dateStr).Scan(&checkInCount)
+
+	// Check if already checked out today
+	var checkOutCount int
+	a.DB.QueryRow(`
+		SELECT COUNT(*) FROM attendance_logs
+		WHERE ((student_id > 0 AND student_id = ?) OR (rfid_uid = ? AND rfid_uid != ''))
+		  AND date = ? AND status = 'Pulang'`,
+		studentID, rfid, dateStr).Scan(&checkOutCount)
+
+	// A. Jam Datang Normal (misal 06:00 - 07:15)
+	if timeStr >= arrStart && timeStr <= arrEnd {
+		if checkInCount > 0 {
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"status":            "duplicate",
+				"attendance_status": "Datang",
+				"message":           "Sudah absen datang hari ini",
+				"student_id":        studentID,
+				"name":              name,
+				"class_name":        className,
+				"photo":             photo,
+				"time":              timeStr,
+			})
+		}
+		status = "Datang"
+		pointsChange = 20
+		arrivalTime, _ := time.Parse("15:04", timeStr)
+		bonusCutoff, _ := time.Parse("15:04", "06:30")
+		if arrivalTime.Before(bonusCutoff) {
+			minutesEarly := int(bonusCutoff.Sub(arrivalTime).Minutes())
+			bonus := minutesEarly * 1
+			pointsChange += bonus
+			pointDescription = fmt.Sprintf("Hadir Wajah Tepat Waktu (+20) + Bonus Early (%d menit × 1 = +%d)", minutesEarly, bonus)
+		} else {
+			pointDescription = "Hadir Wajah Tepat Waktu (+20)"
+		}
+
+	// B. Jam Terlambat (misal 07:16 s/d sebelum jam pulang)
+	} else if timeStr > arrEnd && timeStr < depStart {
+		if checkInCount > 0 {
+			// Sudah absen datang, sekarang belum masuk jam pulang!
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"status":            "not_time",
+				"attendance_status": "Belum Pulang",
+				"message":           "Presensi Pulang belum tersedia",
+				"student_id":        studentID,
+				"name":              name,
+				"class_name":        className,
+				"photo":             photo,
+				"time":              timeStr,
+			})
+		}
+		// Belum pernah absen hari ini -> Siswa hadir terlambat
+		status = "Terlambat"
+		pointsChange = -10
+		pointDescription = "Terlambat Wajah (-10)"
+
+	// C. Jam Pulang (misal 15:00/15:30 s/d 18:00)
+	} else if timeStr >= depStart && (depEnd == "" || timeStr <= depEnd) {
+		if checkOutCount > 0 {
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"status":            "duplicate",
+				"attendance_status": "Pulang",
+				"message":           "Sudah absen pulang hari ini",
+				"student_id":        studentID,
+				"name":              name,
+				"class_name":        className,
+				"photo":             photo,
+				"time":              timeStr,
+			})
+		}
+		status = "Pulang"
+		pointsChange = 0
+		pointDescription = "Pulang Tepat Waktu (+0)"
+
+	// D. Di luar jam operasional (misal sebelum 06:00 pagi atau tengah malam lewat 18:00)
+	} else {
+		// Jika saat pengujian/malam siswa belum pernah absen dan ingin diizinkan atau diinfokan
+		if checkInCount > 0 && checkOutCount > 0 {
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"status":            "duplicate",
+				"attendance_status": "Selesai",
+				"message":           "Sudah menyelesaikan presensi hari ini",
+				"student_id":        studentID,
+				"name":              name,
+				"class_name":        className,
+				"photo":             photo,
+				"time":              timeStr,
+			})
+		} else if checkInCount > 0 {
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"status":            "not_time",
+				"attendance_status": "Di Luar Jam",
+				"message":           "Presensi Pulang belum tersedia",
+				"student_id":        studentID,
+				"name":              name,
+				"class_name":        className,
+				"photo":             photo,
+				"time":              timeStr,
+			})
+		}
+
 		return c.JSON(http.StatusOK, map[string]interface{}{
-			"status":     "duplicate",
-			"message":    "Sudah absen hari ini",
-			"student_id": faceResult.StudentID,
-			"name":       faceResult.Name,
-			"class_name": faceResult.ClassName,
-			"photo":      photo,
+			"status":            "out_of_hours",
+			"attendance_status": "Di Luar Jam",
+			"message":           "Di luar jam operasional presensi",
+			"student_id":        studentID,
+			"name":              name,
+			"class_name":        className,
+			"photo":             photo,
+			"time":              timeStr,
 		})
 	}
 
-	// Determine status
-	status := "Datang"
-	if timeStr > "07:15" {
-		status = "Terlambat"
-	}
-
-	// Record attendance
-	_, err = a.DB.Exec("INSERT INTO attendance_logs (rfid_uid, user_name, user_type, status, method, timestamp, date) VALUES (?, ?, 'Siswa', ?, 'FACE', ?, ?)",
-		rfid, faceResult.Name, status, timestamp, dateStr)
+	// 4. Record Attendance Log
+	var sID interface{} = studentID
+	_, err = a.DB.Exec(`
+		INSERT INTO attendance_logs (student_id, rfid_uid, user_name, user_type, status, method, timestamp, date)
+		VALUES (?, ?, ?, 'Siswa', ?, 'FACE', ?, ?)`,
+		sID, rfid, name, status, timestamp, dateStr)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Gagal mencatat presensi: " + err.Error()})
 	}
 
-	// Send WA notification (async)
+	// 5. Record Student Points
+	if pointsChange != 0 {
+		_, _ = a.DB.Exec(`
+			INSERT INTO student_points (student_id, points_change, description, recorded_by)
+			VALUES (?, ?, ?, 'Terminal-Face')`,
+			studentID, pointsChange, pointDescription)
+	}
+
+	// 6. Send WA Notification (Async)
 	go func() {
-		var waURL, waToken, waTemplateIn, waTemplateLate, waImage string
-		rows, _ := a.DB.Query("SELECT setting_value FROM attendance_settings WHERE setting_key IN ('onesender_api_url', 'onesender_api_token', 'wa_template_in', 'wa_template_late', 'wa_image_link')")
-		settings := make(map[string]string)
-		for rows.Next() {
-			var k, v string
-			rows.Scan(&k, &v)
-			settings[k] = v
-		}
-		rows.Close()
-		waURL = settings["onesender_api_url"]
-		waToken = settings["onesender_api_token"]
-		waTemplateIn = settings["wa_template_in"]
-		waTemplateLate = settings["wa_template_late"]
-		waImage = settings["wa_image_link"]
+		waURL := settings["onesender_api_url"]
+		waToken := settings["onesender_api_token"]
+		waTemplateIn := settings["wa_template_in"]
+		waTemplateLate := settings["wa_template_late"]
+		waTemplateOut := settings["wa_template_out"]
+		waImage := settings["wa_image_link"]
 
 		msg := waTemplateIn
 		if status == "Terlambat" {
 			msg = waTemplateLate
+		} else if status == "Pulang" {
+			msg = waTemplateOut
 		}
+
 		if msg == "" {
 			msg = "Halo, {name} presensi {status} pada {time}."
 		}
-		msg = strings.ReplaceAll(msg, "{name}", faceResult.Name)
+		msg = strings.ReplaceAll(msg, "{name}", name)
 		msg = strings.ReplaceAll(msg, "{time}", timeStr)
 		msg = strings.ReplaceAll(msg, "{status}", status)
 
 		var parentPhone, classGroup string
-		a.DB.QueryRow("SELECT s.parent_phone, c.wa_group_id FROM students s JOIN classes c ON s.class_id = c.id WHERE s.id=?", faceResult.StudentID).Scan(&parentPhone, &classGroup)
+		_ = a.DB.QueryRow(`
+			SELECT s.parent_phone, COALESCE(c.wa_group_id, '')
+			FROM students s
+			LEFT JOIN classes c ON s.class_id = c.id
+			WHERE s.id = ?`, studentID).Scan(&parentPhone, &classGroup)
 
 		if parentPhone != "" {
 			a.SendOneSenderMessage(parentPhone, msg, waToken, waURL, "individual", waImage)
@@ -2638,13 +2780,14 @@ func (a *App) VerifyFaceAttendanceHandler(c echo.Context) error {
 	}()
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
-		"status":     "matched",
-		"student_id": faceResult.StudentID,
-		"name":       faceResult.Name,
-		"class_name": faceResult.ClassName,
-		"message":    "Absen " + status + " Berhasil",
-		"photo":      photo,
-		"time":       timeStr,
+		"status":            "matched",
+		"attendance_status": status,
+		"student_id":        studentID,
+		"name":              name,
+		"class_name":        className,
+		"message":           "Absen " + status + " Berhasil",
+		"photo":             photo,
+		"time":              timeStr,
 	})
 }
 
@@ -2656,8 +2799,8 @@ func (a *App) TodayStatsHandler(c echo.Context) error {
 	// Count students (only active ones are tracked for attendance)
 	var totalStudents, presentStudents, lateStudents int
 	a.DB.QueryRow("SELECT COUNT(*) FROM students WHERE status='active'").Scan(&totalStudents)
-	a.DB.QueryRow("SELECT COUNT(DISTINCT rfid_uid) FROM attendance_logs WHERE date=? AND user_type='Siswa' AND status='Datang'", dateStr).Scan(&presentStudents)
-	a.DB.QueryRow("SELECT COUNT(DISTINCT rfid_uid) FROM attendance_logs WHERE date=? AND user_type='Siswa' AND status='Terlambat'", dateStr).Scan(&lateStudents)
+	a.DB.QueryRow("SELECT COUNT(DISTINCT CASE WHEN student_id > 0 THEN student_id ELSE rfid_uid END) FROM attendance_logs WHERE date=? AND user_type='Siswa' AND status='Datang'", dateStr).Scan(&presentStudents)
+	a.DB.QueryRow("SELECT COUNT(DISTINCT CASE WHEN student_id > 0 THEN student_id ELSE rfid_uid END) FROM attendance_logs WHERE date=? AND user_type='Siswa' AND status='Terlambat'", dateStr).Scan(&lateStudents)
 
 	// Count staff
 	var totalStaff, presentStaff int
@@ -2684,12 +2827,12 @@ func (a *App) TodayStatsHandler(c echo.Context) error {
 // API for Recent Attendance Logs (for Kiosk Display)
 // Endpoint: /api/attendance/recent-logs
 func (a *App) RecentLogsHandler(c echo.Context) error {
-	limit := 5 // Last 5 logs
+	limit := 10 // Last 10 logs
 
 	rows, err := a.DB.Query(`
-		SELECT al.user_name, al.user_type, al.status, al.timestamp, s.photo
+		SELECT al.user_name, al.user_type, al.status, COALESCE(al.method, 'RFID'), al.timestamp, s.photo
 		FROM attendance_logs al
-		LEFT JOIN students s ON al.rfid_uid = s.rfid_uid
+		LEFT JOIN students s ON (al.student_id > 0 AND al.student_id = s.id) OR (al.rfid_uid != '' AND al.rfid_uid = s.rfid_uid)
 		ORDER BY al.timestamp DESC
 		LIMIT ?`, limit)
 
@@ -2700,9 +2843,9 @@ func (a *App) RecentLogsHandler(c echo.Context) error {
 
 	var logs []map[string]interface{}
 	for rows.Next() {
-		var name, userType, status, timestamp string
+		var name, userType, status, method, timestamp string
 		var photoNull sql.NullString
-		rows.Scan(&name, &userType, &status, &timestamp, &photoNull)
+		rows.Scan(&name, &userType, &status, &method, &timestamp, &photoNull)
 
 		// Parse timestamp to get time only
 		timeOnly := "00:00"
@@ -2712,8 +2855,10 @@ func (a *App) RecentLogsHandler(c echo.Context) error {
 
 		logs = append(logs, map[string]interface{}{
 			"name":      name,
+			"user_name": name,
 			"type":      userType,
 			"status":    status,
+			"method":    method,
 			"time":      timeOnly,
 			"timestamp": timestamp,
 			"photo":     photoNull.String,
@@ -2812,6 +2957,48 @@ func (a *App) PublicLeaderboardHandler(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, entries)
+}
+
+func (a *App) SchedulesPageHandler(c echo.Context) error {
+	data := a.getDashboardData()
+	data.PageTitle = "Jadwal Bel"
+	return c.Render(http.StatusOK, "schedules.html", data)
+}
+
+func (a *App) AudioPageHandler(c echo.Context) error {
+	data := a.getDashboardData()
+	data.PageTitle = "Audio Library"
+	return c.Render(http.StatusOK, "audio.html", data)
+}
+
+func (a *App) AttendancePageHandler(c echo.Context) error {
+	data := a.getDashboardData()
+	data.PageTitle = "Presensi Siswa"
+	return c.Render(http.StatusOK, "attendance.html", data)
+}
+
+func (a *App) AcademicsPageHandler(c echo.Context) error {
+	data := a.getDashboardData()
+	data.PageTitle = "Master Akademik"
+	return c.Render(http.StatusOK, "academics.html", data)
+}
+
+func (a *App) PointsPageHandler(c echo.Context) error {
+	data := a.getDashboardData()
+	data.PageTitle = "Poin & Karakter"
+	return c.Render(http.StatusOK, "points.html", data)
+}
+
+func (a *App) SettingsPageHandler(c echo.Context) error {
+	data := a.getDashboardData()
+	data.PageTitle = "Pengaturan Sistem"
+	return c.Render(http.StatusOK, "settings.html", data)
+}
+
+func (a *App) ReportsPageHandler(c echo.Context) error {
+	data := a.getDashboardData()
+	data.PageTitle = "Laporan"
+	return c.Render(http.StatusOK, "reports.html", data)
 }
 
 func (a *App) ScanPageHandler(c echo.Context) error {
@@ -2920,36 +3107,34 @@ func (a *App) checkForPendingAnnouncements() {
 // --- BIRTHDAY GREETING SCHEDULER ---
 func (a *App) StartBirthdayScheduler() {
 	log.Println("🎂 Starting Birthday Scheduler...")
-	ticker := time.NewTicker(1 * time.Hour) // Check every hour
+	ticker := time.NewTicker(1 * time.Minute) // Check every minute
+	var lastRunDate string
 
 	go func() {
-		// Run once at startup
-		a.checkBirthdayGreetings()
-		for {
-			<-ticker.C
-			a.checkBirthdayGreetings()
+		for t := range ticker.C {
+			var enabled string
+			err := a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='birthday_enabled'").Scan(&enabled)
+			if err != nil || enabled != "true" {
+				continue
+			}
+
+			var birthdayTime string
+			a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='birthday_time'").Scan(&birthdayTime)
+			if birthdayTime == "" {
+				birthdayTime = "08:00"
+			}
+
+			currentTime := t.Format("15:04")
+			today := t.Format("2006-01-02")
+			if currentTime == birthdayTime && lastRunDate != today {
+				lastRunDate = today
+				a.checkBirthdayGreetings()
+			}
 		}
 	}()
 }
 
 func (a *App) checkBirthdayGreetings() {
-	// Check if birthday feature is enabled
-	var enabled string
-	err := a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='birthday_enabled'").Scan(&enabled)
-	if err != nil || enabled != "true" {
-		return
-	}
-
-	// Get birthday time setting
-	var birthdayTime string
-	a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='birthday_time'").Scan(&birthdayTime)
-
-	// Check if current time matches birthday time (format: "08:00")
-	currentTime := time.Now().Format("15:04")
-	if birthdayTime != currentTime {
-		return
-	}
-
 	// Get today's date in MM-DD format
 	today := time.Now().Format("01-02")
 
@@ -3018,22 +3203,29 @@ func (a *App) checkBirthdayGreetings() {
 // --- ALPHA TRACKING SCHEDULER ---
 func (a *App) StartAlphaTrackerScheduler() {
 	log.Println("📋 Starting Alpha Tracker Scheduler...")
-	ticker := time.NewTicker(1 * time.Hour)
+	ticker := time.NewTicker(1 * time.Minute)
+	var lastRunDate string
 
 	go func() {
-		for {
-			now := time.Now()
+		for t := range ticker.C {
+			today := t.Format("2006-01-02")
 			// Run at 15:00 (3 PM) daily
-			if now.Hour() == 15 && now.Minute() == 0 {
+			if t.Hour() == 15 && t.Minute() == 0 && lastRunDate != today {
+				lastRunDate = today
 				a.markAlphaStudents()
 			}
-			<-ticker.C
 		}
 	}()
 }
 
 func (a *App) markAlphaStudents() {
-	today := time.Now().Format("2006-01-02")
+	now := time.Now()
+	isWorking, _ := handler.IsWorkingDay(a.DB, now)
+	if !isWorking {
+		log.Println("📋 Alpha tracking skipped: today is not an active school working day / holiday")
+		return
+	}
+	today := now.Format("2006-01-02")
 
 	// Get all active students
 	rows, err := a.DB.Query(`
@@ -3072,15 +3264,15 @@ func (a *App) markAlphaStudents() {
 		var count int
 		a.DB.QueryRow(`
 			SELECT COUNT(*) FROM attendance_logs
-			WHERE rfid_uid = ? AND date = ? AND user_type = 'Siswa'
-		`, s.RFID, today).Scan(&count)
+			WHERE ((student_id > 0 AND student_id = ?) OR (rfid_uid = ? AND rfid_uid != '')) AND date = ? AND user_type = 'Siswa'
+		`, s.ID, s.RFID, today).Scan(&count)
 
 		if count == 0 {
 			// Mark as Alpha
 			_, err = a.DB.Exec(`
-				INSERT INTO attendance_logs (rfid_uid, user_name, user_type, status, method, timestamp, date)
-				VALUES (?, ?, 'Siswa', 'Alpha', 'System-Auto', ?, ?)
-			`, s.RFID, s.Name, time.Now().Format("2006-01-02 15:00:00"), today)
+				INSERT INTO attendance_logs (student_id, rfid_uid, user_name, user_type, status, method, timestamp, date)
+				VALUES (?, ?, ?, 'Siswa', 'Alpha', 'System-Auto', ?, ?)
+			`, s.ID, s.RFID, s.Name, time.Now().Format("2006-01-02 15:00:00"), today)
 			if err != nil {
 				log.Printf("Failed to mark alpha for %s: %v", s.Name, err)
 				continue
@@ -3271,26 +3463,34 @@ func main() {
 
 func (a *App) PrayerAttendanceHandler(c echo.Context) error {
 	rfid := c.QueryParam("rfid")
-	// QR-card path: resolve student_id -> rfid_uid (ID-card QR encodes the id).
-	if rfid == "" {
-		studentID := c.QueryParam("student_id")
-		if studentID == "" {
-			return c.JSON(http.StatusBadRequest, map[string]string{"message": "RFID kosong"})
-		}
-		err := a.DB.QueryRow("SELECT rfid_uid FROM students WHERE id=?", studentID).Scan(&rfid)
-		if err != nil {
-			return c.JSON(http.StatusNotFound, map[string]string{"message": "Siswa tidak ditemukan"})
-		}
+	studentIDParam := c.QueryParam("student_id")
+	if rfid == "" && studentIDParam == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "RFID kosong"})
 	}
 
 	// 1. Identify User (Students Only)
+	var studentID int
 	var name, className_res, studentStatus string
 	var classNameNull sql.NullString
-	err := a.DB.QueryRow(`
-		SELECT s.name, c.name, s.status
-		FROM students s 
-		LEFT JOIN classes c ON s.class_id = c.id 
-		WHERE s.rfid_uid=?`, rfid).Scan(&name, &classNameNull, &studentStatus)
+	var err error
+
+	if studentIDParam != "" {
+		var rfidNull sql.NullString
+		err = a.DB.QueryRow(`
+			SELECT s.id, s.rfid_uid, s.name, c.name, s.status
+			FROM students s 
+			LEFT JOIN classes c ON s.class_id = c.id 
+			WHERE s.id=?`, studentIDParam).Scan(&studentID, &rfidNull, &name, &classNameNull, &studentStatus)
+		if err == nil {
+			rfid = rfidNull.String
+		}
+	} else {
+		err = a.DB.QueryRow(`
+			SELECT s.id, s.name, c.name, s.status
+			FROM students s 
+			LEFT JOIN classes c ON s.class_id = c.id 
+			WHERE s.rfid_uid=?`, rfid).Scan(&studentID, &name, &classNameNull, &studentStatus)
+	}
 
 	if err != nil {
 		return c.JSON(http.StatusNotFound, map[string]string{"message": "Kartu tidak dikenali"})
@@ -3341,14 +3541,18 @@ func (a *App) PrayerAttendanceHandler(c echo.Context) error {
 
 	// 3. Check Duplicate
 	var count int
-	a.DB.QueryRow("SELECT COUNT(*) FROM prayer_logs WHERE rfid_uid=? AND date=? AND prayer_type=?", rfid, dateStr, prayerType).Scan(&count)
+	a.DB.QueryRow("SELECT COUNT(*) FROM prayer_logs WHERE ((student_id > 0 AND student_id = ?) OR (rfid_uid = ? AND rfid_uid != '')) AND date=? AND prayer_type=?", studentID, rfid, dateStr, prayerType).Scan(&count)
 	if count > 0 {
 		return c.JSON(http.StatusOK, map[string]string{"status": "duplicate", "message": "Sudah absen sholat " + prayerType, "name": name})
 	}
 
 	// 4. Record
-	_, err = a.DB.Exec("INSERT INTO prayer_logs (rfid_uid, name, class_name, prayer_type, timestamp, date) VALUES (?, ?, ?, ?, ?, ?)",
-		rfid, name, className_res, prayerType, timestamp, dateStr)
+	var sID interface{}
+	if studentID > 0 {
+		sID = studentID
+	}
+	_, err = a.DB.Exec("INSERT INTO prayer_logs (student_id, rfid_uid, name, class_name, prayer_type, timestamp, date) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		sID, rfid, name, className_res, prayerType, timestamp, dateStr)
 
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
@@ -3414,7 +3618,7 @@ func (a *App) GetDailyAttendanceHandler(c echo.Context) error {
 		       COALESCE(strftime('%H:%M', l.timestamp), '') as time,
 		       COALESCE(l.id, 0) as log_id
 		FROM students s
-		LEFT JOIN attendance_logs l ON s.rfid_uid = l.rfid_uid AND l.date = ?
+		LEFT JOIN attendance_logs l ON ((l.student_id > 0 AND l.student_id = s.id) OR (s.rfid_uid != '' AND l.rfid_uid = s.rfid_uid)) AND l.date = ?
 		WHERE s.class_id = ?
 		ORDER BY s.name ASC`
 
@@ -3477,9 +3681,9 @@ func (a *App) BulkAttendanceHandler(c echo.Context) error {
 			continue // Skip if student not found
 		}
 
-		// 2. Check if log exists for this Date & RFID
+		// 2. Check if log exists for this Date & Student/RFID
 		var logID int
-		err = tx.QueryRow("SELECT id FROM attendance_logs WHERE rfid_uid=? AND date=?", rfid, req.Date).Scan(&logID)
+		err = tx.QueryRow("SELECT id FROM attendance_logs WHERE ((student_id > 0 AND student_id = ?) OR (rfid_uid = ? AND rfid_uid != '')) AND date=?", item.StudentID, rfid, req.Date).Scan(&logID)
 
 		timestamp := fmt.Sprintf("%s 07:00:00", req.Date) // Default time for manual entry
 		if item.Status == "Unknown" {
@@ -3495,16 +3699,16 @@ func (a *App) BulkAttendanceHandler(c echo.Context) error {
 		if err == sql.ErrNoRows {
 			// Insert
 			_, err = tx.Exec(`
-				INSERT INTO attendance_logs (rfid_uid, user_name, user_type, status, method, timestamp, date)
-				VALUES (?, ?, 'Siswa', ?, 'Manual', ?, ?)
-			`, rfid, name, item.Status, timestamp, req.Date)
+				INSERT INTO attendance_logs (student_id, rfid_uid, user_name, user_type, status, method, timestamp, date)
+				VALUES (?, ?, ?, 'Siswa', ?, 'Manual', ?, ?)
+			`, item.StudentID, rfid, name, item.Status, timestamp, req.Date)
 		} else {
 			// Update
 			_, err = tx.Exec(`
 				UPDATE attendance_logs 
-				SET status=?, method='Manual' 
+				SET student_id=?, status=?, method='Manual' 
 				WHERE id=?
-			`, item.Status, logID)
+			`, item.StudentID, item.Status, logID)
 		}
 	}
 

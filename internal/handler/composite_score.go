@@ -60,16 +60,16 @@ func getSingleCompositeScore(c echo.Context, db *sql.DB, studentID, semesterID s
 		       COALESCE(ss.achievement_points, 0), ss.achievement_normalized,
 		       COALESCE(ss.violation_points, 0), ss.violation_burden,
 		       COALESCE(ss.redemption_points, 0), ss.composite_score,
-		       sem.name as semester_name
+		       COALESCE(sem.name, '') as semester_name
 		FROM semester_scores ss
 		JOIN students s ON ss.student_id = s.id
 		LEFT JOIN classes c ON s.class_id = c.id
-		JOIN semesters sem ON ss.semester_id = sem.id
+		LEFT JOIN semesters sem ON ss.semester_id = sem.id
 		WHERE ss.student_id = ? AND ss.semester_id = ?
 	`
 	var result CompositeScoreResult
 	var attIndex, streakBonus, achNorm, violBurden, composite float64
-	var semName, className string
+	var semName, className sql.NullString
 
 	err := db.QueryRow(query, studentID, semesterID).Scan(
 		&result.StudentID, &result.StudentName, &result.NIS, &className,
@@ -90,8 +90,8 @@ func getSingleCompositeScore(c echo.Context, db *sql.DB, studentID, semesterID s
 	result.AchievementNormalized = achNorm
 	result.ViolationBurden = violBurden
 	result.CompositeScore = composite
-	result.ClassName = className
-	result.SemesterName = semName
+	result.ClassName = className.String
+	result.SemesterName = semName.String
 
 	// Calculate breakdown
 	attendanceWeight := getConfigFloat(db, "ATTENDANCE_WEIGHT", 30)
@@ -125,6 +125,19 @@ func getSingleCompositeScore(c echo.Context, db *sql.DB, studentID, semesterID s
 }
 
 func getLeaderboard(c echo.Context, db *sql.DB, semesterID, classID string) error {
+	var semInt int
+	fmt.Sscanf(semesterID, "%d", &semInt)
+	if semInt <= 0 {
+		semInt = 1
+	}
+
+	// Auto-populate if no records exist for this semester
+	var count int
+	_ = db.QueryRow("SELECT COUNT(*) FROM semester_scores WHERE semester_id = ?", semInt).Scan(&count)
+	if count == 0 {
+		_ = RecalculateAllScoresInternal(db, semInt)
+	}
+
 	query := `
 		SELECT ss.student_id, s.name, s.nis, c.name as class_name,
 		       ss.attendance_index, ss.attendance_days, ss.late_days, ss.absent_days,
@@ -132,11 +145,11 @@ func getLeaderboard(c echo.Context, db *sql.DB, semesterID, classID string) erro
 		       COALESCE(ss.achievement_points, 0), ss.achievement_normalized,
 		       COALESCE(ss.violation_points, 0), ss.violation_burden,
 		       COALESCE(ss.redemption_points, 0), ss.composite_score,
-		       sem.name as semester_name
+		       COALESCE(sem.name, '') as semester_name
 		FROM semester_scores ss
 		JOIN students s ON ss.student_id = s.id
 		LEFT JOIN classes c ON s.class_id = c.id
-		JOIN semesters sem ON ss.semester_id = sem.id
+		LEFT JOIN semesters sem ON ss.semester_id = sem.id
 		WHERE ss.semester_id = ? AND s.status = 'active'
 	`
 	args := []interface{}{semesterID}
@@ -159,9 +172,9 @@ func getLeaderboard(c echo.Context, db *sql.DB, semesterID, classID string) erro
 	for rows.Next() {
 		var r CompositeScoreResult
 		var attIndex, streakBonus, achNorm, violBurden, composite float64
-		var semName, className string
+		var semName, className sql.NullString
 
-		rows.Scan(
+		if err := rows.Scan(
 			&r.StudentID, &r.StudentName, &r.NIS, &className,
 			&attIndex, &r.AttendanceDays, &r.LateDays, &r.AbsentDays,
 			&r.StreakDays, &streakBonus,
@@ -169,15 +182,17 @@ func getLeaderboard(c echo.Context, db *sql.DB, semesterID, classID string) erro
 			&r.ViolationPoints, &violBurden,
 			&r.RedemptionPoints, &composite,
 			&semName,
-		)
+		); err != nil {
+			continue
+		}
 
 		r.AttendanceIndex = attIndex
 		r.StreakBonus = streakBonus
 		r.AchievementNormalized = achNorm
 		r.ViolationBurden = violBurden
 		r.CompositeScore = composite
-		r.ClassName = className
-		r.SemesterName = semName
+		r.ClassName = className.String
+		r.SemesterName = semName.String
 		r.Rank = rank
 		rank++
 
@@ -192,8 +207,8 @@ func getLeaderboard(c echo.Context, db *sql.DB, semesterID, classID string) erro
 }
 
 // NormalizeAchievementPoints calculates normalized achievement score (0-100)
-// Formula: (total_achievement_points / max_possible_points) * 100
-// max_possible_points = 10 categories × max_per_category (200) = 2000
+// Formula: min(100, (total_achievement_points / target_points) * 100)
+// target_points is configurable via ACHIEVEMENT_TARGET_POINTS (default: 200 points)
 func NormalizeAchievementPoints(db *sql.DB, studentID, semesterID int) (float64, error) {
 	var totalPoints int
 	err := db.QueryRow(`
@@ -205,15 +220,12 @@ func NormalizeAchievementPoints(db *sql.DB, studentID, semesterID int) (float64,
 		return 0, err
 	}
 
-	maxPerCategory := getConfigInt(db, "MAX_POINTS_PER_CATEGORY", 200)
-	numCategories := 10 // R1-R10
-	maxPossible := maxPerCategory * numCategories
-
-	if maxPossible == 0 {
-		return 0, fmt.Errorf("max possible points is 0")
+	targetPoints := getConfigInt(db, "ACHIEVEMENT_TARGET_POINTS", 200)
+	if targetPoints <= 0 {
+		targetPoints = 200
 	}
 
-	normalized := float64(totalPoints) / float64(maxPossible) * 100
+	normalized := float64(totalPoints) / float64(targetPoints) * 100
 	if normalized > 100 {
 		normalized = 100
 	}
@@ -261,3 +273,99 @@ func getConfigInt(db *sql.DB, key string, defaultVal int) int {
 	}
 	return i
 }
+
+// RecalculateAllScoresInternal calculates attendance, achievement, violation, and composite scores for all active students in a semester.
+func RecalculateAllScoresInternal(db *sql.DB, semesterID int) error {
+	semesterIDStr := fmt.Sprintf("%d", semesterID)
+
+	var startDate, endDate string
+	err := db.QueryRow("SELECT start_date, end_date FROM semesters WHERE id = ?", semesterID).Scan(&startDate, &endDate)
+	if err != nil {
+		startDate = "2026-07-01"
+		endDate = "2026-12-31"
+	}
+
+	// 1. Calculate and save attendance index for all active students
+	calc := &AttendanceIndexCalculator{db: db}
+	attResults, err := calc.calculateForAllStudents(semesterIDStr, startDate, endDate)
+	if err == nil {
+		for _, res := range attResults {
+			_ = calc.saveResult(res)
+		}
+	}
+
+	// 2. Fetch all active student IDs
+	rows, err := db.Query("SELECT id FROM students WHERE status = 'active'")
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	var studentIDs []int
+	for rows.Next() {
+		var sid int
+		if err := rows.Scan(&sid); err == nil {
+			studentIDs = append(studentIDs, sid)
+		}
+	}
+	rows.Close()
+
+	// 3. For each active student, aggregate achievement and violation points, then calculate composite score
+	for _, sid := range studentIDs {
+		var achPoints int
+		_ = db.QueryRow(`
+			SELECT COALESCE(SUM(points), 0)
+			FROM student_achievement_points
+			WHERE student_id = ? AND semester_id = ? AND deleted_at IS NULL
+		`, sid, semesterID).Scan(&achPoints)
+
+		var violPoints int
+		_ = db.QueryRow(`
+			SELECT COALESCE(SUM(points), 0)
+			FROM student_violation_points
+			WHERE student_id = ? AND semester_id = ? AND deleted_at IS NULL
+		`, sid, semesterID).Scan(&violPoints)
+
+		// Ensure record exists in semester_scores
+		_, _ = db.Exec(`
+			INSERT INTO semester_scores (student_id, semester_id, achievement_points, violation_points)
+			VALUES (?, ?, ?, ?)
+			ON CONFLICT(student_id, semester_id) DO UPDATE SET
+				achievement_points = excluded.achievement_points,
+				violation_points = excluded.violation_points
+		`, sid, semesterID, achPoints, violPoints)
+
+		// Normalize achievement score
+		_, _ = NormalizeAchievementPoints(db, sid, semesterID)
+
+		// Recalculate violation burden and composite score
+		recalculateViolationBurden(db, sid, semesterID)
+	}
+
+	return nil
+}
+
+// RecalculateAllCompositeScores handles HTTP POST /api/composite-scores/recalculate-all
+func RecalculateAllCompositeScores(db *sql.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		semesterID := 1
+		var activeSem int
+		if err := db.QueryRow("SELECT id FROM semesters WHERE is_active = 1 ORDER BY id DESC LIMIT 1").Scan(&activeSem); err == nil {
+			semesterID = activeSem
+		}
+
+		err := RecalculateAllScoresInternal(db, semesterID)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"status":  "error",
+				"message": "Gagal menghitung ulang skor: " + err.Error(),
+			})
+		}
+
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"status":  "success",
+			"message": "Seluruh skor komposit siswa berhasil dihitung ulang",
+		})
+	}
+}
+

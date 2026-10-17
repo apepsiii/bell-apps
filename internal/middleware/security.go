@@ -15,7 +15,8 @@ func SecurityHeaders() echo.MiddlewareFunc {
 		return func(c echo.Context) error {
 			// Content Security Policy - restrict resource loading
 			csp := "default-src 'self'; " +
-				"script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; " +
+				"script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; " +
+				"worker-src 'self' blob:; " +
 				"style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; " +
 				"font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
 				"img-src 'self' data: https:; " +

@@ -2,11 +2,13 @@ package handler
 
 import (
 	"database/sql"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/labstack/echo/v4"
 
@@ -64,8 +66,13 @@ func UploadAudio(db *sql.DB) echo.HandlerFunc {
 		}
 
 		os.MkdirAll(config.GetUploadPath(), 0755)
-		safeFilename := filepath.Base(file.Filename)
+		baseName := strings.TrimSuffix(filepath.Base(file.Filename), ext)
+		safeFilename := baseName + ext
 		dstPath := filepath.Join(config.GetUploadPath(), safeFilename)
+		if _, err := os.Stat(dstPath); err == nil {
+			safeFilename = fmt.Sprintf("%s_%d%s", baseName, time.Now().Unix(), ext)
+			dstPath = filepath.Join(config.GetUploadPath(), safeFilename)
+		}
 
 		dst, err := os.Create(dstPath)
 		if err != nil {

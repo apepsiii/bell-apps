@@ -1,541 +1,612 @@
 <!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detail Poin Siswa - SMK NIBA Super Apps</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        border: "hsl(214.3 31.8% 91.4%)",
-                        input: "hsl(214.3 31.8% 91.4%)",
-                        ring: "hsl(222.2 84% 4.9%)",
-                        background: "hsl(0 0% 100%)",
-                        foreground: "hsl(222.2 84% 4.9%)",
-                        primary: {
-                            DEFAULT: "hsl(222.2 47.4% 11.2%)",
-                            foreground: "hsl(210 40% 98%)",
+<html lang="id" class="h-full bg-slate-50/60">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Detail & Rapor Poin Siswa - SMK NIBA Super Apps</title>
+
+        <!-- Google Fonts: Plus Jakarta Sans -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+            rel="stylesheet">
+
+        <!-- Tailwind CSS CDN -->
+        <script src="https://cdn.tailwindcss.com"></script>
+        <!-- Lucide Icons -->
+        <script src="https://unpkg.com/lucide@latest"></script>
+        <!-- Chart.js -->
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+        <script>
+            tailwind.config = {
+                theme: {
+                    extend: {
+                        fontFamily: {
+                            sans: ['"Plus Jakarta Sans"', 'sans-serif']
                         },
-                        secondary: {
-                            DEFAULT: "hsl(210 40% 96.1%)",
-                            foreground: "hsl(222.2 47.4% 11.2%)",
+                        colors: {
+                            brand: {
+                                50: '#eef2ff',
+                                100: '#e0e7ff',
+                                500: '#6366f1',
+                                600: '#4f46e5',
+                                700: '#4338ca'
+                            }
                         },
-                        muted: {
-                            DEFAULT: "hsl(210 40% 96.1%)",
-                            foreground: "hsl(215.4 16.3% 46.9%)",
-                        },
-                    },
-                    borderRadius: {
-                        lg: "0.5rem",
-                        md: "calc(0.5rem - 2px)",
-                        sm: "calc(0.5rem - 4px)",
-                    },
+                        boxShadow: {
+                            subtle: '0 1px 2px 0 rgba(0, 0, 0, 0.04), 0 1px 3px 0 rgba(0, 0, 0, 0.02)',
+                            card: '0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+                            hover: '0 12px 24px -4px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.02)'
+                        }
+                    }
+                }
+            };
+        </script>
+
+        <style>
+            body {
+                font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+                letter-spacing: -0.01em;
+            }
+
+            ::-webkit-scrollbar {
+                width: 6px;
+                height: 6px;
+            }
+
+            ::-webkit-scrollbar-track {
+                background: transparent;
+            }
+
+            ::-webkit-scrollbar-thumb {
+                background: #cbd5e1;
+                border-radius: 9999px;
+            }
+
+            ::-webkit-scrollbar-thumb:hover {
+                background: #94a3b8;
+            }
+
+            .chart-box {
+                position: relative;
+                height: 220px;
+                width: 100%;
+            }
+
+            @media print {
+                .no-print {
+                    display: none !important;
+                }
+
+                body {
+                    background: #ffffff !important;
+                }
+
+                .print-clean {
+                    box-shadow: none !important;
+                    border: 1px solid #e2e8f0 !important;
                 }
             }
-        }
-    </script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-        
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        
-        @keyframes fadeIn { 
-            from { opacity: 0; transform: translateY(10px); } 
-            to { opacity: 1; transform: translateY(0); } 
-        }
-        
-        .fade-in { 
-            animation: fadeIn 0.4s ease-out forwards; 
-        }
-        
-        .card {
-            border-radius: 0.5rem;
-            border: 1px solid hsl(214.3 31.8% 91.4%);
-            background-color: hsl(0 0% 100%);
-            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-        }
-        
-        .card:hover {
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-        }
-        
-        /* Print styles */
-        @media print {
-            body {
-                background: white;
-            }
-            .no-print {
-                display: none !important;
-            }
-            .card {
-                box-shadow: none;
-                border: 1px solid #e5e7eb;
-                page-break-inside: avoid;
-            }
-            .print-section {
-                page-break-inside: avoid;
-            }
-        }
-        
-        /* Custom scrollbar */
-        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: hsl(210 40% 96.1%); border-radius: 100vh; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: hsl(215.4 16.3% 46.9%); border-radius: 100vh; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: hsl(215.4 16.3% 36.9%); }
-    </style>
-</head>
-<body class="bg-slate-50 min-h-screen antialiased">
-    <!-- Header -->
-    <div class="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 no-print">
-        <div class="max-w-7xl mx-auto px-6 py-6">
-            <div class="flex items-center justify-between">
-                <div class="fade-in">
-                    <div class="flex items-center gap-3">
-                        <div class="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
-                            <i class="fas fa-user-graduate text-primary-foreground"></i>
+        </style>
+    </head>
+
+    <body class="min-h-full flex flex-col text-slate-800 antialiased selection:bg-brand-500 selection:text-white">
+
+        <!-- Top Navigation Header -->
+        <header
+            class="no-print sticky top-0 z-40 bg-white/85 backdrop-blur-md border-b border-slate-200/80 transition-all">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16 gap-4">
+
+                    <!-- Brand & Breadcrumb -->
+                    <div class="flex items-center gap-3.5 min-w-0">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center text-white shadow-sm shadow-brand-500/20 flex-shrink-0">
+                            <i data-lucide="user-check" class="w-5 h-5"></i>
                         </div>
-                        <div>
-                            <h1 class="text-2xl font-semibold tracking-tight text-foreground">Detail Poin Siswa</h1>
-                            <p class="text-sm text-muted-foreground">
-                                Profil lengkap poin penghargaan & pelanggaran
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2">
+                                <h1 class="text-base font-bold text-slate-900 tracking-tight truncate">Rapor Karakter
+                                    Siswa</h1>
+                                <span
+                                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60 flex-shrink-0">
+                                    Profil Lengkap
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-500 truncate">Rincian perolehan poin penghargaan dan catatan
+                                pembinaan</p>
+                        </div>
+                    </div>
+
+                    <!-- Right Action Controls -->
+                    <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                        <button type="button" onclick="window.print()"
+                            class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl shadow-subtle hover:border-slate-300 transition-all">
+                            <i data-lucide="printer" class="w-3.5 h-3.5 text-slate-500"></i>
+                            <span>Cetak Rapor</span>
+                        </button>
+                        <a href="/admin/dual-point/dashboard"
+                            class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl shadow-subtle hover:border-slate-300 transition-all">
+                            <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 text-slate-500"></i>
+                            <span class="hidden sm:inline">Dashboard</span>
+                        </a>
+                        <a href="/admin/dual-point/leaderboard"
+                            class="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl shadow-subtle hover:border-slate-300 transition-all">
+                            <i data-lucide="trophy" class="w-3.5 h-3.5 text-amber-500"></i>
+                            <span>Leaderboard</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Workspace Container -->
+        <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+
+            <!-- Student Hero Banner Card -->
+            <section class="bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-7 shadow-subtle print-clean">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+                    <div class="flex items-center gap-4 min-w-0">
+                        <div id="student-avatar"
+                            class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-500 text-white font-extrabold text-2xl flex items-center justify-center flex-shrink-0 shadow-md">
+                            S
+                        </div>
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h2 id="student-name"
+                                    class="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">Memuat
+                                    nama...</h2>
+                                <span id="student-waluya-badge"
+                                    class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">Waluya
+                                    Utama</span>
+                                <span id="student-sp-badge"
+                                    class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700">Aman</span>
+                            </div>
+                            <p class="text-xs sm:text-sm text-slate-500 mt-1 flex items-center gap-2">
+                                <span id="student-nis">NIS: -</span>
+                                <span class="text-slate-300">&bull;</span>
+                                <span id="student-class" class="font-medium text-slate-700">Kelas: -</span>
+                                <span class="text-slate-300">&bull;</span>
+                                <span id="student-year" class="text-slate-400">Tahun Ajaran: -</span>
                             </p>
                         </div>
                     </div>
-                </div>
-                <div class="flex gap-3">
-                    <button onclick="window.print()" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
-                        <i class="fas fa-print mr-2 h-4 w-4"></i>Cetak
-                    </button>
-                    <a href="/admin/dual-point/leaderboard" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
-                        <i class="fas fa-arrow-left mr-2 h-4 w-4"></i>Kembali
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <div class="max-w-7xl mx-auto px-6 py-8">
-        <!-- Student Profile Card -->
-        <div class="card p-8 mb-8 fade-in print-section">
-            <div class="flex items-start gap-6">
-                <!-- Avatar -->
-                <div id="student-avatar" class="h-24 w-24 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-4xl shadow-lg flex-shrink-0">
-                    ?
+                    <div class="no-print flex items-center gap-2">
+                        <a id="btn-quick-input" href="/admin/dual-point/input"
+                            class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-subtle transition-all">
+                            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                            <span>Input Poin Siswa Ini</span>
+                        </a>
+                    </div>
                 </div>
-                
-                <!-- Student Info -->
-                <div class="flex-1">
-                    <h2 id="student-name" class="text-3xl font-bold text-foreground mb-2">-</h2>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                        <div>
-                            <p class="text-muted-foreground">NIS</p>
-                            <p id="student-nis" class="font-semibold text-foreground">-</p>
+            </section>
+
+            <!-- 4 KPI Metrics Cards -->
+            <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+
+                <!-- Card 1: Poin Prestasi -->
+                <div class="bg-white border border-slate-200/80 p-4 sm:p-5 rounded-2xl shadow-subtle print-clean">
+                    <span class="text-xs font-bold text-slate-500">Poin Prestasi</span>
+                    <div class="mt-2.5 flex items-baseline gap-1">
+                        <div id="stat-ach-points" class="text-2xl sm:text-3xl font-extrabold text-emerald-600">0</div>
+                        <span class="text-xs font-bold text-emerald-600">pt</span>
+                    </div>
+                    <p id="stat-ach-desc" class="text-[11px] text-slate-400 mt-1 truncate">Total akumulasi positif</p>
+                </div>
+
+                <!-- Card 2: Poin Pelanggaran -->
+                <div class="bg-white border border-slate-200/80 p-4 sm:p-5 rounded-2xl shadow-subtle print-clean">
+                    <span class="text-xs font-bold text-slate-500">Poin Pelanggaran</span>
+                    <div class="mt-2.5 flex items-baseline gap-1">
+                        <div id="stat-vio-points" class="text-2xl sm:text-3xl font-extrabold text-rose-600">0</div>
+                        <span class="text-xs font-bold text-rose-600">pt</span>
+                    </div>
+                    <p id="stat-vio-desc" class="text-[11px] text-slate-400 mt-1 truncate">Status sanksi pembinaan</p>
+                </div>
+
+                <!-- Card 3: Saldo Netto -->
+                <div class="bg-white border border-slate-200/80 p-4 sm:p-5 rounded-2xl shadow-subtle print-clean">
+                    <span class="text-xs font-bold text-slate-500">Saldo Netto Poin</span>
+                    <div class="mt-2.5 flex items-baseline gap-1">
+                        <div id="stat-net-points" class="text-2xl sm:text-3xl font-extrabold text-slate-900">0</div>
+                        <span class="text-xs font-bold text-slate-500">pt</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-1">Prestasi dikurangi Penalti</p>
+                </div>
+
+                <!-- Card 4: Predikat Karakter -->
+                <div class="bg-white border border-slate-200/80 p-4 sm:p-5 rounded-2xl shadow-subtle print-clean">
+                    <span class="text-xs font-bold text-slate-500">Predikat Waluya</span>
+                    <div id="stat-grade-title"
+                        class="mt-2.5 text-base sm:text-lg font-extrabold text-brand-600 truncate">
+                        Belum Berpredikat
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-1">Standar kelulusan karakter</p>
+                </div>
+            </section>
+
+            <!-- 2 Donut Category Breakdowns -->
+            <section class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+
+                <!-- Chart Prestasi -->
+                <div
+                    class="bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-subtle print-clean space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2.5">
+                            <div
+                                class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                                <i data-lucide="award" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-bold text-slate-900">Komposisi Poin Prestasi</h3>
+                                <p class="text-xs text-slate-500">Berdasarkan bidang capaian</p>
+                            </div>
                         </div>
-                        <div>
-                            <p class="text-muted-foreground">Kelas</p>
-                            <p id="student-class" class="font-semibold text-foreground">-</p>
+                    </div>
+                    <div class="chart-box">
+                        <canvas id="achievement-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Chart Pelanggaran -->
+                <div
+                    class="bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-subtle print-clean space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
+                                <i data-lucide="shield-alert" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-bold text-slate-900">Komposisi Poin Pelanggaran</h3>
+                                <p class="text-xs text-slate-500">Berdasarkan klasifikasi aturan</p>
+                            </div>
                         </div>
-                        <div>
-                            <p class="text-muted-foreground">Tahun Ajaran</p>
-                            <p id="student-year" class="font-semibold text-foreground">-</p>
+                    </div>
+                    <div class="chart-box">
+                        <canvas id="violation-chart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2 History Feeds: Prestasi & Pelanggaran -->
+            <section class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+
+                <!-- Left: Riwayat Prestasi -->
+                <div class="bg-white border border-slate-200/80 rounded-2xl shadow-subtle overflow-hidden print-clean">
+                    <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div
+                                class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                                <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                            </div>
+                            <h3 class="text-sm font-bold text-slate-900">Riwayat Prestasi & Penghargaan</h3>
                         </div>
-                        <div>
-                            <p class="text-muted-foreground">Status</p>
-                            <p id="student-status" class="font-semibold text-foreground">-</p>
+                        <span id="ach-history-count" class="text-xs font-semibold text-slate-400">0 catatan</span>
+                    </div>
+                    <div id="ach-history-list" class="divide-y divide-slate-100 max-h-[420px] overflow-y-auto">
+                        <div class="p-8 text-center text-xs text-slate-400">Belum ada catatan prestasi</div>
+                    </div>
+                </div>
+
+                <!-- Right: Riwayat Pelanggaran -->
+                <div class="bg-white border border-slate-200/80 rounded-2xl shadow-subtle overflow-hidden print-clean">
+                    <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
+                                <i data-lucide="alert-octagon" class="w-4 h-4"></i>
+                            </div>
+                            <h3 class="text-sm font-bold text-slate-900">Riwayat Catatan Pelanggaran</h3>
                         </div>
+                        <span id="vio-history-count" class="text-xs font-semibold text-slate-400">0 catatan</span>
+                    </div>
+                    <div id="vio-history-list" class="divide-y divide-slate-100 max-h-[420px] overflow-y-auto">
+                        <div class="p-8 text-center text-xs text-slate-400">Belum ada catatan pelanggaran</div>
                     </div>
                 </div>
+            </section>
 
-                <!-- Academic Year Selector (No Print) -->
-                <div class="no-print">
-                    <label class="text-xs font-medium text-muted-foreground mb-2 block">Tahun Ajaran</label>
-                    <select id="academic-year-selector" onchange="loadStudentDetail()" class="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
-                        <option value="">Saat Ini</option>
-                    </select>
-                </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="no-print mt-auto border-t border-slate-200/80 bg-white py-4">
+            <div
+                class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center sm:text-left sm:flex sm:items-center sm:justify-between text-xs text-slate-400">
+                <p>SMK NIBA Super Apps &middot; Sistem Karakter & Dual-Track Poin</p>
+                <p class="mt-1 sm:mt-0 font-mono text-[11px]">Formula 3 REKA + 1 KONVERSI</p>
             </div>
-        </div>
+        </footer>
 
-        <!-- Summary Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 print-section">
-            <!-- Achievement Card -->
-            <div class="card p-6 fade-in" style="animation-delay: 0.1s;">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="h-12 w-12 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
-                        <i class="fas fa-trophy text-xl"></i>
-                    </div>
-                    <div id="achievement-badge" class="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold bg-emerald-100 text-emerald-700 border-emerald-200">
-                        -
-                    </div>
-                </div>
-                <p class="text-sm text-muted-foreground mb-1">Total Poin Penghargaan</p>
-                <p id="total-achievement" class="text-4xl font-bold text-emerald-600 mb-2">-</p>
-                <p id="achievement-description" class="text-xs text-muted-foreground">-</p>
-            </div>
+        <!-- Logic Script -->
+        <script>
+            var currentStudentId = null;
+            var achievementChart = null;
+            var violationChart = null;
 
-            <!-- Violation Card -->
-            <div class="card p-6 fade-in" style="animation-delay: 0.2s;">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="h-12 w-12 rounded-lg bg-red-100 text-red-600 flex items-center justify-center">
-                        <i class="fas fa-exclamation-triangle text-xl"></i>
-                    </div>
-                    <div id="violation-badge" class="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold bg-red-100 text-red-700 border-red-200">
-                        -
-                    </div>
-                </div>
-                <p class="text-sm text-muted-foreground mb-1">Total Poin Pelanggaran</p>
-                <p id="total-violation" class="text-4xl font-bold text-red-600 mb-2">-</p>
-                <p id="violation-description" class="text-xs text-muted-foreground">-</p>
-            </div>
+            function getStudentIdFromUrl() {
+                var urlParams = new URLSearchParams(window.location.search);
+                var qId = urlParams.get('id');
+                if (qId) return qId;
 
-            <!-- Ranking Card -->
-            <div class="card p-6 fade-in" style="animation-delay: 0.3s;">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="h-12 w-12 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center">
-                        <i class="fas fa-medal text-xl"></i>
-                    </div>
-                    <div id="rank-badge" class="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold bg-amber-100 text-amber-700 border-amber-200">
-                        -
-                    </div>
-                </div>
-                <p class="text-sm text-muted-foreground mb-1">Peringkat Kelas</p>
-                <p id="class-rank" class="text-4xl font-bold text-amber-600 mb-2">-</p>
-                <p id="rank-description" class="text-xs text-muted-foreground">dari <span id="total-students">-</span> siswa</p>
-            </div>
-        </div>
-
-        <!-- Charts Section -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 print-section">
-            <!-- Achievement Breakdown -->
-            <div class="card p-6 fade-in" style="animation-delay: 0.4s;">
-                <div class="flex items-center gap-3 mb-6">
-                    <div class="h-8 w-8 rounded-md bg-emerald-100 text-emerald-600 flex items-center justify-center">
-                        <i class="fas fa-chart-pie text-sm"></i>
-                    </div>
-                    <h3 class="font-semibold text-foreground">Rincian Penghargaan</h3>
-                </div>
-                <canvas id="achievement-chart"></canvas>
-            </div>
-
-            <!-- Violation Breakdown -->
-            <div class="card p-6 fade-in" style="animation-delay: 0.5s;">
-                <div class="flex items-center gap-3 mb-6">
-                    <div class="h-8 w-8 rounded-md bg-red-100 text-red-600 flex items-center justify-center">
-                        <i class="fas fa-chart-pie text-sm"></i>
-                    </div>
-                    <h3 class="font-semibold text-foreground">Rincian Pelanggaran</h3>
-                </div>
-                <canvas id="violation-chart"></canvas>
-            </div>
-        </div>
-
-        <!-- History Tables -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <!-- Achievement History -->
-            <div class="card p-6 fade-in print-section" style="animation-delay: 0.6s;">
-                <div class="flex items-center gap-3 mb-6">
-                    <div class="h-8 w-8 rounded-md bg-emerald-100 text-emerald-600 flex items-center justify-center">
-                        <i class="fas fa-history text-sm"></i>
-                    </div>
-                    <h3 class="font-semibold text-foreground">Riwayat Penghargaan</h3>
-                </div>
-                <div class="overflow-auto custom-scrollbar max-h-96">
-                    <div id="achievement-history" class="space-y-3">
-                        <p class="text-sm text-muted-foreground text-center py-8">
-                            <i class="fas fa-spinner fa-spin mr-2"></i>Memuat data...
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Violation History -->
-            <div class="card p-6 fade-in print-section" style="animation-delay: 0.7s;">
-                <div class="flex items-center gap-3 mb-6">
-                    <div class="h-8 w-8 rounded-md bg-red-100 text-red-600 flex items-center justify-center">
-                        <i class="fas fa-history text-sm"></i>
-                    </div>
-                    <h3 class="font-semibold text-foreground">Riwayat Pelanggaran</h3>
-                </div>
-                <div class="overflow-auto custom-scrollbar max-h-96">
-                    <div id="violation-history" class="space-y-3">
-                        <p class="text-sm text-muted-foreground text-center py-8">
-                            <i class="fas fa-spinner fa-spin mr-2"></i>Memuat data...
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        let achievementChart, violationChart;
-        let studentId = null;
-
-        // Get student ID from URL
-        function getStudentIdFromURL() {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get('id');
-        }
-
-        // Generate academic years
-        function populateAcademicYears() {
-            const select = document.getElementById('academic-year-selector');
-            const now = new Date();
-            const currentYear = now.getFullYear();
-            const currentMonth = now.getMonth() + 1;
-            
-            let startYear = currentMonth >= 7 ? currentYear : currentYear - 1;
-            
-            const currentAcademicYear = `${startYear}/${startYear + 1}`;
-            select.innerHTML = `<option value="">${currentAcademicYear}</option>`;
-            
-            for (let i = 1; i <= 3; i++) {
-                const year = startYear - i;
-                const academicYear = `${year}/${year + 1}`;
-                select.innerHTML += `<option value="${academicYear}">${academicYear}</option>`;
-            }
-        }
-
-        // Load student detail
-        async function loadStudentDetail() {
-            studentId = getStudentIdFromURL();
-            if (!studentId) {
-                alert('ID siswa tidak ditemukan');
-                return;
+                var pathParts = window.location.pathname.split('/');
+                var lastPart = pathParts[pathParts.length - 1];
+                if (lastPart && !isNaN(parseInt(lastPart, 10))) {
+                    return lastPart;
+                }
+                return '1';
             }
 
-            const academicYear = document.getElementById('academic-year-selector').value;
+            async function loadStudentDetail() {
+                currentStudentId = getStudentIdFromUrl();
+                var quickInput = document.getElementById('btn-quick-input');
+                if (quickInput) quickInput.href = '/admin/dual-point/input?student_id=' + currentStudentId;
 
-            try {
-                const res = await fetch(`/admin/v2/student/${studentId}/points?year=${academicYear}`);
-                const data = await res.json();
+                try {
+                    var res = await fetch('/admin/v2/student/' + encodeURIComponent(currentStudentId) + '/points');
+                    if (!res.ok) {
+                        res = await fetch('/admin/v2/student-detail?id=' + encodeURIComponent(currentStudentId));
+                    }
+                    if (!res.ok) throw new Error('Data siswa tidak ditemukan');
+                    var data = await res.json();
+                    renderStudentView(data);
+                } catch (err) {
+                    document.getElementById('student-name').textContent = 'Gagal memuat profil siswa';
+                    console.error('Error loading student:', err);
+                }
+            }
 
-                if (!data || data.error) {
-                    alert('Gagal memuat data siswa');
-                    return;
+            function renderStudentView(data) {
+                var s = data.student || {};
+                var achHistory = data.achievement_history || [];
+                var vioHistory = data.violation_history || [];
+
+                // Hero info
+                var sName = data.name || s.name || 'Siswa';
+                var sNis = data.nis || s.nis || '-';
+                var sClass = data.class_name || s.class || 'Tanpa Kelas';
+                var sYear = data.academic_year || 'Aktif';
+
+                document.getElementById('student-name').textContent = sName;
+                document.getElementById('student-nis').textContent = 'NIS: ' + sNis;
+                document.getElementById('student-class').textContent = 'Kelas: ' + sClass;
+                document.getElementById('student-year').textContent = 'Tahun Ajaran: ' + sYear;
+                document.getElementById('student-avatar').textContent = sName.charAt(0).toUpperCase();
+
+                var achPts = data.achievement_points !== undefined ? data.achievement_points : (s.achievement_points || 0);
+                var vioPts = data.violation_points !== undefined ? data.violation_points : (s.violation_points || 0);
+                var netPts = achPts - vioPts;
+
+                // KPI
+                document.getElementById('stat-ach-points').textContent = '+' + achPts;
+                document.getElementById('stat-vio-points').textContent = '-' + vioPts;
+                document.getElementById('stat-net-points').textContent = (netPts >= 0 ? '+' : '') + netPts;
+
+                // Waluya Grade badge & title
+                var waluyaGrade = data.achievement_grade || s.achievement_grade || (achPts >= 151 ? 'Waluya Utama' : achPts >= 126 ? 'Hadiah' : achPts >= 100 ? 'Sertifikat' : 'Belum Berpredikat');
+                document.getElementById('stat-grade-title').textContent = waluyaGrade;
+
+                var walBadge = document.getElementById('student-waluya-badge');
+                walBadge.textContent = waluyaGrade;
+                if (achPts >= 151) {
+                    walBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200';
+                } else if (achPts >= 126) {
+                    walBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200';
+                } else if (achPts >= 100) {
+                    walBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200';
+                } else {
+                    walBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500';
                 }
 
-                // Update student profile
-                document.getElementById('student-avatar').textContent = data.name.charAt(0).toUpperCase();
-                document.getElementById('student-name').textContent = data.name;
-                document.getElementById('student-nis').textContent = data.nis || '-';
-                document.getElementById('student-class').textContent = data.class_name || '-';
-                document.getElementById('student-year').textContent = data.academic_year || '-';
-                document.getElementById('student-status').textContent = data.status || '-';
+                // SP Badge
+                var spBadge = document.getElementById('student-sp-badge');
+                var spTitle = data.violation_level || s.violation_level || (vioPts >= 76 ? 'SP3' : vioPts >= 51 ? 'SP2' : vioPts >= 25 ? 'SP1' : 'Aman');
+                spBadge.textContent = spTitle;
+                if (vioPts >= 76) {
+                    spBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200';
+                } else if (vioPts >= 51) {
+                    spBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200';
+                } else if (vioPts >= 25) {
+                    spBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200';
+                } else {
+                    spBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700';
+                }
 
-                // Update summary cards
-                document.getElementById('total-achievement').textContent = data.achievement_points || 0;
-                document.getElementById('achievement-badge').textContent = data.achievement_grade || '-';
-                document.getElementById('achievement-description').textContent = getAchievementDescription(data.achievement_points);
-
-                document.getElementById('total-violation').textContent = data.violation_points || 0;
-                document.getElementById('violation-badge').textContent = data.violation_level || '-';
-                document.getElementById('violation-description').textContent = getViolationDescription(data.violation_points);
-
-                document.getElementById('class-rank').textContent = data.class_rank || '-';
-                document.getElementById('rank-badge').textContent = `#${data.class_rank || '-'}`;
-                document.getElementById('total-students').textContent = data.total_class_students || '-';
-                document.getElementById('rank-description').textContent = `dari ${data.total_class_students || '-'} siswa`;
-
-                // Render charts
-                renderAchievementChart(data.achievement_breakdown || []);
-                renderViolationChart(data.violation_breakdown || []);
-
-                // Render history
-                renderAchievementHistory(data.achievement_history || []);
-                renderViolationHistory(data.violation_history || []);
-
-            } catch (err) {
-                console.error('Error loading student detail:', err);
-                alert('Gagal memuat data: ' + err.message);
-            }
-        }
-
-        function getAchievementDescription(points) {
-            if (points >= 151) return 'Waluya Utama - Berhak mendapat sertifikat dan hadiah istimewa';
-            if (points >= 126) return 'Berhak mendapat sertifikat dan hadiah';
-            if (points >= 100) return 'Berhak mendapat sertifikat penghargaan';
-            return 'Belum mencapai sertifikat penghargaan';
-        }
-
-        function getViolationDescription(points) {
-            if (points >= 76) return 'SP3 - Dikembalikan ke orang tua';
-            if (points >= 51) return 'SP2 - Peringatan keras dan panggilan orang tua';
-            if (points >= 25) return 'SP1 - Peringatan tertulis dan pemanggilan orang tua';
-            return 'Tidak ada pelanggaran berat';
-        }
-
-        function renderAchievementChart(breakdown) {
-            const ctx = document.getElementById('achievement-chart').getContext('2d');
-            if (achievementChart) achievementChart.destroy();
-
-            if (breakdown.length === 0) {
-                ctx.font = '14px Inter';
-                ctx.fillStyle = '#9ca3af';
-                ctx.textAlign = 'center';
-                ctx.fillText('Belum ada data penghargaan', ctx.canvas.width / 2, ctx.canvas.height / 2);
-                return;
+                renderCategoryCharts(achHistory, vioHistory);
+                renderHistoryLists(achHistory, vioHistory);
             }
 
-            const categories = breakdown.reduce((acc, item) => {
-                const cat = item.category || 'Lainnya';
-                acc[cat] = (acc[cat] || 0) + item.points;
-                return acc;
-            }, {});
+            function renderCategoryCharts(achHistory, vioHistory) {
+                var achCtx = document.getElementById('achievement-chart');
+                var vioCtx = document.getElementById('violation-chart');
+                if (!achCtx || !vioCtx) return;
 
-            achievementChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(categories),
-                    datasets: [{
-                        data: Object.values(categories),
-                        backgroundColor: [
-                            '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899',
-                            '#14b8a6', '#f97316', '#06b6d4', '#84cc16', '#ef4444'
-                        ],
-                        borderWidth: 2,
-                        borderColor: '#fff',
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: { 
-                            position: 'bottom',
-                            labels: {
-                                padding: 10,
-                                font: { size: 11, weight: '500' },
-                                usePointStyle: true,
+                // Group achievements
+                var achGroup = {};
+                for (var i = 0; i < achHistory.length; i++) {
+                    var cat = achHistory[i].category || 'Lainnya';
+                    achGroup[cat] = (achGroup[cat] || 0) + (achHistory[i].points || 0);
+                }
+
+                var achLabels = Object.keys(achGroup);
+                var achValues = Object.values(achGroup);
+                if (achLabels.length === 0) {
+                    achLabels = ['Belum ada poin'];
+                    achValues = [1];
+                }
+
+                if (achievementChart) achievementChart.destroy();
+                achievementChart = new Chart(achCtx.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: achLabels,
+                        datasets: [{
+                            data: achValues,
+                            backgroundColor: ['#10b981', '#6366f1', '#f59e0b', '#06b6d4', '#ec4899', '#8b5cf6'],
+                            borderWidth: 2,
+                            borderColor: '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '70%',
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    boxWidth: 10,
+                                    boxHeight: 10,
+                                    usePointStyle: true,
+                                    pointStyle: 'circle',
+                                    padding: 8,
+                                    font: { family: "'Plus Jakarta Sans', sans-serif", size: 10, weight: '500' },
+                                    color: '#64748b'
+                                }
                             }
                         }
                     }
+                });
+
+                // Group violations
+                var vioGroup = {};
+                for (var j = 0; j < vioHistory.length; j++) {
+                    var vcat = vioHistory[j].category || 'Pelanggaran';
+                    vioGroup[vcat] = (vioGroup[vcat] || 0) + (vioHistory[j].points || 0);
                 }
-            });
-        }
 
-        function renderViolationChart(breakdown) {
-            const ctx = document.getElementById('violation-chart').getContext('2d');
-            if (violationChart) violationChart.destroy();
+                var vioLabels = Object.keys(vioGroup);
+                var vioValues = Object.values(vioGroup);
+                if (vioLabels.length === 0) {
+                    vioLabels = ['Tidak ada pelanggaran'];
+                    vioValues = [1];
+                }
 
-            if (breakdown.length === 0) {
-                ctx.font = '14px Inter';
-                ctx.fillStyle = '#9ca3af';
-                ctx.textAlign = 'center';
-                ctx.fillText('Belum ada data pelanggaran', ctx.canvas.width / 2, ctx.canvas.height / 2);
-                return;
-            }
-
-            const categories = breakdown.reduce((acc, item) => {
-                const cat = item.category || 'Lainnya';
-                acc[cat] = (acc[cat] || 0) + item.points;
-                return acc;
-            }, {});
-
-            violationChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(categories),
-                    datasets: [{
-                        data: Object.values(categories),
-                        backgroundColor: [
-                            '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16',
-                            '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#3b82f6'
-                        ],
-                        borderWidth: 2,
-                        borderColor: '#fff',
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: { 
-                            position: 'bottom',
-                            labels: {
-                                padding: 10,
-                                font: { size: 11, weight: '500' },
-                                usePointStyle: true,
+                if (violationChart) violationChart.destroy();
+                violationChart = new Chart(vioCtx.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: vioLabels,
+                        datasets: [{
+                            data: vioValues,
+                            backgroundColor: vioHistory.length === 0 ? ['#e2e8f0'] : ['#ef4444', '#f97316', '#f59e0b', '#eab308'],
+                            borderWidth: 2,
+                            borderColor: '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '70%',
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    boxWidth: 10,
+                                    boxHeight: 10,
+                                    usePointStyle: true,
+                                    pointStyle: 'circle',
+                                    padding: 8,
+                                    font: { family: "'Plus Jakarta Sans', sans-serif", size: 10, weight: '500' },
+                                    color: '#64748b'
+                                }
                             }
                         }
                     }
+                });
+            }
+
+            function renderHistoryLists(achHistory, vioHistory) {
+                // Achievement List
+                var achList = document.getElementById('ach-history-list');
+                document.getElementById('ach-history-count').textContent = achHistory.length + ' catatan';
+                if (achHistory.length === 0) {
+                    achList.innerHTML = '<div class="p-8 text-center text-xs text-slate-400">Belum ada rekaman poin penghargaan</div>';
+                } else {
+                    var htmlA = '';
+                    for (var i = 0; i < achHistory.length; i++) {
+                        var itA = achHistory[i];
+                        htmlA += '<div class="p-3.5 sm:p-4 flex items-center justify-between gap-3 hover:bg-slate-50/70 transition-colors">' +
+                            '<div class="min-w-0">' +
+                            '<div class="flex items-center gap-2">' +
+                            '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700">' + (itA.category || 'Prestasi') + '</span>' +
+                            '<span class="text-xs text-slate-400">' + (itA.created_at || '') + '</span>' +
+                            '</div>' +
+                            '<h4 class="text-xs sm:text-sm font-semibold text-slate-800 mt-1 truncate">' + (itA.description || itA.rule_name || 'Penghargaan') + '</h4>' +
+                            '<p class="text-[11px] text-slate-400 mt-0.5">Dicatat oleh: ' + (itA.recorded_by || 'Admin') + '</p>' +
+                            '</div>' +
+                            '<div class="flex items-center gap-2 flex-shrink-0">' +
+                            '<span class="font-mono font-bold text-xs sm:text-sm text-emerald-600">+' + itA.points + ' pt</span>' +
+                            '<button type="button" onclick="deleteRecord(\'achievement\', ' + itA.id + ')" class="no-print p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors" title="Hapus catatan">' +
+                            '<i data-lucide="trash-2" class="w-4 h-4"></i>' +
+                            '</button>' +
+                            '</div>' +
+                            '</div>';
+                    }
+                    achList.innerHTML = htmlA;
                 }
-            });
-        }
 
-        function renderAchievementHistory(history) {
-            const container = document.getElementById('achievement-history');
-            
-            if (history.length === 0) {
-                container.innerHTML = '<p class="text-sm text-muted-foreground text-center py-8">Belum ada riwayat penghargaan</p>';
-                return;
+                // Violation List
+                var vioList = document.getElementById('vio-history-list');
+                document.getElementById('vio-history-count').textContent = vioHistory.length + ' catatan';
+                if (vioHistory.length === 0) {
+                    vioList.innerHTML = '<div class="p-8 text-center text-xs text-slate-400">Belum ada rekaman poin pelanggaran</div>';
+                } else {
+                    var htmlV = '';
+                    for (var j = 0; j < vioHistory.length; j++) {
+                        var itV = vioHistory[j];
+                        htmlV += '<div class="p-3.5 sm:p-4 flex items-center justify-between gap-3 hover:bg-slate-50/70 transition-colors">' +
+                            '<div class="min-w-0">' +
+                            '<div class="flex items-center gap-2">' +
+                            '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700">' + (itV.category || 'Pelanggaran') + '</span>' +
+                            '<span class="text-xs text-slate-400">' + (itV.created_at || '') + '</span>' +
+                            '</div>' +
+                            '<h4 class="text-xs sm:text-sm font-semibold text-slate-800 mt-1 truncate">' + (itV.description || itV.rule_name || 'Pelanggaran') + '</h4>' +
+                            '<p class="text-[11px] text-slate-400 mt-0.5">Dicatat oleh: ' + (itV.recorded_by || 'Admin') + ' &bull; Frekuensi: ' + (itV.occurrence || 1) + '</p>' +
+                            '</div>' +
+                            '<div class="flex items-center gap-2 flex-shrink-0">' +
+                            '<span class="font-mono font-bold text-xs sm:text-sm text-rose-600">-' + itV.points + ' pt</span>' +
+                            '<button type="button" onclick="deleteRecord(\'violation\', ' + itV.id + ')" class="no-print p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors" title="Hapus catatan">' +
+                            '<i data-lucide="trash-2" class="w-4 h-4"></i>' +
+                            '</button>' +
+                            '</div>' +
+                            '</div>';
+                    }
+                    vioList.innerHTML = htmlV;
+                }
+
+                if (typeof lucide !== 'undefined') lucide.createIcons();
             }
 
-            container.innerHTML = history.map(item => `
-                <div class="p-3 rounded-lg border bg-emerald-50/50 border-emerald-100">
-                    <div class="flex items-start justify-between mb-2">
-                        <p class="text-sm font-medium text-foreground">${item.description || item.rule_name || 'Penghargaan'}</p>
-                        <span class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold bg-emerald-100 text-emerald-700 border-emerald-200">
-                            +${item.points}
-                        </span>
-                    </div>
-                    <div class="flex items-center gap-2 text-xs text-muted-foreground">
-                        <i class="fas fa-calendar text-emerald-500"></i>
-                        <span>${formatDate(item.created_at)}</span>
-                        ${item.recorded_by ? `<span>•</span><span>oleh ${item.recorded_by}</span>` : ''}
-                    </div>
-                </div>
-            `).join('');
-        }
+            async function deleteRecord(type, id) {
+                var reason = prompt('Masukkan alasan pembatalan/penghapusan poin ini:');
+                if (!reason) return;
 
-        function renderViolationHistory(history) {
-            const container = document.getElementById('violation-history');
-            
-            if (history.length === 0) {
-                container.innerHTML = '<p class="text-sm text-muted-foreground text-center py-8">Belum ada riwayat pelanggaran</p>';
-                return;
+                var endpoint = type === 'achievement'
+                    ? '/admin/v2/achievement/' + id + '?reason=' + encodeURIComponent(reason)
+                    : '/admin/v2/violation/' + id + '?reason=' + encodeURIComponent(reason);
+
+                try {
+                    var res = await fetch(endpoint, { method: 'DELETE' });
+                    if (res.ok) {
+                        alert('Catatan berhasil dihapus dan skor semester diperbarui otomatis.');
+                        loadStudentDetail();
+                    } else {
+                        var err = await res.json();
+                        alert('Gagal menghapus: ' + (err.error || 'Terjadi kesalahan'));
+                    }
+                } catch (e) {
+                    alert('Error: ' + e.message);
+                }
             }
 
-            container.innerHTML = history.map(item => `
-                <div class="p-3 rounded-lg border bg-red-50/50 border-red-100">
-                    <div class="flex items-start justify-between mb-2">
-                        <p class="text-sm font-medium text-foreground">${item.description || item.rule_name || 'Pelanggaran'}</p>
-                        <span class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold bg-red-100 text-red-700 border-red-200">
-                            +${item.points}
-                        </span>
-                    </div>
-                    <div class="flex items-center gap-2 text-xs text-muted-foreground">
-                        <i class="fas fa-calendar text-red-500"></i>
-                        <span>${formatDate(item.created_at)}</span>
-                        ${item.occurrence ? `<span>•</span><span>Ke-${item.occurrence}</span>` : ''}
-                        ${item.recorded_by ? `<span>•</span><span>oleh ${item.recorded_by}</span>` : ''}
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function formatDate(dateString) {
-            if (!dateString) return '-';
-            const date = new Date(dateString);
-            return date.toLocaleDateString('id-ID', { 
-                day: '2-digit', 
-                month: 'short', 
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
+            document.addEventListener('DOMContentLoaded', function () {
+                loadStudentDetail();
+                if (typeof lucide !== 'undefined') lucide.createIcons();
             });
-        }
+        </script>
+    </body>
 
-        // Initialize
-        populateAcademicYears();
-        loadStudentDetail();
-    </script>
-</body>
 </html>

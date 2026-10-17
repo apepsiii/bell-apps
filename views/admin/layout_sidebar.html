@@ -1,0 +1,133 @@
+{{define "admin_sidebar"}}
+<!-- Mobile Sidebar Backdrop -->
+<div id="sidebar-backdrop" onclick="toggleMobileSidebar()"
+    class="fixed inset-0 bg-black/40 backdrop-blur-xs z-40 hidden md:hidden transition-opacity duration-200 opacity-0">
+</div>
+
+<!-- Sidebar Container -->
+<aside id="main-sidebar"
+    class="fixed inset-y-0 left-0 z-50 w-[230px] bg-white dark:bg-[#09090b] border-r border-zinc-200/80 dark:border-zinc-800 flex flex-col transition-all duration-200 -translate-x-full md:translate-x-0 md:static md:z-20 shadow-lg md:shadow-none flex-shrink-0 h-screen select-none">
+    
+    <!-- Brand / Logo Header -->
+    <div class="h-14 px-4 border-b border-zinc-200/80 dark:border-zinc-800 flex items-center justify-between">
+        <a href="/admin/dashboard" class="flex items-center gap-2.5 group">
+            <div
+                class="w-8 h-8 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 flex items-center justify-center shadow-xs transition-transform group-hover:scale-105 flex-shrink-0">
+                <i data-lucide="bell-ring" class="w-4 h-4"></i>
+            </div>
+            <div>
+                <span class="font-bold text-zinc-900 dark:text-zinc-100 text-xs tracking-tight block leading-tight">SMK NIBA</span>
+                <span class="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 tracking-wider uppercase">Super Apps</span>
+            </div>
+        </a>
+        <button onclick="toggleMobileSidebar()" class="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded-md md:hidden">
+            <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+    </div>
+
+    <!-- Navigation Menu -->
+    <nav class="flex-1 overflow-y-auto py-3 px-1.5 space-y-0.5">
+        <!-- Section: UTAMA -->
+        <div class="sidebar-menu-header">Utama</div>
+        <a href="/admin/dashboard" class="sidebar-menu-item" data-path="/admin/dashboard">
+            <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+            <span>Dashboard</span>
+        </a>
+
+        <!-- Section: BEL & BROADCAST -->
+        <div class="sidebar-menu-header pt-3">Bel & Broadcast</div>
+        <a href="/admin/schedules" class="sidebar-menu-item" data-path="/admin/schedules">
+            <i data-lucide="calendar-clock" class="w-4 h-4"></i>
+            <span>Jadwal Bel</span>
+        </a>
+        <a href="/admin/audio" class="sidebar-menu-item" data-path="/admin/audio">
+            <i data-lucide="music-2" class="w-4 h-4"></i>
+            <span>Audio & Rekaman</span>
+        </a>
+
+        <!-- Section: PRESENSI & KESISWAAN -->
+        <div class="sidebar-menu-header pt-3">Presensi & Siswa</div>
+        <a href="/admin/attendance" class="sidebar-menu-item" data-path="/admin/attendance">
+            <i data-lucide="clipboard-check" class="w-4 h-4"></i>
+            <span>Presensi Harian</span>
+        </a>
+        <a href="/admin/academics" class="sidebar-menu-item" data-path="/admin/academics">
+            <i data-lucide="graduation-cap" class="w-4 h-4"></i>
+            <span>Data Master</span>
+        </a>
+        <a href="/admin/points" class="sidebar-menu-item" data-path="/admin/points">
+            <i data-lucide="award" class="w-4 h-4"></i>
+            <span>Poin & Karakter</span>
+        </a>
+
+        <!-- Section: SISTEM & LAPORAN -->
+        <div class="sidebar-menu-header pt-3">Sistem & Laporan</div>
+        <a href="/admin/reports" class="sidebar-menu-item" data-path="/admin/reports">
+            <i data-lucide="file-text" class="w-4 h-4"></i>
+            <span>Laporan & Quest</span>
+        </a>
+        <a href="/admin/settings" class="sidebar-menu-item" data-path="/admin/settings">
+            <i data-lucide="settings" class="w-4 h-4"></i>
+            <span>Pengaturan</span>
+        </a>
+
+        <!-- Section: SARPRAS & ASSET (Dropdown Group) -->
+        <div class="sidebar-menu-header pt-3">Sarpras & Aset</div>
+        <div id="sarpras-dropdown-container">
+            <button type="button" onclick="toggleSidebarDropdown('sarpras-submenu', 'sarpras-chevron')"
+                id="sarpras-parent-btn"
+                class="sidebar-menu-item w-full flex items-center justify-between cursor-pointer text-left"
+                data-path="/admin/sarpras">
+                <div class="flex items-center gap-2.5">
+                    <i data-lucide="package" class="w-4 h-4"></i>
+                    <span>Sarpras & Aset</span>
+                </div>
+                <i data-lucide="chevron-down" id="sarpras-chevron" class="w-3.5 h-3.5 text-zinc-400 transition-transform duration-200"></i>
+            </button>
+            <div id="sarpras-submenu" class="hidden pl-3 pr-1 py-1 space-y-0.5 border-l border-zinc-200/80 dark:border-zinc-800 ml-5 my-1">
+                <a href="/admin/sarpras?tab=assets" class="sidebar-submenu-item" data-tab="assets">
+                    <i data-lucide="boxes" class="w-3.5 h-3.5"></i>
+                    <span>Data Master Aset</span>
+                </a>
+                <a href="/admin/sarpras?tab=borrowings" class="sidebar-submenu-item" data-tab="borrowings">
+                    <i data-lucide="arrow-left-right" class="w-3.5 h-3.5"></i>
+                    <span>Peminjaman</span>
+                </a>
+                <a href="/admin/sarpras?tab=maintenance" class="sidebar-submenu-item" data-tab="maintenance">
+                    <i data-lucide="wrench" class="w-3.5 h-3.5"></i>
+                    <span>Tiket Perawatan</span>
+                </a>
+                <a href="/admin/sarpras?tab=master" class="sidebar-submenu-item" data-tab="master">
+                    <i data-lucide="folder-cog" class="w-3.5 h-3.5"></i>
+                    <span>Ruang & Kategori</span>
+                </a>
+            </div>
+        </div>
+        <a href="/student/app" target="_blank" class="sidebar-menu-item">
+            <i data-lucide="smartphone" class="w-4 h-4"></i>
+            <span>Portal Siswa</span>
+            <i data-lucide="external-link" class="w-3 h-3 ml-auto text-zinc-400"></i>
+        </a>
+    </nav>
+
+    <!-- Bottom User Section -->
+    <div class="p-2 border-t border-zinc-200/80 dark:border-zinc-800">
+        <div class="flex items-center gap-2.5 p-2 rounded-lg bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/60 dark:border-zinc-800 mb-1">
+            <div
+                class="w-7 h-7 rounded-md bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 flex items-center justify-center font-bold text-[11px] shadow-xs flex-shrink-0">
+                {{if .Username}}{{slice .Username 0 1}}{{else}}A{{end}}
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                    {{if .Username}}{{.Username}}{{else}}Administrator{{end}}</p>
+                <p class="text-[9.5px] text-zinc-500 dark:text-zinc-400 truncate">Super Admin</p>
+            </div>
+        </div>
+        <a href="/logout" onclick="return confirm('Apakah Anda yakin ingin keluar dari akun?');"
+            class="flex items-center gap-2 px-2.5 py-1.5 text-xs font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-md transition-colors">
+            <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+            <span>Keluar Akun</span>
+        </a>
+    </div>
+</aside>
+{{end}}

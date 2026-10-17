@@ -1,336 +1,445 @@
 <!DOCTYPE html>
 <html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Masuk — SMK NIBA</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <style>
-        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-        body {
-            font-family: 'Inter', sans-serif;
-            -webkit-font-smoothing: antialiased;
-            background: #0B57C2;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 0;
-            margin: 0;
-            position: relative;
-            overflow: hidden;
-        }
 
-        /* Background blobs */
-        .blob {
-            position: fixed;
-            border-radius: 50%;
-            filter: blur(80px);
-            opacity: 0.25;
-            pointer-events: none;
-        }
-        .blob-1 { width: 400px; height: 400px; background: #60A5FA; top: -100px; right: -80px; }
-        .blob-2 { width: 300px; height: 300px; background: #1E40AF; bottom: -60px; left: -60px; }
-        .blob-3 { width: 200px; height: 200px; background: #93C5FD; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Masuk — Portal Siswa SMK NIBA</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+            rel="stylesheet">
+        <script src="https://unpkg.com/@phosphor-icons/web"></script>
+        <script>
+            tailwind.config = {
+                theme: {
+                    extend: {
+                        fontFamily: { sans: ['Inter', 'sans-serif'] },
+                        colors: {
+                            brand: { purple: '#6D28D9', violet: '#7C3AED', deep: '#2E0854' }
+                        }
+                    }
+                }
+            }
+        </script>
+        <style>
+            * {
+                -webkit-tap-highlight-color: transparent;
+                box-sizing: border-box;
+            }
 
-        /* Card */
-        .card {
-            width: 100%;
-            max-width: 380px;
-            padding: 0 20px 32px;
-            position: relative;
-            z-index: 10;
-        }
+            body {
+                font-family: 'Inter', sans-serif;
+                -webkit-font-smoothing: antialiased;
+                background-color: #FFFFFF;
+                min-height: 100vh;
+                margin: 0;
+                padding: 0;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+            }
 
-        /* Logo area */
-        .logo-wrap {
-            text-align: center;
-            padding: 32px 0 28px;
-        }
-        .logo-icon {
-            width: 72px; height: 72px;
-            background: rgba(255,255,255,0.15);
-            border: 1.5px solid rgba(255,255,255,0.3);
-            border-radius: 24px;
-            display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 16px;
-            backdrop-filter: blur(8px);
-        }
-        .logo-title {
-            font-size: 26px; font-weight: 900;
-            color: #fff;
-            letter-spacing: -0.5px;
-            line-height: 1;
-            margin-bottom: 4px;
-        }
-        .logo-sub {
-            font-size: 11px; font-weight: 600;
-            color: rgba(255,255,255,0.6);
-            letter-spacing: 3px;
-            text-transform: uppercase;
-        }
+            @media (min-width: 640px) {
+                body {
+                    background: radial-gradient(circle at 50% 10%, #3B0764 0%, #20053B 55%, #120224 100%);
+                    padding: 24px;
+                }
+            }
 
-        /* Form panel */
-        .panel {
-            background: #fff;
-            border-radius: 24px;
-            padding: 28px 24px 24px;
-            box-shadow: 0 32px 64px -16px rgba(0,0,0,0.35);
-        }
-        .panel-title {
-            font-size: 20px; font-weight: 800;
-            color: #0F172A;
-            margin: 0 0 4px;
-        }
-        .panel-sub {
-            font-size: 13px;
-            color: #64748B;
-            margin: 0 0 24px;
-            line-height: 1.5;
-        }
+            /* Ambient Glow Orbs (Desktop only) */
+            .glow-orb {
+                display: none;
+                position: fixed;
+                border-radius: 50%;
+                filter: blur(100px);
+                pointer-events: none;
+                z-index: 1;
+            }
 
-        /* Input */
-        .field { margin-bottom: 14px; }
-        .field-label {
-            display: block;
-            font-size: 12px; font-weight: 600;
-            color: #475569;
-            margin-bottom: 6px;
-            letter-spacing: 0.3px;
-        }
-        .input-wrap {
-            display: flex; align-items: center;
-            background: #F8FAFC;
-            border: 1.5px solid #E2E8F0;
-            border-radius: 14px;
-            transition: all 0.15s;
-        }
-        .input-wrap:focus-within {
-            border-color: #0B57C2;
-            background: #fff;
-            box-shadow: 0 0 0 4px rgba(11,87,194,0.1);
-        }
-        .input-icon {
-            width: 44px; display: flex; align-items: center; justify-content: center;
-            color: #94A3B8; font-size: 18px; flex-shrink: 0;
-        }
-        .input-wrap input {
-            flex: 1; border: none; outline: none;
-            background: transparent;
-            padding: 13px 4px 13px 0;
-            font-size: 15px; color: #0F172A;
-            font-family: 'Inter', sans-serif;
-            font-weight: 500;
-        }
-        .input-wrap input::placeholder { color: #CBD5E1; font-weight: 400; }
-        .toggle-btn {
-            width: 44px; display: flex; align-items: center; justify-content: center;
-            color: #94A3B8; font-size: 18px; cursor: pointer;
-            background: none; border: none; flex-shrink: 0;
-            transition: color 0.15s;
-        }
-        .toggle-btn:active { transform: scale(0.9); }
+            @media (min-width: 640px) {
+                .glow-orb {
+                    display: block;
+                }
+            }
 
-        /* Error */
-        .error-box {
-            display: none;
-            background: #FEF2F2;
-            border: 1px solid #FECACA;
-            border-radius: 12px;
-            padding: 10px 12px;
-            margin-bottom: 14px;
-            font-size: 13px;
-            color: #DC2626;
-            font-weight: 500;
-            align-items: center;
-            gap: 8px;
-        }
-        .shake { animation: shake 0.35s ease; }
-        @keyframes shake {
-            0%,100% { transform: translateX(0); }
-            20%,60% { transform: translateX(-5px); }
-            40%,80% { transform: translateX(5px); }
-        }
+            .orb-1 {
+                width: 420px;
+                height: 420px;
+                background: radial-gradient(circle, rgba(124, 58, 237, 0.4) 0%, transparent 70%);
+                top: -140px;
+                right: -100px;
+            }
 
-        /* Button */
-        .btn-submit {
-            width: 100%;
-            background: #0B57C2;
-            color: #fff;
-            border: none;
-            border-radius: 14px;
-            padding: 15px;
-            font-size: 15px;
-            font-weight: 700;
-            font-family: 'Inter', sans-serif;
-            cursor: pointer;
-            margin-top: 6px;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-            transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
-            box-shadow: 0 4px 16px -4px rgba(11,87,194,0.5);
-        }
-        .btn-submit:hover { background: #0a4eaf; }
-        .btn-submit:active { transform: scale(0.98); }
-        .btn-submit:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
+            .orb-2 {
+                width: 360px;
+                height: 360px;
+                background: radial-gradient(circle, rgba(168, 85, 247, 0.3) 0%, transparent 70%);
+                bottom: -100px;
+                left: -100px;
+            }
 
-        .spinner {
-            width: 18px; height: 18px;
-            border: 2.5px solid rgba(255,255,255,0.35);
-            border-top-color: #fff;
-            border-radius: 50%;
-            animation: spin 0.6s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
+            /* Mobile-first Dynamic Card Container */
+            .login-container {
+                width: 100%;
+                min-height: 100vh;
+                background: #FFFFFF;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                padding: 36px 24px 28px;
+                position: relative;
+                z-index: 10;
+            }
 
-        /* Footer */
-        .footer {
-            text-align: center;
-            padding: 20px 0 0;
-            font-size: 11px;
-            color: rgba(255,255,255,0.45);
-            font-weight: 500;
-            position: relative;
-            z-index: 10;
-        }
-    </style>
-</head>
-<body>
-    <div class="blob blob-1"></div>
-    <div class="blob blob-2"></div>
-    <div class="blob blob-3"></div>
+            @media (min-width: 640px) {
+                .login-container {
+                    max-width: 414px;
+                    min-height: auto;
+                    border-radius: 36px;
+                    padding: 36px 32px 32px;
+                    box-shadow: 0 30px 70px -15px rgba(26, 4, 48, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.15);
+                }
+            }
 
-    <div class="card">
-        <!-- Logo -->
-        <div class="logo-wrap">
-            <div class="logo-icon">
-                <i class="ph-fill ph-graduation-cap" style="font-size:34px; color:#fff;"></i>
-            </div>
-            <div class="logo-title">SMK NIBA</div>
-            <div class="logo-sub">Super Apps</div>
-        </div>
+            /* Input Wrap */
+            .field-input-box {
+                display: flex;
+                align-items: center;
+                background: #F8FAFC;
+                border: 1.5px solid #E2E8F0;
+                border-radius: 18px;
+                transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            }
 
-        <!-- Panel -->
-        <div class="panel">
-            <p class="panel-title">Selamat datang 👋</p>
-            <p class="panel-sub">Masukkan NIS dan PIN kamu untuk melanjutkan.</p>
+            .field-input-box:focus-within {
+                border-color: #7C3AED;
+                background: #FFFFFF;
+                box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.12);
+            }
 
-            <form id="loginForm" novalidate>
-                <div class="field">
-                    <label class="field-label" for="nis">NIS / NISN</label>
-                    <div class="input-wrap">
-                        <span class="input-icon"><i class="ph ph-identification-card"></i></span>
-                        <input type="text" id="nis" inputmode="numeric" autocomplete="off" placeholder="Nomor Induk Siswa" required>
-                    </div>
+            .field-input-box input {
+                flex: 1;
+                border: none;
+                outline: none;
+                background: transparent;
+                padding: 15px 4px 15px 0;
+                font-size: 14.5px;
+                color: #0F172A;
+                font-family: 'Inter', sans-serif;
+                font-weight: 600;
+            }
+
+            .field-input-box input::placeholder {
+                color: #94A3B8;
+                font-weight: 400;
+            }
+
+            /* Submit Button with Purple Gradient */
+            .btn-primary-purple {
+                width: 100%;
+                background: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 50%, #4C1D95 100%);
+                color: #FFFFFF;
+                border: none;
+                border-radius: 18px;
+                padding: 15px;
+                font-size: 15px;
+                font-weight: 700;
+                font-family: 'Inter', sans-serif;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+                box-shadow: 0 10px 25px -4px rgba(124, 58, 237, 0.45);
+            }
+
+            .btn-primary-purple:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 14px 28px -4px rgba(124, 58, 237, 0.55);
+            }
+
+            .btn-primary-purple:active {
+                transform: scale(0.98);
+            }
+
+            .btn-primary-purple:disabled {
+                opacity: 0.65;
+                cursor: not-allowed;
+                transform: none;
+            }
+
+            .shake {
+                animation: shake 0.35s ease;
+            }
+
+            @keyframes shake {
+                0%, 100% { transform: translateX(0); }
+                20%, 60% { transform: translateX(-5px); }
+                40%, 80% { transform: translateX(5px); }
+            }
+
+            .spinner {
+                width: 18px;
+                height: 18px;
+                border: 2.5px solid rgba(255, 255, 255, 0.35);
+                border-top-color: #FFFFFF;
+                border-radius: 50%;
+                animation: spin 0.6s linear infinite;
+            }
+
+            @keyframes spin {
+                to { transform: rotate(360deg); }
+            }
+        </style>
+    </head>
+
+    <body>
+        <!-- Ambient Glow (Active on Desktop) -->
+        <div class="glow-orb orb-1"></div>
+        <div class="glow-orb orb-2"></div>
+
+        <div class="login-container">
+            <!-- Top Content Block -->
+            <div>
+                <!-- Brand Minimalist Logo (Inspired by reference DOSHE) -->
+                <div class="flex items-center justify-center gap-2 mb-6">
+                    <span class="w-2.5 h-2.5 rounded-sm bg-purple-600 inline-block shadow-sm"></span>
+                    <span class="text-xs font-black tracking-[0.25em] text-slate-900 uppercase">SMK NIBA</span>
                 </div>
 
-                <div class="field">
-                    <label class="field-label" for="pin">PIN</label>
-                    <div class="input-wrap">
-                        <span class="input-icon"><i class="ph ph-lock-simple"></i></span>
-                        <input type="password" id="pin" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="••••••" required>
-                        <button type="button" class="toggle-btn" onclick="togglePin()" aria-label="Tampilkan PIN">
-                            <i class="ph ph-eye-slash" id="togglePinIcon"></i>
+                <!-- Welcome Back Headline (Centered) -->
+                <div class="text-center mb-7">
+                    <h1 class="text-2xl font-black text-slate-900 tracking-tight leading-tight">Welcome back</h1>
+                    <p class="text-xs text-slate-500 font-medium mt-1 leading-relaxed px-2">
+                        Sign in to access your student portal and attendance
+                    </p>
+                </div>
+
+                <!-- Segmented Control Tabs (Sign In / Panduan PIN) -->
+                <div class="bg-slate-100/90 p-1 rounded-2xl flex items-center mb-7 border border-slate-200/60">
+                    <button type="button" id="tabSignIn" onclick="switchLoginTab('signin')"
+                        class="flex-1 py-2.5 text-xs font-bold rounded-xl bg-white text-slate-900 shadow-xs transition-all text-center">
+                        Sign In
+                    </button>
+                    <button type="button" id="tabInfo" onclick="switchLoginTab('info')"
+                        class="flex-1 py-2.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-all text-center">
+                        Panduan PIN
+                    </button>
+                </div>
+
+                <!-- Tab Content 1: Sign In Form -->
+                <div id="sectionSignIn">
+                    <div class="mb-5">
+                        <h2 class="text-sm font-bold text-slate-900 tracking-tight">Sign in to continue</h2>
+                        <p class="text-xs text-slate-400 font-medium mt-0.5">
+                            Access your dashboard, presensi, and quest tools.
+                        </p>
+                    </div>
+
+                    <form id="loginForm" novalidate>
+                        <!-- Username / NIS Field -->
+                        <div class="mb-3.5">
+                            <div class="field-input-box">
+                                <span class="w-12 h-12 flex items-center justify-center text-slate-400 text-lg flex-shrink-0">
+                                    <i class="ph ph-user"></i>
+                                </span>
+                                <input type="text" id="nis" inputmode="numeric" autocomplete="off"
+                                    placeholder="Nomor Induk Siswa (NIS)" required>
+                            </div>
+                        </div>
+
+                        <!-- Password / PIN Field -->
+                        <div class="mb-4">
+                            <div class="field-input-box">
+                                <span class="w-12 h-12 flex items-center justify-center text-slate-400 text-lg flex-shrink-0">
+                                    <i class="ph ph-lock"></i>
+                                </span>
+                                <input type="password" id="pin" inputmode="numeric" maxlength="8" autocomplete="off"
+                                    placeholder="••••••••" required>
+                                <button type="button" class="w-12 h-12 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors"
+                                    onclick="togglePin()" aria-label="Tampilkan PIN">
+                                    <i class="ph ph-eye-slash text-lg" id="togglePinIcon"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Error Alert Box -->
+                        <div id="errorBox" class="hidden bg-rose-50 border border-rose-200 rounded-2xl p-3 mb-4 items-center gap-2.5">
+                            <i class="ph-bold ph-warning-circle text-rose-500 text-base flex-shrink-0"></i>
+                            <span id="errorText" class="text-xs text-rose-700 font-semibold leading-tight"></span>
+                        </div>
+
+                        <!-- Submit Button with Gradient Ungu -->
+                        <button type="submit" id="loginBtn" class="btn-primary-purple mt-2">
+                            <span id="btnText">Sign In</span>
+                            <span id="btnSpinner" class="spinner" style="display:none;"></span>
+                        </button>
+                    </form>
+
+                    <!-- Bottom Helper Link -->
+                    <div class="text-center mt-6">
+                        <button type="button" onclick="switchLoginTab('info')"
+                            class="text-xs font-semibold text-purple-600 hover:text-purple-700 transition-colors">
+                            Lupa PIN atau butuh bantuan? Lihat panduan
                         </button>
                     </div>
                 </div>
 
-                <div id="errorBox" class="error-box">
-                    <i class="ph ph-warning-circle" style="font-size:16px; flex-shrink:0;"></i>
-                    <span id="errorText"></span>
+                <!-- Tab Content 2: Info & Panduan Akun -->
+                <div id="sectionInfo" class="hidden py-1">
+                    <div class="bg-purple-50/70 border border-purple-100 rounded-2xl p-4 mb-4">
+                        <div class="flex items-start gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                                <i class="ph-fill ph-info text-lg"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xs font-bold text-slate-900">Ketentuan Login Siswa</h3>
+                                <p class="text-[11px] text-slate-600 mt-1 leading-relaxed">
+                                    Akun dibuat otomatis oleh pihak sekolah. Masuk menggunakan nomor NIS resmi dan PIN.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3 mb-6">
+                        <div class="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                            <span class="w-6 h-6 rounded-full bg-purple-100 text-purple-700 text-xs font-bold flex items-center justify-center">1</span>
+                            <div class="text-[11px]">
+                                <span class="font-bold text-slate-800">PIN Default Awal:</span>
+                                <span class="font-mono font-bold text-purple-700 bg-white px-2 py-0.5 rounded border border-purple-200 ml-1">123456</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                            <span class="w-6 h-6 rounded-full bg-purple-100 text-purple-700 text-xs font-bold flex items-center justify-center">2</span>
+                            <p class="text-[11px] text-slate-600">Ganti PIN setelah login pertama di menu Profil untuk keamanan.</p>
+                        </div>
+                        <div class="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                            <span class="w-6 h-6 rounded-full bg-purple-100 text-purple-700 text-xs font-bold flex items-center justify-center">3</span>
+                            <p class="text-[11px] text-slate-600">Jika akun terkendala, hubungi Wali Kelas atau Admin IT sekolah.</p>
+                        </div>
+                    </div>
+
+                    <button type="button" onclick="switchLoginTab('signin')"
+                        class="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-3 rounded-2xl text-xs transition-colors">
+                        Kembali ke Form Sign In
+                    </button>
                 </div>
+            </div>
 
-                <button type="submit" id="loginBtn" class="btn-submit">
-                    <span id="btnText">Masuk</span>
-                    <span id="btnSpinner" class="spinner" style="display:none;"></span>
-                </button>
-            </form>
+            <!-- Bottom Footer Note -->
+            <div class="text-center pt-8 text-[11px] text-slate-400 font-medium">
+                <p>&copy; 2026 SMK NIBA Super Apps • Portal Siswa</p>
+            </div>
         </div>
-    </div>
 
-    <p class="footer">&copy; 2026 SMK NIBA Super Apps</p>
+        <script>
+            // Tab Switcher between Sign In & Info
+            function switchLoginTab(tab) {
+                const secSignIn = document.getElementById('sectionSignIn');
+                const secInfo = document.getElementById('sectionInfo');
+                const tabSignIn = document.getElementById('tabSignIn');
+                const tabInfo = document.getElementById('tabInfo');
 
-    <script>
-        const form = document.getElementById('loginForm');
-        const nisEl = document.getElementById('nis');
-        const pinEl = document.getElementById('pin');
-        const errorBox = document.getElementById('errorBox');
-        const errorText = document.getElementById('errorText');
-        const btn = document.getElementById('loginBtn');
-        const btnText = document.getElementById('btnText');
-        const btnSpinner = document.getElementById('btnSpinner');
-
-        window.addEventListener('load', () => nisEl.focus());
-
-        nisEl.addEventListener('input', () => {
-            nisEl.value = nisEl.value.replace(/[^0-9]/g, '');
-        });
-        pinEl.addEventListener('input', () => {
-            pinEl.value = pinEl.value.replace(/[^0-9]/g, '');
-        });
-
-        function togglePin() {
-            const i = document.getElementById('togglePinIcon');
-            if (pinEl.type === 'password') {
-                pinEl.type = 'text';
-                i.classList.replace('ph-eye-slash', 'ph-eye');
-            } else {
-                pinEl.type = 'password';
-                i.classList.replace('ph-eye', 'ph-eye-slash');
-            }
-        }
-
-        function showError(msg) {
-            errorText.textContent = msg;
-            errorBox.style.display = 'flex';
-            errorBox.classList.remove('shake');
-            void errorBox.offsetWidth;
-            errorBox.classList.add('shake');
-        }
-        function hideError() { errorBox.style.display = 'none'; }
-
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            hideError();
-
-            const nis = nisEl.value.trim();
-            const pin = pinEl.value.trim();
-            if (!nis) { showError('NIS / NISN wajib diisi'); nisEl.focus(); return; }
-            if (!pin) { showError('PIN wajib diisi'); pinEl.focus(); return; }
-
-            btn.disabled = true;
-            btnText.style.display = 'none';
-            btnSpinner.style.display = 'block';
-
-            const fd = new FormData();
-            fd.set('nis', nis);
-            fd.set('pin', pin);
-
-            try {
-                const r = await fetch('/api/student/login', { method: 'POST', body: fd });
-                const d = await r.json();
-                if (r.ok) {
-                    btnText.textContent = 'Berhasil...';
-                    btnText.style.display = 'block';
-                    btnSpinner.style.display = 'none';
-                    window.location.href = '/student/app';
+                if (tab === 'signin') {
+                    secSignIn.classList.remove('hidden');
+                    secInfo.classList.add('hidden');
+                    tabSignIn.className = "flex-1 py-2.5 text-xs font-bold rounded-xl bg-white text-slate-900 shadow-xs transition-all text-center";
+                    tabInfo.className = "flex-1 py-2.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-all text-center";
+                    document.getElementById('nis').focus();
                 } else {
-                    showError(d.message || 'NIS atau PIN salah');
+                    secSignIn.classList.add('hidden');
+                    secInfo.classList.remove('hidden');
+                    tabInfo.className = "flex-1 py-2.5 text-xs font-bold rounded-xl bg-white text-slate-900 shadow-xs transition-all text-center";
+                    tabSignIn.className = "flex-1 py-2.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-all text-center";
+                }
+            }
+
+            // Form Logic
+            const form = document.getElementById('loginForm');
+            const nisEl = document.getElementById('nis');
+            const pinEl = document.getElementById('pin');
+            const errorBox = document.getElementById('errorBox');
+            const errorText = document.getElementById('errorText');
+            const btn = document.getElementById('loginBtn');
+            const btnText = document.getElementById('btnText');
+            const btnSpinner = document.getElementById('btnSpinner');
+
+            window.addEventListener('load', () => nisEl.focus());
+
+            nisEl.addEventListener('input', () => {
+                nisEl.value = nisEl.value.replace(/[^0-9]/g, '');
+            });
+            pinEl.addEventListener('input', () => {
+                pinEl.value = pinEl.value.replace(/[^0-9]/g, '');
+            });
+
+            function togglePin() {
+                const i = document.getElementById('togglePinIcon');
+                if (pinEl.type === 'password') {
+                    pinEl.type = 'text';
+                    i.classList.replace('ph-eye-slash', 'ph-eye');
+                } else {
+                    pinEl.type = 'password';
+                    i.classList.replace('ph-eye', 'ph-eye-slash');
+                }
+            }
+
+            function showError(msg) {
+                errorText.textContent = msg;
+                errorBox.classList.remove('hidden');
+                errorBox.style.display = 'flex';
+                errorBox.classList.remove('shake');
+                void errorBox.offsetWidth;
+                errorBox.classList.add('shake');
+            }
+            function hideError() {
+                errorBox.classList.add('hidden');
+                errorBox.style.display = 'none';
+            }
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                hideError();
+
+                const nis = nisEl.value.trim();
+                const pin = pinEl.value.trim();
+                if (!nis) { showError('NIS / NISN wajib diisi'); nisEl.focus(); return; }
+                if (!pin) { showError('PIN wajib diisi'); pinEl.focus(); return; }
+
+                btn.disabled = true;
+                btnText.style.display = 'none';
+                btnSpinner.style.display = 'block';
+
+                const fd = new FormData();
+                fd.set('nis', nis);
+                fd.set('pin', pin);
+
+                try {
+                    const r = await fetch('/api/student/login', { method: 'POST', body: fd });
+                    const d = await r.json();
+                    if (r.ok) {
+                        btnText.textContent = 'Berhasil...';
+                        btnText.style.display = 'block';
+                        btnSpinner.style.display = 'none';
+                        window.location.href = '/student/app';
+                    } else {
+                        showError(d.message || 'NIS atau PIN salah');
+                        btn.disabled = false;
+                        btnText.style.display = 'block';
+                        btnSpinner.style.display = 'none';
+                        pinEl.value = '';
+                        pinEl.focus();
+                    }
+                } catch {
+                    showError('Tidak dapat terhubung ke server. Silakan coba lagi.');
                     btn.disabled = false;
                     btnText.style.display = 'block';
                     btnSpinner.style.display = 'none';
-                    pinEl.value = '';
-                    pinEl.focus();
                 }
-            } catch {
-                showError('Tidak dapat terhubung ke server. Coba lagi.');
-                btn.disabled = false;
-                btnText.style.display = 'block';
-                btnSpinner.style.display = 'none';
-            }
-        });
-    </script>
-</body>
+            });
+        </script>
+    </body>
+
 </html>

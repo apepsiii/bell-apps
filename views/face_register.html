@@ -6,431 +6,292 @@
     <title>Registrasi Wajah - SMK NIBA Super Apps</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Modern Vladmandic Face-API (Fast & Lightweight) -->
+    <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.js"></script>
     <style>
         body { font-family: 'Inter', system-ui, sans-serif; }
-
-        .capture-progress {
-            display: flex;
-            gap: 8px;
-        }
-
-        .capture-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #e5e7eb;
-            transition: all 0.3s;
-        }
-
-        .capture-dot.active {
-            background: #3b82f6;
-            animation: pulse 1s infinite;
-        }
-
-        .capture-dot.captured {
-            background: #22c55e;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.2); }
-        }
-
-        .face-guide {
+        .face-oval {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 200px;
-            height: 260px;
-            border: 3px dashed rgba(59, 130, 246, 0.6);
+            width: 190px;
+            height: 250px;
+            border: 2px dashed #64748b;
             border-radius: 50%;
             pointer-events: none;
+            transition: border-color 0.2s;
         }
-
-        .face-guide::before {
-            content: '';
-            position: absolute;
-            top: 10%;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 60%;
-            height: 3px;
-            border-top: 2px dashed rgba(59, 130, 246, 0.4);
+        .face-oval.detected {
+            border-color: #10b981;
+            border-style: solid;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
         }
-
-        .face-guide::after {
-            content: '';
-            position: absolute;
-            top: 35%;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 40%;
-            height: 2px;
-            border-top: 2px dashed rgba(59, 130, 246, 0.4);
-        }
-
-        .angle-indicator {
-            position: absolute;
-            font-size: 2rem;
-            opacity: 0.3;
-            transition: all 0.3s;
-        }
-
-        .angle-indicator.active {
-            opacity: 1;
-            transform: scale(1.1);
-        }
-
-        .thumb-left { top: 50%; left: 10%; transform: translateY(-50%); }
-        .thumb-right { top: 50%; right: 10%; transform: translateY(-50%); }
-        .thumb-top { top: 15%; left: 50%; transform: translateX(-50%); }
-        .thumb-bottom { bottom: 15%; left: 50%; transform: translateX(-50%); }
-
         .mirror-video {
             transform: scaleX(-1);
         }
-
-        .photo-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 8px;
-        }
-
-        .photo-thumb {
-            aspect-ratio: 1;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 2px solid #e5e7eb;
-            transition: all 0.3s;
-        }
-
-        .photo-thumb.captured {
-            border-color: #22c55e;
-        }
-
-        .photo-thumb img, .photo-thumb canvas {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
     </style>
 </head>
-<body class="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white min-h-screen">
-    <div class="container mx-auto px-6 py-8 max-w-4xl">
+<body class="bg-slate-950 text-white min-h-screen flex flex-col items-center justify-center p-4">
+    <div class="w-full max-w-xl bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-2xl">
+        
         <!-- Header -->
-        <div class="flex items-center justify-between mb-8">
-            <div class="flex items-center gap-4">
-                <a href="/admin/student/{{.ID}}" class="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition">
-                    <i data-lucide="arrow-left" class="w-6 h-6"></i>
+        <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
+            <div class="flex items-center gap-3">
+                <a href="/admin/student/{{.ID}}" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 transition">
+                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
                 </a>
                 <div>
-                    <h1 class="text-2xl font-bold">Registrasi Wajah</h1>
-                    <p class="text-slate-400 text-sm">{{.Name}} - {{.ExtraInfo}}</p>
+                    <h1 class="font-bold text-lg text-white">Registrasi Wajah Siswa</h1>
+                    <p class="text-xs text-slate-400">{{.Name}} • {{.ExtraInfo}} • NIS: {{.IdentityNo}}</p>
                 </div>
             </div>
-            <div class="text-right">
-                <div id="progress-text" class="text-2xl font-bold text-blue-400">0/5</div>
-                <p class="text-xs text-slate-400">Foto Terambil</p>
-            </div>
-        </div>
-
-        <!-- Instructions Card -->
-        <div class="bg-white/10 rounded-xl p-4 mb-6 backdrop-blur">
-            <div class="flex items-start gap-3">
-                <i data-lucide="info" class="w-5 h-5 text-blue-400 mt-0.5"></i>
-                <div>
-                    <h3 class="font-semibold text-sm mb-2">Petunjuk Pengambilan Foto</h3>
-                    <ul class="text-xs text-slate-300 space-y-1">
-                        <li>1. <strong>Depan</strong> - Hadapkan wajah lurus ke kamera</li>
-                        <li>2. <strong>Kiri</strong> - Putar kepala ke kiri ±30°</li>
-                        <li>3. <strong>Kanan</strong> - Putar kepala ke kanan ±30°</li>
-                        <li>4. <strong>Atas</strong> - dongakkan kepala sedikit</li>
-                        <li>5. <strong>Bawah</strong> - tundukkan kepala sedikit</li>
-                    </ul>
-                </div>
+            <div id="model-badge" class="text-[11px] px-2.5 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full font-medium">
+                Memuat AI...
             </div>
         </div>
 
-        <!-- Main Content -->
-        <div class="grid md:grid-cols-2 gap-6">
-            <!-- Camera Section -->
-            <div class="bg-black rounded-2xl overflow-hidden relative" style="aspect-ratio: 4/3;">
-                <video id="video" autoplay playsinline class="w-full h-full object-cover mirror-video"></video>
-                <canvas id="canvas" class="hidden"></canvas>
+        <!-- Camera Frame -->
+        <div class="relative bg-black rounded-xl overflow-hidden aspect-[4/3] flex items-center justify-center border border-slate-800 mb-4">
+            <video id="video" autoplay playsinline muted class="w-full h-full object-cover mirror-video"></video>
+            <div class="face-oval" id="face-oval"></div>
 
-                <!-- Face Guide Overlay -->
-                <div class="face-guide" id="face-guide"></div>
-
-                <!-- Angle Indicators -->
-                <div class="angle-indicator thumb-left" id="angle-front">
-                    <i data-lucide="user" class="w-8 h-8"></i>
-                </div>
-                <div class="angle-indicator thumb-right" id="angle-front">
-                    <i data-lucide="user" class="w-8 h-8"></i>
-                </div>
-
-                <!-- Direction Guide -->
-                <div id="direction-guide" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/70 px-4 py-2 rounded-full">
-                    <p class="text-sm font-medium" id="direction-text">📷 Depan - Lurus ke kamera</p>
-                </div>
-
-                <!-- Camera Status -->
-                <div class="absolute top-4 left-4">
-                    <span id="camera-status" class="bg-red-600 px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-                        <span class="w-2 h-2 bg-white rounded-full animate-pulse"></span> Kamera Off
-                    </span>
-                </div>
-            </div>
-
-            <!-- Controls & Preview Section -->
-            <div class="space-y-4">
-                <!-- Capture Progress -->
-                <div class="bg-white/10 rounded-xl p-4">
-                    <h3 class="font-semibold text-sm mb-3">Progress Pengambilan</h3>
-                    <div class="capture-progress mb-4">
-                        <div class="capture-dot active" id="dot-0"></div>
-                        <div class="capture-dot" id="dot-1"></div>
-                        <div class="capture-dot" id="dot-2"></div>
-                        <div class="capture-dot" id="dot-3"></div>
-                        <div class="capture-dot" id="dot-4"></div>
-                    </div>
-                    <p class="text-xs text-slate-400" id="capture-instruction">Tekan tombol capture untuk mengambil foto pertama (depan)</p>
-                </div>
-
-                <!-- Photo Grid Preview -->
-                <div class="bg-white/10 rounded-xl p-4">
-                    <h3 class="font-semibold text-sm mb-3">Preview Foto</h3>
-                    <div class="photo-grid" id="photo-grid">
-                        <div class="photo-thumb bg-slate-800 flex items-center justify-center">
-                            <i data-lucide="image" class="w-4 h-4 text-slate-600"></i>
-                        </div>
-                        <div class="photo-thumb bg-slate-800 flex items-center justify-center">
-                            <i data-lucide="image" class="w-4 h-4 text-slate-600"></i>
-                        </div>
-                        <div class="photo-thumb bg-slate-800 flex items-center justify-center">
-                            <i data-lucide="image" class="w-4 h-4 text-slate-600"></i>
-                        </div>
-                        <div class="photo-thumb bg-slate-800 flex items-center justify-center">
-                            <i data-lucide="image" class="w-4 h-4 text-slate-600"></i>
-                        </div>
-                        <div class="photo-thumb bg-slate-800 flex items-center justify-center">
-                            <i data-lucide="image" class="w-4 h-4 text-slate-600"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Action Buttons -->
-                <div class="flex gap-3">
-                    <button id="btn-capture" onclick="capturePhoto()" disabled
-                        class="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white px-6 py-4 rounded-xl font-semibold flex items-center justify-center gap-2 transition">
-                        <i data-lucide="camera" class="w-5 h-5"></i> Capture
-                    </button>
-                    <button id="btn-reset" onclick="resetCapture"
-                        class="bg-red-600 hover:bg-red-700 text-white px-6 py-4 rounded-xl font-semibold flex items-center justify-center gap-2 transition">
-                        <i data-lucide="rotate-ccw" class="w-5 h-5"></i> Reset
-                    </button>
-                </div>
-
-                <!-- Submit Button -->
-                <button id="btn-submit" onclick="submitFaces()" disabled
-                    class="w-full bg-green-600 hover:bg-green-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white px-6 py-4 rounded-xl font-semibold flex items-center justify-center gap-2 transition">
-                    <i data-lucide="check" class="w-5 h-5"></i> Daftarkan Semua Wajah
-                </button>
-
-                <!-- Error Message -->
-                <div id="error-message" class="hidden bg-red-500/20 border border-red-500/50 rounded-xl p-3">
-                    <p class="text-sm text-red-400" id="error-text"></p>
-                </div>
+            <div class="absolute bottom-3 inset-x-0 flex justify-center">
+                <span id="prompt-text" class="bg-slate-950/80 backdrop-blur border border-slate-700 text-xs px-3.5 py-1 rounded-full text-slate-200">
+                    Posisikan wajah tepat di dalam lingkaran oval
+                </span>
             </div>
         </div>
+
+        <!-- Progress Counter & Thumbnails -->
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 mb-4">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-xs text-slate-400 font-medium">Sample Wajah:</span>
+                <span id="count-text" class="text-xs font-bold text-blue-400 font-mono">0 / 3 Sample</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2" id="thumb-container">
+                <div class="aspect-video bg-slate-900 border border-slate-800 rounded-lg flex items-center justify-center text-slate-600 text-xs" id="box-0">Sample 1</div>
+                <div class="aspect-video bg-slate-900 border border-slate-800 rounded-lg flex items-center justify-center text-slate-600 text-xs" id="box-1">Sample 2</div>
+                <div class="aspect-video bg-slate-900 border border-slate-800 rounded-lg flex items-center justify-center text-slate-600 text-xs" id="box-2">Sample 3</div>
+            </div>
+        </div>
+
+        <!-- Error Banner -->
+        <div id="error-box" class="hidden bg-red-500/10 border border-red-500/30 rounded-xl p-3 mb-4 text-xs text-red-400"></div>
+
+        <!-- Actions -->
+        <div class="flex gap-2">
+            <button id="btn-snap" onclick="takeSnapshot()" disabled
+                class="flex-1 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-500 text-white py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition">
+                <i data-lucide="camera" class="w-4 h-4"></i> Ambil Foto (<span id="btn-count">0/3</span>)
+            </button>
+            <button id="btn-reset" onclick="resetSnapshots()"
+                class="px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm transition">
+                <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+            </button>
+            <button id="btn-save" onclick="saveFaceData()" disabled
+                class="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 text-white py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition">
+                <i data-lucide="check" class="w-4 h-4"></i> Simpan Wajah
+            </button>
+        </div>
+
     </div>
 
     <script>
         lucide.createIcons();
 
-        const USER_ID = "{{.ID}}";
-        const USER_NAME = "{{.Name}}";
-        const USER_CLASS = "{{.ExtraInfo}}";
-
-        const DIRECTIONS = [
-            { angle: 'front', text: '📷 Depan - Lurus ke kamera', instruction: 'Tekan tombol capture untuk mengambil foto pertama (depan)' },
-            { angle: 'left', text: '👈 Kiri - Putar kepala ke kiri ±30°', instruction: 'Ambil foto dari arah kiri' },
-            { angle: 'right', text: '👉 Kanan - Putar kepala ke kanan ±30°', instruction: 'Ambil foto dari arah kanan' },
-            { angle: 'up', text: '👆 Atas - Dongakkan kepala sedikit', instruction: 'Ambil foto dari atas' },
-            { angle: 'down', text: '👇 Bawah - Tundukkan kepala sedikit', instruction: 'Ambil foto dari bawah' }
-        ];
+        const USER_ID = {{.ID}};
+        const MODEL_URL = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/";
 
         let mediaStream = null;
-        let capturedPhotos = [];
-        let currentIndex = 0;
+        let isReady = false;
+        let currentDetection = null;
+        let samples = [];
 
         const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
-        const photoGrid = document.getElementById('photo-grid');
-        const btnCapture = document.getElementById('btn-capture');
-        const btnSubmit = document.getElementById('btn-submit');
-        const progressText = document.getElementById('progress-text');
-        const captureInstruction = document.getElementById('capture-instruction');
-        const directionText = document.getElementById('direction-text');
+        const faceOval = document.getElementById('face-oval');
+        const promptText = document.getElementById('prompt-text');
+        const modelBadge = document.getElementById('model-badge');
+        const btnSnap = document.getElementById('btn-snap');
+        const btnSave = document.getElementById('btn-save');
+        const countText = document.getElementById('count-text');
+        const btnCount = document.getElementById('btn-count');
+        const errorBox = document.getElementById('error-box');
 
-        async function initCamera() {
+        // Helper to get CSRF token from cookies
+        function getCsrfToken() {
+            const match = document.cookie.match(new RegExp('(^| )csrf_token=([^;]+)'));
+            return match ? match[2] : '';
+        }
+
+        async function init() {
             try {
+                // Load Lightweight Tiny Models (< 250 KB total!)
+                await Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+                ]);
+
+                isReady = true;
+                modelBadge.className = 'text-[11px] px-2.5 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full font-medium';
+                modelBadge.innerText = 'AI Ringan Siap';
+
+                // Start Camera with optimal lightweight resolution
                 mediaStream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'user', width: 640, height: 480 }
+                    video: { width: { ideal: 480 }, height: { ideal: 360 }, facingMode: 'user' }
                 });
                 video.srcObject = mediaStream;
 
-                const statusEl = document.getElementById('camera-status');
-                statusEl.className = 'bg-green-600 px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1';
-                statusEl.innerHTML = '<span class="w-2 h-2 bg-white rounded-full animate-pulse"></span> Kamera On';
-
-                btnCapture.disabled = false;
+                startLoop();
             } catch (err) {
-                console.error('Camera error:', err);
-                showError('Tidak dapat mengakses kamera. Pastikan izin diberikan.');
+                console.error("Init error:", err);
+                showErr("Gagal memuat kamera atau model AI. Periksa koneksi internet / izin kamera.");
             }
         }
 
-        function capturePhoto() {
-            if (currentIndex >= 5) return;
+        // Lightweight detection loop (4 FPS)
+        async function startLoop() {
+            const detectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 });
 
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const ctx = canvas.getContext('2d');
+            const check = async () => {
+                if (isReady && video.readyState === 4 && samples.length < 3) {
+                    try {
+                        const result = await faceapi
+                            .detectSingleFace(video, detectorOptions)
+                            .withFaceLandmarks(true)
+                            .withFaceDescriptor();
 
-            // Draw video frame
-            ctx.drawImage(video, 0, 0);
+                        currentDetection = result;
 
-            // Get image as data URL
-            const imageData = canvas.toDataURL('image/jpeg', 0.85);
-            capturedPhotos.push(imageData);
-
-            // Update photo grid
-            updatePhotoGrid();
-
-            // Update progress
-            currentIndex++;
-            updateProgress();
-
-            // Update direction guide
-            if (currentIndex < 5) {
-                directionText.textContent = DIRECTIONS[currentIndex].text;
-                captureInstruction.textContent = DIRECTIONS[currentIndex].instruction;
-            }
-
-            // Check if all captured
-            if (currentIndex >= 3) {
-                btnSubmit.disabled = false;
-            }
-        }
-
-        function updatePhotoGrid() {
-            const thumbs = photoGrid.querySelectorAll('.photo-thumb');
-            thumbs.forEach((thumb, i) => {
-                if (i < capturedPhotos.length) {
-                    const img = document.createElement('img');
-                    img.src = capturedPhotos[i];
-                    thumb.innerHTML = '';
-                    thumb.appendChild(img);
-                    thumb.classList.add('captured');
-                }
-            });
-        }
-
-        function updateProgress() {
-            progressText.textContent = `${capturedPhotos.length}/5`;
-
-            // Update dots
-            for (let i = 0; i < 5; i++) {
-                const dot = document.getElementById(`dot-${i}`);
-                dot.classList.remove('active', 'captured');
-                if (i < capturedPhotos.length) {
-                    dot.classList.add('captured');
-                } else if (i === currentIndex) {
-                    dot.classList.add('active');
-                }
-            }
-        }
-
-        function resetCapture() {
-            if (!confirm('Reset semua foto yang sudah diambil?')) return;
-
-            capturedPhotos = [];
-            currentIndex = 0;
-
-            // Reset photo grid
-            const thumbs = photoGrid.querySelectorAll('.photo-thumb');
-            thumbs.forEach(thumb => {
-                thumb.innerHTML = '<i data-lucide="image" class="w-4 h-4 text-slate-600"></i>';
-                thumb.classList.remove('captured');
-            });
-
-            // Reset progress
-            updateProgress();
-            directionText.textContent = DIRECTIONS[0].text;
-            captureInstruction.textContent = DIRECTIONS[0].instruction;
-            btnSubmit.disabled = true;
-            lucide.createIcons();
-        }
-
-        function showError(msg) {
-            const errorDiv = document.getElementById('error-message');
-            const errorText = document.getElementById('error-text');
-            errorText.textContent = msg;
-            errorDiv.classList.remove('hidden');
-        }
-
-        async function submitFaces() {
-            if (capturedPhotos.length < 3) {
-                showError('Minimal 3 foto diperlukan untuk registrasi wajah');
-                return;
-            }
-
-            btnSubmit.disabled = true;
-            btnSubmit.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Mengunggah...';
-            lucide.createIcons();
-
-            let successCount = 0;
-            let errorCount = 0;
-
-            for (let i = 0; i < capturedPhotos.length; i++) {
-                try {
-                    const formData = new FormData();
-                    const response = await fetch(capturedPhotos[i]);
-                    const blob = await response.blob();
-                    formData.append('image', blob, `face_${i}.jpg`);
-
-                    const res = await fetch(`/admin/face/register?name=${encodeURIComponent(USER_NAME)}&class_name=${encodeURIComponent(USER_CLASS)}&student_id=${USER_ID}`, {
-                        method: 'POST',
-                        body: formData
-                    });
-
-                    if (res.ok) {
-                        successCount++;
-                    } else {
-                        errorCount++;
+                        if (result) {
+                            faceOval.classList.add('detected');
+                            promptText.innerText = "Wajah Terdeteksi! Klik 'Ambil Foto'";
+                            btnSnap.disabled = false;
+                        } else {
+                            faceOval.classList.remove('detected');
+                            promptText.innerText = "Posisikan wajah tepat di dalam lingkaran oval";
+                            btnSnap.disabled = true;
+                        }
+                    } catch (e) {
+                        // ignore dropped frame
                     }
-                } catch (err) {
-                    console.error('Upload error:', err);
-                    errorCount++;
                 }
+                setTimeout(check, 250); // hemat daya & CPU
+            };
+            check();
+        }
+
+        function takeSnapshot() {
+            if (!currentDetection || samples.length >= 3) return;
+
+            samples.push(Array.from(currentDetection.descriptor));
+
+            // Thumbnail
+            const canvas = document.createElement('canvas');
+            canvas.width = 160;
+            canvas.height = 120;
+            canvas.getContext('2d').drawImage(video, 0, 0, 160, 120);
+            
+            const idx = samples.length - 1;
+            const box = document.getElementById(`box-${idx}`);
+            box.innerHTML = `<img src="${canvas.toDataURL('image/jpeg', 0.7)}" class="w-full h-full object-cover rounded-lg mirror-video">`;
+            box.className = 'aspect-video border border-emerald-500/50 rounded-lg overflow-hidden';
+
+            countText.innerText = `${samples.length} / 3 Sample`;
+            btnCount.innerText = `${samples.length}/3`;
+
+            if (samples.length >= 3) {
+                btnSnap.disabled = true;
+                btnSave.disabled = false;
+                promptText.innerText = "Sample lengkap! Klik 'Simpan Wajah'";
+            } else if (samples.length === 1) {
+                promptText.innerText = "Sample 1 tersimpan. Senyum sedikit lalu ambil lagi";
+            } else if (samples.length === 2) {
+                promptText.innerText = "Sample 2 tersimpan. Miringkan kepala sedikit lalu ambil";
+            }
+        }
+
+        function resetSnapshots() {
+            samples = [];
+            countText.innerText = "0 / 3 Sample";
+            btnCount.innerText = "0/3";
+            btnSave.disabled = true;
+            btnSnap.disabled = true;
+            for (let i = 0; i < 3; i++) {
+                const box = document.getElementById(`box-${i}`);
+                box.innerHTML = `Sample ${i + 1}`;
+                box.className = 'aspect-video bg-slate-900 border border-slate-800 rounded-lg flex items-center justify-center text-slate-600 text-xs';
+            }
+            errorBox.classList.add('hidden');
+        }
+
+        async function saveFaceData() {
+            if (samples.length < 3) return;
+
+            btnSave.disabled = true;
+            btnSave.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Menyimpan...';
+            lucide.createIcons();
+
+            // Calculate mean descriptor
+            const dim = 128;
+            const meanDesc = new Array(dim).fill(0);
+            for (let i = 0; i < dim; i++) {
+                let sum = 0;
+                for (let j = 0; j < samples.length; j++) {
+                    sum += samples[j][i];
+                }
+                meanDesc[i] = sum / samples.length;
             }
 
-            if (successCount > 0) {
-                alert(`Berhasil mendaftarkan ${successCount} foto wajah!`);
-                window.location.href = `/admin/student/${USER_ID}`;
-            } else {
-                showError(`Gagal mengunggah foto. Error: ${errorCount}`);
-                btnSubmit.disabled = false;
-                btnSubmit.innerHTML = '<i data-lucide="check" class="w-5 h-5"></i> Daftarkan Semua Wajah';
+            try {
+                const csrfToken = getCsrfToken();
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                if (csrfToken) {
+                    headers['X-CSRF-Token'] = csrfToken;
+                }
+
+                const res = await fetch('/admin/face/save-descriptor', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({
+                        student_id: USER_ID,
+                        descriptor: meanDesc
+                    })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    btnSave.className = 'flex-1 bg-emerald-600 text-white py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2';
+                    btnSave.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Sukses!';
+                    lucide.createIcons();
+                    setTimeout(() => {
+                        window.location.href = `/admin/student/${USER_ID}`;
+                    }, 1000);
+                } else {
+                    showErr(data.message || "Gagal menyimpan wajah");
+                    btnSave.disabled = false;
+                    btnSave.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Coba Simpan Lagi';
+                    lucide.createIcons();
+                }
+            } catch (err) {
+                console.error("Save error:", err);
+                showErr("Gagal menghubungi server saat menyimpan wajah.");
+                btnSave.disabled = false;
+                btnSave.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Coba Simpan Lagi';
                 lucide.createIcons();
             }
         }
 
-        // Initialize
-        initCamera();
-        updateProgress();
+        function showErr(msg) {
+            errorBox.innerText = msg;
+            errorBox.classList.remove('hidden');
+        }
+
+        window.addEventListener('load', init);
     </script>
 </body>
 </html>

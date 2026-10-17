@@ -1,0 +1,330 @@
+{{define "admin_footer"}}
+</main>
+<!-- Footer (shadcn Minimalist) -->
+<footer
+    class="px-6 py-3 border-t border-zinc-200/80 dark:border-zinc-800 bg-white/50 dark:bg-[#09090b]/50 text-xs text-zinc-500 dark:text-zinc-400 flex flex-col sm:flex-row items-center justify-between gap-2 flex-shrink-0">
+    <div>
+        © 2026 <span class="font-semibold text-zinc-800 dark:text-zinc-200">SMK
+            NIBA Super Apps</span> · shadcn Design Engine
+    </div>
+    <div class="flex items-center gap-2">
+        <span
+            class="px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-mono text-[11px] font-medium border border-zinc-200 dark:border-zinc-700">v{{if .AppVersion}}{{.AppVersion}}{{else}}2.0.0{{end}}</span>
+    </div>
+</footer>
+</div>
+</div>
+
+<!-- Shared Admin Core JavaScript Scripts -->
+<script>
+    // Initialize Lucide Icons
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+
+    // --- Theme Switcher (Dark / Light) ---
+    function toggleStislaTheme() {
+        const currentTheme = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+        const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        document.documentElement.dataset.theme = nextTheme;
+        localStorage.setItem('app-theme', nextTheme);
+        localStorage.setItem('stisla-theme', nextTheme);
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    // --- Mobile Sidebar Drawer ---
+    function toggleMobileSidebar() {
+        const sidebar = document.getElementById('main-sidebar');
+        const backdrop = document.getElementById('sidebar-backdrop');
+        if (!sidebar || !backdrop) return;
+
+        const isClosed = sidebar.classList.contains('-translate-x-full');
+        if (isClosed) {
+            sidebar.classList.remove('-translate-x-full');
+            backdrop.classList.remove('hidden');
+            setTimeout(() => backdrop.classList.remove('opacity-0'), 10);
+        } else {
+            sidebar.classList.add('-translate-x-full');
+            backdrop.classList.add('opacity-0');
+            setTimeout(() => backdrop.classList.add('hidden'), 200);
+        }
+    }
+
+    // --- Sidebar Dropdown Toggle Helper ---
+    function toggleSidebarDropdown(submenuId, chevronId) {
+        const submenu = document.getElementById(submenuId);
+        const chevron = document.getElementById(chevronId);
+        if (submenu) {
+            const isHidden = submenu.classList.toggle('hidden');
+            if (chevron) {
+                chevron.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
+            }
+        }
+    }
+
+    // --- Active Sidebar Navigation Highlight ---
+    (function () {
+        const currentPath = window.location.pathname.toLowerCase();
+        const navLinks = document.querySelectorAll('.sidebar-menu-item');
+        let matched = false;
+
+        navLinks.forEach(link => {
+            const path = link.getAttribute('data-path');
+            if (path && (currentPath === path.toLowerCase() || (path !== '/admin/dashboard' && currentPath.startsWith(path.toLowerCase())))) {
+                link.classList.add('active');
+                matched = true;
+            } else {
+                link.classList.remove('active');
+            }
+        });
+
+        // Submenu & Sarpras Dropdown Handling
+        if (currentPath.startsWith('/admin/sarpras')) {
+            const parentBtn = document.getElementById('sarpras-parent-btn');
+            const submenu = document.getElementById('sarpras-submenu');
+            const chevron = document.getElementById('sarpras-chevron');
+            if (submenu) submenu.classList.remove('hidden');
+            if (chevron) chevron.style.transform = 'rotate(180deg)';
+            if (parentBtn) {
+                parentBtn.classList.remove('active');
+                parentBtn.classList.add('bg-zinc-100', 'dark:bg-zinc-800/80', 'text-zinc-900', 'dark:text-zinc-100', 'font-semibold');
+            }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const currentTab = urlParams.get('tab') || 'assets';
+            const subLinks = document.querySelectorAll('.sidebar-submenu-item');
+            subLinks.forEach(sub => {
+                if (sub.getAttribute('data-tab') === currentTab) {
+                    sub.classList.add('active');
+                } else {
+                    sub.classList.remove('active');
+                }
+            });
+        }
+
+        // Default highlight dashboard if on /admin
+        if (!matched && (currentPath === '/admin' || currentPath === '/admin/')) {
+            const dashLink = document.querySelector('.sidebar-menu-item[data-path="/admin/dashboard"]');
+            if (dashLink) dashLink.classList.add('active');
+        }
+    })();
+
+    // --- Ctrl+K Search Shortcut ---
+    window.addEventListener('keydown', function (e) {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+            e.preventDefault();
+            const input = document.getElementById('global-search-input');
+            if (input) {
+                input.focus();
+                input.select();
+            }
+        }
+    });
+
+    // --- Live Server Clock ---
+    (function () {
+        const clockEl = document.getElementById('server-clock');
+        if (!clockEl) return;
+        function updateClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            clockEl.textContent = `${hours}:${minutes}:${seconds} WIB`;
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
+    })();
+
+    // --- Global Modal Helpers ---
+    function openModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.classList.add('overflow-hidden');
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+    }
+
+    function closeModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.classList.remove('overflow-hidden');
+        }
+    }
+
+    // Close on Escape or click outside
+    window.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.modal-wrapper:not(.hidden)').forEach(modal => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            });
+            document.body.classList.remove('overflow-hidden');
+        }
+    });
+
+    // --- AJAX Submit with Loading State ---
+    async function handleFormSubmit(e) {
+        e.preventDefault();
+        const form = e.target;
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn ? submitBtn.innerHTML : '';
+
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Menyimpan...`;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        try {
+            const formData = new FormData(form);
+            const token = window.getCsrfToken ? window.getCsrfToken() : '';
+            if (token && !formData.has('csrf_token')) {
+                formData.append('csrf_token', token);
+            }
+            const res = await fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: token ? { 'X-CSRF-Token': token } : {}
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                const Toast = Swal.mixin({
+                    toast: true, position: 'top-end', showConfirmButton: false, timer: 1500, timerProgressBar: true
+                });
+                Toast.fire({ icon: 'success', title: data.message || 'Berhasil disimpan' })
+                    .then(() => window.location.reload());
+            } else {
+                Swal.fire('Gagal', data.message || 'Gagal menyimpan data', 'error');
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                }
+            }
+        } catch (err) {
+            Swal.fire('Error', 'Koneksi ke server gagal', 'error');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
+        }
+    }
+
+    // --- Global Delete Item Helper ---
+    async function deleteItem(type, id) {
+        const result = await Swal.fire({
+            title: 'Hapus data ini?',
+            text: 'Tindakan ini permanen dan tidak dapat dibatalkan.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e11d48',
+            cancelButtonColor: '#71717a',
+            confirmButtonText: 'Ya, Hapus!',
+            cancelButtonText: 'Batal'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                const token = window.getCsrfToken ? window.getCsrfToken() : '';
+                const res = await fetch(`/admin/${type}/${id}`, {
+                    method: 'DELETE',
+                    headers: token ? { 'X-CSRF-Token': token } : {}
+                });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok) {
+                    Swal.fire({ icon: 'success', title: 'Terhapus', text: data.message || 'Data berhasil dihapus', timer: 1500, showConfirmButton: false })
+                        .then(() => window.location.reload());
+                } else {
+                    Swal.fire('Gagal', data.message || 'Gagal menghapus data', 'error');
+                }
+            } catch (err) {
+                Swal.fire('Error', 'Kesalahan koneksi ke server', 'error');
+            }
+        }
+    }
+
+    // --- Global Audio Preview Helper ---
+    let currentAudio = null;
+    let currentBtn = null;
+
+    function previewAudio(btn, url) {
+        if (typeof window.playSpotifyTrackByUrl === 'function') {
+            window.playSpotifyTrackByUrl(url, btn);
+            return;
+        }
+
+        if (currentBtn === btn && currentAudio && !currentAudio.paused) {
+            currentAudio.pause();
+            currentAudio.currentTime = 0;
+            resetAudioBtn(btn);
+            currentBtn = null;
+            return;
+        }
+
+        if (currentAudio) {
+            currentAudio.pause();
+            currentAudio.currentTime = 0;
+            if (currentBtn) resetAudioBtn(currentBtn);
+        }
+
+        currentAudio = new Audio(url);
+        currentBtn = btn;
+        btn.classList.add('text-zinc-900', 'bg-zinc-100', 'dark:text-white', 'dark:bg-zinc-800');
+
+        currentAudio.onerror = function () {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'warning',
+                    title: 'File Audio Tidak Ditemukan',
+                    text: 'File audio tidak tersedia di server atau format tidak didukung.',
+                    showConfirmButton: false,
+                    timer: 3500,
+                    timerProgressBar: true
+                });
+            }
+            resetAudioBtn(btn);
+            currentBtn = null;
+        };
+
+        currentAudio.play().catch(e => {
+            console.error("Audio play error:", e);
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'error',
+                    title: 'Gagal Memutar Audio',
+                    text: 'Tidak dapat memutar file audio yang dipilih.',
+                    showConfirmButton: false,
+                    timer: 3500,
+                    timerProgressBar: true
+                });
+            }
+            resetAudioBtn(btn);
+            currentBtn = null;
+        });
+
+        currentAudio.onended = () => {
+            resetAudioBtn(btn);
+            currentBtn = null;
+        };
+    }
+
+    function resetAudioBtn(btn) {
+        if (!btn) return;
+        btn.classList.remove('text-zinc-900', 'bg-zinc-100', 'dark:text-white', 'dark:bg-zinc-800', 'text-blue-600', 'bg-blue-50');
+    }
+</script>
+</body>
+
+</html>
+{{end}}

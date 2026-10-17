@@ -2,8 +2,10 @@ package handler
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 
@@ -376,15 +378,119 @@ func GetStudentDualPointProfile(db *sql.DB) echo.HandlerFunc {
 	}
 }
 
+// Helpers for flexible JSON and FormData binding
+func parsePointInput(c echo.Context) map[string]string {
+	result := make(map[string]string)
+	if strings.Contains(c.Request().Header.Get("Content-Type"), "application/json") {
+		var jsonMap map[string]interface{}
+		if err := c.Bind(&jsonMap); err == nil && jsonMap != nil {
+			for k, v := range jsonMap {
+				result[k] = toPointStr(v)
+			}
+		}
+	}
+	keys := []string{"student_id", "rule_id", "points", "occurrence", "description", "recorded_by", "academic_year", "semester_id", "reason"}
+	for _, k := range keys {
+		if val := c.FormValue(k); val != "" && result[k] == "" {
+			result[k] = strings.TrimSpace(val)
+		}
+	}
+	return result
+}
+
+func toPointStr(v interface{}) string {
+	if v == nil {
+		return ""
+	}
+	switch val := v.(type) {
+	case string:
+		return strings.TrimSpace(val)
+	case float64:
+		return fmt.Sprintf("%.0f", val)
+	case int:
+		return strconv.Itoa(val)
+	case int64:
+		return strconv.FormatInt(val, 10)
+	default:
+		return fmt.Sprintf("%v", val)
+	}
+}
+
+func toIntVal(v interface{}) int {
+	if v == nil {
+		return 0
+	}
+	switch val := v.(type) {
+	case int:
+		return val
+	case int64:
+		return int(val)
+	case float64:
+		return int(val)
+	case string:
+		i, _ := strconv.Atoi(val)
+		return i
+	default:
+		return 0
+	}
+}
+
+// RecalculateSingleStudentCompositeScore recalculates attendance, achievement, violation, and composite scores for a single student.
+func RecalculateSingleStudentCompositeScore(db *sql.DB, studentID int, semesterID int) error {
+	if semesterID <= 0 {
+		var activeSem int
+		if err := db.QueryRow("SELECT id FROM semesters WHERE is_active = 1 ORDER BY id DESC LIMIT 1").Scan(&activeSem); err == nil && activeSem > 0 {
+			semesterID = activeSem
+		} else {
+			semesterID = 1
+		}
+	}
+
+	var achPoints int
+	_ = db.QueryRow(`
+		SELECT COALESCE(SUM(points), 0)
+		FROM student_achievement_points
+		WHERE student_id = ? AND semester_id = ? AND deleted_at IS NULL
+	`, studentID, semesterID).Scan(&achPoints)
+
+	var violPoints int
+	_ = db.QueryRow(`
+		SELECT COALESCE(SUM(points), 0)
+		FROM student_violation_points
+		WHERE student_id = ? AND semester_id = ? AND deleted_at IS NULL
+	`, studentID, semesterID).Scan(&violPoints)
+
+	// Ensure record exists and update points in semester_scores
+	_, err := db.Exec(`
+		INSERT INTO semester_scores (student_id, semester_id, achievement_points, violation_points)
+		VALUES (?, ?, ?, ?)
+		ON CONFLICT(student_id, semester_id) DO UPDATE SET
+			achievement_points = excluded.achievement_points,
+			violation_points = excluded.violation_points
+	`, studentID, semesterID, achPoints, violPoints)
+	if err != nil {
+		return err
+	}
+
+	// Normalize achievement score
+	_, _ = NormalizeAchievementPoints(db, studentID, semesterID)
+
+	// Recalculate violation burden and composite score
+	recalculateViolationBurden(db, studentID, semesterID)
+
+	return nil
+}
+
 // AddAchievementPoint records an achievement point for a student
 func AddAchievementPoint(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		studentID := c.FormValue("student_id")
-		ruleID := c.FormValue("rule_id")
-		pointsStr := c.FormValue("points")
-		description := c.FormValue("description")
-		recordedBy := c.FormValue("recorded_by")
-		academicYear := c.FormValue("academic_year")
+		input := parsePointInput(c)
+		studentID := input["student_id"]
+		ruleID := input["rule_id"]
+		pointsStr := input["points"]
+		description := input["description"]
+		recordedBy := input["recorded_by"]
+		academicYear := input["academic_year"]
 
 		if studentID == "" {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": "student_id required"})
@@ -393,7 +499,27 @@ func AddAchievementPoint(db *sql.DB) echo.HandlerFunc {
 			academicYear = repository.CurrentAcademicYear()
 		}
 		if recordedBy == "" {
-			recordedBy = "Admin"
+			if u := c.Get("user"); u != nil {
+				if uname, ok := u.(string); ok && uname != "" {
+					recordedBy = uname
+				}
+			}
+			if recordedBy == "" {
+				recordedBy = "Admin"
+			}
+		}
+
+		semesterID := 1
+		if semStr := input["semester_id"]; semStr != "" {
+			if s, err := strconv.Atoi(semStr); err == nil && s > 0 {
+				semesterID = s
+			}
+		}
+		if semesterID <= 1 {
+			var activeSem int
+			if err := db.QueryRow("SELECT id FROM semesters WHERE is_active = 1 ORDER BY id DESC LIMIT 1").Scan(&activeSem); err == nil && activeSem > 0 {
+				semesterID = activeSem
+			}
 		}
 
 		// Get max points config
@@ -467,9 +593,9 @@ func AddAchievementPoint(db *sql.DB) echo.HandlerFunc {
 		}
 
 		result, err := db.Exec(`
-			INSERT INTO student_achievement_points (student_id, rule_id, points, description, recorded_by, academic_year)
-			VALUES (?, ?, ?, ?, ?, ?)
-		`, studentID, ruleIDPtr, points, description, recordedBy, academicYear)
+			INSERT INTO student_achievement_points (student_id, rule_id, points, description, recorded_by, academic_year, semester_id)
+			VALUES (?, ?, ?, ?, ?, ?, ?)
+		`, studentID, ruleIDPtr, points, description, recordedBy, academicYear, semesterID)
 
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
@@ -485,8 +611,14 @@ func AddAchievementPoint(db *sql.DB) echo.HandlerFunc {
 			"description":   description,
 			"recorded_by":   recordedBy,
 			"academic_year": academicYear,
+			"semester_id":   semesterID,
 		}
 		LogAuditTrail(db, c, "INSERT", "student_achievement_points", int(insertID), nil, newData, "")
+
+		// Auto-recalculate composite score
+		if sidInt, err := strconv.Atoi(studentID); err == nil {
+			_ = RecalculateSingleStudentCompositeScore(db, sidInt, semesterID)
+		}
 
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"message": "Poin penghargaan berhasil dicatat",
@@ -498,12 +630,13 @@ func AddAchievementPoint(db *sql.DB) echo.HandlerFunc {
 // AddViolationPoint records a violation point for a student
 func AddViolationPoint(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		studentID := c.FormValue("student_id")
-		ruleID := c.FormValue("rule_id")
-		occurrenceStr := c.FormValue("occurrence")
-		description := c.FormValue("description")
-		recordedBy := c.FormValue("recorded_by")
-		academicYear := c.FormValue("academic_year")
+		input := parsePointInput(c)
+		studentID := input["student_id"]
+		ruleID := input["rule_id"]
+		occurrenceStr := input["occurrence"]
+		description := input["description"]
+		recordedBy := input["recorded_by"]
+		academicYear := input["academic_year"]
 
 		if studentID == "" || ruleID == "" {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": "student_id dan rule_id required"})
@@ -512,7 +645,27 @@ func AddViolationPoint(db *sql.DB) echo.HandlerFunc {
 			academicYear = repository.CurrentAcademicYear()
 		}
 		if recordedBy == "" {
-			recordedBy = "Admin"
+			if u := c.Get("user"); u != nil {
+				if uname, ok := u.(string); ok && uname != "" {
+					recordedBy = uname
+				}
+			}
+			if recordedBy == "" {
+				recordedBy = "Admin"
+			}
+		}
+
+		semesterID := 1
+		if semStr := input["semester_id"]; semStr != "" {
+			if s, err := strconv.Atoi(semStr); err == nil && s > 0 {
+				semesterID = s
+			}
+		}
+		if semesterID <= 1 {
+			var activeSem int
+			if err := db.QueryRow("SELECT id FROM semesters WHERE is_active = 1 ORDER BY id DESC LIMIT 1").Scan(&activeSem); err == nil && activeSem > 0 {
+				semesterID = activeSem
+			}
 		}
 
 		occurrence, _ := strconv.Atoi(occurrenceStr)
@@ -540,18 +693,38 @@ func AddViolationPoint(db *sql.DB) echo.HandlerFunc {
 			description = "Pelanggaran: " + ruleName
 		}
 
-		_, err = db.Exec(`
-			INSERT INTO student_violation_points (student_id, rule_id, occurrence, points, description, recorded_by, academic_year)
-			VALUES (?, ?, ?, ?, ?, ?, ?)
-		`, studentID, ruleID, occurrence, points, description, recordedBy, academicYear)
+		result, err := db.Exec(`
+			INSERT INTO student_violation_points (student_id, rule_id, occurrence, points, description, recorded_by, academic_year, semester_id)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		`, studentID, ruleID, occurrence, points, description, recordedBy, academicYear, semesterID)
 
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		}
 
+		// Log audit trail
+		insertID, _ := result.LastInsertId()
+		newData := map[string]interface{}{
+			"id":            insertID,
+			"student_id":    studentID,
+			"rule_id":       ruleID,
+			"occurrence":    occurrence,
+			"points":        points,
+			"description":   description,
+			"recorded_by":   recordedBy,
+			"academic_year": academicYear,
+			"semester_id":   semesterID,
+		}
+		LogAuditTrail(db, c, "INSERT", "student_violation_points", int(insertID), nil, newData, "")
+
+		// Auto-recalculate composite score
+		if sidInt, err := strconv.Atoi(studentID); err == nil {
+			_ = RecalculateSingleStudentCompositeScore(db, sidInt, semesterID)
+		}
+
 		// Check violation level for response
 		var totalViolation int
-		db.QueryRow(`SELECT COALESCE(SUM(points),0) FROM student_violation_points WHERE student_id = ? AND academic_year = ?`,
+		db.QueryRow(`SELECT COALESCE(SUM(points),0) FROM student_violation_points WHERE student_id = ? AND academic_year = ? AND deleted_at IS NULL`,
 			studentID, academicYear).Scan(&totalViolation)
 
 		return c.JSON(http.StatusOK, map[string]interface{}{
@@ -567,8 +740,12 @@ func AddViolationPoint(db *sql.DB) echo.HandlerFunc {
 func DeleteAchievementPoint(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		id := c.Param("id")
-		reason := c.FormValue("reason") // Alasan penghapusan
-		
+		input := parsePointInput(c)
+		reason := input["reason"]
+		if reason == "" {
+			reason = c.QueryParam("reason")
+		}
+
 		// Check authorization - only kepala_sekolah or superadmin can delete
 		if !CheckAdminRole(c, "kepala_sekolah") {
 			return c.JSON(http.StatusForbidden, map[string]string{
@@ -594,7 +771,7 @@ func DeleteAchievementPoint(db *sql.DB) echo.HandlerFunc {
 		// Get user info
 		deletedBy := "Admin"
 		if user := c.Get("user"); user != nil {
-			if username, ok := user.(string); ok {
+			if username, ok := user.(string); ok && username != "" {
 				deletedBy = username
 			}
 		}
@@ -610,6 +787,18 @@ func DeleteAchievementPoint(db *sql.DB) echo.HandlerFunc {
 		// Log audit trail
 		LogAuditTrail(db, c, "DELETE", "student_achievement_points", recordID, oldData, nil, reason)
 
+		// Auto-recalculate composite score
+		if sidRaw, ok := oldData["student_id"]; ok {
+			sidInt := toIntVal(sidRaw)
+			semID := toIntVal(oldData["semester_id"])
+			if semID <= 0 {
+				semID = 1
+			}
+			if sidInt > 0 {
+				_ = RecalculateSingleStudentCompositeScore(db, sidInt, semID)
+			}
+		}
+
 		return c.JSON(http.StatusOK, map[string]string{
 			"message": "Poin penghargaan berhasil dihapus",
 		})
@@ -620,8 +809,12 @@ func DeleteAchievementPoint(db *sql.DB) echo.HandlerFunc {
 func DeleteViolationPoint(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		id := c.Param("id")
-		reason := c.FormValue("reason") // Alasan penghapusan
-		
+		input := parsePointInput(c)
+		reason := input["reason"]
+		if reason == "" {
+			reason = c.QueryParam("reason")
+		}
+
 		// Check authorization - only kepala_sekolah or superadmin can delete
 		if !CheckAdminRole(c, "kepala_sekolah") {
 			return c.JSON(http.StatusForbidden, map[string]string{
@@ -647,7 +840,7 @@ func DeleteViolationPoint(db *sql.DB) echo.HandlerFunc {
 		// Get user info
 		deletedBy := "Admin"
 		if user := c.Get("user"); user != nil {
-			if username, ok := user.(string); ok {
+			if username, ok := user.(string); ok && username != "" {
 				deletedBy = username
 			}
 		}
@@ -662,6 +855,18 @@ func DeleteViolationPoint(db *sql.DB) echo.HandlerFunc {
 
 		// Log audit trail
 		LogAuditTrail(db, c, "DELETE", "student_violation_points", recordID, oldData, nil, reason)
+
+		// Auto-recalculate composite score
+		if sidRaw, ok := oldData["student_id"]; ok {
+			sidInt := toIntVal(sidRaw)
+			semID := toIntVal(oldData["semester_id"])
+			if semID <= 0 {
+				semID = 1
+			}
+			if sidInt > 0 {
+				_ = RecalculateSingleStudentCompositeScore(db, sidInt, semID)
+			}
+		}
 
 		return c.JSON(http.StatusOK, map[string]string{
 			"message": "Poin pelanggaran berhasil dihapus",
@@ -768,5 +973,81 @@ func GetClassDualPointSummary(db *sql.DB) echo.HandlerFunc {
 			items = []ClassSummary{}
 		}
 		return c.JSON(http.StatusOK, items)
+	}
+}
+
+// GetDualPointRecentActivities returns the latest achievement and violation point activities
+func GetDualPointRecentActivities(db *sql.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		academicYear := c.QueryParam("year")
+		if academicYear == "" {
+			academicYear = repository.CurrentAcademicYear()
+		}
+
+		type ActivityItem struct {
+			ID          int    `json:"id"`
+			Type        string `json:"type"`
+			StudentID   int    `json:"student_id"`
+			StudentName string `json:"student_name"`
+			ClassName   string `json:"class_name"`
+			Points      int    `json:"points"`
+			Description string `json:"description"`
+			RecordedBy  string `json:"recorded_by"`
+			CreatedAt   string `json:"created_at"`
+		}
+
+		var achievements []ActivityItem
+		aRows, err := db.Query(`
+			SELECT sap.id, sap.student_id, s.name, COALESCE(c.name, '-'), sap.points, sap.description, COALESCE(sap.recorded_by, 'Admin'), COALESCE(sap.created_at, '')
+			FROM student_achievement_points sap
+			JOIN students s ON sap.student_id = s.id
+			LEFT JOIN classes c ON s.class_id = c.id
+			WHERE sap.academic_year = ? AND sap.deleted_at IS NULL
+			ORDER BY sap.id DESC
+			LIMIT 10
+		`, academicYear)
+		if err == nil {
+			defer aRows.Close()
+			for aRows.Next() {
+				var it ActivityItem
+				it.Type = "achievement"
+				if err := aRows.Scan(&it.ID, &it.StudentID, &it.StudentName, &it.ClassName, &it.Points, &it.Description, &it.RecordedBy, &it.CreatedAt); err == nil {
+					achievements = append(achievements, it)
+				}
+			}
+		}
+
+		var violations []ActivityItem
+		vRows, err := db.Query(`
+			SELECT svp.id, svp.student_id, s.name, COALESCE(c.name, '-'), svp.points, svp.description, COALESCE(svp.recorded_by, 'Admin'), COALESCE(svp.created_at, '')
+			FROM student_violation_points svp
+			JOIN students s ON svp.student_id = s.id
+			LEFT JOIN classes c ON s.class_id = c.id
+			WHERE svp.academic_year = ? AND svp.deleted_at IS NULL
+			ORDER BY svp.id DESC
+			LIMIT 10
+		`, academicYear)
+		if err == nil {
+			defer vRows.Close()
+			for vRows.Next() {
+				var it ActivityItem
+				it.Type = "violation"
+				if err := vRows.Scan(&it.ID, &it.StudentID, &it.StudentName, &it.ClassName, &it.Points, &it.Description, &it.RecordedBy, &it.CreatedAt); err == nil {
+					violations = append(violations, it)
+				}
+			}
+		}
+
+		if achievements == nil {
+			achievements = []ActivityItem{}
+		}
+		if violations == nil {
+			violations = []ActivityItem{}
+		}
+
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"achievements": achievements,
+			"violations":   violations,
+		})
 	}
 }

@@ -1,239 +1,34 @@
 package handler
 
 import (
-	"bytes"
-	"encoding/base64"
+	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
-	"os"
 	"strconv"
-	"time"
 
 	"github.com/labstack/echo/v4"
 )
 
-type FaceServiceConfig struct {
-	BaseURL string
-}
-
-var faceService = FaceServiceConfig{
-	BaseURL: os.Getenv("FACE_SERVICE_URL"),
-}
-
-func SetFaceServiceURL(url string) {
-	faceService.BaseURL = url
-}
-
-func GetFaceServiceURL() string {
-	if faceService.BaseURL == "" {
-		return "http://localhost:8001"
+func getDB(db interface{}) *sql.DB {
+	if sqlDB, ok := db.(*sql.DB); ok {
+		return sqlDB
 	}
-	return faceService.BaseURL
+	return nil
 }
 
-type FaceRegisterRequest struct {
-	StudentID   int    `json:"student_id"`
-	Name        string `json:"name"`
-	ClassName   string `json:"class_name"`
-	ImageBase64 string `json:"image_base64"`
+type FaceDescriptorItem struct {
+	StudentID  int         `json:"student_id"`
+	Name       string      `json:"name"`
+	NIS        string      `json:"nis"`
+	ClassName  string      `json:"class_name"`
+	Photo      string      `json:"photo"`
+	Descriptor []float64   `json:"descriptor"`
 }
 
-type FaceVerifyRequest struct {
-	ImageBase64 string `json:"image_base64"`
-}
-
-type FaceVerifyResponse struct {
-	Matched   bool    `json:"matched"`
-	StudentID int     `json:"student_id"`
-	Name      string  `json:"name"`
-	ClassName string  `json:"class_name"`
-	Distance  float64 `json:"distance"`
-	Message   string  `json:"message"`
-}
-
-type FaceRegisterResponse struct {
-	Success   bool   `json:"success"`
-	StudentID int    `json:"student_id"`
-	Message   string `json:"message"`
-}
-
-func RegisterFace(db interface{}) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		studentIDStr := c.QueryParam("student_id")
-		studentID, err := strconv.Atoi(studentIDStr)
-		if err != nil {
-			return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid student ID"})
-		}
-
-		name := c.QueryParam("name")
-		className := c.QueryParam("class_name")
-
-		file, err := c.FormFile("image")
-		if err != nil {
-			return c.JSON(http.StatusBadRequest, map[string]string{"message": "No image provided"})
-		}
-
-		src, err := file.Open()
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to open image"})
-		}
-		defer src.Close()
-
-		imageData, err := io.ReadAll(src)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to read image"})
-		}
-
-		faceURL := GetFaceServiceURL() + "/register"
-
-		// Create JSON body with all data
-		reqBody := map[string]interface{}{
-			"student_id": studentID,
-			"name":       name,
-			"class_name": className,
-			"image_base64": base64.StdEncoding.EncodeToString(imageData),
-		}
-		reqJSON, _ := json.Marshal(reqBody)
-
-		req, err := http.NewRequest("POST", faceURL, bytes.NewBuffer(reqJSON))
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to create request"})
-		}
-
-		req.Header.Set("Content-Type", "application/json")
-
-		client := &http.Client{Timeout: 60 * time.Second}
-		resp, err := client.Do(req)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Face service error: " + err.Error()})
-		}
-		defer resp.Body.Close()
-
-		body, _ := io.ReadAll(resp.Body)
-
-		if resp.StatusCode != http.StatusOK {
-			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"message": fmt.Sprintf("Face service returned %d: %s", resp.StatusCode, string(body)),
-			})
-		}
-
-		var result FaceRegisterResponse
-		if err := json.Unmarshal(body, &result); err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Invalid response from face service"})
-		}
-
-		if !result.Success {
-			return c.JSON(http.StatusBadRequest, map[string]string{"message": result.Message})
-		}
-
-		return c.JSON(http.StatusOK, map[string]string{
-			"status":  "success",
-			"message": fmt.Sprintf("Face registered for %s", name),
-		})
-	}
-}
-
-func VerifyFace(db interface{}) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		type VerifyRequest struct {
-			Image string `json:"image_base64"`
-		}
-
-		var req VerifyRequest
-		if err := c.Bind(&req); err != nil {
-			return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid request"})
-		}
-
-		faceURL := GetFaceServiceURL() + "/verify"
-
-		payload, _ := json.Marshal(map[string]string{"image_base64": req.Image})
-
-		resp, err := http.Post(faceURL, "application/json", bytes.NewBuffer(payload))
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Face service error: " + err.Error()})
-		}
-		defer resp.Body.Close()
-
-		body, _ := io.ReadAll(resp.Body)
-
-		if resp.StatusCode != http.StatusOK {
-			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"message": fmt.Sprintf("Face service returned %d: %s", resp.StatusCode, string(body)),
-			})
-		}
-
-		var result FaceVerifyResponse
-		if err := json.Unmarshal(body, &result); err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Invalid response from face service"})
-		}
-
-		if !result.Matched {
-			return c.JSON(http.StatusOK, map[string]string{
-				"status":  "not_matched",
-				"message": result.Message,
-			})
-		}
-
-		return c.JSON(http.StatusOK, map[string]interface{}{
-			"status":     "matched",
-			"student_id": result.StudentID,
-			"name":       result.Name,
-			"class_name": result.ClassName,
-			"distance":   result.Distance,
-		})
-	}
-}
-
-func ListFaces(db interface{}) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		faceURL := GetFaceServiceURL() + "/faces"
-
-		resp, err := http.Get(faceURL)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Face service error: " + err.Error()})
-		}
-		defer resp.Body.Close()
-
-		body, _ := io.ReadAll(resp.Body)
-
-		if resp.StatusCode != http.StatusOK {
-			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"message": fmt.Sprintf("Face service returned %d", resp.StatusCode),
-			})
-		}
-
-		c.Response().Header().Set("Content-Type", "application/json")
-		c.Response().Write(body)
-		return nil
-	}
-}
-
-func DeleteFace(db interface{}) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		studentID := c.Param("student_id")
-
-		faceURL := GetFaceServiceURL() + "/face/" + studentID
-
-		req, _ := http.NewRequest("DELETE", faceURL, nil)
-		client := &http.Client{Timeout: 10 * time.Second}
-		resp, err := client.Do(req)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Face service error: " + err.Error()})
-		}
-		defer resp.Body.Close()
-
-		body, _ := io.ReadAll(resp.Body)
-
-		if resp.StatusCode != http.StatusOK {
-			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"message": fmt.Sprintf("Face service returned %d: %s", resp.StatusCode, string(body)),
-			})
-		}
-
-		return c.JSON(http.StatusOK, map[string]string{"message": "Face deleted"})
-	}
+type SaveFaceDescriptorRequest struct {
+	StudentID  int         `json:"student_id"`
+	Descriptor []float64   `json:"descriptor"`
 }
 
 type FaceStatusResponse struct {
@@ -243,57 +38,226 @@ type FaceStatusResponse struct {
 	ClassName  string `json:"class_name,omitempty"`
 }
 
+func ensureFaceTable(db *sql.DB) {
+	if db == nil {
+		return
+	}
+	db.Exec(`CREATE TABLE IF NOT EXISTS student_faces (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		student_id INTEGER NOT NULL UNIQUE,
+		descriptor TEXT NOT NULL,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+	)`)
+}
+
+// GetFaceDescriptors returns all enrolled students with their 128-float face descriptors
+// for edge-matching on tablet/kiosk browser memory.
+func GetFaceDescriptors(db interface{}) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		database := getDB(db)
+		if database == nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Database error"})
+		}
+		ensureFaceTable(database)
+
+		rows, err := database.Query(`
+			SELECT sf.student_id, sf.descriptor, s.name, COALESCE(s.nis, ''), COALESCE(c.name, ''), COALESCE(s.photo, '')
+			FROM student_faces sf
+			JOIN students s ON sf.student_id = s.id
+			LEFT JOIN classes c ON s.class_id = c.id
+			ORDER BY s.name ASC
+		`)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Gagal mengambil data wajah: " + err.Error()})
+		}
+		defer rows.Close()
+
+		var list []FaceDescriptorItem
+		for rows.Next() {
+			var item FaceDescriptorItem
+			var descStr string
+			if err := rows.Scan(&item.StudentID, &descStr, &item.Name, &item.NIS, &item.ClassName, &item.Photo); err != nil {
+				continue
+			}
+
+			if err := json.Unmarshal([]byte(descStr), &item.Descriptor); err == nil && len(item.Descriptor) > 0 {
+				list = append(list, item)
+			}
+		}
+
+		return c.JSON(http.StatusOK, list)
+	}
+}
+
+// SaveFaceDescriptor saves or updates the 128-float face descriptor of a student.
+func SaveFaceDescriptor(db interface{}) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		database := getDB(db)
+		if database == nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Database error"})
+		}
+		ensureFaceTable(database)
+
+		var req SaveFaceDescriptorRequest
+		if err := c.Bind(&req); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid request body"})
+		}
+
+		if req.StudentID <= 0 || len(req.Descriptor) == 0 {
+			return c.JSON(http.StatusBadRequest, map[string]string{"message": "student_id dan descriptor wajib diisi"})
+		}
+
+		descBytes, err := json.Marshal(req.Descriptor)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Gagal serialisasi descriptor"})
+		}
+
+		// Verify student exists
+		var studentName string
+		err = database.QueryRow("SELECT name FROM students WHERE id = ?", req.StudentID).Scan(&studentName)
+		if err != nil {
+			return c.JSON(http.StatusNotFound, map[string]string{"message": "Siswa tidak ditemukan"})
+		}
+
+		// Insert or replace in SQLite
+		query := `
+			INSERT INTO student_faces (student_id, descriptor, updated_at)
+			VALUES (?, ?, CURRENT_TIMESTAMP)
+			ON CONFLICT(student_id) DO UPDATE SET
+				descriptor = excluded.descriptor,
+				updated_at = CURRENT_TIMESTAMP
+		`
+		if _, err := database.Exec(query, req.StudentID, string(descBytes)); err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Gagal menyimpan descriptor: " + err.Error()})
+		}
+
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"status":     "success",
+			"message":    fmt.Sprintf("Wajah %s berhasil didaftarkan", studentName),
+			"student_id": req.StudentID,
+		})
+	}
+}
+
+// RegisterFace handles both JSON descriptors and form submissions
+func RegisterFace(db interface{}) echo.HandlerFunc {
+	return SaveFaceDescriptor(db)
+}
+
+// GetFaceStatus checks if a student is already enrolled in face recognition
 func GetFaceStatus(db interface{}) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		database := getDB(db)
+		if database == nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Database error"})
+		}
+		ensureFaceTable(database)
+
 		studentIDStr := c.QueryParam("student_id")
 		studentID, err := strconv.Atoi(studentIDStr)
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid student ID"})
 		}
 
-		faceURL := GetFaceServiceURL() + "/faces"
+		var name, className sql.NullString
+		var count int
+		err = database.QueryRow(`
+			SELECT COUNT(sf.id), s.name, c.name
+			FROM students s
+			LEFT JOIN student_faces sf ON sf.student_id = s.id
+			LEFT JOIN classes c ON s.class_id = c.id
+			WHERE s.id = ?
+			GROUP BY s.id`, studentID).Scan(&count, &name, &className)
 
-		resp, err := http.Get(faceURL)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Face service error: " + err.Error()})
-		}
-		defer resp.Body.Close()
-
-		body, _ := io.ReadAll(resp.Body)
-
-		if resp.StatusCode != http.StatusOK {
-			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"message": fmt.Sprintf("Face service returned %d", resp.StatusCode),
+			return c.JSON(http.StatusOK, FaceStatusResponse{
+				Registered: false,
+				StudentID:  studentID,
 			})
 		}
 
-		var result struct {
-			Count int `json:"count"`
-			Faces []struct {
-				StudentID int    `json:"student_id"`
-				Name      string `json:"name"`
-				ClassName string `json:"class_name"`
-			} `json:"faces"`
+		return c.JSON(http.StatusOK, FaceStatusResponse{
+			Registered: count > 0,
+			StudentID:  studentID,
+			Name:       name.String,
+			ClassName:  className.String,
+		})
+	}
+}
+
+// ListFaces returns a summary of all registered faces
+func ListFaces(db interface{}) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		database := getDB(db)
+		if database == nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Database error"})
 		}
 
-		if err := json.Unmarshal(body, &result); err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Invalid response from face service"})
+		rows, err := database.Query(`
+			SELECT sf.student_id, s.name, COALESCE(c.name, ''), sf.updated_at
+			FROM student_faces sf
+			JOIN students s ON sf.student_id = s.id
+			LEFT JOIN classes c ON s.class_id = c.id
+			ORDER BY s.name ASC
+		`)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+		}
+		defer rows.Close()
+
+		type FaceInfo struct {
+			StudentID int    `json:"student_id"`
+			Name      string `json:"name"`
+			ClassName string `json:"class_name"`
+			UpdatedAt string `json:"updated_at"`
 		}
 
-		for _, face := range result.Faces {
-			if face.StudentID == studentID {
-				return c.JSON(http.StatusOK, FaceStatusResponse{
-					Registered: true,
-					StudentID:  studentID,
-					Name:       face.Name,
-					ClassName:  face.ClassName,
-				})
+		var faces []FaceInfo
+		for rows.Next() {
+			var f FaceInfo
+			if err := rows.Scan(&f.StudentID, &f.Name, &f.ClassName, &f.UpdatedAt); err == nil {
+				faces = append(faces, f)
 			}
 		}
 
-		return c.JSON(http.StatusOK, FaceStatusResponse{
-			Registered: false,
-			StudentID:  studentID,
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"count": len(faces),
+			"faces": faces,
+		})
+	}
+}
+
+// DeleteFace deletes a student's face enrollment
+func DeleteFace(db interface{}) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		database := getDB(db)
+		if database == nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Database error"})
+		}
+
+		studentID := c.Param("student_id")
+		res, err := database.Exec("DELETE FROM student_faces WHERE student_id = ?", studentID)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+		}
+
+		rowsAffected, _ := res.RowsAffected()
+		if rowsAffected == 0 {
+			return c.JSON(http.StatusNotFound, map[string]string{"message": "Data wajah tidak ditemukan"})
+		}
+
+		return c.JSON(http.StatusOK, map[string]string{"message": "Data wajah berhasil dihapus"})
+	}
+}
+
+// VerifyFace placeholder for backward compatibility
+func VerifyFace(db interface{}) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]string{
+			"status":  "info",
+			"message": "Gunakan /api/attendance/verify-face dengan student_id hasil client-side match",
 		})
 	}
 }

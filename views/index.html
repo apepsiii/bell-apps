@@ -1,221 +1,628 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SMK NIBA Super Apps Player</title>
+    <title>SMK NIBA Super Apps — Smart School Terminal & Automated Ecosystem</title>
+
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: ['selector', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: {
+                        zinc: {
+                            50: '#fafafa',
+                            100: '#f4f4f5',
+                            200: '#e4e4e7',
+                            300: '#d4d4d8',
+                            400: '#a1a1aa',
+                            500: '#71717a',
+                            600: '#52525b',
+                            700: '#3f3f46',
+                            800: '#27272a',
+                            900: '#18181b',
+                            950: '#09090b',
+                        },
+                        brand: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            200: '#ddd6fe',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            900: '#1e1b4b',
+                            dark: '#131326',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'Inter', '-apple-system', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    borderRadius: {
+                        '4xl': '2rem',
+                        '5xl': '2.5rem',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Archivo+Black&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Pre-paint Theme Script -->
+    <script>
+        (function () {
+            var savedTheme = localStorage.getItem('app-theme') || localStorage.getItem('stisla-theme');
+            if (savedTheme === 'dark') {
+                document.documentElement.dataset.theme = 'dark';
+            } else if (savedTheme === 'light') {
+                document.documentElement.dataset.theme = 'light';
+            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.dataset.theme = 'dark';
+            }
+        })();
+    </script>
+
     <style>
-        :root {
-            --black: #000000;
-            --yellow: #FFE45C;
-            --pink: #FF6B9D;
-            --cyan: #4ECDC4;
-            --lime: #C6F432;
-            --orange: #FF8C42;
-            --cream: #FFF8E7;
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
         }
-        * { font-family: 'Space Grotesk', sans-serif; }
-        .font-display { font-family: 'Archivo Black', sans-serif; letter-spacing: -0.02em; }
-        .font-mono { font-family: 'JetBrains Mono', monospace; }
 
-        body { background-color: var(--cream); }
-
-        /* Neobrutalism core: thick black border + hard offset shadow */
-        .nb-border { border: 4px solid var(--black); }
-        .nb-shadow { box-shadow: 8px 8px 0 0 var(--black); }
-        .nb-shadow-sm { box-shadow: 4px 4px 0 0 var(--black); }
-        .nb-shadow-lg { box-shadow: 12px 12px 0 0 var(--black); }
-
-        /* Interactive press effect */
-        .nb-press { transition: transform 0.1s ease, box-shadow 0.1s ease; }
-        .nb-press:hover { transform: translate(-2px, -2px); box-shadow: 12px 12px 0 0 var(--black); }
-        .nb-press:active { transform: translate(4px, 4px); box-shadow: 4px 4px 0 0 var(--black); }
-
-        /* Rotating sticker badges */
-        .tilt-l { transform: rotate(-3deg); }
-        .tilt-r { transform: rotate(3deg); }
-
-        /* Marquee status bar */
-        @keyframes marquee {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+            font-feature-settings: "tnum";
+            font-variant-numeric: tabular-nums;
         }
-        .marquee-track { animation: marquee 30s linear infinite; }
 
-        /* Pulse dot */
-        @keyframes nb-pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.4); }
+        /* Subtle ambient backdrop matching reference */
+        .ambient-bg {
+            background-color: #f0edf6;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(139, 92, 246, 0.08) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(192, 132, 252, 0.08) 0px, transparent 50%),
+                radial-gradient(at 50% 100%, rgba(99, 102, 241, 0.06) 0px, transparent 50%);
         }
-        .nb-pulse { animation: nb-pulse 1.2s ease-in-out infinite; }
 
-        /* Confetti background dots */
-        .bg-dots {
-            background-image: radial-gradient(var(--black) 2px, transparent 2px);
-            background-size: 32px 32px;
+        [data-theme="dark"] .ambient-bg {
+            background-color: #06060c;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(124, 58, 237, 0.12) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.08) 0px, transparent 50%);
         }
+
+        /* Glassmorphism */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+
+        [data-theme="dark"] .glass-card {
+            background: rgba(18, 18, 26, 0.7);
+        }
+
+        /* Soundwave animation */
+        @keyframes soundwave {
+            0%, 100% { height: 6px; }
+            50% { height: 24px; }
+        }
+        .sound-bar {
+            animation: soundwave 1.2s infinite ease-in-out;
+        }
+        .sound-bar:nth-child(2) { animation-delay: 0.2s; }
+        .sound-bar:nth-child(3) { animation-delay: 0.4s; }
+        .sound-bar:nth-child(4) { animation-delay: 0.1s; }
+        .sound-bar:nth-child(5) { animation-delay: 0.3s; }
     </style>
 </head>
-<body class="h-screen flex flex-col overflow-hidden bg-dots">
 
-    <!-- START OVERLAY -->
-    <div id="start-overlay" class="fixed inset-0 z-50 flex flex-col items-center justify-center p-6 text-center" style="background-color: var(--yellow);">
-        <div class="absolute inset-0 bg-dots opacity-30 pointer-events-none"></div>
-        <div class="relative z-10 flex flex-col items-center">
-            <div class="nb-border nb-shadow bg-[var(--pink)] p-6 mb-8 tilt-l">
-                <i data-lucide="bell" class="w-16 h-16 text-black"></i>
-            </div>
-            <h1 class="font-display text-6xl md:text-7xl text-black mb-3">SMK NIBA Super Apps</h1>
-            <p class="font-bold text-black/70 text-lg mb-8 max-w-md">Klik layar untuk mengaktifkan audio &amp; memulai sistem bel otomatis.</p>
-            <button onclick="startSystem()" class="nb-border nb-shadow nb-press bg-black text-[var(--yellow)] font-display text-2xl px-10 py-4">
-                AKTIFKAN SISTEN →
-            </button>
+<body class="ambient-bg min-h-screen text-zinc-900 dark:text-zinc-100 transition-colors duration-300 py-4 sm:py-8 px-2 sm:px-6 lg:px-8 selection:bg-zinc-900 selection:text-white dark:selection:bg-zinc-100 dark:selection:text-zinc-900">
+
+    <!-- TOP EYEBROW META (Matching reference header subtitle) -->
+    <div class="max-w-6xl mx-auto px-4 pb-3 flex items-center justify-between text-[11px] font-medium tracking-tight text-zinc-500 dark:text-zinc-400">
+        <div class="flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Sistem Otomasi Sekolah Cerdas</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <span>SMK NIBA Business School</span>
+            <span class="hidden sm:inline text-zinc-300 dark:text-zinc-700">•</span>
+            <span class="hidden sm:inline font-mono">Terminal v{{if .AppVersion}}{{.AppVersion}}{{else}}2.1.0{{end}}</span>
         </div>
     </div>
 
-    <!-- MAIN -->
-    <div class="flex-1 flex flex-col items-center justify-center relative px-6 py-4 gap-6">
+    <!-- MAIN FLOATING CANVAS (Curved Luxury Card ala BloomFi reference) -->
+    <div class="max-w-6xl mx-auto bg-white dark:bg-[#0c0c14] border border-zinc-200/90 dark:border-zinc-800/80 rounded-3xl sm:rounded-5xl shadow-2xl shadow-purple-950/5 overflow-hidden transition-all duration-300">
 
-        <!-- Clock Block -->
-        <div class="w-full max-w-5xl">
-            <div class="nb-border nb-shadow bg-[var(--cyan)] p-6 md:p-8 tilt-r">
-                <div class="flex items-center gap-2 mb-2">
-                    <span class="nb-border bg-black text-[var(--lime)] font-display text-xs px-2 py-1">LIVE</span>
-                    <span class="font-bold text-black/60 text-sm uppercase tracking-widest">Waktu Saat Ini</span>
+        <!-- ========================================== -->
+        <!-- 1. NAVIGATION HEADER -->
+        <!-- ========================================== -->
+        <header class="px-6 sm:px-10 py-5 flex items-center justify-between border-b border-zinc-100 dark:border-zinc-850/60">
+            <!-- Brand Logo -->
+            <a href="/" class="flex items-center gap-2.5 group">
+                <div class="w-7 h-7 rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center font-bold text-xs transition-transform group-hover:scale-105">
+                    <span class="text-xs">✦</span>
                 </div>
-                <h1 id="clock" class="font-mono font-bold text-black text-[5rem] md:text-[8rem] leading-none tabular-nums">
-                    00:00:00
-                </h1>
-                <div class="mt-2 font-display text-2xl md:text-3xl text-black/80" id="date">Memuat tanggal...</div>
-            </div>
-        </div>
+                <div class="flex items-baseline gap-1.5">
+                    <span class="font-bold text-sm tracking-tight text-zinc-900 dark:text-zinc-100">SMK NIBA</span>
+                    <span class="text-[10px] font-semibold text-zinc-400 tracking-wider uppercase">SuperApps</span>
+                </div>
+            </a>
 
-        <!-- Quick Access Buttons -->
-        <div class="w-full max-w-5xl">
-            <div class="flex gap-4 flex-wrap">
-                <a href="/admin/dual-point/dashboard" class="nb-border nb-shadow-sm nb-press bg-[var(--pink)] px-6 py-3 flex items-center gap-3">
-                    <i data-lucide="chart-bar" class="w-5 h-5 text-black"></i>
-                    <span class="font-bold text-black text-sm md:text-base">POINT MANAGEMENT</span>
+            <!-- Centered Nav Links -->
+            <nav class="hidden md:flex items-center gap-6 lg:gap-8 text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                <a href="#features" class="hover:text-zinc-950 dark:hover:text-zinc-100 transition-colors">Fitur Utama</a>
+                <a href="#terminal-schedule" class="hover:text-zinc-950 dark:hover:text-zinc-100 transition-colors">Jadwal Bel</a>
+                <a href="/scan" class="hover:text-zinc-950 dark:hover:text-zinc-100 transition-colors">Kiosk RFID</a>
+                <a href="/scan-face" class="hover:text-zinc-950 dark:hover:text-zinc-100 transition-colors">AI Face Scan</a>
+                <a href="#leaderboard-section" class="hover:text-zinc-950 dark:hover:text-zinc-100 transition-colors">Papan Prestasi</a>
+                <a href="/student/login" class="hover:text-zinc-950 dark:hover:text-zinc-100 transition-colors">Portal Siswa</a>
+            </nav>
+
+            <!-- Right Controls (Theme Toggle & Primary Action Pill) -->
+            <div class="flex items-center gap-2.5">
+                <!-- Theme Toggle -->
+                <button type="button" onclick="toggleAppTheme()" title="Ubah Tema"
+                    class="w-8 h-8 rounded-full border border-zinc-200 dark:border-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors">
+                    <i data-lucide="sun" class="w-3.5 h-3.5 hidden [data-theme='dark']_&amp;:block text-amber-400"></i>
+                    <i data-lucide="moon" class="w-3.5 h-3.5 block [data-theme='dark']_&amp;:hidden text-zinc-600"></i>
+                </button>
+
+                <!-- Admin Action Pill (Matching "Launch BETA" pill) -->
+                <a href="/admin"
+                    class="inline-flex items-center justify-center px-4 sm:px-5 py-2 rounded-full bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 text-xs font-semibold tracking-tight transition-all shadow-xs hover:shadow">
+                    <span>Admin Panel</span>
                 </a>
-                <a href="/admin" class="nb-border nb-shadow-sm nb-press bg-white px-6 py-3 flex items-center gap-3">
-                    <i data-lucide="settings" class="w-5 h-5 text-black"></i>
-                    <span class="font-bold text-black text-sm md:text-base">ADMIN PANEL</span>
+            </div>
+        </header>
+
+        <!-- ========================================== -->
+        <!-- 2. HERO SECTION -->
+        <!-- ========================================== -->
+        <section class="pt-12 sm:pt-16 pb-12 px-6 sm:px-12 text-center relative overflow-hidden">
+            <!-- Decorative Glow -->
+            <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-500/5 dark:bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+            <!-- Top Sparkle Icon -->
+            <div class="inline-flex items-center justify-center mb-4">
+                <span class="text-zinc-400 dark:text-zinc-500 text-sm">✦</span>
+            </div>
+
+            <!-- Main Headline -->
+            <h1 class="text-4xl sm:text-6xl lg:text-7xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50 max-w-4xl mx-auto leading-[1.12]">
+                Where Discipline Grows
+            </h1>
+
+            <!-- Subtitle -->
+            <p class="mt-4 text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 max-w-lg mx-auto leading-relaxed font-normal">
+                Ekosistem bel sekolah otomatis, presensi biometrik nirsentuh, dan pembinaan karakter siswa berbasis teknologi modern.
+            </p>
+
+            <!-- Center Pill CTA Button -->
+            <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+                <button type="button" onclick="startSystem()" id="hero-start-btn" aria-label="AKTIFKAN SISTEM"
+                    class="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-zinc-950 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-zinc-200 text-xs font-semibold tracking-tight transition-all shadow-md hover:shadow-lg">
+                    <i data-lucide="play" class="w-3.5 h-3.5 fill-current"></i>
+                    <span>Aktifkan Terminal & Bel</span><!-- AKTIFKAN SISTEM -->
+                </button>
+                <a href="/scan"
+                    class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-850 text-xs font-medium border border-zinc-200/80 dark:border-zinc-800 transition-all">
+                    <i data-lucide="qr-code" class="w-3.5 h-3.5"></i>
+                    <span>Kiosk Presensi Siswa</span>
                 </a>
             </div>
-        </div>
 
-        <!-- Next Bell Card -->
-        <div class="w-full max-w-5xl">
-            <div class="nb-border nb-shadow bg-[var(--orange)] p-5 md:p-6 flex items-center gap-4 md:gap-6">
-                <div class="nb-border nb-shadow-sm bg-black p-3 md:p-4">
-                    <i data-lucide="bell-ring" class="w-7 h-7 md:w-9 md:h-9 text-[var(--yellow)]"></i>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <p class="font-bold text-black/60 text-xs md:text-sm uppercase tracking-wider mb-1">Jadwal Berikutnya</p>
-                    <h2 id="next-label" class="font-display text-2xl md:text-4xl text-black truncate">Memuat...</h2>
-                </div>
-                <div class="nb-border bg-[var(--lime)] px-4 py-2 md:px-6 md:py-3">
-                    <div id="next-time" class="font-mono font-bold text-black text-3xl md:text-5xl tabular-nums">--:--</div>
-                </div>
-            </div>
-        </div>
+            <!-- Hero Visual Stage Card (Interactive Real-time Clock & Bell Stage) -->
+            <div id="terminal-schedule" class="mt-10 sm:mt-12 max-w-4xl mx-auto relative">
+                <div class="bg-gradient-to-b from-zinc-100/80 to-zinc-50 dark:from-zinc-900/90 dark:to-zinc-950/80 border border-zinc-200/80 dark:border-zinc-800/80 rounded-3xl p-6 sm:p-10 shadow-sm relative overflow-hidden text-left">
+                    
+                    <!-- Background ambient subtle radial -->
+                    <div class="absolute -right-20 -top-20 w-72 h-72 bg-purple-500/5 rounded-full blur-3xl pointer-events-none"></div>
 
-        <!-- Leaderboard -->
-        <div class="w-full max-w-5xl">
-            <div class="nb-border nb-shadow bg-[var(--lime)] p-5 md:p-6">
-                <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
-                    <h3 class="font-display text-2xl md:text-3xl text-black flex items-center gap-3">
-                        <span class="nb-border bg-black text-[var(--yellow)] w-11 h-11 flex items-center justify-center text-xl">🏆</span>
-                        PAPAN POIN SISWA
-                    </h3>
-                    <span class="nb-border bg-black text-[var(--cream)] font-bold text-xs px-3 py-1">UPDATE 5 MENIT</span>
-                </div>
-                <div id="leaderboard-container" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="col-span-3 text-center py-8 font-display text-2xl text-black/40">
-                        Memuat leaderboard...
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                        
+                        <!-- Left: Digital Clock & Calendar (7 Cols) -->
+                        <div class="md:col-span-7 space-y-3">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                <span class="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">WAKTU SERVER PRESISI</span>
+                                <span class="text-zinc-300 dark:text-zinc-700">•</span>
+                                <span class="text-[11px] font-mono text-zinc-400">WIB (UTC+7)</span>
+                            </div>
+
+                            <!-- Digital Clock Display -->
+                            <div id="clock" class="mono text-5xl sm:text-7xl font-bold tracking-tight text-zinc-950 dark:text-zinc-50 select-none">
+                                00:00:00
+                            </div>
+
+                            <div class="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400">
+                                <span id="date" class="font-medium">Memuat tanggal...</span>
+                                <span>•</span>
+                                <span class="font-mono text-zinc-400"><span id="nav-schedule-count" class="font-semibold text-zinc-700 dark:text-zinc-300">0</span> Jadwal Terdaftar</span>
+                            </div>
+                        </div>
+
+                        <!-- Right: Next Bell Card & Test Audio (5 Cols) -->
+                        <div class="md:col-span-5 bg-white/80 dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-5 space-y-4 shadow-xs">
+                            <div class="flex items-center justify-between">
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/60">
+                                    <i data-lucide="bell-ring" class="w-3 h-3"></i>
+                                    <span>Jadwal Berikutnya</span>
+                                </span>
+                                <span id="countdown-badge" class="text-[11px] font-mono text-zinc-400">Menunggu...</span>
+                            </div>
+
+                            <div>
+                                <h3 id="next-label" class="font-bold text-base text-zinc-900 dark:text-zinc-100 truncate">
+                                    Memuat jadwal bel...
+                                </h3>
+                                <div class="flex items-baseline gap-2 mt-1">
+                                    <span class="text-xs text-zinc-400">Waktu:</span>
+                                    <span id="next-time" class="mono text-2xl font-bold text-zinc-950 dark:text-zinc-50">--:--</span>
+                                </div>
+                            </div>
+
+                            <div class="pt-3 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-2">
+                                <!-- Simulated Sound Wave -->
+                                <div class="flex items-center gap-1 h-5 px-1" title="Status Audio Server">
+                                    <span class="sound-bar w-1 rounded-full bg-purple-500"></span>
+                                    <span class="sound-bar w-1 rounded-full bg-purple-500"></span>
+                                    <span class="sound-bar w-1 rounded-full bg-purple-500"></span>
+                                    <span class="sound-bar w-1 rounded-full bg-purple-500"></span>
+                                    <span class="sound-bar w-1 rounded-full bg-purple-500"></span>
+                                </div>
+
+                                <button type="button" onclick="testBellAudio()" title="Uji Coba Suara Speaker"
+                                    class="px-3 py-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-750 text-zinc-900 dark:text-zinc-100 text-xs font-semibold flex items-center gap-1.5 transition-colors">
+                                    <i data-lucide="volume-2" class="w-3.5 h-3.5"></i>
+                                    <span>Test Nada</span>
+                                </button>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- 3. "WHAT IS ..." SECTION (2-Column Asymmetric) -->
+        <!-- ========================================== -->
+        <section id="features" class="px-6 sm:px-12 py-12 sm:py-16 border-t border-zinc-100 dark:border-zinc-850/60">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                
+                <!-- Left: Big Heading & Explore Pill -->
+                <div class="lg:col-span-5 space-y-4">
+                    <h2 class="text-3xl sm:text-4xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50 leading-tight">
+                        What is NIBA SuperApps?
+                    </h2>
+                    <a href="/admin"
+                        class="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-zinc-950 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-zinc-200 text-xs font-semibold tracking-tight transition-all shadow-xs">
+                        <span>Jelajahi Ekosistem</span>
+                        <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                    </a>
+                </div>
+
+                <!-- Right: High-contrast statement paragraph -->
+                <div class="lg:col-span-7">
+                    <p class="text-sm sm:text-base font-normal text-zinc-600 dark:text-zinc-300 leading-relaxed">
+                        NIBA SuperApps adalah terminal otomasi sekolah pintar terpadu yang memadukan otomasi jadwal bel harian tanpa operator, terminal presensi biometrik nirsentuh (Wajah & RFID), notifikasi WhatsApp otomatis kepada wali murid, serta leaderboard penghargaan poin prestasi siswa.
+                    </p>
+                </div>
+
+            </div>
+
+            <!-- ========================================== -->
+            <!-- 4. BENTO FEATURE CARDS (3-Card Layout ala BloomFi) -->
+            <!-- ========================================== -->
+            <div class="mt-10 sm:mt-12 grid grid-cols-1 lg:grid-cols-12 gap-5">
+                
+                <!-- Card 1: Wide Card (Light soft lavender / clean gradient) -->
+                <div class="lg:col-span-6 bg-gradient-to-br from-purple-50 via-zinc-50 to-white dark:from-zinc-900/90 dark:via-zinc-900/70 dark:to-zinc-950 border border-zinc-200/90 dark:border-zinc-800 rounded-3xl p-7 flex flex-col justify-between shadow-xs min-h-[220px]">
+                    <div>
+                        <div class="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 flex items-center justify-center mb-4">
+                            <i data-lucide="bell" class="w-4 h-4"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
+                            Otomasi Bel & Audio Presisi
+                        </h3>
+                    </div>
+                    <p class="mt-4 text-xs sm:text-[13px] text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                        Bel berdering otomatis tepat waktu pada detik ke-00 WIB. Dilengkapi puluhan file audio terstandar, integrasi relay amplifier, dan penjadwalan harian fleksibel.
+                    </p>
+                </div>
+
+                <!-- Card 2: Dark Bento Card (Deep Navy/Zinc Contrast) -->
+                <div class="lg:col-span-3 bg-brand-dark dark:bg-zinc-900 text-white border border-brand-dark dark:border-zinc-800 rounded-3xl p-7 flex flex-col justify-between shadow-xs min-h-[220px]">
+                    <div>
+                        <div class="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center mb-4">
+                            <i data-lucide="scan" class="w-4 h-4 text-purple-300"></i>
+                        </div>
+                        <h3 class="text-base sm:text-lg font-semibold tracking-tight text-white leading-snug">
+                            Presensi Kilat, Selalu Terhubung
+                        </h3>
+                    </div>
+                    <p class="mt-4 text-xs text-zinc-300 dark:text-zinc-400 leading-relaxed">
+                        Verifikasi kartu RFID atau biometrik wajah hanya dalam 0.3 detik. Setiap kehadiran langsung tersinkron ke pesan WhatsApp wali murid.
+                    </p>
+                </div>
+
+                <!-- Card 3: Dark Bento Card (Deep Navy/Zinc Contrast) -->
+                <div class="lg:col-span-3 bg-brand-dark dark:bg-zinc-900 text-white border border-brand-dark dark:border-zinc-800 rounded-3xl p-7 flex flex-col justify-between shadow-xs min-h-[220px]">
+                    <div>
+                        <div class="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center mb-4">
+                            <i data-lucide="cpu" class="w-4 h-4 text-purple-300"></i>
+                        </div>
+                        <h3 class="text-base sm:text-lg font-semibold tracking-tight text-white leading-snug">
+                            100% Mandiri, Tanpa Cloud
+                        </h3>
+                    </div>
+                    <p class="mt-4 text-xs text-zinc-300 dark:text-zinc-400 leading-relaxed">
+                        Berjalan mandiri di jaringan lokal sekolah atau Raspberry Pi. Basis data SQLite lokal tangguh, tetap aktif meski tanpa koneksi internet.
+                    </p>
+                </div>
+
+            </div>
+
+            <!-- Technology / Infrastructure Badge Strip (Matching logo ticker) -->
+            <div class="mt-10 pt-8 border-t border-zinc-100 dark:border-zinc-850/60 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-zinc-400">
+                <span class="text-zinc-400 dark:text-zinc-500 font-medium text-[11px] uppercase tracking-wider">Didukung arsitektur & teknologi modern:</span>
+                <div class="flex flex-wrap items-center gap-4 sm:gap-6 text-zinc-600 dark:text-zinc-400 font-semibold text-xs">
+                    <span class="flex items-center gap-1.5"><i data-lucide="cpu" class="w-3.5 h-3.5"></i> Raspberry Pi ARM</span>
+                    <span class="flex items-center gap-1.5"><i data-lucide="message-square" class="w-3.5 h-3.5"></i> WhatsApp Gateway</span>
+                    <span class="flex items-center gap-1.5"><i data-lucide="database" class="w-3.5 h-3.5"></i> SQLite Engine</span>
+                    <span class="flex items-center gap-1.5"><i data-lucide="zap" class="w-3.5 h-3.5"></i> Go Echo Backend</span>
+                    <span class="flex items-center gap-1.5"><i data-lucide="palette" class="w-3.5 h-3.5"></i> shadcn / Tailwind</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- 5. "USE CASES" SECTION (Matching Bottom Section of Image) -->
+        <!-- ========================================== -->
+        <section class="px-6 sm:px-12 py-12 sm:py-16 border-t border-zinc-100 dark:border-zinc-850/60">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                
+                <!-- Left Column: Section Title & Info -->
+                <div class="lg:col-span-5 space-y-3">
+                    <span class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block">Terminal Modular</span>
+                    <h2 class="text-3xl sm:text-4xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
+                        Use cases
+                    </h2>
+                    <p class="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed font-normal pt-1">
+                        NIBA SuperApps menyediakan terminal mandiri yang dirancang khusus untuk mempermudah operasional harian siswa, guru, staf operator, dan pimpinan sekolah.
+                    </p>
+                </div>
+
+                <!-- Right Column: Showcase Card (Business/Module Card ala reference) -->
+                <div class="lg:col-span-7">
+                    <div class="bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 space-y-6">
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            
+                            <!-- Module 1: Face Scan Kiosk -->
+                            <a href="/scan-face" class="group bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-5 hover:border-zinc-400 dark:hover:border-zinc-600 transition-all shadow-2xs hover:shadow-sm">
+                                <div class="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                                    <i data-lucide="scan-face" class="w-4 h-4"></i>
+                                </div>
+                                <h4 class="font-semibold text-sm text-zinc-950 dark:text-zinc-50 group-hover:underline">Presensi Wajah (Face AI)</h4>
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed">
+                                    Kiosk nirsentuh dengan pengenalan biometrik wajah berkecepatan tinggi.
+                                </p>
+                                <div class="mt-3 text-xs font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                    <span>Buka Kiosk</span>
+                                    <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                                </div>
+                            </a>
+
+                            <!-- Module 2: RFID & QR Scanner -->
+                            <a href="/scan" class="group bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-5 hover:border-zinc-400 dark:hover:border-zinc-600 transition-all shadow-2xs hover:shadow-sm">
+                                <div class="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                                    <i data-lucide="qr-code" class="w-4 h-4"></i>
+                                </div>
+                                <h4 class="font-semibold text-sm text-zinc-950 dark:text-zinc-50 group-hover:underline">Presensi RFID & Kartu</h4>
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed">
+                                    Pindai kartu siswa fisik / kartu digital menggunakan scanner barcode atau tap RFID.
+                                </p>
+                                <div class="mt-3 text-xs font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                    <span>Buka Terminal</span>
+                                    <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                                </div>
+                            </a>
+
+                            <!-- Module 3: Student Portal -->
+                            <a href="/student/login" class="group bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-5 hover:border-zinc-400 dark:hover:border-zinc-600 transition-all shadow-2xs hover:shadow-sm">
+                                <div class="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                                    <i data-lucide="user-check" class="w-4 h-4"></i>
+                                </div>
+                                <h4 class="font-semibold text-sm text-zinc-950 dark:text-zinc-50 group-hover:underline">Portal Mandiri Siswa</h4>
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed">
+                                    Cek riwayat absensi, poin prestasi karakter, dan tugas English Quest harian.
+                                </p>
+                                <div class="mt-3 text-xs font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                    <span>Masuk Portal</span>
+                                    <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                                </div>
+                            </a>
+
+                            <!-- Module 4: Prayer Attendance -->
+                            <a href="/scan-sholat" class="group bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-5 hover:border-zinc-400 dark:hover:border-zinc-600 transition-all shadow-2xs hover:shadow-sm">
+                                <div class="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                                    <i data-lucide="moon" class="w-4 h-4"></i>
+                                </div>
+                                <h4 class="font-semibold text-sm text-zinc-950 dark:text-zinc-50 group-hover:underline">Presensi Sholat Berjamaah</h4>
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed">
+                                    Pencatatan ibadah Dzuhur & Ashar siswa secara teratur dan terpantau.
+                                </p>
+                                <div class="mt-3 text-xs font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                    <span>Buka Terminal</span>
+                                    <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                                </div>
+                            </a>
+
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- 6. LIVE LEADERBOARD PRESTASI SISWA -->
+        <!-- ========================================== -->
+        <section id="leaderboard-section" class="px-6 sm:px-12 py-12 sm:py-16 border-t border-zinc-100 dark:border-zinc-850/60 bg-zinc-50/50 dark:bg-zinc-950/40">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                <div>
+                    <span class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block">Papan Prestasi</span>
+                    <h3 class="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
+                        Siswa Berprestasi Terbaik
+                    </h3>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Akumulasi poin karakter dan kedisiplinan siswa SMK NIBA</p>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs font-mono text-zinc-600 dark:text-zinc-400">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span>Auto-Sync 5m</span>
+                    </span>
+                    <a href="/admin/points"
+                        class="px-3.5 py-1.5 rounded-full bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:text-zinc-900 text-xs font-semibold tracking-tight transition-colors shadow-2xs">
+                        Lihat Detail Poin
+                    </a>
+                </div>
+            </div>
+
+            <!-- Dynamic Leaderboard Items -->
+            <div id="leaderboard-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                <div class="col-span-full text-center py-12 text-zinc-400 dark:text-zinc-500 text-black/80 text-xs flex flex-col items-center gap-2">
+                    <i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>
+                    <span>Memuat data peringkat siswa...</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- 7. MINIMALIST FOOTER -->
+        <!-- ========================================== -->
+        <footer class="px-6 sm:px-10 py-5 border-t border-zinc-100 dark:border-zinc-850/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-zinc-500 dark:text-zinc-400">
+            <div class="flex items-center gap-2">
+                <span>© 2026</span>
+                <span class="font-semibold text-zinc-800 dark:text-zinc-200">SMK NIBA Super Apps</span>
+                <span>·</span>
+                <span>Clean Modern Minimalism</span>
+            </div>
+            <div class="flex items-center gap-4 text-xs">
+                <a href="/admin/schedules" class="hover:text-zinc-950 dark:hover:text-zinc-100 transition-colors">Jadwal Bel</a>
+                <a href="/admin/academics" class="hover:text-zinc-950 dark:hover:text-zinc-100 transition-colors">Akademik</a>
+                <a href="/admin/settings" class="hover:text-zinc-950 dark:hover:text-zinc-100 transition-colors">Pengaturan</a>
+                <a href="/admin" class="hover:text-zinc-950 dark:hover:text-zinc-100 transition-colors font-semibold">Console</a>
+            </div>
+        </footer>
+
     </div>
 
-    <!-- STATUS BAR -->
-    <footer class="bg-black text-white border-t-4 border-black overflow-hidden">
-        <div class="flex whitespace-nowrap marquee-track">
-            <div class="flex items-center gap-6 px-6 py-3 font-bold text-sm uppercase tracking-wider shrink-0">
-                <span class="flex items-center gap-2">
-                    <span class="w-3 h-3 bg-[var(--lime)] nb-pulse"></span>
-                    SISTEM ONLINE
-                </span>
-                <span class="text-white/40">•</span>
-                <span><span id="schedule-count" class="text-[var(--yellow)]">0</span> JADWAL DIMUAT</span>
-                <span class="text-white/40">•</span>
-                <span>DEVICE ID: TAB-001</span>
-                <span class="text-white/40">•</span>
-                <span class="text-[var(--cyan)]">SMK NIBA Super Apps v1.3.0</span>
-                <span class="text-white/40">•</span>
-            </div>
-            <div class="flex items-center gap-6 px-6 py-3 font-bold text-sm uppercase tracking-wider shrink-0" aria-hidden="true">
-                <span class="flex items-center gap-2">
-                    <span class="w-3 h-3 bg-[var(--lime)] nb-pulse"></span>
-                    SISTEM ONLINE
-                </span>
-                <span class="text-white/40">•</span>
-                <span><span class="text-[var(--yellow)]">0</span> JADWAL DIMUAT</span>
-                <span class="text-white/40">•</span>
-                <span>DEVICE ID: TAB-001</span>
-                <span class="text-white/40">•</span>
-                <span class="text-[var(--cyan)]">SMK NIBA Super Apps v1.3.0</span>
-                <span class="text-white/40">•</span>
-            </div>
-        </div>
-    </footer>
-
+    <!-- Hidden Bell Audio Player -->
     <audio id="bell-player" preload="auto"></audio>
 
+    <!-- Shared Audio Activation Floating Prompt (Discreet, not intrusive) -->
+    <div id="audio-prompt-banner"
+        class="fixed bottom-6 right-6 z-50 max-w-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 shadow-xl flex items-center justify-between gap-3 transition-all duration-300 transform translate-y-0">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 flex items-center justify-center flex-shrink-0">
+                <i data-lucide="bell" class="w-4 h-4"></i>
+            </div>
+            <div>
+                <h4 class="text-xs font-semibold text-zinc-900 dark:text-zinc-100">Audio Bel Otomatis</h4>
+                <p class="text-[11px] text-zinc-500 dark:text-zinc-400">Aktifkan untuk nada bel harian</p>
+            </div>
+        </div>
+        <button type="button" onclick="startSystem()"
+            class="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:text-zinc-900 text-xs font-semibold flex-shrink-0 transition-all shadow-xs">
+            Aktifkan
+        </button>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- SCRIPT LOGIC (Functional Engine Preserved) -->
+    <!-- ========================================== -->
     <script>
-        lucide.createIcons();
-
-        let schedules = [];
-        let lastPlayedMinute = "";
-
-        // 1. Start System (User Interaction Required)
-        function startSystem() {
-            const overlay = document.getElementById('start-overlay');
-            overlay.style.transition = 'opacity 0.4s ease';
-            overlay.style.opacity = '0';
-            setTimeout(() => overlay.remove(), 400);
-
-            const player = document.getElementById('bell-player');
-            player.play().catch(() => {});
-
-            fetchSchedules();
-            setInterval(updateClockAndCheckBell, 1000);
-            setInterval(fetchSchedules, 5 * 60 * 1000);
-
-            fetchLeaderboard();
-            setInterval(fetchLeaderboard, 5 * 60 * 1000);
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
         }
 
-        // 2. Fetch Data dari Backend
+        let schedules = [];
+        let isSystemStarted = false;
+
+        // Theme Toggle Function
+        function toggleAppTheme() {
+            const currentTheme = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+            const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.dataset.theme = nextTheme;
+            localStorage.setItem('app-theme', nextTheme);
+            localStorage.setItem('stisla-theme', nextTheme);
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        // 1. Start System Interaction
+        function startSystem() {
+            const promptBanner = document.getElementById('audio-prompt-banner');
+            if (promptBanner) {
+                promptBanner.classList.add('opacity-0', 'translate-y-4');
+                setTimeout(() => promptBanner.remove(), 300);
+            }
+
+            const heroBtn = document.getElementById('hero-start-btn');
+            if (heroBtn) {
+                heroBtn.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5"></i><span>Terminal Audio Aktif</span>`;
+                heroBtn.classList.add('bg-emerald-600', 'text-white', 'hover:bg-emerald-700');
+            }
+
+            isSystemStarted = true;
+
+            const player = document.getElementById('bell-player');
+            if (player) {
+                player.play().catch(() => {});
+            }
+
+            fetchSchedules();
+            fetchLeaderboard();
+
+            setInterval(updateClockAndCheckBell, 1000);
+            setInterval(fetchSchedules, 5 * 60 * 1000);
+            setInterval(fetchLeaderboard, 5 * 60 * 1000);
+
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        // 2. Fetch Schedules
         async function fetchSchedules() {
             try {
                 const res = await fetch('/api/sync');
-                const data = await res.json();
-                if(data) {
-                    schedules = data;
-                    document.getElementById('schedule-count').innerText = schedules.length;
-                    updateNextBellDisplay();
+                if (res.ok) {
+                    const data = await res.json();
+                    if (Array.isArray(data)) {
+                        schedules = data;
+                        const countEl = document.getElementById('nav-schedule-count');
+                        if (countEl) countEl.innerText = schedules.length;
+                        updateNextBellDisplay();
+                    }
                 }
             } catch (err) {
-                console.error("Gagal sync jadwal:", err);
+                console.error("Gagal sinkronisasi jadwal:", err);
             }
         }
 
-        // 3. Logic Utama (Clock & Checker)
+        // 3. Real-Time Clock & Bell Trigger
         function updateClockAndCheckBell() {
             const now = new Date();
 
@@ -224,10 +631,24 @@
             const seconds = String(now.getSeconds()).padStart(2, '0');
             const currentTimeStr = `${hours}:${minutes}`;
 
-            document.getElementById('clock').innerText = `${hours}:${minutes}:${seconds}`;
-            document.getElementById('date').innerText = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+            const clockEl = document.getElementById('clock');
+            const dateEl = document.getElementById('date');
 
-            if (seconds === "00") {
+            if (clockEl) {
+                clockEl.innerText = `${hours}:${minutes}:${seconds}`;
+            }
+
+            if (dateEl) {
+                dateEl.innerText = now.toLocaleDateString('id-ID', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                });
+            }
+
+            // Trigger Bell at exact 00 seconds
+            if (seconds === "00" && schedules.length > 0) {
                 const currentSchedule = schedules.find(s => s.time === currentTimeStr);
                 if (currentSchedule) {
                     playAudio(currentSchedule.audio_url);
@@ -236,7 +657,7 @@
             }
         }
 
-        // 4. Update Tampilan "Next Bell"
+        // 4. Update Next Bell Display
         function updateNextBellDisplay() {
             if (schedules.length === 0) return;
 
@@ -246,76 +667,142 @@
             const currentTimeVal = currentHours * 60 + currentMinutes;
 
             let next = schedules.find(s => {
-                const [h, m] = s.time.split(':').map(Number);
+                const parts = s.time.split(':');
+                const h = parseInt(parts[0], 10);
+                const m = parseInt(parts[1], 10);
                 return (h * 60 + m) > currentTimeVal;
             });
 
+            const nextLabelEl = document.getElementById('next-label');
+            const nextTimeEl = document.getElementById('next-time');
+            const countdownEl = document.getElementById('countdown-badge');
+
             if (!next) {
                 next = schedules[0];
-                document.getElementById('next-label').innerText = `${next.label} (Besok)`;
+                if (nextLabelEl) nextLabelEl.innerText = `${next.label} (Besok)`;
+                if (countdownEl) countdownEl.innerText = "Selesai Hari Ini";
             } else {
-                document.getElementById('next-label').innerText = next.label;
+                if (nextLabelEl) nextLabelEl.innerText = next.label;
+                if (countdownEl) countdownEl.innerText = "Jadwal Aktif";
             }
 
-            document.getElementById('next-time').innerText = next.time;
+            if (nextTimeEl) nextTimeEl.innerText = next.time;
         }
 
-        // 5. Fetch Leaderboard (neobrutalism card style)
+        // 5. Fetch Leaderboard Data
         async function fetchLeaderboard() {
+            const container = document.getElementById('leaderboard-container');
+            if (!container) return;
+
             try {
                 const res = await fetch('/api/leaderboard');
+                if (!res.ok) throw new Error("Gagal mengambil data");
                 const data = await res.json();
 
-                const container = document.getElementById('leaderboard-container');
-
                 if (!data || data.length === 0) {
-                    container.innerHTML = '<div class="col-span-3 text-center py-8 font-display text-2xl text-black/40">Belum ada data poin</div>';
+                    container.innerHTML = `
+                        <div class="col-span-full text-center py-8 text-zinc-400 dark:text-zinc-500 text-xs">
+                            Belum ada riwayat akumulasi poin siswa saat ini.
+                        </div>
+                    `;
                     return;
                 }
 
                 const top9 = data.slice(0, 9);
-                const cardColors = ['var(--yellow)', 'var(--pink)', 'var(--cyan)', 'var(--cream)', 'var(--orange)', 'var(--lime)', 'var(--yellow)', 'var(--pink)', 'var(--cyan)'];
 
                 container.innerHTML = top9.map((student, index) => {
-                    const medals = ['🥇', '🥈', '🥉'];
-                    const rank = index < 3
-                        ? `<span class="text-3xl">${medals[index]}</span>`
-                        : `<span class="font-display text-2xl text-black">#${index + 1}</span>`;
-                    const pointsColor = student.points >= 0 ? 'text-black' : 'text-white';
-                    const pointsBg = student.points >= 0 ? 'bg-[var(--lime)]' : 'bg-black';
-                    const tilt = index % 2 === 0 ? 'tilt-l' : 'tilt-r';
-                    const cardBg = cardColors[index % cardColors.length];
+                    let rankBadge = '';
+                    let cardBorder = 'border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900';
+
+                    if (index === 0) {
+                        rankBadge = '<span class="w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold font-mono shadow-xs">1</span>';
+                        cardBorder = 'border-amber-300 dark:border-amber-500/40 bg-amber-50/40 dark:bg-amber-950/20';
+                    } else if (index === 1) {
+                        rankBadge = '<span class="w-6 h-6 rounded-full bg-zinc-400 text-white flex items-center justify-center text-xs font-bold font-mono shadow-xs">2</span>';
+                        cardBorder = 'border-zinc-300 dark:border-zinc-700 bg-zinc-50/60 dark:bg-zinc-900/40';
+                    } else if (index === 2) {
+                        rankBadge = '<span class="w-6 h-6 rounded-full bg-amber-700 text-white flex items-center justify-center text-xs font-bold font-mono shadow-xs">3</span>';
+                        cardBorder = 'border-amber-700/30 dark:border-amber-700/40 bg-amber-50/20 dark:bg-amber-950/10';
+                    } else {
+                        rankBadge = `<span class="w-6 h-6 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-xs font-semibold font-mono">${index + 1}</span>`;
+                    }
+
+                    const points = student.points || 0;
+                    const isPositive = points >= 0;
 
                     return `
-                        <div class="nb-border nb-shadow-sm ${tilt} bg-[${cardBg}] p-4 flex items-center gap-3">
-                            <div class="w-12 h-12 flex items-center justify-center shrink-0">
-                                ${rank}
+                        <div class="rounded-2xl border ${cardBorder} p-4 flex items-center justify-between gap-3 transition-all hover:-translate-y-0.5 shadow-2xs">
+                            <div class="flex items-center gap-3 min-w-0">
+                                ${rankBadge}
+                                <div class="min-w-0">
+                                    <h4 class="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">${student.name || 'Siswa'}</h4>
+                                    <p class="text-[11px] text-zinc-500 dark:text-zinc-400 truncate font-mono">${student.class_name || '-'}</p>
+                                </div>
                             </div>
-                            <div class="flex-1 min-w-0">
-                                <p class="font-bold text-black truncate text-sm md:text-base">${student.name}</p>
-                                <p class="text-xs text-black/60 truncate font-medium">${student.class_name}</p>
-                            </div>
-                            <div class="nb-border ${pointsBg} px-3 py-1 shrink-0">
-                                <span class="font-display text-sm md:text-base ${pointsColor}">${student.points >= 0 ? '+' : ''}${student.points}</span>
+                            <div class="text-right flex-shrink-0">
+                                <span class="mono text-xs font-bold px-2 py-0.5 rounded-full ${isPositive ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60' : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800/60'}">
+                                    ${isPositive ? '+' : ''}${points}
+                                </span>
                             </div>
                         </div>
                     `;
                 }).join('');
+
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+
             } catch (err) {
-                console.error("Gagal fetch leaderboard:", err);
-                const container = document.getElementById('leaderboard-container');
-                container.innerHTML = '<div class="col-span-3 text-center py-8 font-display text-2xl text-black/60">Gagal memuat leaderboard</div>';
+                console.error("Gagal load leaderboard:", err);
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-6 text-zinc-400 text-xs">
+                        Gagal memuat papan peringkat. Silakan periksa koneksi data.
+                    </div>
+                `;
             }
         }
 
-        // 6. Play Audio
+        // 6. Play Audio Helper
         function playAudio(url) {
+            if (!url) return;
             const player = document.getElementById('bell-player');
-            player.src = url;
-            player.play()
-                .then(() => console.log("Bel berbunyi: " + url))
-                .catch(e => console.error("Gagal memutar audio:", e));
+            if (player) {
+                player.src = url;
+                player.play()
+                    .then(() => console.log("Bel berbunyi:", url))
+                    .catch(e => console.warn("Audio playback dicegah:", e));
+            }
         }
+
+        // 7. Test Bell Audio Helper
+        function testBellAudio() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+                osc.frequency.exponentialRampToValueAtTime(659.25, ctx.currentTime + 0.15); // E5
+                osc.frequency.exponentialRampToValueAtTime(783.99, ctx.currentTime + 0.3); // G5
+
+                gain.gain.setValueAtTime(0.25, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.start();
+                osc.stop(ctx.currentTime + 0.6);
+            } catch (e) {
+                console.warn("Audio test error:", e);
+            }
+        }
+
+        // Initialize clock and schedule fetch immediately
+        updateClockAndCheckBell();
+        fetchSchedules();
+        fetchLeaderboard();
+        setInterval(updateClockAndCheckBell, 1000);
     </script>
 </body>
+
 </html>

@@ -1,640 +1,741 @@
 <!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Poin Siswa - SMK NIBA Super Apps</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        border: "hsl(214.3 31.8% 91.4%)",
-                        input: "hsl(214.3 31.8% 91.4%)",
-                        ring: "hsl(222.2 84% 4.9%)",
-                        background: "hsl(0 0% 100%)",
-                        foreground: "hsl(222.2 84% 4.9%)",
-                        primary: {
-                            DEFAULT: "hsl(222.2 47.4% 11.2%)",
-                            foreground: "hsl(210 40% 98%)",
+<html lang="id" class="h-full bg-slate-50/60">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Dashboard Dual-Track Poin & Karakter - SMK NIBA Super Apps</title>
+
+        <!-- Google Fonts: Plus Jakarta Sans -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+            rel="stylesheet">
+
+        <!-- Tailwind CSS CDN -->
+        <script src="https://cdn.tailwindcss.com"></script>
+        <!-- Lucide Icons -->
+        <script src="https://unpkg.com/lucide@latest"></script>
+        <!-- Chart.js -->
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+        <script>
+            tailwind.config = {
+                theme: {
+                    extend: {
+                        fontFamily: {
+                            sans: ['"Plus Jakarta Sans"', 'sans-serif']
                         },
-                        secondary: {
-                            DEFAULT: "hsl(210 40% 96.1%)",
-                            foreground: "hsl(222.2 47.4% 11.2%)",
+                        colors: {
+                            brand: {
+                                50: '#eef2ff',
+                                100: '#e0e7ff',
+                                500: '#6366f1',
+                                600: '#4f46e5',
+                                700: '#4338ca'
+                            }
                         },
-                        muted: {
-                            DEFAULT: "hsl(210 40% 96.1%)",
-                            foreground: "hsl(215.4 16.3% 46.9%)",
-                        },
-                        accent: {
-                            DEFAULT: "hsl(210 40% 96.1%)",
-                            foreground: "hsl(222.2 47.4% 11.2%)",
-                        },
-                        destructive: {
-                            DEFAULT: "hsl(0 84.2% 60.2%)",
-                            foreground: "hsl(210 40% 98%)",
-                        },
-                    },
-                    borderRadius: {
-                        lg: "0.5rem",
-                        md: "calc(0.5rem - 2px)",
-                        sm: "calc(0.5rem - 4px)",
-                    },
+                        boxShadow: {
+                            subtle: '0 1px 2px 0 rgba(0, 0, 0, 0.04), 0 1px 3px 0 rgba(0, 0, 0, 0.02)',
+                            card: '0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+                            hover: '0 12px 24px -4px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.02)'
+                        }
+                    }
                 }
+            };
+        </script>
+
+        <style>
+            body {
+                font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+                letter-spacing: -0.01em;
             }
-        }
-    </script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-        
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        
-        @keyframes fadeIn { 
-            from { opacity: 0; transform: translateY(10px); } 
-            to { opacity: 1; transform: translateY(0); } 
-        }
-        
-        @keyframes slideIn { 
-            from { opacity: 0; transform: translateX(-10px); } 
-            to { opacity: 1; transform: translateX(0); } 
-        }
-        
-        .fade-in { 
-            animation: fadeIn 0.4s ease-out forwards; 
-        }
-        
-        .slide-in { 
-            animation: slideIn 0.3s ease-out forwards; 
-        }
-        
-        .activity-item { 
-            animation: slideIn 0.3s ease-out forwards;
-            opacity: 0;
-        }
-        .activity-item:nth-child(1) { animation-delay: 0.05s; }
-        .activity-item:nth-child(2) { animation-delay: 0.1s; }
-        .activity-item:nth-child(3) { animation-delay: 0.15s; }
-        .activity-item:nth-child(4) { animation-delay: 0.2s; }
-        .activity-item:nth-child(5) { animation-delay: 0.25s; }
-        
-        /* shadcn card styles */
-        .card {
-            border-radius: 0.5rem;
-            border: 1px solid hsl(214.3 31.8% 91.4%);
-            background-color: hsl(0 0% 100%);
-            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-        }
-        
-        .card:hover {
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-        }
-        
-        /* Custom scrollbar */
-        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: hsl(210 40% 96.1%); border-radius: 100vh; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: hsl(215.4 16.3% 46.9%); border-radius: 100vh; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: hsl(215.4 16.3% 36.9%); }
-    </style>
-</head>
-<body class="bg-slate-50 min-h-screen antialiased">
-    <!-- Header -->
-    <div class="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div class="max-w-7xl mx-auto px-6 py-6">
-            <div class="flex items-center justify-between">
-                <div class="fade-in">
-                    <div class="flex items-center gap-3">
-                        <div class="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
-                            <i class="fas fa-chart-line text-primary-foreground"></i>
+
+            ::-webkit-scrollbar {
+                width: 6px;
+                height: 6px;
+            }
+
+            ::-webkit-scrollbar-track {
+                background: transparent;
+            }
+
+            ::-webkit-scrollbar-thumb {
+                background: #cbd5e1;
+                border-radius: 9999px;
+            }
+
+            ::-webkit-scrollbar-thumb:hover {
+                background: #94a3b8;
+            }
+
+            .chart-container {
+                position: relative;
+                height: 220px;
+                width: 100%;
+            }
+        </style>
+    </head>
+
+    <body class="min-h-full flex flex-col text-slate-800 antialiased selection:bg-brand-500 selection:text-white">
+
+        <!-- Top Navigation Header -->
+        <header class="sticky top-0 z-40 bg-white/85 backdrop-blur-md border-b border-slate-200/80 transition-all">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16 gap-4">
+
+                    <!-- Brand & Breadcrumb -->
+                    <div class="flex items-center gap-3.5 min-w-0">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center text-white shadow-sm shadow-brand-500/20 flex-shrink-0">
+                            <i data-lucide="award" class="w-5 h-5"></i>
                         </div>
-                        <div>
-                            <h1 class="text-2xl font-semibold tracking-tight text-foreground">Dashboard Sistem Poin</h1>
-                            <p class="text-sm text-muted-foreground">
-                                Monitoring penghargaan & pelanggaran siswa
-                            </p>
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2">
+                                <h1 class="text-base font-bold text-slate-900 tracking-tight truncate">Sistem Poin Karakter</h1>
+                                <span
+                                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60 flex-shrink-0">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    Dual-Track
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-500 truncate">Monitoring komprehensif penghargaan prestasi &
+                                pembinaan kedisiplinan</p>
                         </div>
+                    </div>
+
+                    <!-- Right Action Controls -->
+                    <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                        <!-- Academic Year Filter -->
+                        <div class="relative">
+                            <select id="academic-year" onchange="loadDashboard()"
+                                class="appearance-none bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-semibold text-xs rounded-xl pl-8 pr-8 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all cursor-pointer">
+                                <option value="">Tahun Ajaran Aktif</option>
+                            </select>
+                            <i data-lucide="calendar"
+                                class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                            <i data-lucide="chevron-down"
+                                class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                        </div>
+
+                        <!-- Panel Poin Button -->
+                        <a href="/admin/points"
+                            class="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl shadow-subtle hover:border-slate-300 transition-all">
+                            <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5 text-slate-500"></i>
+                            <span>Panel Stisla</span>
+                        </a>
+
+                        <!-- Admin Home Button -->
+                        <a href="/admin"
+                            class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl shadow-subtle hover:border-slate-300 transition-all">
+                            <i data-lucide="home" class="w-3.5 h-3.5 text-slate-500"></i>
+                            <span class="hidden sm:inline">Menu Admin</span>
+                        </a>
                     </div>
                 </div>
-                <a href="/admin" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
-                    <i class="fas fa-arrow-left mr-2 h-4 w-4"></i>Kembali
-                </a>
             </div>
-        </div>
-    </div>
+        </header>
 
-        <div class="max-w-7xl mx-auto px-6 py-8">
-            <!-- Quick Actions -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                <a href="/admin/dual-point/input" class="card group hover:border-emerald-200 transition-all duration-200 fade-in">
-                    <div class="p-6">
-                        <div class="flex items-center gap-4">
-                            <div class="h-12 w-12 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0">
-                                <i class="fas fa-plus-circle text-xl"></i>
-                            </div>
-                            <div class="flex-1">
-                                <h3 class="font-semibold text-foreground group-hover:text-emerald-600 transition-colors">Input Poin</h3>
-                                <p class="text-sm text-muted-foreground">Tambah poin penghargaan/pelanggaran</p>
-                            </div>
-                            <i class="fas fa-arrow-right text-muted-foreground group-hover:text-emerald-600 transition-colors"></i>
+        <!-- Main Workspace Container -->
+        <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
+
+            <!-- 1. Quick Navigation Action Cards -->
+            <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+
+                <!-- Card 1: Input Poin -->
+                <a href="/admin/dual-point/input"
+                    class="group relative bg-white border border-slate-200/90 hover:border-emerald-300 p-4 sm:p-5 rounded-2xl shadow-subtle hover:shadow-hover hover:-translate-y-0.5 transition-all duration-200 overflow-hidden">
+                    <div class="flex items-start justify-between gap-3">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 group-hover:bg-emerald-600 group-hover:text-white transition-all duration-200 flex-shrink-0">
+                            <i data-lucide="plus-circle" class="w-5 h-5"></i>
                         </div>
+                        <i data-lucide="arrow-up-right"
+                            class="w-4 h-4 text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all"></i>
+                    </div>
+                    <div class="mt-3.5">
+                        <h2 class="text-sm font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">
+                            Input Poin Siswa</h2>
+                        <p class="text-xs text-slate-500 mt-0.5 line-clamp-1">Catat penghargaan atau penalti</p>
                     </div>
                 </a>
 
-                <a href="/admin/dual-point/leaderboard" class="card group hover:border-amber-200 transition-all duration-200 fade-in" style="animation-delay: 0.1s;">
-                    <div class="p-6">
-                        <div class="flex items-center gap-4">
-                            <div class="h-12 w-12 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center flex-shrink-0">
-                                <i class="fas fa-trophy text-xl"></i>
-                            </div>
-                            <div class="flex-1">
-                                <h3 class="font-semibold text-foreground group-hover:text-amber-600 transition-colors">Leaderboard</h3>
-                                <p class="text-sm text-muted-foreground">Ranking siswa berprestasi</p>
-                            </div>
-                            <i class="fas fa-arrow-right text-muted-foreground group-hover:text-amber-600 transition-colors"></i>
+                <!-- Card 2: Leaderboard -->
+                <a href="/admin/dual-point/leaderboard"
+                    class="group relative bg-white border border-slate-200/90 hover:border-amber-300 p-4 sm:p-5 rounded-2xl shadow-subtle hover:shadow-hover hover:-translate-y-0.5 transition-all duration-200 overflow-hidden">
+                    <div class="flex items-start justify-between gap-3">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-110 group-hover:bg-amber-600 group-hover:text-white transition-all duration-200 flex-shrink-0">
+                            <i data-lucide="trophy" class="w-5 h-5"></i>
                         </div>
+                        <i data-lucide="arrow-up-right"
+                            class="w-4 h-4 text-slate-300 group-hover:text-amber-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all"></i>
+                    </div>
+                    <div class="mt-3.5">
+                        <h2 class="text-sm font-bold text-slate-900 group-hover:text-amber-600 transition-colors">Papan
+                            Peringkat</h2>
+                        <p class="text-xs text-slate-500 mt-0.5 line-clamp-1">Klasemen & Waluya Utama</p>
                     </div>
                 </a>
 
-                <a href="/admin/dual-point/reports" class="card group hover:border-blue-200 transition-all duration-200 fade-in" style="animation-delay: 0.2s;">
-                    <div class="p-6">
-                        <div class="flex items-center gap-4">
-                            <div class="h-12 w-12 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0">
-                                <i class="fas fa-chart-bar text-xl"></i>
-                            </div>
-                            <div class="flex-1">
-                                <h3 class="font-semibold text-foreground group-hover:text-blue-600 transition-colors">Laporan</h3>
-                                <p class="text-sm text-muted-foreground">Laporan per kelas & tahun ajaran</p>
-                            </div>
-                            <i class="fas fa-arrow-right text-muted-foreground group-hover:text-blue-600 transition-colors"></i>
+                <!-- Card 3: Reports -->
+                <a href="/admin/dual-point/reports"
+                    class="group relative bg-white border border-slate-200/90 hover:border-indigo-300 p-4 sm:p-5 rounded-2xl shadow-subtle hover:shadow-hover hover:-translate-y-0.5 transition-all duration-200 overflow-hidden">
+                    <div class="flex items-start justify-between gap-3">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-110 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-200 flex-shrink-0">
+                            <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
                         </div>
+                        <i data-lucide="arrow-up-right"
+                            class="w-4 h-4 text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all"></i>
+                    </div>
+                    <div class="mt-3.5">
+                        <h2 class="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                            Laporan & Analitik</h2>
+                        <p class="text-xs text-slate-500 mt-0.5 line-clamp-1">Rekap kelas & tahun ajaran</p>
                     </div>
                 </a>
 
-                <a href="/admin/dual-point/rules" class="card group hover:border-violet-200 transition-all duration-200 fade-in" style="animation-delay: 0.25s;">
-                    <div class="p-6">
-                        <div class="flex items-center gap-4">
-                            <div class="h-12 w-12 rounded-lg bg-violet-100 text-violet-600 flex items-center justify-center flex-shrink-0">
-                                <i class="fas fa-cog text-xl"></i>
-                            </div>
-                            <div class="flex-1">
-                                <h3 class="font-semibold text-foreground group-hover:text-violet-600 transition-colors">Rules Poin</h3>
-                                <p class="text-sm text-muted-foreground">Kelola butir poin penghargaan & pelanggaran</p>
-                            </div>
-                            <i class="fas fa-arrow-right text-muted-foreground group-hover:text-violet-600 transition-colors"></i>
+                <!-- Card 4: Rules -->
+                <a href="/admin/dual-point/rules"
+                    class="group relative bg-white border border-slate-200/90 hover:border-violet-300 p-4 sm:p-5 rounded-2xl shadow-subtle hover:shadow-hover hover:-translate-y-0.5 transition-all duration-200 overflow-hidden">
+                    <div class="flex items-start justify-between gap-3">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center group-hover:scale-110 group-hover:bg-violet-600 group-hover:text-white transition-all duration-200 flex-shrink-0">
+                            <i data-lucide="sliders" class="w-5 h-5"></i>
                         </div>
+                        <i data-lucide="arrow-up-right"
+                            class="w-4 h-4 text-slate-300 group-hover:text-violet-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all"></i>
+                    </div>
+                    <div class="mt-3.5">
+                        <h2 class="text-sm font-bold text-slate-900 group-hover:text-violet-600 transition-colors">
+                            Master Aturan Poin</h2>
+                        <p class="text-xs text-slate-500 mt-0.5 line-clamp-1">Katalog butir & bobot skor</p>
                     </div>
                 </a>
-            </div>
+            </section>
 
-            <!-- Academic Year Filter -->
-            <div class="card mb-8 fade-in" style="animation-delay: 0.3s;">
-                <div class="p-6">
+            <!-- 2. Primary KPI Metric Cards -->
+            <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+                <!-- Metric 1: Total Siswa -->
+                <div class="bg-white border border-slate-200/80 p-5 rounded-2xl shadow-subtle relative overflow-hidden">
                     <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="h-10 w-10 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center">
-                                <i class="fas fa-calendar-alt"></i>
-                            </div>
-                            <label class="font-medium text-foreground">Tahun Ajaran:</label>
+                        <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Siswa
+                            Aktif</span>
+                        <div class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center">
+                            <i data-lucide="users" class="w-4 h-4"></i>
                         </div>
-                        <select id="academic-year" onchange="loadDashboard()" class="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 min-w-[200px]">
-                            <option value="">Tahun Ajaran Saat Ini</option>
-                        </select>
+                    </div>
+                    <div class="mt-3">
+                        <div id="stat-total-students" class="text-3xl font-extrabold text-slate-900 tracking-tight">--
+                        </div>
+                        <p class="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                            <i data-lucide="check" class="w-3.5 h-3.5 text-emerald-500"></i>
+                            <span>Terdata di sistem</span>
+                        </p>
                     </div>
                 </div>
-            </div>
 
-            <!-- Summary Stats -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                <div class="card fade-in" style="animation-delay: 0.4s;">
-                    <div class="p-6">
-                        <div class="flex flex-col space-y-3">
-                            <div class="flex items-center justify-between">
-                                <span class="text-sm font-medium text-muted-foreground">Total Siswa</span>
-                                <div class="h-8 w-8 rounded-md bg-secondary flex items-center justify-center">
-                                    <i class="fas fa-users text-sm text-muted-foreground"></i>
-                                </div>
+                <!-- Metric 2: Siswa Berprestasi -->
+                <div class="bg-white border border-slate-200/80 p-5 rounded-2xl shadow-subtle relative overflow-hidden">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold text-emerald-700 uppercase tracking-wider">Predikat
+                            Unggul</span>
+                        <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                            <i data-lucide="medal" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div id="stat-achievement-100" class="text-3xl font-extrabold text-emerald-600 tracking-tight">
+                            --</div>
+                        <p class="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                            <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            <span>≥100 poin penghargaan</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Metric 3: Waluya Utama -->
+                <div class="bg-white border border-slate-200/80 p-5 rounded-2xl shadow-subtle relative overflow-hidden">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold text-amber-700 uppercase tracking-wider">Waluya Utama</span>
+                        <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                            <i data-lucide="crown" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div id="stat-waluya" class="text-3xl font-extrabold text-amber-600 tracking-tight">--</div>
+                        <p class="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                            <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                            <span>≥151 poin (Level Tertinggi)</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Metric 4: Terkena SP -->
+                <div class="bg-white border border-slate-200/80 p-5 rounded-2xl shadow-subtle relative overflow-hidden">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold text-rose-700 uppercase tracking-wider">Siswa Terkena
+                            SP</span>
+                        <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
+                            <i data-lucide="alert-octagon" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div id="stat-violation-sp" class="text-3xl font-extrabold text-rose-600 tracking-tight">--
+                        </div>
+                        <p class="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                            <span class="inline-block w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                            <span>≥25 poin pelanggaran</span>
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. Visual Charts Grid -->
+            <section class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+                <!-- Chart 1: Distribusi Penghargaan -->
+                <div class="bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-subtle">
+                    <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                        <div class="flex items-center gap-2.5">
+                            <div
+                                class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                                <i data-lucide="pie-chart" class="w-4 h-4"></i>
                             </div>
                             <div>
-                                <div id="stat-total-students" class="text-3xl font-bold tracking-tight text-foreground">-</div>
-                                <p class="text-xs text-muted-foreground mt-1">Siswa terdaftar</p>
+                                <h2 class="text-sm font-bold text-slate-900">Distribusi Predikat Prestasi</h2>
+                                <p class="text-xs text-slate-500">Berdasarkan akumulasi poin penghargaan siswa</p>
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <div class="card fade-in" style="animation-delay: 0.5s;">
-                    <div class="p-6">
-                        <div class="flex flex-col space-y-3">
-                            <div class="flex items-center justify-between">
-                                <span class="text-sm font-medium text-emerald-600">Dapat Sertifikat</span>
-                                <div class="h-8 w-8 rounded-md bg-emerald-100 flex items-center justify-center">
-                                    <i class="fas fa-award text-sm text-emerald-600"></i>
-                                </div>
-                            </div>
-                            <div>
-                                <div id="stat-achievement-100" class="text-3xl font-bold tracking-tight text-emerald-600">-</div>
-                                <p class="text-xs text-muted-foreground mt-1">≥100 poin penghargaan</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card fade-in" style="animation-delay: 0.6s;">
-                    <div class="p-6">
-                        <div class="flex flex-col space-y-3">
-                            <div class="flex items-center justify-between">
-                                <span class="text-sm font-medium text-red-600">Terkena SP</span>
-                                <div class="h-8 w-8 rounded-md bg-red-100 flex items-center justify-center">
-                                    <i class="fas fa-exclamation-triangle text-sm text-red-600"></i>
-                                </div>
-                            </div>
-                            <div>
-                                <div id="stat-violation-sp" class="text-3xl font-bold tracking-tight text-red-600">-</div>
-                                <p class="text-xs text-muted-foreground mt-1">≥25 poin pelanggaran</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card fade-in" style="animation-delay: 0.7s;">
-                    <div class="p-6">
-                        <div class="flex flex-col space-y-3">
-                            <div class="flex items-center justify-between">
-                                <span class="text-sm font-medium text-amber-600">Waluya Utama</span>
-                                <div class="h-8 w-8 rounded-md bg-amber-100 flex items-center justify-center">
-                                    <i class="fas fa-crown text-sm text-amber-600"></i>
-                                </div>
-                            </div>
-                            <div>
-                                <div id="stat-waluya" class="text-3xl font-bold tracking-tight text-amber-600">-</div>
-                                <p class="text-xs text-muted-foreground mt-1">≥151 poin penghargaan</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Charts -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <div class="card fade-in" style="animation-delay: 0.8s;">
-                    <div class="p-6">
-                        <div class="space-y-4">
-                            <div class="flex items-center gap-3">
-                                <div class="h-8 w-8 rounded-md bg-emerald-100 text-emerald-600 flex items-center justify-center">
-                                    <i class="fas fa-chart-pie text-sm"></i>
-                                </div>
-                                <h3 class="font-semibold text-foreground">Distribusi Penghargaan</h3>
-                            </div>
+                    <div class="mt-4">
+                        <div class="chart-container">
                             <canvas id="achievement-chart"></canvas>
                         </div>
                     </div>
                 </div>
 
-                <div class="card fade-in" style="animation-delay: 0.9s;">
-                    <div class="p-6">
-                        <div class="space-y-4">
-                            <div class="flex items-center gap-3">
-                                <div class="h-8 w-8 rounded-md bg-red-100 text-red-600 flex items-center justify-center">
-                                    <i class="fas fa-chart-pie text-sm"></i>
-                                </div>
-                                <h3 class="font-semibold text-foreground">Distribusi Pelanggaran</h3>
+                <!-- Chart 2: Distribusi Pelanggaran -->
+                <div class="bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-subtle">
+                    <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
+                                <i data-lucide="shield-alert" class="w-4 h-4"></i>
                             </div>
+                            <div>
+                                <h2 class="text-sm font-bold text-slate-900">Status Kedisiplinan & SP</h2>
+                                <p class="text-xs text-slate-500">Beban poin pelanggaran siswa aktif</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="chart-container">
                             <canvas id="violation-chart"></canvas>
                         </div>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <!-- Top 10 Leaderboard -->
-            <div class="card mb-8 fade-in" style="animation-delay: 1s;">
-                <div class="p-6">
-                    <div class="flex items-center justify-between mb-6">
-                        <div class="flex items-center gap-3">
-                            <div class="h-8 w-8 rounded-md bg-amber-100 text-amber-600 flex items-center justify-center">
-                                <i class="fas fa-trophy text-sm"></i>
+            <!-- 4. Lower Two-Column Section: Top Leaderboard & Realtime Activity Stream -->
+            <section class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+                <!-- Left: Top 10 Siswa Berprestasi (7 cols) -->
+                <div
+                    class="lg:col-span-7 bg-white border border-slate-200/80 rounded-2xl shadow-subtle overflow-hidden">
+                    <div class="p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                                <i data-lucide="sparkles" class="w-4 h-4"></i>
                             </div>
-                            <h3 class="font-semibold text-foreground">Top 10 Siswa Berprestasi</h3>
+                            <div>
+                                <h2 class="text-sm font-bold text-slate-900">Top 10 Siswa Berprestasi</h2>
+                                <p class="text-xs text-slate-500">Peringkat poin tertinggi tahun ajaran terpilih</p>
+                            </div>
                         </div>
-                        <a href="/admin/dual-point/leaderboard" class="inline-flex items-center text-sm font-medium text-primary hover:underline underline-offset-4">
-                            Lihat Semua 
-                            <i class="fas fa-arrow-right ml-2 h-3 w-3"></i>
+                        <a href="/admin/dual-point/leaderboard"
+                            class="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700 transition-colors">
+                            <span>Lihat Semua</span>
+                            <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
                         </a>
                     </div>
-                    <div id="top-leaderboard" class="space-y-3">
-                        <p class="text-sm text-muted-foreground text-center py-8">
-                            <i class="fas fa-spinner fa-spin mr-2"></i>Memuat data...
-                        </p>
+
+                    <!-- Leaderboard Item List -->
+                    <div id="top-leaderboard" class="divide-y divide-slate-100">
+                        <div class="p-10 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+                            <i data-lucide="loader-2" class="w-4 h-4 animate-spin text-slate-400"></i>
+                            <span>Memuat data peringkat...</span>
+                        </div>
                     </div>
                 </div>
+
+                <!-- Right: Aktivitas Terkini (5 cols) -->
+                <div
+                    class="lg:col-span-5 bg-white border border-slate-200/80 rounded-2xl shadow-subtle overflow-hidden">
+                    <div class="p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between">
+                        <div class="flex items-center gap-2.5">
+                            <div
+                                class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                                <i data-lucide="clock-3" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-sm font-bold text-slate-900">Aktivitas Terkini</h2>
+                                <p class="text-xs text-slate-500">Pencatatan poin terbaru</p>
+                            </div>
+                        </div>
+
+                        <!-- Filter Tabs -->
+                        <div class="flex items-center p-0.5 bg-slate-100 rounded-lg text-[11px] font-semibold">
+                            <button type="button" onclick="switchActivityTab('all')" id="act-tab-all"
+                                class="px-2.5 py-1 rounded-md bg-white text-slate-800 shadow-xs transition-all">Semua</button>
+                            <button type="button" onclick="switchActivityTab('achievement')" id="act-tab-achievement"
+                                class="px-2.5 py-1 rounded-md text-slate-500 hover:text-slate-800 transition-all">Prestasi</button>
+                            <button type="button" onclick="switchActivityTab('violation')" id="act-tab-violation"
+                                class="px-2.5 py-1 rounded-md text-slate-500 hover:text-slate-800 transition-all">Pelanggaran</button>
+                        </div>
+                    </div>
+
+                    <!-- Stream List -->
+                    <div id="activity-stream" class="divide-y divide-slate-100 max-h-[500px] overflow-y-auto">
+                        <div class="p-10 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+                            <i data-lucide="loader-2" class="w-4 h-4 animate-spin text-slate-400"></i>
+                            <span>Memuat rekaman aktivitas...</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="mt-auto border-t border-slate-200/80 bg-white py-4">
+            <div
+                class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center sm:text-left sm:flex sm:items-center sm:justify-between text-xs text-slate-400">
+                <p>SMK NIBA Super Apps &middot; Sistem Karakter & Dual-Track Poin</p>
+                <p class="mt-1 sm:mt-0 font-mono text-[11px]">Formula 3 REKA + 1 KONVERSI</p>
             </div>
+        </footer>
 
-            <!-- Recent Activities -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <div class="card fade-in" style="animation-delay: 1.1s;">
-                    <div class="p-6">
-                        <div class="flex items-center gap-3 mb-6">
-                            <div class="h-8 w-8 rounded-md bg-emerald-100 text-emerald-600 flex items-center justify-center">
-                                <i class="fas fa-star text-sm"></i>
-                            </div>
-                            <h3 class="font-semibold text-foreground">Poin Penghargaan Terbaru</h3>
-                        </div>
-                        <div id="recent-achievements" class="space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
-                            <p class="text-sm text-muted-foreground text-center py-8">
-                                <i class="fas fa-spinner fa-spin mr-2"></i>Memuat data...
-                            </p>
-                        </div>
-                    </div>
-                </div>
+        <!-- Logic Engine -->
+        <script>
+            var achievementChart = null;
+            var violationChart = null;
+            var globalActivities = { achievements: [], violations: [] };
+            var currentActivityTab = 'all';
 
-                <div class="card fade-in" style="animation-delay: 1.2s;">
-                    <div class="p-6">
-                        <div class="flex items-center gap-3 mb-6">
-                            <div class="h-8 w-8 rounded-md bg-red-100 text-red-600 flex items-center justify-center">
-                                <i class="fas fa-exclamation-circle text-sm"></i>
-                            </div>
-                            <h3 class="font-semibold text-foreground">Poin Pelanggaran Terbaru</h3>
-                        </div>
-                        <div id="recent-violations" class="space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
-                            <p class="text-sm text-muted-foreground text-center py-8">
-                                <i class="fas fa-spinner fa-spin mr-2"></i>Memuat data...
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+            function populateAcademicYears() {
+                var select = document.getElementById('academic-year');
+                if (!select) return;
+                var now = new Date();
+                var currentYear = now.getFullYear();
+                var currentMonth = now.getMonth() + 1;
 
-    <script>
-        let achievementChart, violationChart;
+                var startYear = currentMonth >= 7 ? currentYear : currentYear - 1;
+                var currentAcademicYear = startYear + '/' + (startYear + 1);
+                select.innerHTML = '<option value="' + currentAcademicYear + '">' + currentAcademicYear + ' (Aktif)</option>';
 
-        // Generate academic years (current and past 3 years)
-        function populateAcademicYears() {
-            const select = document.getElementById('academic-year');
-            const now = new Date();
-            const currentYear = now.getFullYear();
-            const currentMonth = now.getMonth() + 1; // 1-12
-            
-            // Determine current academic year (starts in July = month 7)
-            let startYear = currentMonth >= 7 ? currentYear : currentYear - 1;
-            
-            // Add current academic year as default
-            const currentAcademicYear = `${startYear}/${startYear + 1}`;
-            select.innerHTML = `<option value="">${currentAcademicYear} (Saat Ini)</option>`;
-            
-            // Add past 3 academic years
-            for (let i = 1; i <= 3; i++) {
-                const year = startYear - i;
-                const academicYear = `${year}/${year + 1}`;
-                select.innerHTML += `<option value="${academicYear}">${academicYear}</option>`;
+                for (var i = 1; i <= 3; i++) {
+                    var year = startYear - i;
+                    var academicYear = year + '/' + (year + 1);
+                    select.innerHTML += '<option value="' + academicYear + '">' + academicYear + '</option>';
+                }
             }
-        }
 
-        async function loadDashboard() {
-            const year = document.getElementById('academic-year').value;
-            
-            try {
-                // Load leaderboard
-                const leaderboardRes = await fetch(`/admin/v2/leaderboard?year=${year}`);
-                const leaderboard = await leaderboardRes.json();
-                
-                // Calculate stats
-                const totalStudents = leaderboard.length;
-                const achievement100 = leaderboard.filter(s => s.achievement_points >= 100).length;
-                const violationSP = leaderboard.filter(s => s.violation_points >= 25).length;
-                const waluya = leaderboard.filter(s => s.achievement_points >= 151).length;
-                
-                document.getElementById('stat-total-students').textContent = totalStudents;
-                document.getElementById('stat-achievement-100').textContent = achievement100;
-                document.getElementById('stat-violation-sp').textContent = violationSP;
-                document.getElementById('stat-waluya').textContent = waluya;
-                
-                // Render top 10
-                renderTopLeaderboard(leaderboard.slice(0, 10));
-                
-                // Calculate distributions
-                const achievementDist = {
-                    waluya: leaderboard.filter(s => s.achievement_points >= 151).length,
-                    hadiah: leaderboard.filter(s => s.achievement_points >= 126 && s.achievement_points < 151).length,
-                    sertifikat: leaderboard.filter(s => s.achievement_points >= 100 && s.achievement_points < 126).length,
-                    belum: leaderboard.filter(s => s.achievement_points < 100).length
-                };
-                
-                const violationDist = {
-                    sp3: leaderboard.filter(s => s.violation_points >= 76).length,
-                    sp2: leaderboard.filter(s => s.violation_points >= 51 && s.violation_points < 76).length,
-                    sp1: leaderboard.filter(s => s.violation_points >= 25 && s.violation_points < 51).length,
-                    aman: leaderboard.filter(s => s.violation_points < 25).length
-                };
-                
-                renderCharts(achievementDist, violationDist);
-                
-                // Load recent activities (simulate with top data for now)
-                renderRecentActivities(leaderboard);
-                
-            } catch (err) {
-                console.error('Error loading dashboard:', err);
+            async function loadDashboard() {
+                var yearSelect = document.getElementById('academic-year');
+                var year = yearSelect ? yearSelect.value : '';
+
+                try {
+                    var leaderboardRes = await fetch('/admin/v2/leaderboard?year=' + encodeURIComponent(year));
+                    var activitiesRes = await fetch('/admin/v2/recent-activities?year=' + encodeURIComponent(year));
+
+                    var leaderboard = await leaderboardRes.json();
+                    if (activitiesRes.ok) {
+                        globalActivities = await activitiesRes.json();
+                    } else {
+                        globalActivities = { achievements: [], violations: [] };
+                    }
+
+                    var totalStudents = leaderboard.length;
+                    var achievement100 = leaderboard.filter(function (s) { return s.achievement_points >= 100; }).length;
+                    var waluya = leaderboard.filter(function (s) { return s.achievement_points >= 151; }).length;
+                    var violationSP = leaderboard.filter(function (s) { return s.violation_points >= 25; }).length;
+
+                    document.getElementById('stat-total-students').textContent = totalStudents;
+                    document.getElementById('stat-achievement-100').textContent = achievement100;
+                    document.getElementById('stat-waluya').textContent = waluya;
+                    document.getElementById('stat-violation-sp').textContent = violationSP;
+
+                    renderTopLeaderboard(leaderboard.slice(0, 10));
+
+                    var achievementDist = {
+                        waluya: leaderboard.filter(function (s) { return s.achievement_points >= 151; }).length,
+                        hadiah: leaderboard.filter(function (s) { return s.achievement_points >= 126 && s.achievement_points < 151; }).length,
+                        sertifikat: leaderboard.filter(function (s) { return s.achievement_points >= 100 && s.achievement_points < 126; }).length,
+                        belum: leaderboard.filter(function (s) { return s.achievement_points < 100; }).length
+                    };
+
+                    var violationDist = {
+                        aman: leaderboard.filter(function (s) { return s.violation_points < 25; }).length,
+                        sp1: leaderboard.filter(function (s) { return s.violation_points >= 25 && s.violation_points < 51; }).length,
+                        sp2: leaderboard.filter(function (s) { return s.violation_points >= 51 && s.violation_points < 76; }).length,
+                        sp3: leaderboard.filter(function (s) { return s.violation_points >= 76; }).length
+                    };
+
+                    renderCharts(achievementDist, violationDist);
+                    renderActivityStream();
+
+                } catch (err) {
+                    console.error('Error loading dashboard:', err);
+                }
             }
-        }
 
-        function renderTopLeaderboard(data) {
-            const container = document.getElementById('top-leaderboard');
-            if (data.length === 0) {
-                container.innerHTML = '<p class="text-sm text-muted-foreground text-center py-8">Belum ada data</p>';
-                return;
+            function renderTopLeaderboard(data) {
+                var container = document.getElementById('top-leaderboard');
+                if (!container) return;
+
+                if (!data || data.length === 0) {
+                    container.innerHTML = '<div class="p-8 text-center text-xs text-slate-400">Belum ada data siswa terdaftar</div>';
+                    return;
+                }
+
+                var html = '';
+                for (var i = 0; i < data.length; i++) {
+                    var s = data[i];
+                    var rank = i + 1;
+                    var rankBadge = '';
+                    if (rank === 1) {
+                        rankBadge = '<span class="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 font-bold text-xs flex items-center justify-center border border-amber-200 shadow-xs">1</span>';
+                    } else if (rank === 2) {
+                        rankBadge = '<span class="w-7 h-7 rounded-lg bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center border border-slate-300 shadow-xs">2</span>';
+                    } else if (rank === 3) {
+                        rankBadge = '<span class="w-7 h-7 rounded-lg bg-amber-50 text-amber-800 font-bold text-xs flex items-center justify-center border border-amber-300 shadow-xs">3</span>';
+                    } else {
+                        rankBadge = '<span class="w-7 h-7 rounded-lg bg-slate-100 text-slate-500 font-medium text-xs flex items-center justify-center font-mono">' + rank + '</span>';
+                    }
+
+                    var gradeBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">' + (s.achievement_grade || 'Belum Predikat') + '</span>';
+                    if (s.achievement_points >= 151) {
+                        gradeBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">Waluya Utama</span>';
+                    } else if (s.achievement_points >= 126) {
+                        gradeBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Sertifikat + Hadiah</span>';
+                    } else if (s.achievement_points >= 100) {
+                        gradeBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-sky-50 text-sky-700 border border-sky-200">Sertifikat</span>';
+                    }
+
+                    html += '<a href="/admin/dual-point/student/' + s.id + '?id=' + s.id + '" class="group flex items-center justify-between p-3.5 sm:p-4 hover:bg-slate-50/80 transition-all border-b border-slate-100 last:border-0">' +
+                        '<div class="flex items-center gap-3 min-w-0">' +
+                        rankBadge +
+                        '<div class="min-w-0">' +
+                        '<p class="text-xs sm:text-sm font-bold text-slate-900 truncate group-hover:text-brand-600 transition-colors">' + s.name + '</p>' +
+                        '<p class="text-[11px] text-slate-500 truncate">' + (s.class_name || '-') + '</p>' +
+                        '</div>' +
+                        '</div>' +
+                        '<div class="flex items-center gap-3 sm:gap-4 flex-shrink-0 text-right">' +
+                        '<div>' +
+                        '<p class="text-xs sm:text-sm font-black font-mono text-emerald-600">+' + s.achievement_points + ' pt</p>' +
+                        gradeBadge +
+                        '</div>' +
+                        '<i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all"></i>' +
+                        '</div>' +
+                        '</a>';
+                }
+
+                container.innerHTML = html;
+                if (typeof lucide !== 'undefined') lucide.createIcons();
             }
-            
-            container.innerHTML = data.map((s, idx) => {
-                const rank = idx + 1;
-                const medalColor = rank === 1 ? 'amber' : rank === 2 ? 'slate' : rank === 3 ? 'orange' : 'slate';
-                const bgMedal = rank === 1 ? 'bg-amber-500' : rank === 2 ? 'bg-slate-400' : rank === 3 ? 'bg-orange-500' : 'bg-secondary';
-                
-                return `
-                    <div class="group flex items-center gap-3 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-all duration-200 cursor-pointer">
-                        <div class="flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-full ${bgMedal} text-white font-semibold shadow-sm">
-                            ${rank <= 3 ? `<i class="fas fa-medal text-sm"></i>` : rank}
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="font-medium text-foreground truncate">${s.name}</p>
-                            <p class="text-sm text-muted-foreground flex items-center gap-1">
-                                <i class="fas fa-graduation-cap text-xs"></i>
-                                ${s.class_name}
-                            </p>
-                        </div>
-                        <div class="text-right">
-                            <div class="flex items-center gap-2 mb-1">
-                                <i class="fas fa-trophy text-emerald-500 text-xs"></i>
-                                <p class="font-semibold text-lg text-emerald-600">${s.achievement_points}</p>
-                            </div>
-                            <div class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors ${
-                                s.achievement_points >= 151 ? 'bg-amber-100 text-amber-700 border-amber-200' :
-                                s.achievement_points >= 126 ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
-                                s.achievement_points >= 100 ? 'bg-blue-100 text-blue-700 border-blue-200' :
-                                'bg-secondary text-secondary-foreground'
-                            }">${s.achievement_grade}</div>
-                        </div>
-                        ${s.violation_points > 0 ? `
-                            <div class="text-right border-l pl-3">
-                                <div class="flex items-center gap-2 mb-1">
-                                    <i class="fas fa-exclamation-triangle text-red-500 text-xs"></i>
-                                    <p class="font-semibold text-lg text-red-600">${s.violation_points}</p>
-                                </div>
-                                <div class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-red-100 text-red-700 border-red-200">${s.violation_level}</div>
-                            </div>
-                        ` : ''}
-                    </div>
-                `;
-            }).join('');
-        }
 
-        function renderCharts(achievementDist, violationDist) {
-            // Achievement Chart
-            const achievementCtx = document.getElementById('achievement-chart').getContext('2d');
-            if (achievementChart) achievementChart.destroy();
-            achievementChart = new Chart(achievementCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Waluya Utama (≥151)', 'Sertifikat + Hadiah (126-150)', 'Sertifikat (100-125)', 'Belum Predikat'],
-                    datasets: [{
-                        data: [achievementDist.waluya, achievementDist.hadiah, achievementDist.sertifikat, achievementDist.belum],
-                        backgroundColor: ['#f59e0b', '#10b981', '#3b82f6', '#e5e7eb'],
-                        borderWidth: 4,
-                        borderColor: '#fff',
-                        hoverOffset: 15
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: { 
-                            position: 'bottom',
-                            labels: {
-                                padding: 15,
-                                font: { size: 12, weight: 'bold' },
-                                usePointStyle: true,
-                                pointStyle: 'circle'
-                            }
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(0,0,0,0.8)',
-                            padding: 12,
-                            titleFont: { size: 14, weight: 'bold' },
-                            bodyFont: { size: 13 },
-                            cornerRadius: 8
-                        }
-                    },
-                    animation: {
-                        animateRotate: true,
-                        animateScale: true,
-                        duration: 1500,
-                        easing: 'easeInOutQuart'
+            function switchActivityTab(tab) {
+                currentActivityTab = tab;
+                var tabs = ['all', 'achievement', 'violation'];
+                for (var i = 0; i < tabs.length; i++) {
+                    var t = tabs[i];
+                    var btn = document.getElementById('act-tab-' + t);
+                    if (!btn) continue;
+                    if (t === tab) {
+                        btn.className = 'px-2.5 py-1 rounded-md bg-white text-slate-800 shadow-xs transition-all';
+                    } else {
+                        btn.className = 'px-2.5 py-1 rounded-md text-slate-500 hover:text-slate-800 transition-all';
                     }
                 }
-            });
-            
-            // Violation Chart
-            const violationCtx = document.getElementById('violation-chart').getContext('2d');
-            if (violationChart) violationChart.destroy();
-            violationChart = new Chart(violationCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['SP3 (≥76)', 'SP2 (51-75)', 'SP1 (25-50)', 'Aman (<25)'],
-                    datasets: [{
-                        data: [violationDist.sp3, violationDist.sp2, violationDist.sp1, violationDist.aman],
-                        backgroundColor: ['#dc2626', '#f97316', '#facc15', '#10b981'],
-                        borderWidth: 4,
-                        borderColor: '#fff',
-                        hoverOffset: 15
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: { 
-                            position: 'bottom',
-                            labels: {
-                                padding: 15,
-                                font: { size: 12, weight: 'bold' },
-                                usePointStyle: true,
-                                pointStyle: 'circle'
+                renderActivityStream();
+            }
+
+            function renderActivityStream() {
+                var container = document.getElementById('activity-stream');
+                if (!container) return;
+
+                var achList = (globalActivities.achievements || []).map(function (item) {
+                    return {
+                        id: item.id,
+                        type: 'achievement',
+                        student_id: item.student_id,
+                        student_name: item.student_name,
+                        class_name: item.class_name,
+                        points: item.points,
+                        description: item.description,
+                        recorded_by: item.recorded_by,
+                        created_at: item.created_at
+                    };
+                });
+
+                var vioList = (globalActivities.violations || []).map(function (item) {
+                    return {
+                        id: item.id,
+                        type: 'violation',
+                        student_id: item.student_id,
+                        student_name: item.student_name,
+                        class_name: item.class_name,
+                        points: item.points,
+                        description: item.description,
+                        recorded_by: item.recorded_by,
+                        created_at: item.created_at
+                    };
+                });
+
+                var merged = [];
+                if (currentActivityTab === 'all') {
+                    merged = achList.concat(vioList);
+                    merged.sort(function (a, b) {
+                        return (b.id || 0) - (a.id || 0);
+                    });
+                } else if (currentActivityTab === 'achievement') {
+                    merged = achList;
+                } else {
+                    merged = vioList;
+                }
+
+                if (merged.length === 0) {
+                    container.innerHTML = '<div class="p-8 text-center text-xs text-slate-400">Belum ada aktivitas tercatat</div>';
+                    return;
+                }
+
+                var html = '';
+                for (var i = 0; i < merged.length; i++) {
+                    var it = merged[i];
+                    var isAch = it.type === 'achievement';
+                    var iconBg = isAch ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600';
+                    var iconName = isAch ? 'award' : 'alert-circle';
+                    var pointColor = isAch ? 'text-emerald-600' : 'text-rose-600';
+                    var sign = isAch ? '+' : '-';
+                    var timeAgo = formatRelativeTime(it.created_at);
+
+                    html += '<div class="p-3.5 sm:p-4 flex items-start gap-3 hover:bg-slate-50/60 transition-colors border-b border-slate-100 last:border-0">' +
+                        '<div class="w-8 h-8 rounded-lg ' + iconBg + ' flex items-center justify-center flex-shrink-0 mt-0.5">' +
+                        '<i data-lucide="' + iconName + '" class="w-4 h-4"></i>' +
+                        '</div>' +
+                        '<div class="flex-1 min-w-0">' +
+                        '<div class="flex items-center justify-between gap-2">' +
+                        '<a href="/admin/dual-point/student/' + it.student_id + '?id=' + it.student_id + '" class="text-xs font-bold text-slate-900 hover:text-brand-600 truncate transition-colors">' + (it.student_name || 'Siswa') + '</a>' +
+                        '<span class="font-mono text-xs font-bold ' + pointColor + ' flex-shrink-0">' + sign + it.points + ' pt</span>' +
+                        '</div>' +
+                        '<p class="text-xs text-slate-600 line-clamp-1 mt-0.5">' + (it.description || (isAch ? 'Poin Prestasi' : 'Poin Pelanggaran')) + '</p>' +
+                        '<div class="flex items-center gap-2 mt-1 text-[11px] text-slate-400">' +
+                        '<span>' + (it.class_name || '-') + '</span>' +
+                        '<span>&middot;</span>' +
+                        '<span>' + timeAgo + '</span>' +
+                        '</div>' +
+                        '</div>' +
+                        '</div>';
+                }
+
+                container.innerHTML = html;
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
+
+            function renderCharts(achievementDist, violationDist) {
+                var achCtx = document.getElementById('achievement-chart');
+                var vioCtx = document.getElementById('violation-chart');
+                if (!achCtx || !vioCtx) return;
+
+                if (achievementChart) achievementChart.destroy();
+                achievementChart = new Chart(achCtx.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Waluya (>=151)', 'Hadiah (126-150)', 'Sertifikat (100-125)', 'Belum (<100)'],
+                        datasets: [{
+                            data: [achievementDist.waluya, achievementDist.hadiah, achievementDist.sertifikat, achievementDist.belum],
+                            backgroundColor: ['#f59e0b', '#10b981', '#0ea5e9', '#e2e8f0'],
+                            borderWidth: 2,
+                            borderColor: '#ffffff',
+                            hoverOffset: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    boxWidth: 10,
+                                    boxHeight: 10,
+                                    usePointStyle: true,
+                                    font: { size: 11, family: 'Plus Jakarta Sans' },
+                                    padding: 12
+                                }
                             }
                         },
-                        tooltip: {
-                            backgroundColor: 'rgba(0,0,0,0.8)',
-                            padding: 12,
-                            titleFont: { size: 14, weight: 'bold' },
-                            bodyFont: { size: 13 },
-                            cornerRadius: 8
-                        }
-                    },
-                    animation: {
-                        animateRotate: true,
-                        animateScale: true,
-                        duration: 1500,
-                        easing: 'easeInOutQuart'
+                        cutout: '72%'
                     }
+                });
+
+                if (violationChart) violationChart.destroy();
+                violationChart = new Chart(vioCtx.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Aman (<25)', 'SP 1 (25-50)', 'SP 2 (51-75)', 'SP 3 (>=76)'],
+                        datasets: [{
+                            data: [violationDist.aman, violationDist.sp1, violationDist.sp2, violationDist.sp3],
+                            backgroundColor: ['#10b981', '#f59e0b', '#f97316', '#ef4444'],
+                            borderWidth: 2,
+                            borderColor: '#ffffff',
+                            hoverOffset: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    boxWidth: 10,
+                                    boxHeight: 10,
+                                    usePointStyle: true,
+                                    font: { size: 11, family: 'Plus Jakarta Sans' },
+                                    padding: 12
+                                }
+                            }
+                        },
+                        cutout: '72%'
+                    }
+                });
+            }
+
+            function formatRelativeTime(dateStr) {
+                if (!dateStr) return 'Baru saja';
+                try {
+                    var d = new Date(dateStr.replace(' ', 'T'));
+                    var now = new Date();
+                    var diffSec = Math.floor((now - d) / 1000);
+                    if (isNaN(diffSec) || diffSec < 60) return 'Baru saja';
+                    if (diffSec < 3600) return Math.floor(diffSec / 60) + ' mnt lalu';
+                    if (diffSec < 86400) return Math.floor(diffSec / 3600) + ' jam lalu';
+                    return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+                } catch (e) {
+                    return dateStr;
                 }
+            }
+
+            document.addEventListener('DOMContentLoaded', function () {
+                populateAcademicYears();
+                loadDashboard();
+                if (typeof lucide !== 'undefined') lucide.createIcons();
             });
-        }
+        </script>
+    </body>
 
-        function renderRecentActivities(leaderboard) {
-            // Simulate recent activities with top students
-            const recentAchievements = document.getElementById('recent-achievements');
-            const recentViolations = document.getElementById('recent-violations');
-            
-            const hasAchievement = leaderboard.filter(s => s.achievement_points > 0).slice(0, 10);
-            const hasViolation = leaderboard.filter(s => s.violation_points > 0).slice(0, 10);
-            
-            if (hasAchievement.length === 0) {
-                recentAchievements.innerHTML = '<p class="text-sm text-muted-foreground text-center py-8">Belum ada aktivitas</p>';
-            } else {
-                recentAchievements.innerHTML = hasAchievement.map((s, idx) => `
-                    <div class="activity-item group flex items-center gap-3 p-3 rounded-lg border-l-2 border-emerald-500 bg-emerald-50/50 hover:bg-emerald-50 transition-all duration-200" style="animation-delay: ${idx * 0.05}s;">
-                        <div class="h-9 w-9 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-semibold text-sm shadow-sm">
-                            ${s.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="font-medium text-sm text-foreground truncate">${s.name}</p>
-                            <p class="text-xs text-muted-foreground flex items-center gap-1">
-                                <i class="fas fa-trophy text-emerald-500"></i>
-                                ${s.achievement_points} poin - ${s.achievement_grade}
-                            </p>
-                        </div>
-                        <i class="fas fa-chevron-right text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs"></i>
-                    </div>
-                `).join('');
-            }
-            
-            if (hasViolation.length === 0) {
-                recentViolations.innerHTML = '<p class="text-sm text-muted-foreground text-center py-8">Belum ada aktivitas</p>';
-            } else {
-                recentViolations.innerHTML = hasViolation.map((s, idx) => `
-                    <div class="activity-item group flex items-center gap-3 p-3 rounded-lg border-l-2 border-red-500 bg-red-50/50 hover:bg-red-50 transition-all duration-200" style="animation-delay: ${idx * 0.05}s;">
-                        <div class="h-9 w-9 rounded-full bg-gradient-to-br from-red-400 to-orange-500 flex items-center justify-center text-white font-semibold text-sm shadow-sm">
-                            ${s.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="font-medium text-sm text-foreground truncate">${s.name}</p>
-                            <p class="text-xs text-muted-foreground flex items-center gap-1">
-                                <i class="fas fa-exclamation-triangle text-red-500"></i>
-                                ${s.violation_points} poin - ${s.violation_level}
-                            </p>
-                        </div>
-                        <i class="fas fa-chevron-right text-red-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs"></i>
-                    </div>
-                `).join('');
-            }
-        }
-
-        // Initialize
-        populateAcademicYears();
-        loadDashboard();
-    </script>
-</body>
 </html>

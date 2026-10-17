@@ -179,17 +179,17 @@ func queryDailyReport(db *sql.DB, date, reportType, classID string) ReportData {
 			       COALESCE(al_in.note, '') as note
 			FROM students s
 			LEFT JOIN classes c ON s.class_id = c.id
-			LEFT JOIN attendance_logs al_in ON s.rfid_uid = al_in.rfid_uid 
+			LEFT JOIN attendance_logs al_in ON ((al_in.student_id > 0 AND al_in.student_id = s.id) OR (s.rfid_uid != '' AND al_in.rfid_uid = s.rfid_uid))
 			    AND DATE(al_in.timestamp) = ?
 			    AND al_in.id = (
 			        SELECT MAX(id) FROM attendance_logs 
-			        WHERE rfid_uid = s.rfid_uid AND DATE(timestamp) = ? AND status != 'Pulang'
+			        WHERE ((student_id > 0 AND student_id = s.id) OR (s.rfid_uid != '' AND rfid_uid = s.rfid_uid)) AND DATE(timestamp) = ? AND status != 'Pulang'
 			    )
-			LEFT JOIN attendance_logs al_out ON s.rfid_uid = al_out.rfid_uid 
+			LEFT JOIN attendance_logs al_out ON ((al_out.student_id > 0 AND al_out.student_id = s.id) OR (s.rfid_uid != '' AND al_out.rfid_uid = s.rfid_uid))
 			    AND DATE(al_out.timestamp) = ?
 			    AND al_out.id = (
 			        SELECT MAX(id) FROM attendance_logs 
-			        WHERE rfid_uid = s.rfid_uid AND DATE(timestamp) = ? AND status = 'Pulang'
+			        WHERE ((student_id > 0 AND student_id = s.id) OR (s.rfid_uid != '' AND rfid_uid = s.rfid_uid)) AND DATE(timestamp) = ? AND status = 'Pulang'
 			    )
 			WHERE s.status = 'active'
 		`
@@ -294,7 +294,7 @@ func queryPeriodReport(db *sql.DB, startDate, endDate, reportType, classID strin
 			    SUM(CASE WHEN al.status = 'Alpha' THEN 1 ELSE 0 END) as absent
 			FROM students s
 			LEFT JOIN classes c ON s.class_id = c.id
-			LEFT JOIN attendance_logs al ON s.rfid_uid = al.rfid_uid 
+			LEFT JOIN attendance_logs al ON ((al.student_id > 0 AND al.student_id = s.id) OR (s.rfid_uid != '' AND al.rfid_uid = s.rfid_uid))
 			    AND DATE(al.timestamp) BETWEEN ? AND ?
 			WHERE s.status = 'active'
 		`

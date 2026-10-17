@@ -91,9 +91,9 @@ func CreateAssetBorrowing(db *sql.DB) echo.HandlerFunc {
 		}
 
 		// Check if asset is borrowable
-		var isBorrowable int
+		var isBorrowable, quantity int
 		var currentCondition string
-		err := db.QueryRow("SELECT is_borrowable, condition FROM assets WHERE id = ?", assetID).Scan(&isBorrowable, &currentCondition)
+		err := db.QueryRow("SELECT is_borrowable, condition, COALESCE(quantity, 1) FROM assets WHERE id = ?", assetID).Scan(&isBorrowable, &currentCondition, &quantity)
 		if err == sql.ErrNoRows {
 			return c.JSON(http.StatusNotFound, map[string]string{"error": "Asset not found"})
 		}
@@ -103,12 +103,15 @@ func CreateAssetBorrowing(db *sql.DB) echo.HandlerFunc {
 		if currentCondition == "broken" || currentCondition == "disposed" {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Asset is not in borrowable condition"})
 		}
+		if quantity <= 0 {
+			quantity = 1
+		}
 
-		// Check if asset is already borrowed
+		// Check if all units of the asset are currently borrowed
 		var activeBorrowings int
 		db.QueryRow("SELECT COUNT(*) FROM asset_borrowings WHERE asset_id = ? AND status IN ('approved', 'borrowed')", assetID).Scan(&activeBorrowings)
-		if activeBorrowings > 0 {
-			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Asset is currently borrowed"})
+		if activeBorrowings >= quantity {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Asset is currently borrowed (no available units)"})
 		}
 
 		borrowDate, err := time.Parse("2006-01-02", borrowDateStr)
@@ -144,7 +147,32 @@ func ApproveAssetBorrowing(db *sql.DB) echo.HandlerFunc {
 
 		approvedBy, _ := strconv.Atoi(approvedByStr)
 
-		_, err := db.Exec(`
+		// Get asset_id for this borrowing request
+		var assetID int
+		err := db.QueryRow("SELECT asset_id FROM asset_borrowings WHERE id = ? AND status = 'pending'", id).Scan(&assetID)
+		if err == sql.ErrNoRows {
+			return c.JSON(http.StatusNotFound, map[string]string{"error": "Pending borrowing request not found"})
+		} else if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		}
+
+		// Check available units
+		var quantity int
+		err = db.QueryRow("SELECT COALESCE(quantity, 1) FROM assets WHERE id = ?", assetID).Scan(&quantity)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Asset not found"})
+		}
+		if quantity <= 0 {
+			quantity = 1
+		}
+
+		var activeBorrowings int
+		db.QueryRow("SELECT COUNT(*) FROM asset_borrowings WHERE asset_id = ? AND status IN ('approved', 'borrowed')", assetID).Scan(&activeBorrowings)
+		if activeBorrowings >= quantity {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Asset has no available units to borrow"})
+		}
+
+		result, err := db.Exec(`
 			UPDATE asset_borrowings
 			SET status = 'approved', approved_by = ?, approved_at = ?, updated_at = ?
 			WHERE id = ? AND status = 'pending'
@@ -152,6 +180,10 @@ func ApproveAssetBorrowing(db *sql.DB) echo.HandlerFunc {
 
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		}
+		rowsAff, _ := result.RowsAffected()
+		if rowsAff == 0 {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Borrowing request cannot be approved"})
 		}
 
 		return c.JSON(http.StatusOK, map[string]string{"message": "Borrowing approved successfully"})

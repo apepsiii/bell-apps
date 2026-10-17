@@ -1,385 +1,491 @@
 <!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Leaderboard Poin Siswa - SMK NIBA Super Apps</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
-        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-        @keyframes shine { 0% { left: -100%; } 100% { left: 100%; } }
-        
-        .fade-in { animation: fadeIn 0.5s ease-out forwards; opacity: 0; }
-        .slide-in { animation: slideIn 0.4s ease-out forwards; opacity: 0; }
-        
-        .podium-winner {
-            animation: bounce 2s ease-in-out infinite;
-        }
-        
-        .medal-shine {
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .medal-shine::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 50%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
-            animation: shine 3s infinite;
-        }
-        
-        .rank-row {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        .rank-row:hover {
-            transform: translateX(8px);
-        }
-    </style>
-</head>
-<body class="bg-gradient-to-br from-slate-50 via-amber-50 to-orange-50 min-h-screen">
-    <div class="min-h-screen">
-        <!-- Header -->
-        <div class="bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white shadow-2xl">
-            <div class="max-w-7xl mx-auto px-6 py-8">
-                <div class="flex items-center justify-between">
-                    <div class="fade-in">
-                        <div class="flex items-center gap-3 mb-2">
-                            <div class="bg-white/20 backdrop-blur-sm p-3 rounded-xl medal-shine">
-                                <i class="fas fa-trophy text-3xl"></i>
+<html lang="id" class="h-full bg-slate-50/60">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Papan Peringkat Poin Siswa - SMK NIBA Super Apps</title>
+
+        <!-- Google Fonts: Plus Jakarta Sans -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+            rel="stylesheet">
+
+        <!-- Tailwind CSS CDN -->
+        <script src="https://cdn.tailwindcss.com"></script>
+        <!-- Lucide Icons -->
+        <script src="https://unpkg.com/lucide@latest"></script>
+
+        <script>
+            tailwind.config = {
+                theme: {
+                    extend: {
+                        fontFamily: {
+                            sans: ['"Plus Jakarta Sans"', 'sans-serif']
+                        },
+                        colors: {
+                            brand: {
+                                50: '#eef2ff',
+                                100: '#e0e7ff',
+                                500: '#6366f1',
+                                600: '#4f46e5',
+                                700: '#4338ca'
+                            }
+                        },
+                        boxShadow: {
+                            subtle: '0 1px 2px 0 rgba(0, 0, 0, 0.04), 0 1px 3px 0 rgba(0, 0, 0, 0.02)',
+                            card: '0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+                            hover: '0 12px 24px -4px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.02)'
+                        }
+                    }
+                }
+            };
+        </script>
+
+        <style>
+            body {
+                font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+                letter-spacing: -0.01em;
+            }
+
+            ::-webkit-scrollbar {
+                width: 6px;
+                height: 6px;
+            }
+
+            ::-webkit-scrollbar-track {
+                background: transparent;
+            }
+
+            ::-webkit-scrollbar-thumb {
+                background: #cbd5e1;
+                border-radius: 9999px;
+            }
+
+            ::-webkit-scrollbar-thumb:hover {
+                background: #94a3b8;
+            }
+        </style>
+    </head>
+
+    <body class="min-h-full flex flex-col text-slate-800 antialiased selection:bg-brand-500 selection:text-white">
+
+        <!-- Top Navigation Header -->
+        <header class="sticky top-0 z-40 bg-white/85 backdrop-blur-md border-b border-slate-200/80 transition-all">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16 gap-4">
+
+                    <!-- Brand & Breadcrumb -->
+                    <div class="flex items-center gap-3.5 min-w-0">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-500 flex items-center justify-center text-white shadow-sm shadow-amber-500/20 flex-shrink-0">
+                            <i data-lucide="trophy" class="w-5 h-5"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2">
+                                <h1 class="text-base font-bold text-slate-900 tracking-tight truncate">Papan Peringkat Siswa</h1>
+                                <span
+                                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200/60 flex-shrink-0">
+                                    Waluya Leaderboard
+                                </span>
                             </div>
-                            <div>
-                                <h1 class="text-3xl font-black tracking-tight">Leaderboard Poin Siswa</h1>
-                                <p class="text-amber-100 text-sm mt-1 flex items-center gap-2">
-                                    <i class="fas fa-crown text-xs"></i>
-                                    Ranking Siswa Berdasarkan Poin Penghargaan
-                                </p>
-                            </div>
+                            <p class="text-xs text-slate-500 truncate">Peringkat akumulasi penghargaan prestasi &
+                                kedisiplinan</p>
                         </div>
                     </div>
-                    <a href="/admin/dual-point/dashboard" class="bg-white/90 backdrop-blur text-amber-600 px-6 py-3 rounded-xl hover:bg-white hover:shadow-lg transition-all duration-300 font-semibold">
-                        <i class="fas fa-arrow-left mr-2"></i>Kembali
-                    </a>
+
+                    <!-- Right Action Controls -->
+                    <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                        <a href="/admin/dual-point/dashboard"
+                            class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl shadow-subtle hover:border-slate-300 transition-all">
+                            <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 text-slate-500"></i>
+                            <span class="hidden sm:inline">Dashboard</span>
+                        </a>
+                        <a href="/admin/dual-point/input"
+                            class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-200/80 rounded-xl transition-all">
+                            <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-emerald-600"></i>
+                            <span>Input Poin</span>
+                        </a>
+                        <a href="/admin"
+                            class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl shadow-subtle hover:border-slate-300 transition-all">
+                            <i data-lucide="home" class="w-3.5 h-3.5 text-slate-500"></i>
+                            <span class="hidden sm:inline">Menu Admin</span>
+                        </a>
+                    </div>
                 </div>
             </div>
-        </div>
+        </header>
 
-        <div class="max-w-7xl mx-auto px-6 py-8">
-            <!-- Filters -->
-            <div class="bg-white rounded-2xl shadow-lg p-6 mb-8 border border-gray-100 fade-in" style="animation-delay: 0.1s;">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                            <i class="fas fa-calendar text-purple-500"></i>
-                            Tahun Ajaran
-                        </label>
-                        <select id="academic-year" onchange="loadLeaderboard()" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all font-medium hover:border-amber-300">
-                            <option value="">Tahun Ajaran Saat Ini</option>
+        <!-- Main Workspace Container -->
+        <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
+
+            <!-- Filter Controls Card -->
+            <section class="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-subtle">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+
+                    <!-- Academic Year Filter -->
+                    <div class="relative">
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Tahun
+                            Ajaran</label>
+                        <select id="filter-year" onchange="loadLeaderboard()"
+                            class="w-full appearance-none bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 font-semibold text-xs rounded-xl pl-9 pr-8 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all cursor-pointer">
+                            <option value="">Tahun Ajaran Aktif</option>
                         </select>
+                        <i data-lucide="calendar"
+                            class="w-4 h-4 text-slate-400 absolute left-3 top-8 pointer-events-none"></i>
+                        <i data-lucide="chevron-down"
+                            class="w-3.5 h-3.5 text-slate-400 absolute right-3 top-8 pointer-events-none"></i>
                     </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                            <i class="fas fa-school text-blue-500"></i>
-                            Filter Kelas
-                        </label>
-                        <select id="filter-class" onchange="filterLeaderboard()" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all font-medium hover:border-amber-300">
+
+                    <!-- Class Filter -->
+                    <div class="relative">
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Filter
+                            Kelas</label>
+                        <select id="filter-class" onchange="filterLeaderboardData()"
+                            class="w-full appearance-none bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 font-semibold text-xs rounded-xl pl-9 pr-8 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all cursor-pointer">
                             <option value="">Semua Kelas</option>
                         </select>
+                        <i data-lucide="graduation-cap"
+                            class="w-4 h-4 text-slate-400 absolute left-3 top-8 pointer-events-none"></i>
+                        <i data-lucide="chevron-down"
+                            class="w-3.5 h-3.5 text-slate-400 absolute right-3 top-8 pointer-events-none"></i>
+                    </div>
+
+                    <!-- Search Input -->
+                    <div class="relative sm:col-span-2">
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Cari
+                            Siswa</label>
+                        <div class="relative">
+                            <input type="text" id="filter-search" placeholder="Ketik nama atau NIS siswa..."
+                                oninput="filterLeaderboardData()"
+                                class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs sm:text-sm rounded-xl pl-9 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all">
+                            <i data-lucide="search"
+                                class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Top 3 Podium Showcase -->
+            <section id="podium-section" class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 items-end">
+                <!-- Rank 2 Card (Left on Desktop) -->
+                <div id="podium-card-2"
+                    class="order-2 md:order-1 bg-white border border-slate-200/90 rounded-2xl p-5 shadow-subtle hover:shadow-hover transition-all text-center space-y-3">
+                    <div
+                        class="w-14 h-14 mx-auto rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center font-extrabold text-base text-slate-600 shadow-xs">
+                        2
                     </div>
                     <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                            <i class="fas fa-award text-emerald-500"></i>
-                            Filter Predikat
-                        </label>
-                        <select id="filter-grade" onchange="filterLeaderboard()" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all font-medium hover:border-amber-300">
-                            <option value="">Semua Predikat</option>
-                            <option value="waluya">🏆 Waluya Utama (≥151)</option>
-                            <option value="hadiah">🎁 Sertifikat + Hadiah (126-150)</option>
-                            <option value="sertifikat">📜 Sertifikat (100-125)</option>
-                        </select>
+                        <h3 id="podium-name-2" class="font-bold text-sm text-slate-900 truncate">Menunggu data...</h3>
+                        <p id="podium-class-2" class="text-xs text-slate-500 mt-0.5">-</p>
+                    </div>
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                        <div id="podium-points-2" class="font-mono font-extrabold text-lg text-slate-800">0 pt</div>
+                        <span id="podium-grade-2"
+                            class="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600">-</span>
                     </div>
                 </div>
-            </div>
 
-            <!-- Podium Top 3 -->
-            <div id="podium" class="mb-8 fade-in" style="animation-delay: 0.2s;">
-                <div class="grid grid-cols-3 gap-6 max-w-5xl mx-auto items-end">
-                    <!-- 2nd Place -->
-                    <div class="flex flex-col items-center">
-                        <div id="podium-2" class="text-center mb-4 w-full"></div>
-                        <div class="bg-gradient-to-t from-gray-400 via-gray-300 to-gray-200 rounded-t-2xl p-6 w-full text-center shadow-2xl border-4 border-gray-300 relative overflow-hidden h-32">
-                            <div class="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent"></div>
-                            <div class="relative">
-                                <i class="fas fa-medal text-white text-4xl mb-2 drop-shadow-lg"></i>
-                                <div class="text-white font-black text-5xl drop-shadow-lg">2</div>
-                            </div>
-                        </div>
+                <!-- Rank 1 Card (Center on Desktop - Elevated) -->
+                <div id="podium-card-1"
+                    class="order-1 md:order-2 bg-gradient-to-b from-amber-50/50 to-white border-2 border-amber-300 rounded-2xl p-6 shadow-card hover:shadow-hover transition-all text-center space-y-3.5 md:-translate-y-2">
+                    <div
+                        class="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-400 text-white flex items-center justify-center font-extrabold text-xl shadow-sm shadow-amber-500/30">
+                        <i data-lucide="crown" class="w-8 h-8"></i>
                     </div>
-                    
-                    <!-- 1st Place -->
-                    <div class="flex flex-col items-center">
-                        <div id="podium-1" class="text-center mb-4 w-full podium-winner"></div>
-                        <div class="bg-gradient-to-t from-amber-500 via-yellow-400 to-yellow-300 rounded-t-2xl p-8 w-full text-center shadow-2xl border-4 border-amber-400 relative overflow-hidden h-40 medal-shine">
-                            <div class="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent"></div>
-                            <div class="relative">
-                                <i class="fas fa-crown text-white text-5xl mb-3 drop-shadow-lg animate-pulse"></i>
-                                <div class="text-white font-black text-6xl drop-shadow-lg">1</div>
-                            </div>
+                    <div>
+                        <div
+                            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 mb-1">
+                            Peringkat 1 Nasional
                         </div>
+                        <h3 id="podium-name-1" class="font-bold text-base text-slate-900 truncate">Menunggu data...</h3>
+                        <p id="podium-class-1" class="text-xs text-slate-500 mt-0.5">-</p>
                     </div>
-                    
-                    <!-- 3rd Place -->
-                    <div class="flex flex-col items-center">
-                        <div id="podium-3" class="text-center mb-4 w-full"></div>
-                        <div class="bg-gradient-to-t from-orange-500 via-orange-400 to-orange-300 rounded-t-2xl p-6 w-full text-center shadow-2xl border-4 border-orange-400 relative overflow-hidden h-28">
-                            <div class="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent"></div>
-                            <div class="relative">
-                                <i class="fas fa-medal text-white text-4xl mb-2 drop-shadow-lg"></i>
-                                <div class="text-white font-black text-5xl drop-shadow-lg">3</div>
-                            </div>
-                        </div>
+                    <div class="p-3.5 bg-amber-50/70 rounded-xl border border-amber-200/80">
+                        <div id="podium-points-1" class="font-mono font-extrabold text-2xl text-emerald-600">+0 pt</div>
+                        <span id="podium-grade-1"
+                            class="inline-block mt-1 px-2.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">Waluya
+                            Utama</span>
                     </div>
                 </div>
-            </div>
 
-            <!-- Leaderboard Table -->
-            <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 fade-in" style="animation-delay: 0.3s;">
-                <div class="bg-gradient-to-r from-amber-50 to-orange-50 p-6 border-b-2 border-amber-200">
-                    <h2 class="font-bold text-xl text-gray-800 flex items-center gap-3">
-                        <div class="bg-gradient-to-br from-amber-500 to-orange-500 text-white p-2 rounded-lg">
-                            <i class="fas fa-list"></i>
-                        </div>
-                        Ranking Lengkap
-                    </h2>
+                <!-- Rank 3 Card (Right on Desktop) -->
+                <div id="podium-card-3"
+                    class="order-3 md:order-3 bg-white border border-slate-200/90 rounded-2xl p-5 shadow-subtle hover:shadow-hover transition-all text-center space-y-3">
+                    <div
+                        class="w-14 h-14 mx-auto rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center font-extrabold text-base text-amber-700 shadow-xs">
+                        3
+                    </div>
+                    <div>
+                        <h3 id="podium-name-3" class="font-bold text-sm text-slate-900 truncate">Menunggu data...</h3>
+                        <p id="podium-class-3" class="text-xs text-slate-500 mt-0.5">-</p>
+                    </div>
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                        <div id="podium-points-3" class="font-mono font-extrabold text-lg text-slate-800">0 pt</div>
+                        <span id="podium-grade-3"
+                            class="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600">-</span>
+                    </div>
                 </div>
+            </section>
+
+            <!-- Full Leaderboard Table Card -->
+            <section class="bg-white border border-slate-200/80 rounded-2xl shadow-subtle overflow-hidden">
+                <div class="p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-sm sm:text-base font-bold text-slate-900">Klasemen Lengkap Siswa</h2>
+                        <p id="table-record-count" class="text-xs text-slate-500 mt-0.5">Memuat data klasemen...</p>
+                    </div>
+                </div>
+
+                <!-- Responsive Table -->
                 <div class="overflow-x-auto">
-                    <table class="w-full">
-                        <thead class="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-200">
-                            <tr>
-                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Rank</th>
-                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Nama</th>
-                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Kelas</th>
-                                <th class="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Poin Penghargaan</th>
-                                <th class="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Predikat</th>
-                                <th class="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Poin Pelanggaran</th>
-                                <th class="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
-                                <th class="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Aksi</th>
+                    <table class="w-full text-left text-xs sm:text-sm">
+                        <thead>
+                            <tr
+                                class="border-b border-slate-100 bg-slate-50/70 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                                <th class="py-3 px-4 text-center w-16">Peringkat</th>
+                                <th class="py-3 px-4">Nama Siswa</th>
+                                <th class="py-3 px-4">Kelas</th>
+                                <th class="py-3 px-4 text-center">Poin Prestasi</th>
+                                <th class="py-3 px-4 text-center">Predikat Waluya</th>
+                                <th class="py-3 px-4 text-center">Pelanggaran</th>
+                                <th class="py-3 px-4 text-center">Status SP</th>
+                                <th class="py-3 px-4 text-right">Aksi</th>
                             </tr>
                         </thead>
-                        <tbody id="leaderboard-body" class="bg-white divide-y divide-gray-100">
+                        <tbody id="leaderboard-body" class="divide-y divide-slate-100">
                             <tr>
-                                <td colspan="8" class="px-6 py-12 text-center text-gray-500">
-                                    <i class="fas fa-spinner fa-spin text-2xl mr-2 text-amber-500"></i>
-                                    <p class="mt-2 font-semibold">Memuat data...</p>
+                                <td colspan="8" class="py-12 text-center text-slate-400 text-xs">
+                                    <i data-lucide="loader-2"
+                                        class="w-5 h-5 animate-spin mx-auto mb-2 text-slate-400"></i>
+                                    Memuat data peringkat siswa...
                                 </td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
+            </section>
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="mt-auto border-t border-slate-200/80 bg-white py-4">
+            <div
+                class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center sm:text-left sm:flex sm:items-center sm:justify-between text-xs text-slate-400">
+                <p>SMK NIBA Super Apps &middot; Sistem Karakter & Dual-Track Poin</p>
+                <p class="mt-1 sm:mt-0 font-mono text-[11px]">Formula 3 REKA + 1 KONVERSI</p>
             </div>
-        </div>
-    </div>
+        </footer>
 
-    <script>
-        let allData = [];
-        let filteredData = [];
+        <!-- Logic Script -->
+        <script>
+            var rawLeaderboard = [];
+            var filteredLeaderboard = [];
 
-        async function loadLeaderboard() {
-            const year = document.getElementById('academic-year').value;
-            
-            try {
-                const res = await fetch(`/admin/v2/leaderboard?year=${year}`);
-                allData = await res.json();
-                
-                // Extract unique classes
-                const classes = [...new Set(allData.map(s => s.class_name).filter(c => c))];
-                const classSelect = document.getElementById('filter-class');
-                classSelect.innerHTML = '<option value="">Semua Kelas</option>' + 
-                    classes.map(c => `<option value="${c}">${c}</option>`).join('');
-                
-                filterLeaderboard();
-            } catch (err) {
-                console.error('Error loading leaderboard:', err);
-                document.getElementById('leaderboard-body').innerHTML = `
-                    <tr><td colspan="8" class="px-6 py-8 text-center text-red-500">
-                        <i class="fas fa-exclamation-circle mr-2"></i>Gagal memuat data
-                    </td></tr>
-                `;
-            }
-        }
+            function populateAcademicYears() {
+                var select = document.getElementById('filter-year');
+                if (!select) return;
+                var now = new Date();
+                var currentYear = now.getFullYear();
+                var currentMonth = now.getMonth() + 1;
 
-        function filterLeaderboard() {
-            const filterClass = document.getElementById('filter-class').value;
-            const filterGrade = document.getElementById('filter-grade').value;
-            
-            filteredData = allData.filter(s => {
-                if (filterClass && s.class_name !== filterClass) return false;
-                
-                if (filterGrade) {
-                    if (filterGrade === 'waluya' && s.achievement_points < 151) return false;
-                    if (filterGrade === 'hadiah' && (s.achievement_points < 126 || s.achievement_points >= 151)) return false;
-                    if (filterGrade === 'sertifikat' && (s.achievement_points < 100 || s.achievement_points >= 126)) return false;
+                var startYear = currentMonth >= 7 ? currentYear : currentYear - 1;
+                var currentAcademicYear = startYear + '/' + (startYear + 1);
+                select.innerHTML = '<option value="' + currentAcademicYear + '">' + currentAcademicYear + ' (Aktif)</option>';
+
+                for (var i = 1; i <= 3; i++) {
+                    var year = startYear - i;
+                    var academicYear = year + '/' + (year + 1);
+                    select.innerHTML += '<option value="' + academicYear + '">' + academicYear + '</option>';
                 }
-                
-                return true;
+            }
+
+            async function loadClasses() {
+                try {
+                    var res = await fetch('/api/academic/classes');
+                    if (!res.ok) return;
+                    var classes = await res.json();
+                    var select = document.getElementById('filter-class');
+                    for (var i = 0; i < classes.length; i++) {
+                        var c = classes[i];
+                        var opt = document.createElement('option');
+                        opt.value = c.name;
+                        opt.textContent = c.name;
+                        select.appendChild(opt);
+                    }
+                } catch (e) {
+                    console.error('Failed to load classes', e);
+                }
+            }
+
+            async function loadLeaderboard() {
+                var year = document.getElementById('filter-year').value;
+                var body = document.getElementById('leaderboard-body');
+                body.innerHTML = '<tr><td colspan="8" class="py-12 text-center text-slate-400 text-xs"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto mb-2 text-slate-400"></i>Memuat data peringkat siswa...</td></tr>';
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+
+                try {
+                    var res = await fetch('/admin/v2/leaderboard?year=' + encodeURIComponent(year));
+                    rawLeaderboard = await res.json();
+                    filterLeaderboardData();
+                } catch (err) {
+                    body.innerHTML = '<tr><td colspan="8" class="py-12 text-center text-rose-500 text-xs">Gagal memuat data klasemen: ' + err.message + '</td></tr>';
+                }
+            }
+
+            function filterLeaderboardData() {
+                var classFilter = document.getElementById('filter-class').value;
+                var query = document.getElementById('filter-search').value.trim().toLowerCase();
+
+                filteredLeaderboard = rawLeaderboard.filter(function (s) {
+                    var matchClass = !classFilter || (s.class_name && s.class_name.toLowerCase() === classFilter.toLowerCase());
+                    var matchQuery = !query ||
+                        (s.name && s.name.toLowerCase().indexOf(query) !== -1) ||
+                        (s.nis && s.nis.toLowerCase().indexOf(query) !== -1);
+                    return matchClass && matchQuery;
+                });
+
+                renderPodium();
+                renderTable();
+            }
+
+            function renderPodium() {
+                var s1 = filteredLeaderboard[0];
+                var s2 = filteredLeaderboard[1];
+                var s3 = filteredLeaderboard[2];
+
+                // Rank 1
+                if (s1) {
+                    document.getElementById('podium-name-1').textContent = s1.name;
+                    document.getElementById('podium-class-1').textContent = s1.class_name || 'Tanpa Kelas';
+                    document.getElementById('podium-points-1').textContent = '+' + s1.achievement_points + ' pt';
+                    document.getElementById('podium-grade-1').textContent = s1.achievement_grade || 'Waluya Utama';
+                } else {
+                    document.getElementById('podium-name-1').textContent = '-';
+                    document.getElementById('podium-class-1').textContent = '-';
+                    document.getElementById('podium-points-1').textContent = '0 pt';
+                    document.getElementById('podium-grade-1').textContent = '-';
+                }
+
+                // Rank 2
+                if (s2) {
+                    document.getElementById('podium-name-2').textContent = s2.name;
+                    document.getElementById('podium-class-2').textContent = s2.class_name || 'Tanpa Kelas';
+                    document.getElementById('podium-points-2').textContent = '+' + s2.achievement_points + ' pt';
+                    document.getElementById('podium-grade-2').textContent = s2.achievement_grade || 'Sertifikat';
+                } else {
+                    document.getElementById('podium-name-2').textContent = '-';
+                    document.getElementById('podium-class-2').textContent = '-';
+                    document.getElementById('podium-points-2').textContent = '0 pt';
+                    document.getElementById('podium-grade-2').textContent = '-';
+                }
+
+                // Rank 3
+                if (s3) {
+                    document.getElementById('podium-name-3').textContent = s3.name;
+                    document.getElementById('podium-class-3').textContent = s3.class_name || 'Tanpa Kelas';
+                    document.getElementById('podium-points-3').textContent = '+' + s3.achievement_points + ' pt';
+                    document.getElementById('podium-grade-3').textContent = s3.achievement_grade || 'Sertifikat';
+                } else {
+                    document.getElementById('podium-name-3').textContent = '-';
+                    document.getElementById('podium-class-3').textContent = '-';
+                    document.getElementById('podium-points-3').textContent = '0 pt';
+                    document.getElementById('podium-grade-3').textContent = '-';
+                }
+            }
+
+            function renderTable() {
+                var body = document.getElementById('leaderboard-body');
+                var countEl = document.getElementById('table-record-count');
+                countEl.textContent = 'Menampilkan ' + filteredLeaderboard.length + ' siswa';
+
+                if (filteredLeaderboard.length === 0) {
+                    body.innerHTML = '<tr><td colspan="8" class="py-12 text-center text-slate-400 text-xs">Tidak ada data siswa yang cocok dengan filter</td></tr>';
+                    return;
+                }
+
+                var html = '';
+                for (var idx = 0; idx < filteredLeaderboard.length; idx++) {
+                    var s = filteredLeaderboard[idx];
+                    var rank = idx + 1;
+                    var rankBadge = '';
+
+                    if (rank === 1) {
+                        rankBadge = '<span class="w-6 h-6 rounded-lg bg-amber-500 text-white font-bold text-xs inline-flex items-center justify-center shadow-xs">1</span>';
+                    } else if (rank === 2) {
+                        rankBadge = '<span class="w-6 h-6 rounded-lg bg-slate-400 text-white font-bold text-xs inline-flex items-center justify-center shadow-xs">2</span>';
+                    } else if (rank === 3) {
+                        rankBadge = '<span class="w-6 h-6 rounded-lg bg-amber-700 text-white font-bold text-xs inline-flex items-center justify-center shadow-xs">3</span>';
+                    } else {
+                        rankBadge = '<span class="w-6 h-6 rounded-lg bg-slate-100 text-slate-600 font-bold text-xs inline-flex items-center justify-center">' + rank + '</span>';
+                    }
+
+                    var initial = (s.name || 'S').charAt(0).toUpperCase();
+
+                    var gradeBadge = '';
+                    if (s.achievement_points >= 151) {
+                        gradeBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80">Waluya Utama</span>';
+                    } else if (s.achievement_points >= 126) {
+                        gradeBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">Hadiah</span>';
+                    } else if (s.achievement_points >= 100) {
+                        gradeBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200/80">Sertifikat</span>';
+                    } else {
+                        gradeBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500">Belum</span>';
+                    }
+
+                    var vioPtsHtml = s.violation_points > 0
+                        ? '<span class="font-mono font-bold text-xs text-rose-600">-' + s.violation_points + ' pt</span>'
+                        : '<span class="font-mono text-xs text-slate-400">0 pt</span>';
+
+                    var spBadge = '';
+                    if (s.violation_points >= 76) {
+                        spBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">SP3</span>';
+                    } else if (s.violation_points >= 51) {
+                        spBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-50 text-orange-700 border border-orange-200">SP2</span>';
+                    } else if (s.violation_points >= 25) {
+                        spBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">SP1</span>';
+                    } else {
+                        spBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700">Aman</span>';
+                    }
+
+                    html += '<tr class="hover:bg-slate-50/70 transition-colors">' +
+                        '<td class="py-3.5 px-4 text-center">' + rankBadge + '</td>' +
+                        '<td class="py-3.5 px-4">' +
+                        '<div class="flex items-center gap-3">' +
+                        '<div class="w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center flex-shrink-0">' + initial + '</div>' +
+                        '<div class="min-w-0">' +
+                        '<h4 class="font-bold text-slate-900 truncate">' + (s.name || '') + '</h4>' +
+                        '<p class="text-[11px] text-slate-400">NIS: ' + (s.nis || '-') + '</p>' +
+                        '</div>' +
+                        '</div>' +
+                        '</td>' +
+                        '<td class="py-3.5 px-4 font-medium text-slate-600">' + (s.class_name || 'Tanpa Kelas') + '</td>' +
+                        '<td class="py-3.5 px-4 text-center font-mono font-bold text-emerald-600">+' + s.achievement_points + ' pt</td>' +
+                        '<td class="py-3.5 px-4 text-center">' + gradeBadge + '</td>' +
+                        '<td class="py-3.5 px-4 text-center">' + vioPtsHtml + '</td>' +
+                        '<td class="py-3.5 px-4 text-center">' + spBadge + '</td>' +
+                        '<td class="py-3.5 px-4 text-right">' +
+                        '<a href="/admin/dual-point/student/' + s.id + '?id=' + s.id + '" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all">' +
+                        '<span>Detail</span>' +
+                        '<i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-400"></i>' +
+                        '</a>' +
+                        '</td>' +
+                        '</tr>';
+                }
+
+                body.innerHTML = html;
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
+
+            document.addEventListener('DOMContentLoaded', function () {
+                populateAcademicYears();
+                loadClasses();
+                loadLeaderboard();
+                if (typeof lucide !== 'undefined') lucide.createIcons();
             });
-            
-            renderLeaderboard();
-        }
+        </script>
+    </body>
 
-        function renderLeaderboard() {
-            // Render podium (top 3)
-            if (filteredData.length >= 1) {
-                document.getElementById('podium-1').innerHTML = `
-                    <div class="bg-white rounded-2xl shadow-2xl p-6 border-4 border-amber-400 transform hover:scale-105 transition-transform">
-                        <div class="w-24 h-24 mx-auto mb-3 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-full flex items-center justify-center text-white text-3xl font-black shadow-xl border-4 border-white">
-                            ${filteredData[0].name.charAt(0).toUpperCase()}
-                        </div>
-                        <p class="font-black text-xl text-gray-800 truncate">${filteredData[0].name}</p>
-                        <p class="text-sm text-gray-500 flex items-center justify-center gap-1 mt-1">
-                            <i class="fas fa-graduation-cap"></i>
-                            ${filteredData[0].class_name}
-                        </p>
-                        <div class="mt-4 bg-amber-50 rounded-xl p-3 border-2 border-amber-200">
-                            <p class="text-amber-600 font-black text-2xl">${filteredData[0].achievement_points}</p>
-                            <p class="text-xs text-amber-700 font-bold uppercase">Poin</p>
-                        </div>
-                    </div>
-                `;
-            }
-            
-            if (filteredData.length >= 2) {
-                document.getElementById('podium-2').innerHTML = `
-                    <div class="bg-white rounded-2xl shadow-xl p-5 border-4 border-gray-300 transform hover:scale-105 transition-transform">
-                        <div class="w-20 h-20 mx-auto mb-3 bg-gradient-to-br from-gray-400 to-gray-500 rounded-full flex items-center justify-center text-white text-2xl font-black shadow-lg border-4 border-white">
-                            ${filteredData[1].name.charAt(0).toUpperCase()}
-                        </div>
-                        <p class="font-bold text-lg text-gray-800 truncate">${filteredData[1].name}</p>
-                        <p class="text-xs text-gray-500 flex items-center justify-center gap-1 mt-1">
-                            <i class="fas fa-graduation-cap"></i>
-                            ${filteredData[1].class_name}
-                        </p>
-                        <div class="mt-3 bg-gray-50 rounded-xl p-2 border-2 border-gray-200">
-                            <p class="text-gray-600 font-bold text-xl">${filteredData[1].achievement_points}</p>
-                            <p class="text-xs text-gray-600 font-bold uppercase">Poin</p>
-                        </div>
-                    </div>
-                `;
-            }
-            
-            if (filteredData.length >= 3) {
-                document.getElementById('podium-3').innerHTML = `
-                    <div class="bg-white rounded-2xl shadow-xl p-5 border-4 border-orange-300 transform hover:scale-105 transition-transform">
-                        <div class="w-20 h-20 mx-auto mb-3 bg-gradient-to-br from-orange-400 to-orange-500 rounded-full flex items-center justify-center text-white text-2xl font-black shadow-lg border-4 border-white">
-                            ${filteredData[2].name.charAt(0).toUpperCase()}
-                        </div>
-                        <p class="font-bold text-lg text-gray-800 truncate">${filteredData[2].name}</p>
-                        <p class="text-xs text-gray-500 flex items-center justify-center gap-1 mt-1">
-                            <i class="fas fa-graduation-cap"></i>
-                            ${filteredData[2].class_name}
-                        </p>
-                        <div class="mt-3 bg-orange-50 rounded-xl p-2 border-2 border-orange-200">
-                            <p class="text-orange-600 font-bold text-xl">${filteredData[2].achievement_points}</p>
-                            <p class="text-xs text-orange-600 font-bold uppercase">Poin</p>
-                        </div>
-                    </div>
-                `;
-            }
-            
-            // Render table
-            const tbody = document.getElementById('leaderboard-body');
-            
-            if (filteredData.length === 0) {
-                tbody.innerHTML = `
-                    <tr><td colspan="8" class="px-6 py-12 text-center text-gray-500">
-                        <i class="fas fa-info-circle text-4xl mb-3 text-gray-300"></i>
-                        <p class="font-semibold">Tidak ada data</p>
-                    </td></tr>
-                `;
-                return;
-            }
-            
-            tbody.innerHTML = filteredData.map((s, idx) => {
-                const rank = idx + 1;
-                const medalIcon = rank === 1 ? '<i class="fas fa-crown text-amber-500 text-xl"></i>' : 
-                                 rank === 2 ? '<i class="fas fa-medal text-gray-400 text-xl"></i>' : 
-                                 rank === 3 ? '<i class="fas fa-medal text-orange-400 text-xl"></i>' : 
-                                 `<span class="text-lg font-bold text-gray-600">${rank}</span>`;
-                const rowBg = rank <= 3 ? (rank === 1 ? 'bg-amber-50' : rank === 2 ? 'bg-gray-50' : 'bg-orange-50') : '';
-                
-                return `
-                    <tr class="rank-row hover:bg-gradient-to-r hover:from-amber-50 hover:to-transparent ${rowBg}">
-                        <td class="px-6 py-5 whitespace-nowrap">
-                            <div class="flex items-center gap-2">
-                                ${medalIcon}
-                            </div>
-                        </td>
-                        <td class="px-6 py-5 whitespace-nowrap">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold shadow-md">
-                                    ${s.name.charAt(0).toUpperCase()}
-                                </div>
-                                <div class="font-bold text-gray-800">${s.name}</div>
-                            </div>
-                        </td>
-                        <td class="px-6 py-5 whitespace-nowrap">
-                            <span class="text-sm text-gray-600 font-medium flex items-center gap-2">
-                                <i class="fas fa-graduation-cap text-blue-400"></i>
-                                ${s.class_name}
-                            </span>
-                        </td>
-                        <td class="px-6 py-5 whitespace-nowrap text-center">
-                            <div class="inline-flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-xl border-2 border-emerald-200">
-                                <i class="fas fa-trophy text-emerald-500"></i>
-                                <span class="text-xl font-black text-emerald-600">${s.achievement_points}</span>
-                            </div>
-                        </td>
-                        <td class="px-6 py-5 whitespace-nowrap text-center">
-                            <span class="inline-flex items-center px-4 py-2 rounded-xl text-sm font-bold shadow-sm ${
-                                s.achievement_points >= 151 ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-white' :
-                                s.achievement_points >= 126 ? 'bg-gradient-to-r from-emerald-400 to-teal-500 text-white' :
-                                s.achievement_points >= 100 ? 'bg-gradient-to-r from-blue-400 to-cyan-500 text-white' :
-                                'bg-gray-200 text-gray-700'
-                            }">
-                                ${s.achievement_grade}
-                            </span>
-                        </td>
-                        <td class="px-6 py-5 whitespace-nowrap text-center">
-                            <div class="inline-flex items-center gap-2 ${s.violation_points >= 25 ? 'bg-red-50 px-4 py-2 rounded-xl border-2 border-red-200' : ''}">
-                                ${s.violation_points >= 25 ? '<i class="fas fa-exclamation-triangle text-red-500"></i>' : ''}
-                                <span class="text-xl font-black ${s.violation_points >= 25 ? 'text-red-600' : 'text-gray-300'}">${s.violation_points}</span>
-                            </div>
-                        </td>
-                        <td class="px-6 py-5 whitespace-nowrap text-center">
-                            ${s.violation_points >= 25 ? `
-                                <span class="inline-flex items-center px-4 py-2 rounded-xl text-sm font-bold shadow-sm ${
-                                    s.violation_points >= 76 ? 'bg-gradient-to-r from-red-500 to-red-600 text-white' :
-                                    s.violation_points >= 51 ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white' :
-                                    'bg-gradient-to-r from-yellow-400 to-yellow-500 text-white'
-                                }">
-                                    ${s.violation_level}
-                                </span>
-                            ` : '<span class="inline-flex items-center px-4 py-2 rounded-xl text-sm font-bold bg-gradient-to-r from-green-400 to-emerald-500 text-white shadow-sm">✓ Aman</span>'}
-                        </td>
-                        <td class="px-6 py-5 whitespace-nowrap text-center">
-                            <a href="/admin/dual-point/student/${s.id}?id=${s.id}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold text-sm transition-all shadow-md hover:shadow-lg">
-                                <i class="fas fa-eye"></i> Detail
-                            </a>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        // Initialize
-        loadLeaderboard();
-    </script>
-</body>
 </html>

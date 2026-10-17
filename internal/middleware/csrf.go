@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -40,7 +41,31 @@ func generateToken() (string, error) {
 	if _, err := rand.Read(b); err != nil {
 		return "", err
 	}
-	return base64.URLEncoding.EncodeToString(b), nil
+	return base64.RawURLEncoding.EncodeToString(b), nil
+}
+
+// isCSRFExempt checks if a path is exempt from CSRF checks (e.g. IoT devices, machine APIs, login)
+func isCSRFExempt(path string) bool {
+	exemptPaths := []string{
+		"/api/attendance/verify-face",
+		"/api/attendance/record",
+		"/api/attendance/prayer",
+		"/admin/face/save-descriptor",
+		"/admin/face/register",
+		"/api/login",
+		"/api/logout",
+		"/api/operator/login",
+		"/api/operator/logout",
+		"/api/student/login",
+		"/api/student/logout",
+	}
+
+	for _, ep := range exemptPaths {
+		if path == ep || strings.HasPrefix(path, ep+"/") {
+			return true
+		}
+	}
+	return false
 }
 
 // CSRF middleware protects against Cross-Site Request Forgery attacks
@@ -60,28 +85,40 @@ func CSRF() echo.MiddlewareFunc {
 			if c.Request().Method == http.MethodGet ||
 				c.Request().Method == http.MethodHead ||
 				c.Request().Method == http.MethodOptions {
-				// Generate and set token for GET requests
-				token, err := generateToken()
-				if err != nil {
-					return echo.NewHTTPError(http.StatusInternalServerError, "Failed to generate CSRF token")
+
+				var token string
+				if cookie, err := c.Cookie(csrfCookieName); err == nil && cookie.Value != "" {
+					csrfStore.mu.RLock()
+					stored, ok := csrfStore.tokens[cookie.Value]
+					csrfStore.mu.RUnlock()
+					if ok && time.Now().Before(stored.ExpiresAt) {
+						token = cookie.Value
+					}
 				}
 
-				// Store token
-				csrfStore.mu.Lock()
-				csrfStore.tokens[token] = &CSRFToken{
-					Token:     token,
-					ExpiresAt: time.Now().Add(csrfTokenTTL),
-				}
-				csrfStore.mu.Unlock()
+				if token == "" || strings.Contains(token, "=") {
+					var err error
+					token, err = generateToken()
+					if err != nil {
+						return echo.NewHTTPError(http.StatusInternalServerError, "Failed to generate CSRF token")
+					}
 
-				// Set cookie
+					csrfStore.mu.Lock()
+					csrfStore.tokens[token] = &CSRFToken{
+						Token:     token,
+						ExpiresAt: time.Now().Add(csrfTokenTTL),
+					}
+					csrfStore.mu.Unlock()
+				}
+
+				// Set/refresh cookie
 				cookie := &http.Cookie{
 					Name:     csrfCookieName,
 					Value:    token,
 					Path:     "/",
 					HttpOnly: false, // Need to be accessible by JavaScript
 					Secure:   c.Request().TLS != nil || c.Request().Header.Get("X-Forwarded-Proto") == "https",
-					SameSite: http.SameSiteStrictMode,
+					SameSite: http.SameSiteLaxMode,
 					MaxAge:   int(csrfTokenTTL.Seconds()),
 				}
 				c.SetCookie(cookie)
@@ -92,37 +129,69 @@ func CSRF() echo.MiddlewareFunc {
 				return next(c)
 			}
 
+			// Check if request is exempt (IoT hardware, public login endpoints)
+			if isCSRFExempt(c.Request().URL.Path) {
+				return next(c)
+			}
+
 			// For POST, PUT, PATCH, DELETE - validate token
-			var tokenFromRequest string
-
-			// Check header first
-			tokenFromRequest = c.Request().Header.Get(csrfHeaderName)
-
-			// If not in header, check form field
+			// Strictly extract token from header or form field (NEVER fallback to cookie alone)
+			tokenFromRequest := c.Request().Header.Get(csrfHeaderName)
 			if tokenFromRequest == "" {
 				tokenFromRequest = c.FormValue(csrfFormField)
 			}
 
-			// If still not found, check cookie (for single-page apps)
-			if tokenFromRequest == "" {
-				cookie, err := c.Cookie(csrfCookieName)
-				if err == nil {
-					tokenFromRequest = cookie.Value
-				}
-			}
-
-			// Validate token
 			if tokenFromRequest == "" {
 				return c.JSON(http.StatusForbidden, map[string]string{
 					"error":   "CSRF token missing",
-					"message": "Token CSRF tidak ditemukan",
+					"message": "Token CSRF tidak ditemukan. Sertakan header X-CSRF-Token atau form csrf_token.",
 				})
 			}
 
-			// Check if token exists and is valid
+			// Verify token exists in memory store
 			csrfStore.mu.RLock()
 			storedToken, exists := csrfStore.tokens[tokenFromRequest]
+			if !exists {
+				// Fallback: check without or with '=' padding
+				unpadded := strings.TrimRight(tokenFromRequest, "=")
+				storedToken, exists = csrfStore.tokens[unpadded]
+				if !exists {
+					for _, pad := range []string{"=", "=="} {
+						if st, ok := csrfStore.tokens[unpadded+pad]; ok {
+							storedToken = st
+							exists = true
+							tokenFromRequest = unpadded + pad
+							break
+						}
+					}
+				}
+			}
 			csrfStore.mu.RUnlock()
+
+			// In-memory recovery on server restart:
+			// If server restarted, memory store is empty, but client sent genuine cookie that matches token
+			cookie, err := c.Cookie(csrfCookieName)
+			cookieVal := ""
+			if err == nil {
+				cookieVal = cookie.Value
+			}
+
+			tokensMatch := (cookieVal != "" && tokenFromRequest != "" &&
+				(cookieVal == tokenFromRequest || strings.TrimRight(cookieVal, "=") == strings.TrimRight(tokenFromRequest, "=")))
+
+			if !exists && tokensMatch && len(tokenFromRequest) >= 32 {
+				storedToken = &CSRFToken{
+					Token:     tokenFromRequest,
+					ExpiresAt: time.Now().Add(csrfTokenTTL),
+				}
+				csrfStore.mu.Lock()
+				csrfStore.tokens[tokenFromRequest] = storedToken
+				if cookieVal != tokenFromRequest {
+					csrfStore.tokens[cookieVal] = storedToken
+				}
+				csrfStore.mu.Unlock()
+				exists = true
+			}
 
 			if !exists {
 				return c.JSON(http.StatusForbidden, map[string]string{
@@ -133,7 +202,6 @@ func CSRF() echo.MiddlewareFunc {
 
 			// Check if token is expired
 			if time.Now().After(storedToken.ExpiresAt) {
-				// Remove expired token
 				csrfStore.mu.Lock()
 				delete(csrfStore.tokens, tokenFromRequest)
 				csrfStore.mu.Unlock()
@@ -141,6 +209,15 @@ func CSRF() echo.MiddlewareFunc {
 				return c.JSON(http.StatusForbidden, map[string]string{
 					"error":   "CSRF token expired",
 					"message": "Token CSRF sudah kadaluarsa, silakan refresh halaman",
+				})
+			}
+
+			// Double Submit Cookie verification:
+			// The token submitted in the header/form must match the token sent in the cookie
+			if err != nil || !tokensMatch {
+				return c.JSON(http.StatusForbidden, map[string]string{
+					"error":   "CSRF token mismatch",
+					"message": "Token CSRF tidak cocok dengan cookie sesi",
 				})
 			}
 

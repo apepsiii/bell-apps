@@ -1,0 +1,819 @@
+{{template "admin_head" .}}
+<!-- Header -->
+<div
+    class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-zinc-900/60 p-5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs">
+    <div>
+        <h1 class="text-xl font-bold text-zinc-900 dark:text-zinc-100">Data Master Akademik</h1>
+        <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Manajemen menyeluruh data siswa, tenaga pendidik, kelas, dan
+            program keahlian</p>
+    </div>
+    <!-- Navigation Tabs -->
+    <div class="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800/60 p-1 rounded-lg border border-zinc-200/60 dark:border-zinc-700/60 overflow-x-auto">
+        <button type="button" onclick="switchAcademicTab('students')" id="tab-btn-students"
+            class="academic-tab-btn active px-3.5 py-1.5 rounded-md text-xs font-semibold text-zinc-900 dark:text-zinc-100 bg-white dark:bg-zinc-900 shadow-xs transition-all flex items-center gap-1.5">
+            <i data-lucide="users" class="w-3.5 h-3.5"></i>
+            <span>Siswa ({{len .Students}})</span>
+        </button>
+        <button type="button" onclick="switchAcademicTab('staff')" id="tab-btn-staff"
+            class="academic-tab-btn px-3.5 py-1.5 rounded-md text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all flex items-center gap-1.5">
+            <i data-lucide="user-cog" class="w-3.5 h-3.5"></i>
+            <span>Staff ({{len .StaffList}})</span>
+        </button>
+        <button type="button" onclick="switchAcademicTab('classes')" id="tab-btn-classes"
+            class="academic-tab-btn px-3.5 py-1.5 rounded-md text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all flex items-center gap-1.5">
+            <i data-lucide="door-open" class="w-3.5 h-3.5"></i>
+            <span>Kelas ({{len .Classes}})</span>
+        </button>
+        <button type="button" onclick="switchAcademicTab('majors')" id="tab-btn-majors"
+            class="academic-tab-btn px-3.5 py-1.5 rounded-md text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all flex items-center gap-1.5">
+            <i data-lucide="graduation-cap" class="w-3.5 h-3.5"></i>
+            <span>Jurusan ({{len .Majors}})</span>
+        </button>
+    </div>
+</div>
+
+<!-- TAB 1: DATA SISWA -->
+<div id="academic-tab-students" class="academic-tab-content space-y-4">
+    <!-- Controls & Filters -->
+    <div
+        class="bg-white dark:bg-zinc-900/60 p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div class="flex-1 flex flex-col sm:flex-row items-center gap-3">
+            <div class="relative w-full sm:w-72">
+                <i data-lucide="search" class="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                <input type="text" id="search-student" onkeyup="filterStudents()" placeholder="Cari nama, NIS, RFID..."
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg pl-9 pr-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+            </div>
+            <div class="w-full sm:w-48">
+                <select id="filter-class" onchange="filterStudents()"
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                    <option value="">Semua Kelas</option>
+                    {{range .Classes}}
+                    <option value="{{.Name}}">{{.Name}}</option>
+                    {{end}}
+                </select>
+            </div>
+            <div class="w-full sm:w-40">
+                <select id="filter-status" onchange="filterStudents()"
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                    <option value="">Semua Status</option>
+                    <option value="active">Hanya Aktif</option>
+                    <option value="inactive">Hanya Nonaktif</option>
+                </select>
+            </div>
+            <div id="bulk-action-bar"
+                class="hidden items-center gap-2 bg-zinc-100 dark:bg-zinc-800 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                <span class="text-xs font-semibold text-zinc-800 dark:text-zinc-200"><span id="selected-count">0</span> dipilih</span>
+                <button type="button" onclick="deleteSelectedStudents()"
+                    class="px-2 py-0.5 bg-rose-600 hover:bg-rose-700 text-white rounded text-[11px] font-semibold transition-colors">Hapus</button>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <button type="button" onclick="openModal('modal-import-student')"
+                class="px-3.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all">
+                <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+                <span>Import CSV</span>
+            </button>
+            <button type="button" onclick="openModal('modal-student')"
+                class="px-3.5 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>Tambah Siswa</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Students Table -->
+    <div class="bg-white dark:bg-zinc-900/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left" id="student-table">
+                <thead class="bg-zinc-50/80 dark:bg-zinc-900/80 border-b border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400">
+                    <tr>
+                        <th class="px-4 py-3 w-10 text-center">
+                            <input type="checkbox" id="select-all-students" onchange="toggleSelectAllStudents(this)"
+                                class="rounded border-zinc-300 dark:border-zinc-700 text-zinc-900 focus:ring-zinc-950/20">
+                        </th>
+                        <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Foto</th>
+                        <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">ID Card / NIS</th>
+                        <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Nama Siswa</th>
+                        <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Kelas</th>
+                        <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">RFID UID</th>
+                        <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Status</th>
+                        <th class="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+                    <!-- 1. Daftar Siswa Aktif -->
+                    {{range .Students}}
+                    {{if ne .Status "inactive"}}
+                    <tr class="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/30 transition-colors student-row" data-status="active">
+                        <td class="px-4 py-3 text-center">
+                            <input type="checkbox" name="student_select" value="{{.ID}}"
+                                onchange="updateSelectedCount()" class="student-checkbox rounded border-zinc-300 dark:border-zinc-700 text-zinc-900 focus:ring-zinc-950/20">
+                        </td>
+                        <td class="px-4 py-3">
+                            {{if .Photo}}
+                            <img src="/assets/photos/{{.Photo}}"
+                                class="w-7 h-7 rounded-full object-cover border border-zinc-200 dark:border-zinc-700">
+                            {{else}}
+                            <div
+                                class="w-7 h-7 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 flex items-center justify-center font-bold text-xs border border-zinc-200/60 dark:border-zinc-700/60">
+                                <i data-lucide="user" class="w-3.5 h-3.5"></i>
+                            </div>
+                            {{end}}
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="font-mono text-xs font-semibold text-zinc-800 dark:text-zinc-200">{{.NIS}}</div>
+                            {{if .NIS_Siswa}}<div class="text-[10px] text-zinc-400 font-mono">{{.NIS_Siswa}}</div>{{end}}
+                        </td>
+                        <td class="px-4 py-3">
+                            <a href="/admin/student/{{.ID}}"
+                                class="font-semibold text-xs text-zinc-900 dark:text-zinc-100 hover:underline transition-colors">{{.Name}}</a>
+                            {{if .ParentPhone}}<div class="text-[10px] text-zinc-400 dark:text-zinc-500">{{.ParentPhone}}</div>{{end}}
+                        </td>
+                        <td class="px-4 py-3">
+                            <span
+                                class="inline-flex px-2 py-0.5 rounded text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60">{{.ClassName}}</span>
+                        </td>
+                        <td class="px-4 py-3 font-mono text-xs text-zinc-500 dark:text-zinc-400">{{.RFID}}</td>
+                        <td class="px-4 py-3">
+                            <span
+                                class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">
+                                Aktif
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            <div class="flex items-center justify-end gap-1">
+                                <a href="/admin/student/{{.ID}}"
+                                    class="p-1.5 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
+                                    title="Detail Profil & Presensi Siswa">
+                                    <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                                </a>
+                                <a href="/admin/student/idcard/{{.ID}}" target="_blank"
+                                    class="p-1.5 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
+                                    title="Cetak ID Card">
+                                    <i data-lucide="qr-code" class="w-3.5 h-3.5"></i>
+                                </a>
+                                <button type="button"
+                                    onclick="editStudent('{{.ID}}', '{{.RFID}}', '{{.NIS}}', '{{.NIS_Siswa}}', '{{.Name}}', '{{.ParentPhone}}', '{{.ClassID}}', '{{.Photo}}', '{{.Birthday}}', '{{.Status}}')"
+                                    class="p-1.5 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
+                                    title="Edit Siswa">
+                                    <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                                </button>
+                                <button type="button" onclick="deleteItem('student', {{.ID}})"
+                                    class="p-1.5 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-md transition-colors"
+                                    title="Hapus Siswa">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {{end}}
+                    {{end}}
+
+                    <!-- 2. Bagian Pemisah: Siswa Nonaktif (Alumni / Pindah) di Bagian Bawah -->
+                    {{if gt .Stats.InactiveStudents 0}}
+                    <tr id="inactive-students-divider" class="bg-zinc-100/90 dark:bg-zinc-800/90 border-t-2 border-b border-zinc-200 dark:border-zinc-700">
+                        <td colspan="8" class="px-4 py-2.5">
+                            <div class="flex items-center justify-between text-xs">
+                                <div class="flex items-center gap-2 font-semibold text-zinc-700 dark:text-zinc-300">
+                                    <span class="w-2 h-2 rounded-full bg-zinc-400 dark:bg-zinc-500"></span>
+                                    <span>Siswa Nonaktif (Alumni / Pindah / Tidak Aktif)</span>
+                                </div>
+                                <span class="text-[11px] font-mono text-zinc-500 dark:text-zinc-400 font-medium">{{.Stats.InactiveStudents}} Siswa</span>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- 3. Daftar Siswa Nonaktif -->
+                    {{range .Students}}
+                    {{if eq .Status "inactive"}}
+                    <tr class="hover:bg-zinc-100/70 dark:hover:bg-zinc-800/50 transition-colors student-row bg-zinc-50/50 dark:bg-zinc-950/40 text-zinc-500 dark:text-zinc-400" data-status="inactive">
+                        <td class="px-4 py-3 text-center">
+                            <input type="checkbox" name="student_select" value="{{.ID}}"
+                                onchange="updateSelectedCount()" class="student-checkbox rounded border-zinc-300 dark:border-zinc-700 text-zinc-900 focus:ring-zinc-950/20">
+                        </td>
+                        <td class="px-4 py-3">
+                            {{if .Photo}}
+                            <img src="/assets/photos/{{.Photo}}"
+                                class="w-7 h-7 rounded-full object-cover border border-zinc-200 dark:border-zinc-700 opacity-60">
+                            {{else}}
+                            <div
+                                class="w-7 h-7 rounded-full bg-zinc-200/70 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 flex items-center justify-center font-bold text-xs border border-zinc-200/60 dark:border-zinc-700/60">
+                                <i data-lucide="user-x" class="w-3.5 h-3.5"></i>
+                            </div>
+                            {{end}}
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="font-mono text-xs font-semibold text-zinc-600 dark:text-zinc-400 line-through decoration-zinc-400">{{.NIS}}</div>
+                            {{if .NIS_Siswa}}<div class="text-[10px] text-zinc-400 font-mono">{{.NIS_Siswa}}</div>{{end}}
+                        </td>
+                        <td class="px-4 py-3">
+                            <a href="/admin/student/{{.ID}}"
+                                class="font-medium text-xs text-zinc-600 dark:text-zinc-300 hover:underline transition-colors">{{.Name}}</a>
+                            {{if .ParentPhone}}<div class="text-[10px] text-zinc-400">{{.ParentPhone}}</div>{{end}}
+                        </td>
+                        <td class="px-4 py-3">
+                            <span
+                                class="inline-flex px-2 py-0.5 rounded text-[11px] font-medium bg-zinc-200/60 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-300/60 dark:border-zinc-700/60">{{.ClassName}}</span>
+                        </td>
+                        <td class="px-4 py-3 font-mono text-xs text-zinc-400">{{.RFID}}</td>
+                        <td class="px-4 py-3">
+                            <span
+                                class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-zinc-200/70 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-300 dark:border-zinc-700">
+                                Nonaktif
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            <div class="flex items-center justify-end gap-1">
+                                <a href="/admin/student/{{.ID}}"
+                                    class="p-1.5 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
+                                    title="Detail Profil & Presensi Siswa">
+                                    <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                                </a>
+                                <a href="/admin/student/idcard/{{.ID}}" target="_blank"
+                                    class="p-1.5 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
+                                    title="Cetak ID Card">
+                                    <i data-lucide="qr-code" class="w-3.5 h-3.5"></i>
+                                </a>
+                                <button type="button"
+                                    onclick="editStudent('{{.ID}}', '{{.RFID}}', '{{.NIS}}', '{{.NIS_Siswa}}', '{{.Name}}', '{{.ParentPhone}}', '{{.ClassID}}', '{{.Photo}}', '{{.Birthday}}', '{{.Status}}')"
+                                    class="p-1.5 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
+                                    title="Edit Siswa">
+                                    <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                                </button>
+                                <button type="button" onclick="deleteItem('student', {{.ID}})"
+                                    class="p-1.5 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-md transition-colors"
+                                    title="Hapus Siswa">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {{end}}
+                    {{end}}
+                    {{end}}
+
+                    {{if not .Students}}
+                    <tr>
+                        <td colspan="8" class="px-6 py-16 text-center text-zinc-400 dark:text-zinc-500 text-xs">Belum ada data
+                            siswa terdaftar.</td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- TAB 2: DATA GURU & STAFF -->
+<div id="academic-tab-staff" class="academic-tab-content hidden space-y-4">
+    <div class="bg-white dark:bg-zinc-900/60 p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between">
+        <div>
+            <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Data Pendidik & Tenaga Kependidikan</h3>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400">Kelola informasi guru dan pegawai sekolah</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <button type="button" onclick="openModal('modal-import-staff')"
+                class="px-3.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all">
+                <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+                <span>Import Staff</span>
+            </button>
+            <button type="button" onclick="openModal('modal-staff')"
+                class="px-3.5 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>Tambah Staff</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-zinc-900/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden">
+        <table class="w-full text-left">
+            <thead class="bg-zinc-50/80 dark:bg-zinc-900/80 border-b border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400">
+                <tr>
+                    <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">NIP / ID</th>
+                    <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Nama Guru / Staff</th>
+                    <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Jabatan</th>
+                    <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Kontak</th>
+                    <th class="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider">Aksi</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+                {{range .StaffList}}
+                <tr class="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/30 transition-colors">
+                    <td class="px-4 py-3 font-mono text-xs text-zinc-600 dark:text-zinc-400">{{.NIP}}</td>
+                    <td class="px-4 py-3 font-semibold text-xs text-zinc-900 dark:text-zinc-100">{{.Name}}</td>
+                    <td class="px-4 py-3 text-xs text-zinc-600 dark:text-zinc-400">{{.Role}}</td>
+                    <td class="px-4 py-3 text-xs text-zinc-500 dark:text-zinc-400">{{.Phone}}</td>
+                    <td class="px-4 py-3 text-right">
+                        <div class="flex items-center justify-end gap-1">
+                            <button type="button"
+                                onclick="editStaff('{{.ID}}', '{{.NIP}}', '{{.Name}}', '{{.Role}}', '{{.Phone}}')"
+                                class="p-1.5 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors">
+                                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button type="button" onclick="deleteItem('staff', {{.ID}})"
+                                class="p-1.5 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-md transition-colors">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {{else}}
+                <tr>
+                    <td colspan="5" class="px-6 py-16 text-center text-zinc-400 dark:text-zinc-500 text-xs">Belum ada data
+                        guru atau staff.</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- TAB 3: DATA KELAS -->
+<div id="academic-tab-classes" class="academic-tab-content hidden space-y-4">
+    <div class="bg-white dark:bg-zinc-900/60 p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between">
+        <div>
+            <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Daftar Rombongan Belajar (Kelas)</h3>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400">Kelola data kelas dan integrasi grup WhatsApp</p>
+        </div>
+        <button type="button" onclick="openModal('modal-class')"
+            class="px-3.5 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            <span>Tambah Kelas</span>
+        </button>
+    </div>
+
+    <div class="bg-white dark:bg-zinc-900/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden">
+        <table class="w-full text-left">
+            <thead class="bg-zinc-50/80 dark:bg-zinc-900/80 border-b border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400">
+                <tr>
+                    <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Nama Kelas</th>
+                    <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Jurusan</th>
+                    <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">WhatsApp Group ID</th>
+                    <th class="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider">Aksi</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+                {{range .Classes}}
+                <tr class="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/30 transition-colors">
+                    <td class="px-4 py-3 font-semibold text-xs text-zinc-900 dark:text-zinc-100">{{.Name}}</td>
+                    <td class="px-4 py-3 text-xs text-zinc-600 dark:text-zinc-400">{{.MajorName}}</td>
+                    <td class="px-4 py-3 font-mono text-xs text-zinc-500 dark:text-zinc-400">
+                        {{if .WAGroupID}}{{.WAGroupID}}{{else}}-{{end}}</td>
+                    <td class="px-4 py-3 text-right">
+                        <div class="flex items-center justify-end gap-1">
+                            <button type="button"
+                                onclick="editClass('{{.ID}}', '{{.Name}}', '{{.MajorID}}', '{{.WAGroupID}}')"
+                                class="p-1.5 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors">
+                                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button type="button" onclick="deleteItem('class', {{.ID}})"
+                                class="p-1.5 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-md transition-colors">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {{else}}
+                <tr>
+                    <td colspan="4" class="px-6 py-16 text-center text-zinc-400 dark:text-zinc-500 text-xs">Belum ada data
+                        kelas.</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- TAB 4: DATA JURUSAN -->
+<div id="academic-tab-majors" class="academic-tab-content hidden space-y-4">
+    <div class="bg-white dark:bg-zinc-900/60 p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between">
+        <div>
+            <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Program Keahlian / Jurusan</h3>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400">Kelola kompetensi keahlian vokasi sekolah</p>
+        </div>
+        <button type="button" onclick="openModal('modal-major')"
+            class="px-3.5 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            <span>Tambah Jurusan</span>
+        </button>
+    </div>
+
+    <div class="bg-white dark:bg-zinc-900/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden">
+        <table class="w-full text-left">
+            <thead class="bg-zinc-50/80 dark:bg-zinc-900/80 border-b border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400">
+                <tr>
+                    <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Nama Jurusan</th>
+                    <th class="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider">Aksi</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+                {{range .Majors}}
+                <tr class="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/30 transition-colors">
+                    <td class="px-4 py-3 font-semibold text-xs text-zinc-900 dark:text-zinc-100">{{.Name}}</td>
+                    <td class="px-4 py-3 text-right">
+                        <div class="flex items-center justify-end gap-1">
+                            <button type="button" onclick="editMajor('{{.ID}}', '{{.Name}}')"
+                                class="p-1.5 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors">
+                                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button type="button" onclick="deleteItem('major', {{.ID}})"
+                                class="p-1.5 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-md transition-colors">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {{else}}
+                <tr>
+                    <td colspan="2" class="px-6 py-16 text-center text-zinc-400 dark:text-zinc-500 text-xs">Belum ada data
+                        jurusan.</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+<!-- Modal Add/Edit Student -->
+<div id="modal-student"
+    class="modal-wrapper hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-xl shadow-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800 mb-4">
+            <h3 class="font-semibold text-base text-zinc-900 dark:text-zinc-100" id="student-modal-title">Form Data Siswa</h3>
+            <button type="button" onclick="closeModal('modal-student')" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <form id="student-form" action="/admin/student/add" method="POST" enctype="multipart/form-data"
+            onsubmit="handleFormSubmit(event)" class="space-y-3.5">
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">RFID UID (Tap Kartu)</label>
+                <input type="text" name="rfid_uid" id="stu-rfid" required placeholder="Tempel kartu RFID..."
+                    class="w-full border border-amber-300/80 dark:border-amber-700/80 bg-amber-50/50 dark:bg-amber-950/20 rounded-lg p-2 text-xs font-mono text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">ID Card Number</label>
+                    <input type="text" name="nis" id="stu-nis" required
+                        class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">NIS Siswa</label>
+                    <input type="text" name="nis_siswa" id="stu-nis-siswa"
+                        class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Nama Lengkap</label>
+                <input type="text" name="name" id="stu-name" required
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Kelas</label>
+                <select name="class_id" id="stu-class" required
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                    {{range .Classes}}
+                    <option value="{{.ID}}">{{.Name}}</option>
+                    {{end}}
+                </select>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">No. HP Orang Tua</label>
+                    <input type="text" name="parent_phone" id="stu-phone" placeholder="08..."
+                        class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Status</label>
+                    <select name="status" id="stu-status" class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Foto Siswa</label>
+                <input type="file" name="photo" accept="image/*"
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+            </div>
+            <div class="flex justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <button type="button" onclick="closeModal('modal-student')"
+                    class="px-4 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200">Batal</button>
+                <button type="submit"
+                    class="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 px-5 py-2 rounded-lg text-xs font-semibold shadow-xs transition-all">Simpan
+                    Siswa</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Add/Edit Staff -->
+<div id="modal-staff"
+    class="modal-wrapper hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-xl shadow-xl w-full max-w-md p-6">
+        <div class="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800 mb-4">
+            <h3 class="font-semibold text-base text-zinc-900 dark:text-zinc-100" id="staff-modal-title">Form Guru & Staff</h3>
+            <button type="button" onclick="closeModal('modal-staff')" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <form id="staff-form" action="/admin/staff/add" method="POST" onsubmit="handleFormSubmit(event)"
+            class="space-y-3.5">
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">NIP / No. Identitas</label>
+                <input type="text" name="nip" id="stf-nip" required
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Nama Lengkap</label>
+                <input type="text" name="name" id="stf-name" required
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Jabatan / Role</label>
+                <input type="text" name="role" id="stf-role" placeholder="Guru Mapel / Tenaga Administrasi" required
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">No. WhatsApp</label>
+                <input type="text" name="phone" id="stf-phone" placeholder="08..."
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+            </div>
+            <div class="flex justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <button type="button" onclick="closeModal('modal-staff')"
+                    class="px-4 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200">Batal</button>
+                <button type="submit"
+                    class="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 px-5 py-2 rounded-lg text-xs font-semibold shadow-xs transition-all">Simpan
+                    Staff</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Add/Edit Class -->
+<div id="modal-class"
+    class="modal-wrapper hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-xl shadow-xl w-full max-w-md p-6">
+        <div class="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800 mb-4">
+            <h3 class="font-semibold text-base text-zinc-900 dark:text-zinc-100" id="class-modal-title">Form Data Kelas</h3>
+            <button type="button" onclick="closeModal('modal-class')" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <form id="class-form" action="/admin/class/add" method="POST" onsubmit="handleFormSubmit(event)"
+            class="space-y-3.5">
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Nama Kelas</label>
+                <input type="text" name="name" id="cls-name" placeholder="Contoh: XII RPL 1" required
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Jurusan</label>
+                <select name="major_id" id="cls-major" required
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                    {{range .Majors}}
+                    <option value="{{.ID}}">{{.Name}}</option>
+                    {{end}}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">WhatsApp Group ID (Opsional)</label>
+                <input type="text" name="wa_group_id" id="cls-wa" placeholder="xxx@g.us"
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 font-mono focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+            </div>
+            <div class="flex justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <button type="button" onclick="closeModal('modal-class')"
+                    class="px-4 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200">Batal</button>
+                <button type="submit"
+                    class="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 px-5 py-2 rounded-lg text-xs font-semibold shadow-xs transition-all">Simpan
+                    Kelas</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Add/Edit Major -->
+<div id="modal-major"
+    class="modal-wrapper hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-xl shadow-xl w-full max-w-sm p-6">
+        <div class="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800 mb-4">
+            <h3 class="font-semibold text-base text-zinc-900 dark:text-zinc-100" id="major-modal-title">Form Data Jurusan</h3>
+            <button type="button" onclick="closeModal('modal-major')" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <form id="major-form" action="/admin/major/add" method="POST" onsubmit="handleFormSubmit(event)"
+            class="space-y-3.5">
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Nama Jurusan</label>
+                <input type="text" name="name" id="maj-name" placeholder="Contoh: Rekayasa Perangkat Lunak" required
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+            </div>
+            <div class="flex justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <button type="button" onclick="closeModal('modal-major')"
+                    class="px-4 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200">Batal</button>
+                <button type="submit"
+                    class="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 px-5 py-2 rounded-lg text-xs font-semibold shadow-xs transition-all">Simpan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Import Students -->
+<div id="modal-import-student"
+    class="modal-wrapper hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-xl shadow-xl w-full max-w-md p-6">
+        <div class="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800 mb-4">
+            <h3 class="font-semibold text-base text-zinc-900 dark:text-zinc-100">Import Data Siswa (CSV)</h3>
+            <button type="button" onclick="closeModal('modal-import-student')"
+                class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <form action="/admin/student/import" method="POST" enctype="multipart/form-data"
+            onsubmit="handleFormSubmit(event)" class="space-y-4">
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Pilih File CSV</label>
+                <input type="file" name="file" accept=".csv" required
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-600 dark:text-zinc-400">
+                <p class="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1">Format kolom: rfid_uid, nis, nis_siswa, name, parent_phone,
+                    class_name</p>
+            </div>
+            <div class="flex justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <button type="button" onclick="closeModal('modal-import-student')"
+                    class="px-4 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200">Batal</button>
+                <button type="submit"
+                    class="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 px-5 py-2 rounded-lg text-xs font-semibold shadow-xs transition-all">Mulai
+                    Import</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Import Staff -->
+<div id="modal-import-staff"
+    class="modal-wrapper hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-xl shadow-xl w-full max-w-md p-6">
+        <div class="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800 mb-4">
+            <h3 class="font-semibold text-base text-zinc-900 dark:text-zinc-100">Import Data Staff (CSV)</h3>
+            <button type="button" onclick="closeModal('modal-import-staff')"
+                class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <form action="/admin/staff/import" method="POST" enctype="multipart/form-data"
+            onsubmit="handleFormSubmit(event)" class="space-y-4">
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Pilih File CSV</label>
+                <input type="file" name="file" accept=".csv" required
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-600 dark:text-zinc-400">
+                <p class="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1">Format kolom: nip, name, role, phone</p>
+            </div>
+            <div class="flex justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <button type="button" onclick="closeModal('modal-import-staff')"
+                    class="px-4 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200">Batal</button>
+                <button type="submit"
+                    class="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 px-5 py-2 rounded-lg text-xs font-semibold shadow-xs transition-all">Mulai
+                    Import</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Tab switching
+    function switchAcademicTab(tab) {
+        document.querySelectorAll('.academic-tab-content').forEach(el => el.classList.add('hidden'));
+        document.querySelectorAll('.academic-tab-btn').forEach(btn => {
+            btn.classList.remove('bg-white', 'text-zinc-900', 'dark:bg-zinc-900', 'dark:text-zinc-100', 'shadow-xs', 'font-semibold');
+            btn.classList.add('text-zinc-600', 'dark:text-zinc-400', 'font-medium');
+        });
+        const content = document.getElementById(`academic-tab-${tab}`);
+        const btn = document.getElementById(`tab-btn-${tab}`);
+        if (content) content.classList.remove('hidden');
+        if (btn) {
+            btn.classList.add('bg-white', 'text-zinc-900', 'dark:bg-zinc-900', 'dark:text-zinc-100', 'shadow-xs', 'font-semibold');
+            btn.classList.remove('text-zinc-600', 'dark:text-zinc-400', 'font-medium');
+        }
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    // Filter Students
+    function filterStudents() {
+        const query = document.getElementById('search-student').value.toLowerCase();
+        const classFilter = document.getElementById('filter-class').value.toLowerCase();
+        const statusFilter = document.getElementById('filter-status') ? document.getElementById('filter-status').value : '';
+        const rows = document.querySelectorAll('.student-row');
+        let visibleInactiveCount = 0;
+
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            const status = row.getAttribute('data-status') || 'active';
+            const matchesQuery = !query || text.includes(query);
+            const matchesClass = !classFilter || text.includes(classFilter);
+            const matchesStatus = !statusFilter || status === statusFilter;
+            const isVisible = matchesQuery && matchesClass && matchesStatus;
+            row.style.display = isVisible ? '' : 'none';
+            if (isVisible && status === 'inactive') {
+                visibleInactiveCount++;
+            }
+        });
+
+        const divider = document.getElementById('inactive-students-divider');
+        if (divider) {
+            divider.style.display = (visibleInactiveCount > 0 && statusFilter !== 'active') ? '' : 'none';
+        }
+    }
+
+    // Checkbox selections
+    function toggleSelectAllStudents(master) {
+        document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = master.checked);
+        updateSelectedCount();
+    }
+
+    function updateSelectedCount() {
+        const checked = document.querySelectorAll('.student-checkbox:checked').length;
+        document.getElementById('selected-count').textContent = checked;
+        const bar = document.getElementById('bulk-action-bar');
+        if (checked > 0) {
+            bar.classList.remove('hidden');
+            bar.classList.add('flex');
+        } else {
+            bar.classList.add('hidden');
+            bar.classList.remove('flex');
+        }
+    }
+
+    async function deleteSelectedStudents() {
+        const selected = Array.from(document.querySelectorAll('.student-checkbox:checked')).map(cb => parseInt(cb.value));
+        if (selected.length === 0) return;
+
+        const res = await Swal.fire({
+            title: `Hapus ${selected.length} siswa terpilih?`,
+            text: 'Data yang dihapus tidak dapat dipulihkan!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e11d48',
+            cancelButtonColor: '#71717a',
+            confirmButtonText: 'Ya, Hapus Semua!'
+        });
+
+        if (res.isConfirmed) {
+            try {
+                const resp = await fetch('/admin/students/delete-multiple', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids: selected })
+                });
+                if (resp.ok) {
+                    Swal.fire({ icon: 'success', title: 'Berhasil', text: 'Siswa terpilih berhasil dihapus', timer: 1500, showConfirmButton: false })
+                        .then(() => window.location.reload());
+                }
+            } catch (e) {
+                Swal.fire('Error', 'Gagal menghapus siswa', 'error');
+            }
+        }
+    }
+
+    // Edit helpers
+    function editStudent(id, rfid, nis, nisSiswa, name, phone, classId, photo, birthday, status) {
+        document.getElementById('student-form').action = `/admin/student/update/${id}`;
+        document.getElementById('student-modal-title').textContent = 'Edit Data Siswa';
+        document.getElementById('stu-rfid').value = rfid;
+        document.getElementById('stu-nis').value = nis;
+        document.getElementById('stu-nis-siswa').value = nisSiswa || '';
+        document.getElementById('stu-name').value = name;
+        document.getElementById('stu-phone').value = phone || '';
+        document.getElementById('stu-class').value = classId;
+        document.getElementById('stu-status').value = status || 'active';
+        openModal('modal-student');
+    }
+
+    function editStaff(id, nip, name, role, phone) {
+        document.getElementById('staff-form').action = `/admin/staff/update/${id}`;
+        document.getElementById('staff-modal-title').textContent = 'Edit Data Staff';
+        document.getElementById('stf-nip').value = nip;
+        document.getElementById('stf-name').value = name;
+        document.getElementById('stf-role').value = role;
+        document.getElementById('stf-phone').value = phone || '';
+        openModal('modal-staff');
+    }
+
+    function editClass(id, name, majorId, waGroup) {
+        document.getElementById('class-form').action = `/admin/class/update/${id}`;
+        document.getElementById('class-modal-title').textContent = 'Edit Data Kelas';
+        document.getElementById('cls-name').value = name;
+        document.getElementById('cls-major').value = majorId;
+        document.getElementById('cls-wa').value = waGroup || '';
+        openModal('modal-class');
+    }
+
+    function editMajor(id, name) {
+        document.getElementById('major-form').action = `/admin/major/update/${id}`;
+        document.getElementById('major-modal-title').textContent = 'Edit Jurusan';
+        document.getElementById('maj-name').value = name;
+        openModal('modal-major');
+    }
+</script>
+{{template "admin_footer" .}}

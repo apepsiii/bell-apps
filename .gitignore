@@ -18,6 +18,8 @@ dist/
 *.db
 database.db
 database.db-journal
+*.db-shm
+*.db-wal
 
 # Uploads (Keep structure but ignore content)
 public/assets/audio/*
@@ -35,11 +37,15 @@ config.yaml
 # Context (design references, not source)
 context/
 
-# System
+# System & IDE
 .DS_Store
 Thumbs.db
 tmp/
 *.stackdump
+.idea/
+scratch/
+*.exe~
 
 # Kilo config
 .kilo/
+

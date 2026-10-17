@@ -3,205 +3,419 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Absensi Wajah - SMK NIBA Super Apps</title>
+    <title>Kios Presensi Wajah — SMK NIBA Super Apps</title>
+
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: ['selector', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: {
+                        zinc: {
+                            50: '#fafafa',
+                            100: '#f4f4f5',
+                            200: '#e4e4e7',
+                            300: '#d4d4d8',
+                            400: '#a1a1aa',
+                            500: '#71717a',
+                            600: '#52525b',
+                            700: '#3f3f46',
+                            800: '#27272a',
+                            900: '#18181b',
+                            950: '#09090b',
+                        },
+                        brand: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            200: '#ddd6fe',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            900: '#1e1b4b',
+                            dark: '#131326',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'Inter', '-apple-system', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    borderRadius: {
+                        '4xl': '2rem',
+                        '5xl': '2.5rem',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Lucide Icons & Confetti -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Modern Vladmandic Face-API for Web & Mobile Browser Edge AI -->
+    <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Pre-paint Theme Script -->
+    <script>
+        (function () {
+            var savedTheme = localStorage.getItem('app-theme') || localStorage.getItem('stisla-theme');
+            if (savedTheme === 'dark') {
+                document.documentElement.dataset.theme = 'dark';
+            } else if (savedTheme === 'light') {
+                document.documentElement.dataset.theme = 'light';
+            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.dataset.theme = 'dark';
+            }
+        })();
+    </script>
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap');
-
-        body { font-family: 'Inter', sans-serif; }
-        .mono { font-family: 'JetBrains Mono', monospace; }
-
-        .glass {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
         }
 
-        .face-box {
-            position: absolute;
-            border: 3px solid #3b82f6;
-            border-radius: 8px;
-            pointer-events: none;
-            animation: pulse-border 1.5s infinite;
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+            font-feature-settings: "tnum";
+            font-variant-numeric: tabular-nums;
         }
 
-        @keyframes pulse-border {
-            0%, 100% { border-color: #3b82f6; }
-            50% { border-color: #60a5fa; }
+        /* Ambient backdrop matching landing page */
+        .ambient-bg {
+            background-color: #f0edf6;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(139, 92, 246, 0.08) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(192, 132, 252, 0.08) 0px, transparent 50%),
+                radial-gradient(at 50% 100%, rgba(99, 102, 241, 0.06) 0px, transparent 50%);
         }
 
-        .face-indicator {
+        [data-theme="dark"] .ambient-bg {
+            background-color: #06060c;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(124, 58, 237, 0.12) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.08) 0px, transparent 50%);
+        }
+
+        /* Glassmorphism */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+
+        [data-theme="dark"] .glass-card {
+            background: rgba(18, 18, 26, 0.85);
+        }
+
+        /* Face Guide Oval */
+        .face-oval-guide {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 200px;
-            height: 250px;
-            border: 2px dashed rgba(59, 130, 246, 0.5);
+            width: 260px;
+            height: 330px;
+            border: 2.5px dashed rgba(167, 139, 250, 0.6);
             border-radius: 50%;
+            pointer-events: none;
+            transition: all 0.25s ease-out;
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.15);
         }
 
+        .face-oval-guide.matched {
+            border-color: #10b981;
+            border-style: solid;
+            box-shadow: 0 0 35px rgba(16, 185, 129, 0.5), inset 0 0 25px rgba(16, 185, 129, 0.2);
+            animation: pulse-success 1.5s infinite;
+        }
+
+        .face-oval-guide.unknown {
+            border-color: #f43f5e;
+            border-style: solid;
+            box-shadow: 0 0 25px rgba(244, 63, 94, 0.45);
+        }
+
+        @keyframes pulse-success {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.02); }
+        }
+
+        /* Scanning Laser Line */
         .scanning-line {
             position: absolute;
-            width: 100%;
+            left: 8%;
+            width: 84%;
             height: 2px;
-            background: linear-gradient(90deg, transparent, #3b82f6, transparent);
-            animation: scan 2s linear infinite;
+            background: linear-gradient(90deg, transparent, #a855f7, #38bdf8, transparent);
+            box-shadow: 0 0 16px rgba(168, 85, 247, 0.8);
+            animation: scan 2.2s ease-in-out infinite alternate;
+            pointer-events: none;
         }
 
         @keyframes scan {
-            0% { top: 0; }
-            100% { top: 100%; }
+            0% { top: 20%; opacity: 0.2; }
+            50% { opacity: 0.95; }
+            100% { top: 80%; opacity: 0.2; }
         }
 
-        .animate-slideUp { animation: slideUp 0.5s ease-out; }
-        @keyframes slideUp {
-            from { transform: translateY(30px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
+        .mirror-video {
+            transform: scaleX(-1);
         }
 
-        .animate-scaleIn { animation: scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        /* Smooth scaling animations */
         @keyframes scaleIn {
-            from { transform: scale(0.8); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
+            from {
+                transform: scale(0.92);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
         }
-
-        .bg-islamic {
-            background-color: #064e3b;
-            background-image:
-                radial-gradient(circle at 100% 100%, rgba(255, 255, 255, 0.05) 15%, transparent 16%),
-                radial-gradient(circle at 0 0, rgba(255, 255, 255, 0.05) 15%, transparent 16%),
-                radial-gradient(circle at 100% 0, rgba(255, 255, 255, 0.05) 15%, transparent 16%),
-                radial-gradient(circle at 0 100%, rgba(255, 255, 255, 0.05) 15%, transparent 16%);
-            background-size: 60px 60px;
+        .animate-scaleIn {
+            animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white h-screen overflow-hidden flex">
-    <!-- Left Panel - Camera -->
-    <div class="w-1/2 flex flex-col p-6">
-        <!-- Header -->
-        <div class="flex justify-between items-center mb-4">
-            <div class="flex items-center gap-3">
-                <div class="bg-blue-600 p-2 rounded-lg">
-                    <i data-lucide="scan-face" class="w-6 h-6 text-white"></i>
+
+<body class="ambient-bg text-zinc-900 dark:text-zinc-100 min-h-screen flex flex-col justify-between p-3 sm:p-5 lg:p-6 overflow-hidden select-none transition-colors duration-300">
+
+    <!-- Top Eyebrow Meta Header -->
+    <header class="w-full max-w-7xl mx-auto flex items-center justify-between pb-3 sm:pb-4 border-b border-zinc-200/60 dark:border-zinc-800/60">
+        <!-- Brand & Terminal Title -->
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-950 flex items-center justify-center shadow-md shadow-purple-950/5">
+                <i data-lucide="scan-face" class="w-5 h-5 text-purple-400 dark:text-purple-600"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <h1 class="text-base sm:text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+                        Terminal Presensi Wajah
+                    </h1>
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 font-mono">
+                        <span class="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></span> Edge AI
+                    </span>
                 </div>
-                <h1 class="font-bold text-xl">Absensi Wajah</h1>
-            </div>
-            <div class="flex gap-2">
-                <a href="/scan" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition">
-                    <i data-lucide="credit-card" class="w-4 h-4"></i> RFID
-                </a>
-                <button onclick="toggleCamera()" id="btn-toggle-cam" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition">
-                    <i data-lucide="camera" class="w-4 h-4"></i> <span id="cam-btn-text">Matikan Kamera</span>
-                </button>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400 hidden sm:block">
+                    SMK NIBA Business School • Sistem Biometrik Mandiri
+                </p>
             </div>
         </div>
 
-        <!-- Camera Container -->
-        <div class="flex-1 relative bg-black rounded-2xl overflow-hidden">
-            <video id="video" autoplay playsinline class="w-full h-full object-cover"></video>
-            <canvas id="canvas" class="hidden"></canvas>
+        <!-- Mode Switches & Actions -->
+        <div class="flex items-center gap-2">
+            <!-- RFID Mode Button -->
+            <a href="/scan" class="px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-medium flex items-center gap-1.5 transition">
+                <i data-lucide="credit-card" class="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400"></i>
+                <span class="hidden md:inline">RFID Kiosk</span>
+            </a>
 
-            <!-- Face Detection Overlay -->
-            <div id="face-overlay" class="absolute inset-0 pointer-events-none">
-                <div class="face-indicator" id="face-indicator"></div>
-                <div class="scanning-line" id="scan-line"></div>
-            </div>
+            <!-- Sholat Scan Button -->
+            <a href="/scan-sholat" class="px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-medium flex items-center gap-1.5 transition">
+                <i data-lucide="moon" class="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400"></i>
+                <span class="hidden md:inline">Sholat</span>
+            </a>
 
-            <!-- Status Badge -->
-            <div class="absolute top-4 left-4 flex gap-2">
-                <span id="camera-status" class="bg-red-600 px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-                    <span class="w-2 h-2 bg-white rounded-full animate-pulse"></span> Kamera Off
-                </span>
-            </div>
+            <!-- Face DB Sync Button -->
+            <button onclick="reloadFaceDB()" title="Sinkronkan database wajah terbaru" class="px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-medium flex items-center gap-1.5 transition">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-purple-500" id="icon-refresh"></i>
+                <span id="db-count-badge" class="font-mono">0 Wajah</span>
+            </button>
 
-            <!-- FPS Counter -->
-            <div class="absolute top-4 right-4 bg-black/50 px-2 py-1 rounded text-xs mono">
-                <span id="fps-counter">FPS: 0</span>
-            </div>
+            <!-- Theme Toggle -->
+            <button onclick="toggleTheme()" class="p-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 transition" title="Ganti Tema">
+                <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
+                <i data-lucide="moon" class="w-4 h-4 block dark:hidden"></i>
+            </button>
+
+            <!-- Admin Link -->
+            <a href="/admin" class="p-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 transition" title="Panel Admin">
+                <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+            </a>
         </div>
+    </header>
 
-        <!-- Instructions -->
-        <div class="mt-4 glass rounded-xl p-4">
-            <h3 class="font-semibold text-sm mb-2 flex items-center gap-2">
-                <i data-lucide="info" class="w-4 h-4 text-blue-400"></i> Petunjuk
-            </h3>
-            <ul class="text-xs text-slate-300 space-y-1">
-                <li>• Posisikan wajah Anda di dalam kotak panduan</li>
-                <li>• Pastikan pencahayaan cukup dan wajah menghadap kamera</li>
-                <li>• Tunggu beberapa saat sampai wajah dikenali</li>
-                <li>• Absensi akan tercatat otomatis jika wajah dikenali</li>
-            </ul>
-        </div>
-    </div>
+    <!-- Main Content Workspace (Floating Luxury Card) -->
+    <main class="w-full max-w-7xl mx-auto my-auto py-2 flex-1 flex flex-col justify-center">
+        <div class="glass-card border border-zinc-200/90 dark:border-zinc-800/80 rounded-3xl sm:rounded-4xl p-4 sm:p-6 shadow-2xl shadow-purple-950/5 relative overflow-hidden flex flex-col lg:flex-row gap-5 lg:gap-6 min-h-[560px] max-h-[82vh]">
 
-    <!-- Right Panel - Info & Logs -->
-    <div class="w-1/2 p-6 flex flex-col gap-4">
-        <!-- Clock -->
-        <div class="text-right">
-            <div id="clock-time" class="text-5xl font-black mono tracking-wider">00:00:00</div>
-            <div id="clock-date" class="text-slate-400 font-medium text-lg">Senin, 1 Januari 2025</div>
-        </div>
+            <!-- Left Panel - Camera & AI Scanner Viewport (approx 58%) -->
+            <div class="lg:w-7/12 flex flex-col min-h-[380px] lg:min-h-full">
+                <!-- Camera Container Box -->
+                <div class="flex-1 bg-zinc-950 rounded-2xl sm:rounded-3xl overflow-hidden relative border border-zinc-800/80 shadow-inner flex items-center justify-center group">
+                    <video id="video" autoplay playsinline muted class="w-full h-full object-cover mirror-video"></video>
+                    
+                    <!-- Scanning Laser Line -->
+                    <div class="scanning-line" id="scanner-laser"></div>
 
-        <!-- Result Card -->
-        <div id="result-card" class="glass rounded-2xl p-6 hidden">
-            <div class="flex items-center gap-6">
-                <div id="result-photo" class="w-24 h-24 bg-slate-700 rounded-xl flex items-center justify-center overflow-hidden">
-                    <i data-lucide="user" class="w-12 h-12 text-slate-500"></i>
-                </div>
-                <div class="flex-1">
-                    <h2 id="result-name" class="text-3xl font-bold text-white">Nama Siswa</h2>
-                    <p id="result-class" class="text-slate-400">Kelas</p>
-                    <div id="result-status" class="mt-2 px-4 py-1 bg-green-500/20 text-green-400 rounded-full inline-block font-medium">
-                        HADIR
+                    <!-- Face Oval Guide -->
+                    <div class="face-oval-guide" id="face-guide"></div>
+
+                    <!-- Top Left Status Indicators -->
+                    <div class="absolute top-4 left-4 flex flex-col gap-2 pointer-events-none z-10">
+                        <div id="camera-status" class="bg-zinc-950/75 backdrop-blur border border-zinc-700/60 px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-2 text-zinc-300 shadow-md">
+                            <span class="w-2 h-2 bg-amber-400 rounded-full animate-ping"></span> Menghubungkan Kamera...
+                        </div>
+                        <div id="ai-status" class="bg-zinc-950/75 backdrop-blur border border-zinc-700/60 px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-2 text-zinc-300 shadow-md">
+                            <span class="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></span> Memuat Model AI...
+                        </div>
+                    </div>
+
+                    <!-- Top Right FPS Counter -->
+                    <div class="absolute top-4 right-4 pointer-events-none z-10">
+                        <div id="fps-badge" class="bg-zinc-950/75 backdrop-blur border border-zinc-700/60 px-3 py-1 rounded-full text-xs font-mono text-zinc-400 shadow-md">
+                            FPS: --
+                        </div>
+                    </div>
+
+                    <!-- Bottom Center Status / Prompt -->
+                    <div class="absolute bottom-5 left-1/2 transform -translate-x-1/2 pointer-events-none z-10 w-max max-w-[90%]">
+                        <div id="detection-prompt" class="bg-zinc-950/85 backdrop-blur border border-zinc-700/80 px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold tracking-wide text-zinc-100 shadow-2xl flex items-center gap-2 text-center">
+                            <i data-lucide="smile" class="w-4 h-4 text-purple-400"></i> Silakan Menghadap ke Kamera
+                        </div>
                     </div>
                 </div>
-                <div id="result-time" class="text-right">
-                    <div class="text-4xl font-bold mono text-blue-400">07:05</div>
-                    <p class="text-xs text-slate-500">Waktu Absensi</p>
+            </div>
+
+            <!-- Right Panel - Clock, Results, Stats & Logs (approx 42%) -->
+            <div class="lg:w-5/12 flex flex-col gap-4 overflow-hidden">
+                <!-- Clock & Active State Card -->
+                <div class="p-4 rounded-2xl bg-zinc-50/80 dark:bg-zinc-900/60 border border-zinc-200/70 dark:border-zinc-800/70 flex items-center justify-between">
+                    <div>
+                        <p id="clock-date" class="text-xs text-zinc-500 dark:text-zinc-400 font-medium">--</p>
+                        <div id="clock-time" class="text-3xl sm:text-4xl font-bold mono tracking-tight text-zinc-900 dark:text-zinc-50 mt-0.5">00:00:00</div>
+                    </div>
+                    <div class="text-right">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                            <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                            Terminal Aktif
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Result Card (Shown when Face Matched) -->
+                <div id="result-card" class="p-5 rounded-2xl border-2 border-emerald-500/50 bg-gradient-to-br from-emerald-50/80 via-white to-emerald-50/40 dark:from-emerald-950/30 dark:via-zinc-900 dark:to-zinc-900 shadow-xl hidden animate-scaleIn">
+                    <div class="flex items-center gap-4">
+                        <div id="result-photo-box" class="w-20 h-20 sm:w-24 sm:h-24 bg-zinc-200 dark:bg-zinc-800 rounded-2xl border-2 border-emerald-500/40 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-md">
+                            <i data-lucide="user" class="w-10 h-10 text-zinc-400"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2">
+                                <span id="result-badge" class="px-2.5 py-0.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 rounded-full text-[11px] font-bold tracking-wider uppercase font-mono">
+                                    HADIR
+                                </span>
+                                <span id="result-distance" class="text-xs text-zinc-500 dark:text-zinc-400 font-mono"></span>
+                            </div>
+                            <h2 id="result-name" class="text-lg sm:text-xl font-bold text-zinc-900 dark:text-zinc-50 truncate mt-1">Nama Siswa</h2>
+                            <p id="result-class" class="text-xs sm:text-sm text-zinc-600 dark:text-zinc-300 font-medium">Kelas Siswa</p>
+                            <p id="result-message" class="text-xs text-emerald-600 dark:text-emerald-400 mt-1 font-semibold">Presensi Berhasil Dicatat</p>
+                        </div>
+                        <div class="text-right flex-shrink-0">
+                            <div id="result-time" class="text-2xl sm:text-3xl font-bold mono text-emerald-600 dark:text-emerald-400">07:05</div>
+                            <p class="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono">WAKTU SCAN</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Today Statistics Row -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="p-3.5 rounded-2xl bg-zinc-50/80 dark:bg-zinc-900/60 border border-zinc-200/70 dark:border-zinc-800/70 flex items-center gap-3">
+                        <div class="p-2.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl border border-emerald-500/20">
+                            <i data-lucide="user-check" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <div id="present-count" class="text-2xl font-bold mono text-zinc-900 dark:text-zinc-50">0</div>
+                            <div class="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">Hadir Hari Ini</div>
+                        </div>
+                    </div>
+                    <div class="p-3.5 rounded-2xl bg-zinc-50/80 dark:bg-zinc-900/60 border border-zinc-200/70 dark:border-zinc-800/70 flex items-center gap-3">
+                        <div class="p-2.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-xl border border-amber-500/20">
+                            <i data-lucide="clock-alert" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <div id="late-count" class="text-2xl font-bold mono text-amber-600 dark:text-amber-400">0</div>
+                            <div class="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">Terlambat</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Logs Feed -->
+                <div class="flex-1 rounded-2xl bg-zinc-50/80 dark:bg-zinc-900/60 border border-zinc-200/70 dark:border-zinc-800/70 p-4 overflow-hidden flex flex-col">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-bold text-xs uppercase tracking-wider text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                            <i data-lucide="history" class="w-3.5 h-3.5 text-purple-500"></i> Riwayat Absensi Terkini
+                        </h3>
+                        <span class="text-[11px] font-mono text-zinc-500 dark:text-zinc-400">Live Feed</span>
+                    </div>
+                    <div id="recent-logs" class="flex-1 overflow-y-auto space-y-2 pr-1">
+                        <div class="text-center text-zinc-400 text-xs py-8">Memuat riwayat...</div>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Statistics -->
-        <div class="grid grid-cols-2 gap-4">
-            <div class="glass rounded-xl p-4 text-center">
-                <div id="present-count" class="text-3xl font-bold text-green-400">0</div>
-                <div class="text-xs text-slate-400">Hadir</div>
-            </div>
-            <div class="glass rounded-xl p-4 text-center">
-                <div id="late-count" class="text-3xl font-bold text-orange-400">0</div>
-                <div class="text-xs text-slate-400">Terlambat</div>
-            </div>
         </div>
+    </main>
 
-        <!-- Recent Logs -->
-        <div class="flex-1 glass rounded-xl p-4 overflow-hidden flex flex-col">
-            <h3 class="font-semibold text-sm mb-3 flex items-center gap-2">
-                <i data-lucide="clock" class="w-4 h-4 text-blue-400"></i> Riwayat Absensi Terakhir
-            </h3>
-            <div id="recent-logs" class="flex-1 overflow-y-auto space-y-2">
-                <div class="text-center text-slate-500 text-sm py-8">Memuat...</div>
-            </div>
+    <!-- Bottom Status Meta -->
+    <footer class="w-full max-w-7xl mx-auto pt-3 border-t border-zinc-200/60 dark:border-zinc-800/60 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+        <div class="flex items-center gap-3">
+            <span class="flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Edge Biometric Engine Online
+            </span>
+            <span>•</span>
+            <span class="font-mono">TinyFaceDetector v1.7</span>
         </div>
-    </div>
+        <div>
+            SMK NIBA Business School Super Apps &copy; 2026
+        </div>
+    </footer>
 
     <script>
         lucide.createIcons();
 
-        // State
+        // Theme Toggle Functionality
+        function toggleTheme() {
+            var currentTheme = document.documentElement.dataset.theme;
+            var newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.dataset.theme = newTheme;
+            localStorage.setItem('app-theme', newTheme);
+            localStorage.setItem('stisla-theme', newTheme);
+            lucide.createIcons();
+        }
+
+        const MODEL_URL = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/";
+        const MATCH_THRESHOLD = 0.52; // Jarak Euclidean threshold (< 0.52 = cocok akurat)
+        const SCAN_DEBOUNCE_MS = 2500; // Jeda antar scan umum
+        const STUDENT_COOLDOWN_MS = 30000; // Jeda untuk siswa yang sama agar tidak tercatat berulang
+
         let mediaStream = null;
-        let isScanning = false;
-        let lastRecognition = null;
-        let recognitionCooldown = false;
+        let isModelsLoaded = false;
+        let registeredStudents = [];
+        let faceMatcher = null;
+
+        let isScanning = true;
+        let scanLock = false;
+        let studentLastScanned = new Map(); // studentId -> timestamp
+
         let frameCount = 0;
-        let lastFpsUpdate = Date.now();
+        let lastFpsTime = Date.now();
         let fps = 0;
 
-        // Clock
+        const video = document.getElementById('video');
+        const faceGuide = document.getElementById('face-guide');
+        const detectionPrompt = document.getElementById('detection-prompt');
+        const cameraStatus = document.getElementById('camera-status');
+        const aiStatus = document.getElementById('ai-status');
+        const fpsBadge = document.getElementById('fps-badge');
+        const resultCard = document.getElementById('result-card');
+
+        // Clock Update
         function updateClock() {
             const now = new Date();
             document.getElementById('clock-time').innerText = now.toLocaleTimeString('id-ID', { hour12: false });
@@ -212,263 +426,408 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        // Camera Toggle
-        async function toggleCamera() {
-            if (mediaStream) {
-                stopCamera();
-            } else {
+        // 1. Initialize System
+        async function init() {
+            try {
+                // A. Load Lightweight Edge AI Models (< 250 KB total)
+                await Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+                ]);
+
+                isModelsLoaded = true;
+                aiStatus.className = 'bg-emerald-500/20 border border-emerald-500/30 px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-2 text-emerald-400 shadow-md';
+                aiStatus.innerHTML = '<span class="w-2 h-2 bg-emerald-400 rounded-full"></span> Model AI Siap';
+
+                // B. Load Student Face Descriptors from Go Backend
+                await reloadFaceDB();
+
+                // C. Start Camera
                 await startCamera();
+
+                // D. Initial Stats & Logs
+                fetchStats();
+                fetchRecentLogs();
+                setInterval(fetchStats, 15000);
+                setInterval(fetchRecentLogs, 10000);
+
+                // E. Run Detection Loop
+                startFaceRecognitionLoop();
+            } catch (err) {
+                console.error("Initialization error:", err);
+                aiStatus.className = 'bg-rose-500/20 border border-rose-500/30 px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-2 text-rose-400 shadow-md';
+                aiStatus.innerHTML = '<span class="w-2 h-2 bg-rose-400 rounded-full"></span> Gagal Memuat Model';
             }
         }
 
+        // 2. Fetch Face Descriptors from Go Backend
+        async function reloadFaceDB() {
+            const refreshIcon = document.getElementById('icon-refresh');
+            if (refreshIcon) refreshIcon.classList.add('animate-spin');
+
+            try {
+                const res = await fetch('/api/face/descriptors');
+                if (!res.ok) throw new Error("Gagal mengambil data dari server");
+                const data = await res.json();
+
+                registeredStudents = data || [];
+                document.getElementById('db-count-badge').innerText = `${registeredStudents.length} Wajah`;
+
+                if (registeredStudents.length > 0) {
+                    const labeled = registeredStudents.map(s => {
+                        const descriptorArray = new Float32Array(s.descriptor);
+                        return new faceapi.LabeledFaceDescriptors(s.student_id.toString(), [descriptorArray]);
+                    });
+                    faceMatcher = new faceapi.FaceMatcher(labeled, MATCH_THRESHOLD);
+                } else {
+                    faceMatcher = null;
+                }
+            } catch (err) {
+                console.error("Error loading face descriptors:", err);
+            } finally {
+                if (refreshIcon) refreshIcon.classList.remove('animate-spin');
+            }
+        }
+
+        // 3. Start Camera
         async function startCamera() {
             try {
                 mediaStream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'user', width: 640, height: 480 }
+                    video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" }
                 });
-                const video = document.getElementById('video');
                 video.srcObject = mediaStream;
-                video.classList.remove('hidden');
-                document.getElementById('camera-status').innerHTML = `
-                    <span class="w-2 h-2 bg-white rounded-full animate-pulse"></span> Kamera On
-                `;
-                document.getElementById('camera-status').classList.remove('bg-red-600');
-                document.getElementById('camera-status').classList.add('bg-green-600');
-                document.getElementById('cam-btn-text').innerText = 'Matikan Kamera';
-                isScanning = true;
-                requestAnimationFrame(processFrame);
+
+                cameraStatus.className = 'bg-emerald-500/20 border border-emerald-500/30 px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-2 text-emerald-400 shadow-md';
+                cameraStatus.innerHTML = '<span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span> Kamera Siap';
             } catch (err) {
-                console.error('Camera error:', err);
-                alert('Tidak dapat mengakses kamera. Pastikan izin kamera diberikan.');
+                console.error("Camera access error:", err);
+                cameraStatus.className = 'bg-rose-500/20 border border-rose-500/30 px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-2 text-rose-400 shadow-md';
+                cameraStatus.innerHTML = '<span class="w-2 h-2 bg-rose-400 rounded-full"></span> Izin Kamera Ditolak';
             }
         }
 
-        function stopCamera() {
-            if (mediaStream) {
-                mediaStream.getTracks().forEach(track => track.stop());
-                mediaStream = null;
-            }
-            const video = document.getElementById('video');
-            video.srcObject = null;
-            document.getElementById('camera-status').innerHTML = `
-                <span class="w-2 h-2 bg-white rounded-full animate-pulse"></span> Kamera Off
-            `;
-            document.getElementById('camera-status').classList.add('bg-red-600');
-            document.getElementById('camera-status').classList.remove('bg-green-600');
-            document.getElementById('cam-btn-text').innerText = 'Hidupkan Kamera';
-            isScanning = false;
+        // 4. Real-time Recognition Loop (Low-Latency Client-Side)
+        async function startFaceRecognitionLoop() {
+            const step = async () => {
+                if (video.readyState === 4 && isModelsLoaded && isScanning && !scanLock) {
+                    try {
+                        // FPS calculation
+                        frameCount++;
+                        const now = Date.now();
+                        if (now - lastFpsTime >= 1000) {
+                            fps = frameCount;
+                            frameCount = 0;
+                            lastFpsTime = now;
+                            fpsBadge.innerText = `FPS: ${fps}`;
+                        }
+
+                        // Edge face detection & 128D descriptor computation (Tiny, Ultra-fast)
+                        const detection = await faceapi
+                            .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 }))
+                            .withFaceLandmarks(true)
+                            .withFaceDescriptor();
+
+                        if (detection) {
+                            if (faceMatcher) {
+                                const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
+
+                                if (bestMatch.label !== 'unknown') {
+                                    const studentId = parseInt(bestMatch.label);
+                                    const student = registeredStudents.find(s => s.student_id === studentId);
+
+                                    // Check cooldown for this particular student
+                                    const lastScan = studentLastScanned.get(studentId) || 0;
+                                    if (now - lastScan < STUDENT_COOLDOWN_MS) {
+                                        faceGuide.className = 'face-oval-guide matched';
+                                        detectionPrompt.innerHTML = `<i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> ${student ? student.name : 'Siswa'} sudah absen tadi`;
+                                        lucide.createIcons();
+                                    } else {
+                                        // Match Found! Record Attendance
+                                        faceGuide.className = 'face-oval-guide matched';
+                                        await onFaceRecognized(student, bestMatch.distance);
+                                    }
+                                } else {
+                                    faceGuide.className = 'face-oval-guide unknown';
+                                    detectionPrompt.innerHTML = `<i data-lucide="help-circle" class="w-4 h-4 text-amber-400"></i> Wajah belum terdaftar di sistem`;
+                                    lucide.createIcons();
+                                }
+                            } else {
+                                faceGuide.className = 'face-oval-guide';
+                                detectionPrompt.innerHTML = `<i data-lucide="alert-circle" class="w-4 h-4 text-amber-400"></i> Belum ada data wajah terdaftar`;
+                                lucide.createIcons();
+                            }
+                        } else {
+                            faceGuide.className = 'face-oval-guide';
+                            detectionPrompt.innerHTML = `<i data-lucide="smile" class="w-4 h-4 text-purple-400"></i> Silakan Menghadap ke Kamera`;
+                            lucide.createIcons();
+                        }
+                    } catch (err) {
+                        console.warn("Recognition frame skip", err);
+                    }
+                }
+
+                // Smooth frame loop (~8 FPS is optimal for tablet battery, CPU, and sub-200ms recognition)
+                setTimeout(step, 120);
+            };
+            step();
         }
 
-        // Process Video Frames
-        async function processFrame() {
-            if (!isScanning || recognitionCooldown) {
-                if (isScanning) requestAnimationFrame(processFrame);
-                return;
-            }
-
-            const video = document.getElementById('video');
-            const canvas = document.getElementById('canvas');
-            const ctx = canvas.getContext('2d');
-
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            ctx.drawImage(video, 0, 0);
-
-            // FPS calculation
-            frameCount++;
-            const now = Date.now();
-            if (now - lastFpsUpdate >= 1000) {
-                fps = frameCount;
-                frameCount = 0;
-                lastFpsUpdate = now;
-                document.getElementById('fps-counter').innerText = `FPS: ${fps}`;
-            }
-
-            // Process every 10 frames to reduce server load
-            if (frameCount % 10 === 0) {
-                await verifyFace();
-            }
-
-            if (isScanning) requestAnimationFrame(processFrame);
+        // Helper to get CSRF token
+        function getCsrfToken() {
+            const match = document.cookie.match(new RegExp('(^| )csrf_token=([^;]+)'));
+            return match ? match[2] : '';
         }
 
-        // Verify Face
-        async function verifyFace() {
-            const video = document.getElementById('video');
-            if (video.readyState !== 4) return;
+        // 5. Handle Matched Face
+        async function onFaceRecognized(student, distance) {
+            scanLock = true;
+            studentLastScanned.set(student.student_id, Date.now());
 
             try {
-                const canvas = document.createElement('canvas');
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                canvas.getContext('2d').drawImage(video, 0, 0);
+                const headers = { 'Content-Type': 'application/json' };
+                const csrf = getCsrfToken();
+                if (csrf) headers['X-CSRF-Token'] = csrf;
 
-                const imageData = canvas.toDataURL('image/jpeg', 0.6);
-
-                const res = await fetch('/api/attendance/verify-face', {
+                const response = await fetch('/api/attendance/verify-face', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image_base64: imageData })
+                    headers: headers,
+                    body: JSON.stringify({
+                        student_id: student.student_id,
+                        distance: parseFloat(distance.toFixed(4))
+                    })
                 });
 
-                const data = await res.json();
+                const data = await response.json();
 
-                if (data.status === 'matched' && data.student_id !== lastRecognition) {
-                    lastRecognition = data.student_id;
-                    recognitionCooldown = true;
+                if (response.ok) {
+                    const firstName = (data.name || student.name || 'Siswa').split(' ')[0];
 
-                    showResult(data);
-                    playSound('success');
-                    triggerConfetti();
+                    if (data.status === 'matched') {
+                        // Play chime & positive speech
+                        playSuccessAudio();
+                        if (data.attendance_status === 'Pulang') {
+                            speakMessage(`Terima kasih ${firstName}, hati-hati di jalan`);
+                        } else if (data.attendance_status === 'Terlambat') {
+                            speakMessage(`Terima kasih ${firstName}, presensi terlambat dicatat`);
+                        } else {
+                            speakMessage(`Terima kasih ${firstName}, selamat belajar`);
+                        }
 
-                    setTimeout(() => {
-                        recognitionCooldown = false;
-                    }, 3000);
+                        // Confetti
+                        try {
+                            if (typeof confetti === 'function') {
+                                confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+                            }
+                        } catch (e) {}
+                    } else if (data.status === 'not_time') {
+                        // Belum jam pulang
+                        speakMessage("Presensi Pulang belum tersedia");
+                        studentLastScanned.set(student.student_id, Date.now() + 30000);
+                    } else if (data.status === 'duplicate') {
+                        // Sudah absen
+                        speakMessage(`${firstName} sudah presensi hari ini`);
+                        studentLastScanned.set(student.student_id, Date.now() + 30000);
+                    } else if (data.status === 'out_of_hours') {
+                        speakMessage("Di luar jam operasional presensi");
+                        studentLastScanned.set(student.student_id, Date.now() + 30000);
+                    }
 
-                    // Refresh stats
+                    showResultCard(data, student, distance);
                     fetchStats();
                     fetchRecentLogs();
+                } else {
+                    console.error("Attendance API error:", data);
                 }
             } catch (err) {
-                console.error('Verification error:', err);
+                console.error("Attendance record error:", err);
             }
+
+            // Release lock after debounce
+            setTimeout(() => {
+                scanLock = false;
+            }, SCAN_DEBOUNCE_MS);
         }
 
-        // Show Result
-        function showResult(data) {
-            const card = document.getElementById('result-card');
+        // 6. UI Result Presentation
+        function showResultCard(apiData, student, distance) {
             const nameEl = document.getElementById('result-name');
             const classEl = document.getElementById('result-class');
-            const statusEl = document.getElementById('result-status');
+            const badgeEl = document.getElementById('result-badge');
+            const distEl = document.getElementById('result-distance');
             const timeEl = document.getElementById('result-time');
-            const photoEl = document.getElementById('result-photo');
+            const photoBox = document.getElementById('result-photo-box');
+            const msgEl = document.getElementById('result-message');
 
-            nameEl.innerText = data.name || 'Unknown';
-            classEl.innerText = data.class_name || '';
-            timeEl.innerHTML = `<div class="text-4xl font-bold mono text-blue-400">${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</div><p class="text-xs text-slate-500">Waktu Absensi</p>`;
+            const status = apiData.attendance_status || apiData.status;
+            nameEl.innerText = apiData.name || student.name;
+            classEl.innerText = apiData.class_name || student.class_name;
+            distEl.innerText = `Skor: ${( (1 - distance) * 100 ).toFixed(0)}%`;
+            timeEl.innerText = apiData.time || new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
-            // Status styling
-            if (data.message && data.message.includes('Terlambat')) {
-                statusEl.innerText = 'TERLAMBAT';
-                statusEl.className = 'mt-2 px-4 py-1 bg-orange-500/20 text-orange-400 rounded-full inline-block font-medium';
+            if (apiData.status === 'not_time') {
+                badgeEl.innerText = 'BELUM JAM PULANG';
+                badgeEl.className = 'px-2.5 py-0.5 bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 rounded-full text-[11px] font-bold uppercase tracking-wider font-mono';
+                msgEl.innerText = apiData.message || 'Presensi Pulang belum tersedia';
+                msgEl.className = 'text-xs text-amber-600 dark:text-amber-400 mt-1 font-semibold';
+            } else if (status === 'Pulang') {
+                badgeEl.innerText = 'PULANG';
+                badgeEl.className = 'px-2.5 py-0.5 bg-cyan-500/15 border border-cyan-500/30 text-cyan-600 dark:text-cyan-400 rounded-full text-[11px] font-bold uppercase tracking-wider font-mono';
+                msgEl.innerText = apiData.message || 'Presensi Pulang Berhasil';
+                msgEl.className = 'text-xs text-cyan-600 dark:text-cyan-400 mt-1 font-semibold';
+            } else if (status === 'Terlambat') {
+                badgeEl.innerText = 'TERLAMBAT';
+                badgeEl.className = 'px-2.5 py-0.5 bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 rounded-full text-[11px] font-bold uppercase tracking-wider font-mono';
+                msgEl.innerText = apiData.message || 'Presensi Terlambat Dicatat';
+                msgEl.className = 'text-xs text-amber-600 dark:text-amber-400 mt-1 font-semibold';
+            } else if (apiData.status === 'duplicate') {
+                badgeEl.innerText = 'SUDAH HADIR';
+                badgeEl.className = 'px-2.5 py-0.5 bg-blue-500/15 border border-blue-500/30 text-blue-600 dark:text-blue-400 rounded-full text-[11px] font-bold uppercase tracking-wider font-mono';
+                msgEl.innerText = apiData.message || 'Sudah absen hari ini';
+                msgEl.className = 'text-xs text-blue-600 dark:text-blue-400 mt-1 font-semibold';
+            } else if (apiData.status === 'out_of_hours') {
+                badgeEl.innerText = 'DI LUAR JADWAL';
+                badgeEl.className = 'px-2.5 py-0.5 bg-zinc-500/15 border border-zinc-500/30 text-zinc-600 dark:text-zinc-400 rounded-full text-[11px] font-bold uppercase tracking-wider font-mono';
+                msgEl.innerText = apiData.message || 'Di luar jam operasional presensi';
+                msgEl.className = 'text-xs text-zinc-500 dark:text-zinc-400 mt-1 font-semibold';
             } else {
-                statusEl.innerText = 'HADIR';
-                statusEl.className = 'mt-2 px-4 py-1 bg-green-500/20 text-green-400 rounded-full inline-block font-medium';
+                badgeEl.innerText = 'HADIR';
+                badgeEl.className = 'px-2.5 py-0.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 rounded-full text-[11px] font-bold uppercase tracking-wider font-mono';
+                msgEl.innerText = apiData.message || 'Presensi Berhasil Dicatat';
+                msgEl.className = 'text-xs text-emerald-600 dark:text-emerald-400 mt-1 font-semibold';
             }
 
-            // Photo
-            if (data.photo) {
-                photoEl.innerHTML = `<img src="/assets/photos/${data.photo}" class="w-full h-full object-cover">`;
+            const photoFile = apiData.photo || student.photo;
+            if (photoFile && photoFile.trim() !== '') {
+                photoBox.innerHTML = `
+                    <img src="/assets/photos/${photoFile}" 
+                         class="w-full h-full object-cover" 
+                         onerror="this.onerror=null; this.parentElement.innerHTML='<i data-lucide=\\'user\\' class=\\'w-10 h-10 text-zinc-400\\'></i>'; lucide.createIcons();">
+                `;
+            } else {
+                photoBox.innerHTML = `<i data-lucide="user" class="w-10 h-10 text-zinc-400"></i>`;
+                lucide.createIcons();
             }
 
-            card.classList.remove('hidden');
-            card.classList.add('animate-scaleIn');
-            lucide.createIcons();
+            resultCard.classList.remove('hidden');
+            resultCard.classList.add('animate-scaleIn');
 
+            // Auto-hide card after 4.5 seconds
             setTimeout(() => {
-                card.classList.add('hidden');
-                lastRecognition = null;
-            }, 5000);
+                resultCard.classList.add('hidden');
+            }, 4500);
         }
 
-        // Fetch Stats
+        // 7. Audio & Speech Feedback
+        function playSuccessAudio() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+                osc.frequency.exponentialRampToValueAtTime(880.00, ctx.currentTime + 0.15); // A5
+
+                gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.start();
+                osc.stop(ctx.currentTime + 0.4);
+            } catch (e) {
+                console.warn("Audio chime error", e);
+            }
+        }
+
+        function speakMessage(text) {
+            if ('speechSynthesis' in window) {
+                try {
+                    window.speechSynthesis.cancel();
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = 'id-ID';
+                    utterance.rate = 1.05;
+                    window.speechSynthesis.speak(utterance);
+                } catch (e) {
+                    console.warn("Speech synthesis error", e);
+                }
+            }
+        }
+
+        // Safe time formatter to avoid 'undefined'
+        function formatLogTime(log) {
+            if (log.time && log.time !== '--:--' && log.time !== '00:00') {
+                return log.time;
+            }
+            if (log.timestamp) {
+                const cleaned = log.timestamp.replace('T', ' ');
+                const match = cleaned.match(/(\d{2}:\d{2})/);
+                if (match) return match[1];
+            }
+            return '--:--';
+        }
+
+        // 8. Stats & Logs Fetcher
         async function fetchStats() {
             try {
                 const res = await fetch('/api/attendance/today-stats');
+                if (!res.ok) return;
                 const data = await res.json();
                 document.getElementById('present-count').innerText = data.present_students || 0;
                 document.getElementById('late-count').innerText = data.late_students || 0;
             } catch (err) {
-                console.error('Stats error:', err);
+                console.error("Stats fetch error:", err);
             }
         }
 
-        // Fetch Recent Logs
         async function fetchRecentLogs() {
             try {
                 const res = await fetch('/api/attendance/recent-logs');
+                if (!res.ok) return;
                 const logs = await res.json();
                 const container = document.getElementById('recent-logs');
 
                 if (logs && logs.length > 0) {
-                    container.innerHTML = logs.slice(0, 10).map(log => {
-                        let statusColor = 'bg-green-500';
-                        let statusBg = 'bg-green-500/20';
-                        let statusText = 'text-green-400';
-                        if (log.status === 'Terlambat') {
-                            statusColor = 'bg-orange-500';
-                            statusBg = 'bg-orange-500/20';
-                            statusText = 'text-orange-400';
-                        }
+                    container.innerHTML = logs.slice(0, 8).map(log => {
+                        const isLate = log.status === 'Terlambat';
+                        const isOut = log.status === 'Pulang';
+                        let badgeColor = 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
+                        if (isLate) badgeColor = 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20';
+                        if (isOut) badgeColor = 'text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 border-cyan-500/20';
+
+                        const timeFormatted = formatLogTime(log);
+                        const studentName = log.user_name || log.name || 'Siswa';
+                        const initial = studentName.charAt(0).toUpperCase();
+
                         return `
-                            <div class="flex items-center gap-3 p-2 rounded-lg bg-white/5 hover:bg-white/10 transition">
-                                <div class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center overflow-hidden">
-                                    ${log.photo ? `<img src="/assets/photos/${log.photo}" class="w-full h-full object-cover">` : '<i data-lucide="user" class="w-5 h-5 text-slate-400"></i>'}
+                            <div class="flex items-center justify-between p-2.5 rounded-xl bg-white/70 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800/80 text-xs shadow-xs">
+                                <div class="flex items-center gap-2.5 min-w-0">
+                                    <div class="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-700/60 flex items-center justify-center flex-shrink-0 text-zinc-700 dark:text-zinc-200 font-bold font-mono">
+                                        ${initial}
+                                    </div>
+                                    <div class="min-w-0">
+                                        <p class="font-semibold text-zinc-900 dark:text-zinc-100 truncate">${studentName}</p>
+                                        <p class="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono">${log.method || 'FACE'} • ${timeFormatted}</p>
+                                    </div>
                                 </div>
-                                <div class="flex-1">
-                                    <p class="text-sm font-medium">${log.name}</p>
-                                    <p class="text-xs text-slate-400">${log.time}</p>
-                                </div>
-                                <span class="px-2 py-1 ${statusBg} ${statusText} text-xs font-medium rounded-full">${log.status}</span>
+                                <span class="px-2 py-0.5 rounded-full border text-[10px] font-semibold uppercase font-mono ${badgeColor}">
+                                    ${log.status}
+                                </span>
                             </div>
                         `;
                     }).join('');
                 } else {
-                    container.innerHTML = '<div class="text-center text-slate-500 text-sm py-8">Belum ada data absensi</div>';
+                    container.innerHTML = `<div class="text-center text-zinc-400 dark:text-zinc-500 text-xs py-8">Belum ada absensi hari ini</div>`;
                 }
-                lucide.createIcons();
             } catch (err) {
-                console.error('Logs error:', err);
+                console.error("Recent logs fetch error:", err);
             }
         }
 
-        // Audio
-        function playSound(type) {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-            osc.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-
-            if (type === 'success') {
-                osc.frequency.value = 1000;
-                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.1);
-                setTimeout(() => {
-                    const osc2 = audioCtx.createOscillator();
-                    osc2.connect(gainNode);
-                    osc2.frequency.value = 1500;
-                    osc2.start();
-                    osc2.stop(audioCtx.currentTime + 0.1);
-                }, 150);
-            }
-        }
-
-        // Confetti
-        function triggerConfetti() {
-            confetti({
-                particleCount: 50,
-                angle: 60,
-                spread: 55,
-                origin: { x: 0 },
-                colors: ['#3b82f6', '#8b5cf6', '#06b6d4']
-            });
-            confetti({
-                particleCount: 50,
-                angle: 120,
-                spread: 55,
-                origin: { x: 1 },
-                colors: ['#3b82f6', '#8b5cf6', '#06b6d4']
-            });
-        }
-
-        // Auto-start camera
-        startCamera();
-        fetchStats();
-        fetchRecentLogs();
-        setInterval(fetchStats, 30000);
-        setInterval(fetchRecentLogs, 10000);
+        // Boot
+        window.addEventListener('load', init);
     </script>
 </body>
 </html>

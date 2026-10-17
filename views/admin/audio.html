@@ -1,0 +1,642 @@
+{{template "admin_head" .}}
+<!-- Header -->
+<div
+    class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-zinc-900/60 p-5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs">
+    <div>
+        <h1 class="text-xl font-bold text-zinc-900 dark:text-zinc-100">Audio Library</h1>
+        <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Kelola file rekaman suara, bel istirahat, dan audio
+            pengumuman sekolah</p>
+    </div>
+    <div class="flex items-center gap-2">
+        <button onclick="document.getElementById('file-input').click()"
+            class="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-semibold flex items-center gap-2 shadow-xs transition-all">
+            <i data-lucide="upload" class="w-4 h-4"></i>
+            <span>Upload Audio</span>
+        </button>
+        <!-- Hidden file input -->
+        <input type="file" id="file-input" class="hidden" accept=".mp3,.wav,.ogg" onchange="uploadAudioFile(this)">
+    </div>
+</div>
+
+<!-- Upload Progress Bar -->
+<div id="upload-progress-container" class="hidden bg-white dark:bg-zinc-900/60 p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs">
+    <div class="flex justify-between text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+        <span class="flex items-center gap-2"><i data-lucide="loader-2"
+                class="w-4 h-4 animate-spin text-zinc-900 dark:text-zinc-100"></i> Mengupload audio...</span>
+        <span id="upload-percentage" class="font-mono">0%</span>
+    </div>
+    <div class="w-full bg-zinc-100 dark:bg-zinc-800 rounded-full h-1.5 overflow-hidden">
+        <div id="upload-progress-bar" class="bg-zinc-900 dark:bg-zinc-100 h-full rounded-full transition-all duration-300"
+            style="width: 0%"></div>
+    </div>
+</div>
+
+<!-- Audio Files Table -->
+<div class="bg-white dark:bg-zinc-900/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden mb-24">
+    <table class="w-full text-left" id="audio-files-table">
+        <thead class="bg-zinc-50/80 dark:bg-zinc-900/80 border-b border-zinc-200/80 dark:border-zinc-800">
+            <tr>
+                <th class="w-16 px-4 py-3 text-center text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                    Play</th>
+                <th class="px-4 py-3 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Judul
+                    Audio</th>
+                <th class="px-4 py-3 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Nama File
+                </th>
+                <th class="px-4 py-3 text-right text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                    Aksi</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+            {{range $index, $file := .AudioFiles}}
+            <tr id="audio-row-{{$index}}" data-track-index="{{$index}}" data-track-id="{{$file.ID}}"
+                data-track-title="{{$file.DisplayName}}" data-track-file="{{$file.FileName}}"
+                data-track-url="/assets/audio/{{$file.FileName}}"
+                class="audio-track-row group hover:bg-zinc-50/60 dark:hover:bg-zinc-800/30 transition-colors">
+                <td class="px-4 py-3 text-center">
+                    <button type="button" onclick="playSpotifyTrack({{$index}})" id="play-btn-{{$index}}"
+                        class="track-play-btn w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all mx-auto"
+                        title="Putar Audio">
+                        <i data-lucide="play" class="w-4 h-4 ml-0.5 icon-state"></i>
+                    </button>
+                </td>
+                <td class="px-4 py-3">
+                    <div class="font-semibold text-zinc-900 dark:text-zinc-100 text-xs track-title">{{$file.DisplayName}}</div>
+                </td>
+                <td class="px-4 py-3">
+                    <div
+                        class="text-[11px] text-zinc-500 dark:text-zinc-400 font-mono bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded w-fit border border-zinc-200/60 dark:border-zinc-700/60">
+                        {{$file.FileName}}</div>
+                </td>
+                <td class="px-4 py-3 text-right">
+                    <div
+                        class="flex items-center justify-end gap-1 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button type="button" onclick="renameAudio('{{$file.ID}}', '{{$file.DisplayName}}')"
+                            class="p-1.5 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
+                            title="Ubah Nama">
+                            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                        </button>
+                        <button type="button" onclick="deleteItem('audio', {{$file.ID}})"
+                            class="p-1.5 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-md transition-colors"
+                            title="Hapus Audio">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {{else}}
+            <tr>
+                <td colspan="4" class="px-6 py-16 text-center text-zinc-400 dark:text-zinc-500">
+                    <div
+                        class="w-10 h-10 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 flex items-center justify-center mx-auto mb-3">
+                        <i data-lucide="music-2" class="w-5 h-5"></i>
+                    </div>
+                    <p class="font-semibold text-zinc-700 dark:text-zinc-300 text-xs">Belum ada file audio di library</p>
+                    <p class="text-[11px] text-zinc-400 dark:text-zinc-500 mt-0.5">Upload file audio format MP3, WAV, atau OGG untuk
+                        mulai digunakan pada bel.</p>
+                </td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+
+<!-- Modern Floating Audio Player Bar -->
+<div id="spotify-player-bar"
+    class="fixed bottom-0 left-0 md:left-[230px] right-0 z-40 bg-zinc-950/95 backdrop-blur-md border-t border-zinc-800 text-white px-4 sm:px-6 py-2.5 shadow-2xl transition-all duration-300 transform translate-y-full opacity-0 pointer-events-none">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-6">
+
+        <!-- Left Section: Track Artwork & Info -->
+        <div class="flex items-center gap-3 min-w-0 md:w-1/4">
+            <!-- Vinyl/Artwork with Pulsing Wave Equalizer -->
+            <div
+                class="relative w-10 h-10 rounded-md bg-zinc-800 flex items-center justify-center shadow-md flex-shrink-0 overflow-hidden group border border-zinc-700/60">
+                <div id="player-equalizer" class="hidden flex items-end gap-0.5 h-4 z-10">
+                    <span class="w-0.5 bg-white rounded-full animate-bounce h-2.5" style="animation-duration: 0.6s"></span>
+                    <span class="w-0.5 bg-white rounded-full animate-bounce h-4" style="animation-duration: 0.4s"></span>
+                    <span class="w-0.5 bg-white rounded-full animate-bounce h-1.5" style="animation-duration: 0.7s"></span>
+                    <span class="w-0.5 bg-white rounded-full animate-bounce h-3" style="animation-duration: 0.5s"></span>
+                </div>
+                <i id="player-disc-icon" data-lucide="music-2" class="w-4 h-4 text-zinc-300"></i>
+            </div>
+
+            <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                    <h4 id="player-track-title"
+                        class="font-semibold text-xs text-zinc-100 truncate hover:text-white transition-colors">
+                        Pilih Audio
+                    </h4>
+                    <span id="player-status-badge"
+                        class="px-1.5 py-0.2 text-[9px] font-semibold bg-zinc-800 text-zinc-300 border border-zinc-700 rounded-full flex-shrink-0">
+                        Ready
+                    </span>
+                </div>
+                <p id="player-track-subtitle" class="text-[10px] text-zinc-400 truncate font-mono mt-0.5">
+                    -
+                </p>
+            </div>
+        </div>
+
+        <!-- Center Section: Playback Controls & Interactive Timeline -->
+        <div class="flex-1 flex flex-col items-center max-w-2xl w-full">
+            <!-- Controls Buttons Row -->
+            <div class="flex items-center gap-4 sm:gap-6 mb-1">
+                <!-- Shuffle Toggle -->
+                <button type="button" id="btn-shuffle" onclick="toggleShuffle()"
+                    class="text-zinc-400 hover:text-white transition-colors p-1.5 rounded-full"
+                    title="Acak Putar">
+                    <i data-lucide="shuffle" class="w-3.5 h-3.5"></i>
+                </button>
+
+                <!-- Previous Track -->
+                <button type="button" onclick="playPrevTrack()"
+                    class="text-zinc-300 hover:text-white transition-colors p-1 rounded-full hover:bg-white/10"
+                    title="Audio Sebelumnya">
+                    <i data-lucide="skip-back" class="w-4 h-4"></i>
+                </button>
+
+                <!-- Main Play / Pause Button -->
+                <button type="button" id="btn-play-pause" onclick="togglePlayPause()"
+                    class="w-8 h-8 rounded-full bg-white text-zinc-950 flex items-center justify-center transition-all shadow-md hover:scale-105 active:scale-95"
+                    title="Putar / Jeda (Spasi)">
+                    <i id="main-play-icon" data-lucide="play" class="w-4 h-4 ml-0.5 fill-current"></i>
+                </button>
+
+                <!-- Next Track -->
+                <button type="button" onclick="playNextTrack()"
+                    class="text-zinc-300 hover:text-white transition-colors p-1 rounded-full hover:bg-white/10"
+                    title="Audio Berikutnya">
+                    <i data-lucide="skip-forward" class="w-4 h-4"></i>
+                </button>
+
+                <!-- Loop / Repeat Toggle -->
+                <button type="button" id="btn-repeat" onclick="toggleRepeat()"
+                    class="text-zinc-400 hover:text-white transition-colors p-1.5 rounded-full"
+                    title="Ulangi Lagu">
+                    <i data-lucide="repeat" class="w-3.5 h-3.5"></i>
+                </button>
+            </div>
+
+            <!-- Timeline Seek Bar Row -->
+            <div class="w-full flex items-center gap-2.5 text-[11px] text-zinc-400 font-mono select-none">
+                <span id="player-current-time" class="w-9 text-right text-[10px]">00:00</span>
+                <div class="relative flex-1 flex items-center group py-1 cursor-pointer">
+                    <input type="range" id="player-seek-slider" min="0" max="100" value="0" step="0.1"
+                        oninput="onSeekInput(this.value)" onchange="onSeekChange(this.value)"
+                        class="w-full h-1 bg-zinc-700 group-hover:h-1.5 rounded-full appearance-none cursor-pointer accent-white transition-all">
+                </div>
+                <span id="player-total-duration" class="w-9 text-left text-[10px]">00:00</span>
+            </div>
+        </div>
+
+        <!-- Right Section: Volume & Audio Tools -->
+        <div class="flex items-center justify-end gap-3 md:w-1/4">
+            <!-- Speed Selector Badge -->
+            <button type="button" onclick="cyclePlaybackRate()" id="btn-playback-rate"
+                class="px-2 py-0.5 text-[10px] font-semibold text-zinc-300 hover:text-white bg-zinc-800 hover:bg-zinc-700 rounded border border-zinc-700 transition-all font-mono"
+                title="Kecepatan Pemutaran">
+                1.0x
+            </button>
+
+            <!-- Volume Control -->
+            <div class="flex items-center gap-1.5 group">
+                <button type="button" onclick="toggleMute()" id="btn-volume"
+                    class="text-zinc-400 hover:text-white transition-colors p-1 rounded-full"
+                    title="Bisu / Bersuara">
+                    <i id="volume-icon" data-lucide="volume-2" class="w-3.5 h-3.5"></i>
+                </button>
+                <input type="range" id="player-volume-slider" min="0" max="1" step="0.05" value="1"
+                    oninput="setPlayerVolume(this.value)"
+                    class="w-14 sm:w-16 h-1 bg-zinc-700 rounded-full appearance-none cursor-pointer accent-white hover:h-1.5 transition-all">
+            </div>
+
+            <!-- Close / Stop Button -->
+            <button type="button" onclick="closeSpotifyPlayer()"
+                class="text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 p-1 rounded-md transition-all ml-1"
+                title="Tutup Pemutar">
+                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+            </button>
+        </div>
+
+    </div>
+</div>
+
+
+<script>
+    function uploadAudioFile(input) {
+        if (!input.files || input.files.length === 0) return;
+        const file = input.files[0];
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const progressContainer = document.getElementById('upload-progress-container');
+        const progressBar = document.getElementById('upload-progress-bar');
+        const progressText = document.getElementById('upload-percentage');
+
+        if (progressContainer) progressContainer.classList.remove('hidden');
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/admin/audio/upload', true);
+
+        // Append CSRF token
+        const csrfToken = window.getCsrfToken ? window.getCsrfToken() : (document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith('csrf_token='))?.substring(11) || '');
+        if (csrfToken) xhr.setRequestHeader('X-CSRF-Token', csrfToken);
+
+        xhr.upload.onprogress = function (e) {
+            if (e.lengthComputable) {
+                const percent = Math.round((e.loaded / e.total) * 100);
+                if (progressBar) progressBar.style.width = percent + '%';
+                if (progressText) progressText.innerText = percent + '%';
+            }
+        };
+
+        xhr.onload = function () {
+            if (xhr.status === 200) {
+                Swal.fire({ icon: 'success', title: 'Upload Berhasil!', text: 'File audio telah ditambahkan.', timer: 1500, showConfirmButton: false })
+                    .then(() => window.location.reload());
+            } else {
+                try {
+                    const res = JSON.parse(xhr.responseText);
+                    Swal.fire('Gagal', res.message || 'Terjadi kesalahan upload', 'error');
+                } catch (e) {
+                    Swal.fire('Gagal', 'Terjadi kesalahan saat upload', 'error');
+                }
+                if (progressContainer) progressContainer.classList.add('hidden');
+            }
+            input.value = '';
+        };
+
+        xhr.onerror = function () {
+            Swal.fire('Error', 'Koneksi ke server gagal', 'error');
+            if (progressContainer) progressContainer.classList.add('hidden');
+            input.value = '';
+        };
+
+        xhr.send(formData);
+    }
+
+    async function renameAudio(id, oldName) {
+        const { value: newName } = await Swal.fire({
+            title: 'Ubah Nama Audio',
+            input: 'text',
+            inputValue: oldName,
+            showCancelButton: true,
+            confirmButtonText: 'Simpan',
+            cancelButtonText: 'Batal',
+            confirmButtonColor: '#18181b',
+            cancelButtonColor: '#71717a',
+            inputValidator: (val) => {
+                if (!val || !val.trim()) return 'Nama audio tidak boleh kosong!';
+            }
+        });
+
+        if (newName && newName.trim() !== oldName) {
+            const formData = new FormData();
+            formData.append('display_name', newName.trim());
+            try {
+                const res = await fetch(`/admin/audio/rename/${id}`, { method: 'POST', body: formData });
+                const data = await res.json();
+                if (res.ok) {
+                    Swal.fire({ icon: 'success', title: 'Berhasil', text: 'Nama audio diperbarui', timer: 1500, showConfirmButton: false })
+                        .then(() => window.location.reload());
+                } else {
+                    Swal.fire('Gagal', data.message || 'Gagal mengubah nama', 'error');
+                }
+            } catch (e) {
+                Swal.fire('Error', 'Koneksi ke server gagal', 'error');
+            }
+        }
+    }
+
+    // --- Audio Player Controller ---
+    (function () {
+        let audio = new Audio();
+        let playlist = [];
+        let currentIndex = -1;
+        let isPlaying = false;
+        let isLooping = false;
+        let isShuffled = false;
+        let playbackRates = [1.0, 1.25, 1.5, 0.75];
+        let currentRateIdx = 0;
+        let lastVolume = 1;
+
+        function initPlaylist() {
+            playlist = [];
+            const rows = document.querySelectorAll('.audio-track-row');
+            rows.forEach((row, idx) => {
+                playlist.push({
+                    index: idx,
+                    id: row.getAttribute('data-track-id'),
+                    title: row.getAttribute('data-track-title'),
+                    file: row.getAttribute('data-track-file'),
+                    url: row.getAttribute('data-track-url')
+                });
+            });
+        }
+
+        function formatTime(seconds) {
+            if (isNaN(seconds) || seconds < 0) return '00:00';
+            const m = Math.floor(seconds / 60);
+            const s = Math.floor(seconds % 60);
+            return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+        }
+
+        function updateRowIndicators(activeIndex, state) {
+            document.querySelectorAll('.audio-track-row').forEach((row, idx) => {
+                const btn = row.querySelector('.track-play-btn');
+                const icon = btn ? btn.querySelector('.icon-state') : null;
+                if (idx === activeIndex) {
+                    row.classList.add('bg-zinc-100/70', 'dark:bg-zinc-800/60', 'border-l-2', 'border-zinc-900', 'dark:border-zinc-100');
+                    if (btn) {
+                        btn.classList.add('text-zinc-900', 'dark:text-zinc-100', 'bg-zinc-200/80', 'dark:bg-zinc-700/80');
+                        btn.classList.remove('text-zinc-400');
+                        if (icon) {
+                            icon.setAttribute('data-lucide', state === 'playing' ? 'pause' : 'play');
+                        }
+                    }
+                } else {
+                    row.classList.remove('bg-zinc-100/70', 'dark:bg-zinc-800/60', 'border-l-2', 'border-zinc-900', 'dark:border-zinc-100');
+                    if (btn) {
+                        btn.classList.remove('text-zinc-900', 'dark:text-zinc-100', 'bg-zinc-200/80', 'dark:bg-zinc-700/80');
+                        btn.classList.add('text-zinc-400');
+                        if (icon) {
+                            icon.setAttribute('data-lucide', 'play');
+                        }
+                    }
+                }
+            });
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        window.playSpotifyTrack = function (index) {
+            initPlaylist();
+            if (playlist.length === 0 || index < 0 || index >= playlist.length) return;
+
+            // If clicking the current track that's already loaded
+            if (currentIndex === index && audio.src) {
+                togglePlayPause();
+                return;
+            }
+
+            currentIndex = index;
+            const track = playlist[currentIndex];
+
+            audio.src = track.url;
+            audio.playbackRate = playbackRates[currentRateIdx];
+            audio.loop = isLooping;
+
+            const playerBar = document.getElementById('spotify-player-bar');
+            if (playerBar) {
+                playerBar.classList.remove('translate-y-full', 'opacity-0', 'pointer-events-none');
+                playerBar.classList.add('translate-y-0', 'opacity-100', 'pointer-events-auto');
+            }
+
+            const titleEl = document.getElementById('player-track-title');
+            const subtitleEl = document.getElementById('player-track-subtitle');
+            if (titleEl) titleEl.innerText = track.title;
+            if (subtitleEl) subtitleEl.innerText = track.file;
+
+            audio.play().then(() => {
+                isPlaying = true;
+                updatePlayPauseUI();
+            }).catch(err => {
+                console.error('Playback error:', err);
+                isPlaying = false;
+                updatePlayPauseUI();
+            });
+        };
+
+        window.playSpotifyTrackByUrl = function (url, btn) {
+            initPlaylist();
+            const foundIdx = playlist.findIndex(t => t.url === url || url.endsWith(t.file));
+            if (foundIdx !== -1) {
+                playSpotifyTrack(foundIdx);
+            } else {
+                audio.src = url;
+                audio.play().catch(console.error);
+                const playerBar = document.getElementById('spotify-player-bar');
+                if (playerBar) {
+                    playerBar.classList.remove('translate-y-full', 'opacity-0', 'pointer-events-none');
+                    playerBar.classList.add('translate-y-0', 'opacity-100', 'pointer-events-auto');
+                }
+                const titleEl = document.getElementById('player-track-title');
+                const subtitleEl = document.getElementById('player-track-subtitle');
+                if (titleEl) titleEl.innerText = url.split('/').pop();
+                if (subtitleEl) subtitleEl.innerText = 'Preview Audio';
+                isPlaying = true;
+                updatePlayPauseUI();
+            }
+        };
+
+        window.togglePlayPause = function () {
+            if (!audio.src) {
+                if (playlist.length > 0) playSpotifyTrack(0);
+                return;
+            }
+
+            if (audio.paused) {
+                audio.play().then(() => {
+                    isPlaying = true;
+                    updatePlayPauseUI();
+                }).catch(console.error);
+            } else {
+                audio.pause();
+                isPlaying = false;
+                updatePlayPauseUI();
+            }
+        };
+
+        function updatePlayPauseUI() {
+            const mainIcon = document.getElementById('main-play-icon');
+            const eq = document.getElementById('player-equalizer');
+            const disc = document.getElementById('player-disc-icon');
+            const statusBadge = document.getElementById('player-status-badge');
+
+            if (isPlaying) {
+                if (mainIcon) mainIcon.setAttribute('data-lucide', 'pause');
+                if (eq) eq.classList.remove('hidden');
+                if (disc) disc.classList.add('hidden');
+                if (statusBadge) {
+                    statusBadge.innerText = 'Playing';
+                    statusBadge.className = 'px-1.5 py-0.2 text-[9px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full flex-shrink-0 animate-pulse';
+                }
+                updateRowIndicators(currentIndex, 'playing');
+            } else {
+                if (mainIcon) mainIcon.setAttribute('data-lucide', 'play');
+                if (eq) eq.classList.add('hidden');
+                if (disc) disc.classList.remove('hidden');
+                if (statusBadge) {
+                    statusBadge.innerText = 'Paused';
+                    statusBadge.className = 'px-1.5 py-0.2 text-[9px] font-semibold bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full flex-shrink-0';
+                }
+                updateRowIndicators(currentIndex, 'paused');
+            }
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        window.playNextTrack = function () {
+            if (playlist.length === 0) return;
+            let nextIndex;
+            if (isShuffled) {
+                nextIndex = Math.floor(Math.random() * playlist.length);
+            } else {
+                nextIndex = (currentIndex + 1) % playlist.length;
+            }
+            playSpotifyTrack(nextIndex);
+        };
+
+        window.playPrevTrack = function () {
+            if (playlist.length === 0) return;
+            if (audio.currentTime > 3) {
+                audio.currentTime = 0;
+                return;
+            }
+            let prevIndex = (currentIndex - 1 + playlist.length) % playlist.length;
+            playSpotifyTrack(prevIndex);
+        };
+
+        window.toggleRepeat = function () {
+            isLooping = !isLooping;
+            audio.loop = isLooping;
+            const btn = document.getElementById('btn-repeat');
+            if (btn) {
+                if (isLooping) {
+                    btn.classList.add('text-white', 'bg-white/10');
+                    btn.classList.remove('text-zinc-400');
+                } else {
+                    btn.classList.remove('text-white', 'bg-white/10');
+                    btn.classList.add('text-zinc-400');
+                }
+            }
+        };
+
+        window.toggleShuffle = function () {
+            isShuffled = !isShuffled;
+            const btn = document.getElementById('btn-shuffle');
+            if (btn) {
+                if (isShuffled) {
+                    btn.classList.add('text-white', 'bg-white/10');
+                    btn.classList.remove('text-zinc-400');
+                } else {
+                    btn.classList.remove('text-white', 'bg-white/10');
+                    btn.classList.add('text-zinc-400');
+                }
+            }
+        };
+
+        window.cyclePlaybackRate = function () {
+            currentRateIdx = (currentRateIdx + 1) % playbackRates.length;
+            const rate = playbackRates[currentRateIdx];
+            audio.playbackRate = rate;
+            const btn = document.getElementById('btn-playback-rate');
+            if (btn) btn.innerText = rate.toFixed(1) + 'x';
+        };
+
+        window.onSeekInput = function (val) {
+            if (!audio.duration) return;
+            const seekTo = (val / 100) * audio.duration;
+            const currEl = document.getElementById('player-current-time');
+            if (currEl) currEl.innerText = formatTime(seekTo);
+        };
+
+        window.onSeekChange = function (val) {
+            if (!audio.duration) return;
+            audio.currentTime = (val / 100) * audio.duration;
+        };
+
+        window.setPlayerVolume = function (val) {
+            audio.volume = parseFloat(val);
+            updateVolumeIcon(audio.volume);
+        };
+
+        window.toggleMute = function () {
+            if (audio.volume > 0) {
+                lastVolume = audio.volume;
+                audio.volume = 0;
+                const slider = document.getElementById('player-volume-slider');
+                if (slider) slider.value = 0;
+                updateVolumeIcon(0);
+            } else {
+                audio.volume = lastVolume || 1;
+                const slider = document.getElementById('player-volume-slider');
+                if (slider) slider.value = audio.volume;
+                updateVolumeIcon(audio.volume);
+            }
+        };
+
+        function updateVolumeIcon(vol) {
+            const icon = document.getElementById('volume-icon');
+            if (!icon) return;
+            if (vol === 0) {
+                icon.setAttribute('data-lucide', 'volume-x');
+            } else if (vol < 0.5) {
+                icon.setAttribute('data-lucide', 'volume-1');
+            } else {
+                icon.setAttribute('data-lucide', 'volume-2');
+            }
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        window.closeSpotifyPlayer = function () {
+            audio.pause();
+            audio.currentTime = 0;
+            isPlaying = false;
+            const playerBar = document.getElementById('spotify-player-bar');
+            if (playerBar) {
+                playerBar.classList.add('translate-y-full', 'opacity-0', 'pointer-events-none');
+                playerBar.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
+            }
+            updateRowIndicators(-1, 'paused');
+            updatePlayPauseUI();
+        };
+
+        // Audio element event listeners
+        audio.addEventListener('timeupdate', function () {
+            if (!audio.duration) return;
+            const percent = (audio.currentTime / audio.duration) * 100;
+            const slider = document.getElementById('player-seek-slider');
+            const currEl = document.getElementById('player-current-time');
+            if (slider) slider.value = percent;
+            if (currEl) currEl.innerText = formatTime(audio.currentTime);
+        });
+
+        audio.addEventListener('loadedmetadata', function () {
+            const durEl = document.getElementById('player-total-duration');
+            if (durEl) durEl.innerText = formatTime(audio.duration);
+        });
+
+        audio.addEventListener('ended', function () {
+            if (!isLooping) {
+                playNextTrack();
+            }
+        });
+
+        // Keyboard shortcuts
+        window.addEventListener('keydown', function (e) {
+            const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+            if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') return;
+
+            if (e.code === 'Space') {
+                e.preventDefault();
+                togglePlayPause();
+            } else if (e.code === 'ArrowRight') {
+                if (audio.src && audio.duration) {
+                    audio.currentTime = Math.min(audio.duration, audio.currentTime + 5);
+                }
+            } else if (e.code === 'ArrowLeft') {
+                if (audio.src) {
+                    audio.currentTime = Math.max(0, audio.currentTime - 5);
+                }
+            } else if (e.code === 'Escape') {
+                closeSpotifyPlayer();
+            }
+        });
+
+        // Initialize playlist when ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initPlaylist);
+        } else {
+            initPlaylist();
+        }
+    })();
+</script>
+{{template "admin_footer" .}}

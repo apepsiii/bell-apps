@@ -1,0 +1,512 @@
+{{template "admin_head" .}}
+<!-- Header -->
+<div
+    class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-zinc-900/60 p-5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs">
+    <div>
+        <h1 class="text-xl font-bold text-zinc-900 dark:text-zinc-100">Kontrol Presensi Siswa</h1>
+        <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Monitoring kehadiran harian, tap RFID gerbang, dan input
+            presensi sholat berjamaah</p>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+        <button onclick="openModal('modal-manual-attendance')"
+            class="px-3.5 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all">
+            <i data-lucide="clipboard-list" class="w-3.5 h-3.5"></i>
+            <span>Presensi Manual</span>
+        </button>
+        <a href="/scan" target="_blank"
+            class="px-3.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all">
+            <i data-lucide="scan-line" class="w-3.5 h-3.5"></i>
+            <span>Terminal RFID</span>
+        </a>
+        <a href="/scan-sholat" target="_blank"
+            class="px-3.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all">
+            <i data-lucide="heart-handshake" class="w-3.5 h-3.5"></i>
+            <span>Terminal Sholat</span>
+        </a>
+        <button onclick="openModal('modal-att-settings')"
+            class="px-3.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all">
+            <i data-lucide="settings" class="w-3.5 h-3.5"></i>
+            <span>Pengaturan Jam</span>
+        </button>
+    </div>
+</div>
+
+<!-- Attendance Stats Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+    <div class="bg-white dark:bg-zinc-900/60 p-5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between">
+        <div>
+            <p class="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Sudah Presensi Hari Ini</p>
+            <h3 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight mt-1">{{len .PresentStudents}} <span
+                    class="text-xs font-medium text-zinc-400 dark:text-zinc-500">Siswa</span></h3>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Tap masuk & presensi manual</p>
+        </div>
+        <div class="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200/60 dark:border-emerald-800/40">
+            <i data-lucide="user-check" class="w-5 h-5"></i>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-zinc-900/60 p-5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between">
+        <div>
+            <p class="text-[11px] font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider">Belum Presensi / Alpha</p>
+            <h3 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight mt-1">{{len .AbsentStudents}} <span
+                    class="text-xs font-medium text-zinc-400 dark:text-zinc-500">Siswa</span></h3>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Belum melakukan tap kartu gerbang</p>
+        </div>
+        <div class="w-10 h-10 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center border border-rose-200/60 dark:border-rose-800/40">
+            <i data-lucide="user-x" class="w-5 h-5"></i>
+        </div>
+    </div>
+
+    <div
+        class="bg-white dark:bg-zinc-900/60 p-5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between sm:col-span-2 lg:col-span-1">
+        <div>
+            <p class="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Total Siswa Terdaftar</p>
+            <h3 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight mt-1">{{.Stats.TotalStudents}} <span
+                    class="text-xs font-medium text-zinc-400 dark:text-zinc-500">Siswa</span></h3>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">{{.Stats.ActiveStudents}} Siswa aktif terdata</p>
+        </div>
+        <div class="w-10 h-10 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 flex items-center justify-center border border-zinc-200/60 dark:border-zinc-700/60">
+            <i data-lucide="users" class="w-5 h-5"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Two-Column Real-time Attendance Feed -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Left: Belum Datang (Actionable) -->
+    <div class="bg-white dark:bg-zinc-900/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex flex-col h-[520px]">
+        <div class="p-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Belum Hadir ({{len .AbsentStudents}})</h3>
+            </div>
+            <input type="text" placeholder="Cari nama siswa..."
+                class="text-xs bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all"
+                onkeyup="filterTable(this, 'table-absent')">
+        </div>
+        <div class="overflow-y-auto flex-1">
+            <table class="w-full text-left" id="table-absent">
+                <thead class="bg-zinc-50/80 dark:bg-zinc-900/80 border-b border-zinc-100 dark:border-zinc-800 sticky top-0 text-zinc-500 dark:text-zinc-400">
+                    <tr>
+                        <th class="px-4 py-2.5 text-[11px] font-semibold uppercase">Nama Siswa</th>
+                        <th class="px-4 py-2.5 text-[11px] font-semibold uppercase">Kelas</th>
+                        <th class="px-4 py-2.5 text-[11px] font-semibold uppercase text-right">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+                    {{range .AbsentStudents}}
+                    <tr class="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/30 transition-colors">
+                        <td class="px-4 py-2.5 text-xs font-semibold text-zinc-900 dark:text-zinc-100">{{.Name}}</td>
+                        <td class="px-4 py-2.5 text-xs text-zinc-500 dark:text-zinc-400">{{.ClassName}}</td>
+                        <td class="px-4 py-2.5 text-right">
+                            <button type="button" onclick="quickManualModal('{{.ID}}', '{{.Name}}')"
+                                class="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 text-xs font-medium rounded-md shadow-xs transition-colors">Proses</button>
+                        </td>
+                    </tr>
+                    {{else}}
+                    <tr>
+                        <td colspan="3" class="px-4 py-16 text-center text-zinc-400 dark:text-zinc-500 text-xs">Semua siswa
+                            sudah presensi hari ini.</td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Right: Sudah Masuk (Live Logs) -->
+    <div class="bg-white dark:bg-zinc-900/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex flex-col h-[520px]">
+        <div class="p-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Riwayat Masuk Hari Ini ({{len .PresentStudents}})</h3>
+            </div>
+            <input type="text" placeholder="Cari nama..."
+                class="text-xs bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all"
+                onkeyup="filterTable(this, 'table-present')">
+        </div>
+        <div class="overflow-y-auto flex-1">
+            <table class="w-full text-left" id="table-present">
+                <thead class="bg-zinc-50/80 dark:bg-zinc-900/80 border-b border-zinc-100 dark:border-zinc-800 sticky top-0 text-zinc-500 dark:text-zinc-400">
+                    <tr>
+                        <th class="px-4 py-2.5 text-[11px] font-semibold uppercase">Waktu</th>
+                        <th class="px-4 py-2.5 text-[11px] font-semibold uppercase">Siswa</th>
+                        <th class="px-4 py-2.5 text-[11px] font-semibold uppercase text-right">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+                    {{range .PresentStudents}}
+                    <tr class="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/30 transition-colors">
+                        <td class="px-4 py-2.5 text-xs font-mono font-medium text-zinc-500 dark:text-zinc-400">{{.Time}}</td>
+                        <td class="px-4 py-2.5">
+                            <div class="flex items-center gap-2.5">
+                                {{if .Photo}}
+                                <img src="/assets/photos/{{.Photo}}"
+                                    class="w-6 h-6 rounded-full object-cover border border-zinc-200 dark:border-zinc-700 flex-shrink-0">
+                                {{else}}
+                                <div
+                                    class="w-6 h-6 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                                    <i data-lucide="user" class="w-3 h-3"></i>
+                                </div>
+                                {{end}}
+                                <div class="min-w-0">
+                                    <div class="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate flex items-center gap-1.5">
+                                        <span>{{.Name}}</span>
+                                        {{if eq .Method "MANUAL"}}
+                                        <span
+                                            class="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60">Manual</span>
+                                        {{end}}
+                                    </div>
+                                    <div class="text-[10px] text-zinc-400 dark:text-zinc-500 truncate">{{.ClassName}}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-4 py-2.5 text-right">
+                            {{if eq .Status "Datang"}}
+                            <span
+                                class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">Hadir</span>
+                            {{else if eq .Status "Terlambat"}}
+                            <span
+                                class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60">Terlambat</span>
+                            {{else if eq .Status "Sakit"}}
+                            <span
+                                class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/60">Sakit</span>
+                            {{else if eq .Status "Izin"}}
+                            <span
+                                class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800/60">Izin</span>
+                            {{else}}
+                            <span
+                                class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">{{.Status}}</span>
+                            {{end}}
+                        </td>
+                    </tr>
+                    {{else}}
+                    <tr>
+                        <td colspan="3" class="px-4 py-16 text-center text-zinc-400 dark:text-zinc-500 text-xs">Belum ada
+                            catatan presensi masuk hari ini.</td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Prayer Attendance Section -->
+<div class="bg-white dark:bg-zinc-900/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs p-5 sm:p-6">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 dark:border-zinc-800 pb-4 mb-4">
+        <div>
+            <h3 class="font-semibold text-base text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                <i data-lucide="heart-handshake" class="w-4.5 h-4.5 text-zinc-700 dark:text-zinc-300"></i>
+                Presensi Sholat Berjamaah
+            </h3>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Input kehadiran sholat Dzuhur dan Ashar per kelas</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        <div>
+            <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Kelas</label>
+            <select id="prayer-class-select"
+                class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                <option value="">-- Pilih Kelas --</option>
+                {{range .Classes}}
+                <option value="{{.ID}}">{{.Name}}</option>
+                {{end}}
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Waktu Sholat</label>
+            <select id="prayer-time-select"
+                class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                <option value="Dzuhur">Dzuhur</option>
+                <option value="Ashar">Ashar</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Tanggal</label>
+            <input type="date" id="prayer-date-input"
+                class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+        </div>
+        <div class="flex items-end">
+            <button type="button" onclick="loadPrayerStudents()"
+                class="w-full px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 shadow-xs transition-all">
+                <i data-lucide="search" class="w-3.5 h-3.5"></i>
+                <span>Muat Siswa</span>
+            </button>
+        </div>
+    </div>
+
+    <div id="prayer-students-container" class="hidden">
+        <form id="prayer-attendance-form" onsubmit="submitBulkPrayerAttendance(event)">
+            <div class="overflow-x-auto border border-zinc-200 dark:border-zinc-800 rounded-lg mb-4">
+                <table class="w-full text-left" id="prayer-table">
+                    <thead class="bg-zinc-50/80 dark:bg-zinc-900/80 border-b border-zinc-100 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400">
+                        <tr>
+                            <th class="px-4 py-2.5 w-10 text-center">
+                                <input type="checkbox" id="prayer-check-all" onchange="togglePrayerCheckAll(this)"
+                                    class="rounded border-zinc-300 dark:border-zinc-700 text-zinc-900 focus:ring-zinc-950/20">
+                            </th>
+                            <th class="px-4 py-2.5 text-[11px] font-semibold uppercase">NIS</th>
+                            <th class="px-4 py-2.5 text-[11px] font-semibold uppercase">Nama Siswa</th>
+                            <th class="px-4 py-2.5 text-[11px] font-semibold uppercase">Status Kehadiran</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800/80" id="prayer-students-tbody"></tbody>
+                </table>
+            </div>
+            <div class="flex justify-end gap-2">
+                <button type="submit"
+                    class="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-semibold shadow-xs transition-all">Simpan
+                    Presensi Sholat</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- Modal Quick Manual Attendance -->
+<div id="modal-manual-attendance"
+    class="modal-wrapper hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-xl shadow-xl w-full max-w-md p-6">
+        <div class="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800 mb-4">
+            <h3 class="font-semibold text-base text-zinc-900 dark:text-zinc-100">Proses Kehadiran Manual</h3>
+            <button type="button" onclick="closeModal('modal-manual-attendance')"
+                class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <form id="manual-attendance-form" onsubmit="handleFormSubmit(event)" action="/admin/attendance/manual"
+            method="POST" class="space-y-4">
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Pilih Siswa</label>
+                <select name="student_id" id="manual-student-select" required
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                    <option value="">-- Pilih Siswa --</option>
+                    {{range .Students}}
+                    <option value="{{.ID}}">{{.Name}} ({{.ClassName}})</option>
+                    {{end}}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Status Kehadiran</label>
+                <select name="status" required
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                    <option value="Hadir">Hadir</option>
+                    <option value="Terlambat">Terlambat</option>
+                    <option value="Sakit">Sakit</option>
+                    <option value="Dispensasi">Dispensasi</option>
+                    <option value="Alpha">Alpha</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Keterangan / Alasan</label>
+                <textarea name="note" rows="2" placeholder="Keterangan opsional..."
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all"></textarea>
+            </div>
+            <div class="flex justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <button type="button" onclick="closeModal('modal-manual-attendance')"
+                    class="px-4 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200">Batal</button>
+                <button type="submit"
+                    class="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 px-5 py-2 rounded-lg text-xs font-semibold shadow-xs transition-all">Simpan
+                    Kehadiran</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Attendance Settings -->
+<div id="modal-att-settings"
+    class="modal-wrapper hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800 mb-4">
+            <h3 class="font-semibold text-base text-zinc-900 dark:text-zinc-100">Pengaturan Jam Presensi</h3>
+            <button type="button" onclick="closeModal('modal-att-settings')"
+                class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <form action="/admin/attendance/settings" method="POST" onsubmit="handleFormSubmit(event)" class="space-y-4">
+            <div>
+                <h4 class="font-semibold text-xs uppercase text-zinc-500 dark:text-zinc-400 mb-2">Jam Kehadiran Gerbang</h4>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Mulai Datang</label>
+                        <input type="time" name="arrival_start" value="{{index .AttendanceSettings "arrival_start"}}"
+                            required class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Batas Tepat Waktu</label>
+                        <input type="time" name="arrival_end" value="{{index .AttendanceSettings "arrival_end"}}"
+                            required class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 mt-3">
+                    <div>
+                        <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Mulai Pulang</label>
+                        <input type="time" name="departure_start"
+                            value="{{index .AttendanceSettings "departure_start"}}" required
+                            class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Batas Akhir Pulang</label>
+                        <input type="time" name="departure_end" value="{{index .AttendanceSettings "departure_end"}}"
+                            required class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                <h4 class="font-semibold text-xs uppercase text-zinc-500 dark:text-zinc-400 mb-2">Jam Sholat Berjamaah</h4>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Mulai Dzuhur</label>
+                        <input type="time" name="dzuhur_start" value="{{index .AttendanceSettings "dzuhur_start"}}"
+                            required class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Akhir Dzuhur</label>
+                        <input type="time" name="dzuhur_end" value="{{index .AttendanceSettings "dzuhur_end"}}" required
+                            class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 mt-3">
+                    <div>
+                        <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Mulai Ashar</label>
+                        <input type="time" name="ashar_start" value="{{index .AttendanceSettings "ashar_start"}}"
+                            required class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Akhir Ashar</label>
+                        <input type="time" name="ashar_end" value="{{index .AttendanceSettings "ashar_end"}}" required
+                            class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <button type="button" onclick="closeModal('modal-att-settings')"
+                    class="px-4 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200">Batal</button>
+                <button type="submit"
+                    class="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 px-5 py-2 rounded-lg text-xs font-semibold shadow-xs transition-all">Simpan
+                    Pengaturan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const today = new Date().toISOString().split('T')[0];
+        const dateInput = document.getElementById('prayer-date-input');
+        if (dateInput) dateInput.value = today;
+    });
+
+    function quickManualModal(studentId, studentName) {
+        const select = document.getElementById('manual-student-select');
+        if (select) select.value = studentId;
+        openModal('modal-manual-attendance');
+    }
+
+    function filterTable(input, tableId) {
+        const filter = input.value.toLowerCase();
+        const table = document.getElementById(tableId);
+        if (!table) return;
+        const trs = table.getElementsByTagName('tr');
+        for (let i = 1; i < trs.length; i++) {
+            const text = trs[i].textContent || trs[i].innerText;
+            trs[i].style.display = text.toLowerCase().indexOf(filter) > -1 ? "" : "none";
+        }
+    }
+
+    async function loadPrayerStudents() {
+        const classId = document.getElementById('prayer-class-select').value;
+        if (!classId) {
+            Swal.fire('Perhatian', 'Silakan pilih kelas terlebih dahulu', 'warning');
+            return;
+        }
+
+        try {
+            const res = await fetch(`/admin/students/json?class_id=${classId}`);
+            const students = await res.json();
+            const tbody = document.getElementById('prayer-students-tbody');
+            tbody.innerHTML = '';
+
+            if (!students || students.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-zinc-400 dark:text-zinc-500 text-xs">Tidak ada data siswa di kelas ini</td></tr>';
+            } else {
+                students.forEach(s => {
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-zinc-50/60 dark:hover:bg-zinc-800/30 transition-colors';
+                    row.innerHTML = `
+                        <td class="px-4 py-2.5 text-center">
+                            <input type="checkbox" name="student_ids" value="${s.id}" checked class="prayer-student-check rounded border-zinc-300 dark:border-zinc-700 text-zinc-900 focus:ring-zinc-950/20">
+                        </td>
+                        <td class="px-4 py-2.5 text-xs font-mono text-zinc-500 dark:text-zinc-400">${s.nis || '-'}</td>
+                        <td class="px-4 py-2.5 text-xs font-semibold text-zinc-900 dark:text-zinc-100">${s.name}</td>
+                        <td class="px-4 py-2.5">
+                            <select name="status_${s.id}" class="bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded p-1 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/10">
+                                <option value="Hadir">Hadir</option>
+                                <option value="Masbuq">Masbuq</option>
+                                <option value="Udzur">Udzur Syar'i</option>
+                                <option value="Alpha">Tidak Hadir</option>
+                            </select>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+
+            document.getElementById('prayer-students-container').classList.remove('hidden');
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        } catch (e) {
+            Swal.fire('Error', 'Gagal memuat data siswa', 'error');
+        }
+    }
+
+    function togglePrayerCheckAll(master) {
+        document.querySelectorAll('.prayer-student-check').forEach(cb => cb.checked = master.checked);
+    }
+
+    async function submitBulkPrayerAttendance(e) {
+        e.preventDefault();
+        const classId = document.getElementById('prayer-class-select').value;
+        const prayerType = document.getElementById('prayer-time-select').value;
+        const date = document.getElementById('prayer-date-input').value;
+
+        const checkedBoxes = document.querySelectorAll('.prayer-student-check:checked');
+        if (checkedBoxes.length === 0) {
+            Swal.fire('Perhatian', 'Pilih minimal satu siswa', 'warning');
+            return;
+        }
+
+        const entries = [];
+        checkedBoxes.forEach(cb => {
+            const sid = cb.value;
+            const status = document.querySelector(`select[name="status_${sid}"]`)?.value || 'Hadir';
+            entries.push({ student_id: parseInt(sid), status: status });
+        });
+
+        try {
+            const res = await fetch('/api/operator/prayer-attendance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    class_id: parseInt(classId),
+                    prayer_type: prayerType,
+                    date: date,
+                    entries: entries
+                })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                Swal.fire({ icon: 'success', title: 'Tersimpan', text: 'Presensi sholat berhasil dicatat', timer: 1500, showConfirmButton: false });
+            } else {
+                Swal.fire('Gagal', data.message || 'Gagal menyimpan presensi sholat', 'error');
+            }
+        } catch (e) {
+            Swal.fire('Error', 'Koneksi ke server gagal', 'error');
+        }
+    }
+</script>
+{{template "admin_footer" .}}

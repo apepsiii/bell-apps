@@ -1,0 +1,635 @@
+{{template "admin_head" .}}
+<!-- Header -->
+<div
+    class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-zinc-900/60 p-5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs">
+    <div>
+        <h1 class="text-xl font-bold text-zinc-900 dark:text-zinc-100">Pengaturan Sistem & Integrasi</h1>
+        <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Konfigurasi perangkat IoT, WhatsApp Gateway, AI generator,
+            hari libur, dan pencadangan database</p>
+    </div>
+    <!-- Navigation Tabs -->
+    <div class="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800/60 p-1 rounded-lg border border-zinc-200/60 dark:border-zinc-700/60 overflow-x-auto">
+        <button type="button" onclick="switchSettingTab('general')" id="setting-tab-btn-general"
+            class="setting-nav-btn active px-3 py-1.5 rounded-md text-xs font-semibold text-zinc-900 dark:text-zinc-100 bg-white dark:bg-zinc-900 shadow-xs transition-all flex items-center gap-1.5">
+            <i data-lucide="sliders" class="w-3.5 h-3.5"></i>
+            <span>Jam & Gateway</span>
+        </button>
+        <button type="button" onclick="switchSettingTab('devices')" id="setting-tab-btn-devices"
+            class="setting-nav-btn px-3 py-1.5 rounded-md text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all flex items-center gap-1.5">
+            <i data-lucide="cpu" class="w-3.5 h-3.5"></i>
+            <span>IoT Devices ({{len .Devices}})</span>
+        </button>
+        <button type="button" onclick="switchSettingTab('holidays')" id="setting-tab-btn-holidays"
+            class="setting-nav-btn px-3 py-1.5 rounded-md text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all flex items-center gap-1.5">
+            <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+            <span>Hari Libur</span>
+        </button>
+        <button type="button" onclick="switchSettingTab('ai')" id="setting-tab-btn-ai"
+            class="setting-nav-btn px-3 py-1.5 rounded-md text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all flex items-center gap-1.5">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+            <span>AI & Sekolah</span>
+        </button>
+        <button type="button" onclick="switchSettingTab('backup')" id="setting-tab-btn-backup"
+            class="setting-nav-btn px-3 py-1.5 rounded-md text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all flex items-center gap-1.5">
+            <i data-lucide="database" class="w-3.5 h-3.5"></i>
+            <span>Backup & Restore</span>
+        </button>
+    </div>
+</div>
+
+<!-- TAB 1: GENERAL (JAM & GATEWAY WA) -->
+<div id="setting-view-general" class="setting-view-content space-y-6">
+    <form action="/admin/attendance/settings" method="POST" onsubmit="handleFormSubmit(event)" class="space-y-6">
+        <!-- Presensi Jam -->
+        <div class="bg-white dark:bg-zinc-900/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs p-6">
+            <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100 mb-4 flex items-center gap-2">
+                <i data-lucide="clock" class="w-4 h-4 text-zinc-700 dark:text-zinc-300"></i>
+                Jadwal Kehadiran & Kepulangan Gerbang
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Mulai Datang</label>
+                    <input type="time" name="arrival_start" value="{{index .AttendanceSettings "arrival_start"}}"
+                        required class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Batas Tepat Waktu</label>
+                    <input type="time" name="arrival_end" value="{{index .AttendanceSettings "arrival_end"}}" required
+                        class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Mulai Pulang</label>
+                    <input type="time" name="departure_start" value="{{index .AttendanceSettings "departure_start"}}"
+                        required class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Batas Pulang</label>
+                    <input type="time" name="departure_end" value="{{index .AttendanceSettings "departure_end"}}"
+                        required class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                </div>
+            </div>
+        </div>
+
+        <!-- WhatsApp Gateway -->
+        <div class="bg-white dark:bg-zinc-900/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs p-6">
+            <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100 mb-4 flex items-center gap-2">
+                <i data-lucide="message-square" class="w-4 h-4 text-emerald-600 dark:text-emerald-400"></i>
+                Konfigurasi WhatsApp Gateway (Gowa / OneSender)
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">API Base URL</label>
+                    <input type="text" name="onesender_api_url"
+                        value="{{index .AttendanceSettings "onesender_api_url"}}" placeholder="http://127.0.0.1:8053"
+                        class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 font-mono focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">API Token / Basic Auth
+                        Password</label>
+                    <input type="password" name="onesender_api_token"
+                        value="{{index .AttendanceSettings "onesender_api_token"}}" placeholder="Password token..."
+                        class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 font-mono focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Username
+                        (Opsional)</label>
+                    <input type="text" name="onesender_username"
+                        value="{{index .AttendanceSettings "onesender_username"}}" placeholder="admin"
+                        class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 font-mono focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Device ID</label>
+                    <input type="text" name="onesender_device_id"
+                        value="{{index .AttendanceSettings "onesender_device_id"}}" placeholder="Pionir"
+                        class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 font-mono focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                </div>
+            </div>
+            <div class="mt-5 flex items-center gap-3">
+                <button type="submit"
+                    class="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-semibold shadow-xs transition-all">Simpan
+                    Pengaturan</button>
+                <button type="button" onclick="testWAConnection()"
+                    class="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-semibold transition-all">Test
+                    Kirim WA</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- TAB 2: IOT DEVICES -->
+<div id="setting-view-devices" class="setting-view-content hidden space-y-4">
+    <div class="bg-white dark:bg-zinc-900/60 p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between">
+        <div>
+            <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Terminal Scanner & IoT Bel</h3>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400">Monitoring perangkat keras ESP32 / RFID terminal</p>
+        </div>
+        <button type="button" onclick="openModal('modal-add-device')"
+            class="px-3.5 py-2 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            <span>Tambah Perangkat</span>
+        </button>
+    </div>
+
+    <div class="bg-white dark:bg-zinc-900/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden">
+        <table class="w-full text-left">
+            <thead class="bg-zinc-50/80 dark:bg-zinc-900/80 border-b border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400">
+                <tr>
+                    <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Nama Perangkat</th>
+                    <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">IP Address</th>
+                    <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Status</th>
+                    <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Sinkronisasi Terakhir</th>
+                    <th class="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider">Aksi</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+                {{range .Devices}}
+                <tr class="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/30 transition-colors">
+                    <td class="px-4 py-3 font-semibold text-xs text-zinc-900 dark:text-zinc-100">{{.Name}}</td>
+                    <td class="px-4 py-3 font-mono text-xs text-zinc-600 dark:text-zinc-400">{{.IPAddress}}</td>
+                    <td class="px-4 py-3">
+                        <span
+                            class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium {{if eq .Status "online"}}bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60{{else}}bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700{{end}}">
+                            <span
+                                class="w-1.5 h-1.5 rounded-full {{if eq .Status "online"}}bg-emerald-500 animate-pulse{{else}}bg-zinc-400{{end}}"></span>
+                            {{if eq .Status "online"}}Online{{else}}Offline{{end}}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 font-mono text-xs text-zinc-500 dark:text-zinc-400">{{.LastSync}}</td>
+                    <td class="px-4 py-3 text-right">
+                        <button type="button" onclick="deleteItem('device', {{.ID}})"
+                            class="p-1.5 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-md transition-colors">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                </tr>
+                {{else}}
+                <tr>
+                    <td colspan="5" class="px-6 py-14 text-center text-zinc-400 dark:text-zinc-500 text-xs">Belum ada
+                        perangkat IoT terdaftar.</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- TAB 3: HOLIDAYS -->
+<div id="setting-view-holidays" class="setting-view-content hidden space-y-4">
+    <div class="bg-white dark:bg-zinc-900/60 p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between">
+        <div>
+            <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Kalender Hari Libur & Cuti Bersama</h3>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400">Pada hari libur, sistem bel otomatis dan notifikasi presensi
+                dinonaktifkan</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <button type="button" onclick="importNationalHolidays()"
+                class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                <span>Import Libur Nasional</span>
+            </button>
+            <button type="button" onclick="openModal('modal-add-holiday')"
+                class="px-3.5 py-2 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>Tambah Libur</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-zinc-900/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden">
+        <table class="w-full text-left" id="holidays-table">
+            <thead class="bg-zinc-50/80 dark:bg-zinc-900/80 border-b border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400">
+                <tr>
+                    <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Tanggal</th>
+                    <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Keterangan Hari Libur</th>
+                    <th class="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider">Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="holidays-tbody" class="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+                <tr>
+                    <td colspan="3" class="text-center py-10 text-zinc-400 dark:text-zinc-500 text-xs">Memuat data hari
+                        libur...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- TAB 4: AI & SEKOLAH -->
+<div id="setting-view-ai" class="setting-view-content hidden space-y-6">
+    <!-- AI Quest Settings -->
+    <div class="bg-white dark:bg-zinc-900/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs p-6">
+        <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100 mb-2 flex items-center gap-2">
+            <i data-lucide="sparkles" class="w-4 h-4 text-zinc-700 dark:text-zinc-300"></i>
+            Pengaturan AI Quest Generator (OpenAI Compatible)
+        </h3>
+        <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-4">Gunakan API OpenAI, Groq, atau Ollama untuk pembuatan
+            tantangan bahasa Inggris otomatis.</p>
+        <form id="ai-settings-form" onsubmit="saveAISettings(event)" class="space-y-4 max-w-xl">
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Base URL API</label>
+                <input type="url" id="ai_base_url" name="ai_base_url" placeholder="https://api.openai.com/v1"
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 font-mono focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">API Key</label>
+                <input type="password" id="ai_api_key" name="ai_api_key" placeholder="sk-..."
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 font-mono focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Model Name</label>
+                <input type="text" id="ai_model" name="ai_model" placeholder="gpt-4o-mini"
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 font-mono focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+            </div>
+            <div class="flex items-center gap-3 pt-2">
+                <button type="submit"
+                    class="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-semibold shadow-xs transition-all">Simpan
+                    AI Config</button>
+                <button type="button" onclick="testAIConnection()"
+                    class="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-semibold transition-all">Test
+                    AI Connection</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- School Work Days -->
+    <div class="bg-white dark:bg-zinc-900/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs p-6">
+        <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100 mb-2 flex items-center gap-2">
+            <i data-lucide="calendar-check" class="w-4 h-4 text-zinc-700 dark:text-zinc-300"></i>
+            Hari Kerja Sekolah Aktif
+        </h3>
+        <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-4">Tentukan hari aktif proses belajar mengajar mingguan.</p>
+        <form id="school-settings-form" onsubmit="saveSchoolSettings(event)">
+            <div class="flex flex-wrap gap-2.5 mb-5">
+                <label
+                    class="flex items-center gap-2 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 px-3.5 py-2 rounded-lg cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/80 text-xs font-medium text-zinc-800 dark:text-zinc-200 transition-colors">
+                    <input type="checkbox" name="work_day" value="1" class="text-zinc-900 rounded border-zinc-300">
+                    <span>Senin</span>
+                </label>
+                <label
+                    class="flex items-center gap-2 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 px-3.5 py-2 rounded-lg cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/80 text-xs font-medium text-zinc-800 dark:text-zinc-200 transition-colors">
+                    <input type="checkbox" name="work_day" value="2" class="text-zinc-900 rounded border-zinc-300">
+                    <span>Selasa</span>
+                </label>
+                <label
+                    class="flex items-center gap-2 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 px-3.5 py-2 rounded-lg cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/80 text-xs font-medium text-zinc-800 dark:text-zinc-200 transition-colors">
+                    <input type="checkbox" name="work_day" value="3" class="text-zinc-900 rounded border-zinc-300">
+                    <span>Rabu</span>
+                </label>
+                <label
+                    class="flex items-center gap-2 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 px-3.5 py-2 rounded-lg cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/80 text-xs font-medium text-zinc-800 dark:text-zinc-200 transition-colors">
+                    <input type="checkbox" name="work_day" value="4" class="text-zinc-900 rounded border-zinc-300">
+                    <span>Kamis</span>
+                </label>
+                <label
+                    class="flex items-center gap-2 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 px-3.5 py-2 rounded-lg cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/80 text-xs font-medium text-zinc-800 dark:text-zinc-200 transition-colors">
+                    <input type="checkbox" name="work_day" value="5" class="text-zinc-900 rounded border-zinc-300">
+                    <span>Jumat</span>
+                </label>
+                <label
+                    class="flex items-center gap-2 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 px-3.5 py-2 rounded-lg cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/80 text-xs font-medium text-zinc-800 dark:text-zinc-200 transition-colors">
+                    <input type="checkbox" name="work_day" value="6" class="text-zinc-900 rounded border-zinc-300">
+                    <span>Sabtu</span>
+                </label>
+            </div>
+            <button type="submit"
+                class="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-semibold shadow-xs transition-all">Simpan
+                Hari Kerja</button>
+        </form>
+    </div>
+</div>
+
+<!-- TAB 5: BACKUP & RESTORE -->
+<div id="setting-view-backup" class="setting-view-content hidden space-y-6">
+    <div class="bg-white dark:bg-zinc-900/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs p-6">
+        <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100 mb-2 flex items-center gap-2">
+            <i data-lucide="hard-drive" class="w-4 h-4 text-emerald-600 dark:text-emerald-400"></i>
+            Backup & Restore Database SQLite
+        </h3>
+        <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-6">Cadangkan seluruh tabel database, pengaturan, dan aset
+            audio/foto dalam arsip ZIP aman.</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="border border-zinc-200/80 dark:border-zinc-800 rounded-xl p-5 bg-zinc-50/50 dark:bg-zinc-950/30">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200/60 dark:border-emerald-800/40">
+                        <i data-lucide="download-cloud" class="w-4.5 h-4.5"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-xs text-zinc-900 dark:text-zinc-100">Unduh Backup Lengkap</h4>
+                        <p class="text-[11px] text-zinc-500 dark:text-zinc-400">Arsip database.db & upload assets</p>
+                    </div>
+                </div>
+                <button type="button" onclick="downloadBackup()"
+                    class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-xs flex items-center justify-center gap-2 transition-all">
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                    <span>Download Cadangan .ZIP</span>
+                </button>
+            </div>
+
+            <div class="border border-zinc-200/80 dark:border-zinc-800 rounded-xl p-5 bg-zinc-50/50 dark:bg-zinc-950/30">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-200/60 dark:border-amber-800/40">
+                        <i data-lucide="upload-cloud" class="w-4.5 h-4.5"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-xs text-zinc-900 dark:text-zinc-100">Pulihkan dari Backup</h4>
+                        <p class="text-[11px] text-zinc-500 dark:text-zinc-400">Unggah berkas .zip cadangan resmi</p>
+                    </div>
+                </div>
+                <div class="space-y-3">
+                    <input type="file" id="restore-file" accept=".zip"
+                        class="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-1.5 text-xs text-zinc-600 dark:text-zinc-400">
+                    <button type="button" onclick="uploadRestore()"
+                        class="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold shadow-xs flex items-center justify-center gap-2 transition-all">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        <span>Restore Database</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Add IoT Device -->
+<div id="modal-add-device"
+    class="modal-wrapper hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-xl shadow-xl w-full max-w-md p-6">
+        <div class="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800 mb-4">
+            <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Tambah Perangkat IoT</h3>
+            <button type="button" onclick="closeModal('modal-add-device')" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <form action="/admin/device/add" method="POST" onsubmit="handleFormSubmit(event)" class="space-y-3.5">
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Nama Perangkat</label>
+                <input type="text" name="name" placeholder="Contoh: Terminal Gerbang Barat" required
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">IP Address</label>
+                <input type="text" name="ip_address" placeholder="192.168.1.100" required
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 font-mono focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+            </div>
+            <div class="flex justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <button type="button" onclick="closeModal('modal-add-device')"
+                    class="px-3 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200">Batal</button>
+                <button type="submit"
+                    class="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 px-4 py-1.5 rounded-lg text-xs font-semibold shadow-xs transition-all">Simpan
+                    Perangkat</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Add Holiday -->
+<div id="modal-add-holiday"
+    class="modal-wrapper hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-xl shadow-xl w-full max-w-md p-6">
+        <div class="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800 mb-4">
+            <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Tambah Hari Libur</h3>
+            <button type="button" onclick="closeModal('modal-add-holiday')" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <form id="holiday-form" onsubmit="submitAddHoliday(event)" class="space-y-3.5">
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Tanggal Libur</label>
+                <input type="date" id="holiday-date" required
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Nama / Keterangan</label>
+                <input type="text" id="holiday-name" placeholder="Contoh: Libur Hari Kemerdekaan" required
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+            </div>
+            <div class="flex justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <button type="button" onclick="closeModal('modal-add-holiday')"
+                    class="px-3 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200">Batal</button>
+                <button type="submit"
+                    class="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 px-4 py-1.5 rounded-lg text-xs font-semibold shadow-xs transition-all">Simpan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        loadHolidays();
+        loadAISettings();
+        loadSchoolSettings();
+    });
+
+    function switchSettingTab(tab) {
+        document.querySelectorAll('.setting-view-content').forEach(el => el.classList.add('hidden'));
+        document.querySelectorAll('.setting-nav-btn').forEach(btn => {
+            btn.classList.remove('bg-white', 'text-zinc-900', 'dark:bg-zinc-900', 'dark:text-zinc-100', 'shadow-xs', 'font-semibold');
+            btn.classList.add('text-zinc-600', 'dark:text-zinc-400', 'font-medium');
+        });
+        const content = document.getElementById(`setting-view-${tab}`);
+        const btn = document.getElementById(`setting-tab-btn-${tab}`);
+        if (content) content.classList.remove('hidden');
+        if (btn) {
+            btn.classList.add('bg-white', 'text-zinc-900', 'dark:bg-zinc-900', 'dark:text-zinc-100', 'shadow-xs', 'font-semibold');
+            btn.classList.remove('text-zinc-600', 'dark:text-zinc-400', 'font-medium');
+        }
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    async function loadHolidays() {
+        const tbody = document.getElementById('holidays-tbody');
+        if (!tbody) return;
+        try {
+            const res = await fetch('/admin/holidays?year=' + new Date().getFullYear());
+            const holidays = await res.json();
+            tbody.innerHTML = '';
+            if (!holidays || holidays.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center py-10 text-zinc-400 dark:text-zinc-500 text-xs">Tidak ada hari libur terdaftar untuk tahun ini</td></tr>';
+                return;
+            }
+            holidays.forEach(h => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-zinc-50/60 dark:hover:bg-zinc-800/30 transition-colors';
+                tr.innerHTML = `
+                    <td class="px-4 py-3 font-mono text-xs font-medium text-zinc-700 dark:text-zinc-300">${h.date}</td>
+                    <td class="px-4 py-3 text-xs text-zinc-900 dark:text-zinc-100 font-semibold">${h.name}</td>
+                    <td class="px-4 py-3 text-right">
+                        <button type="button" onclick="deleteHoliday(${h.id})" class="p-1.5 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 rounded transition-colors">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        } catch (e) { }
+    }
+
+    async function submitAddHoliday(e) {
+        e.preventDefault();
+        const date = document.getElementById('holiday-date').value;
+        const name = document.getElementById('holiday-name').value;
+        try {
+            const res = await fetch('/admin/holiday/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ date: date, name: name })
+            });
+            if (res.ok) {
+                Swal.fire({ icon: 'success', title: 'Tersimpan', text: 'Hari libur ditambahkan', timer: 1500, showConfirmButton: false });
+                closeModal('modal-add-holiday');
+                loadHolidays();
+            }
+        } catch (e) {
+            Swal.fire('Error', 'Gagal menambah libur', 'error');
+        }
+    }
+
+    async function deleteHoliday(id) {
+        if ((await Swal.fire({ title: 'Hapus hari libur ini?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#e11d48', cancelButtonColor: '#71717a', confirmButtonText: 'Ya, Hapus' })).isConfirmed) {
+            await fetch(`/admin/holiday/${id}`, { method: 'DELETE' });
+            loadHolidays();
+        }
+    }
+
+    async function importNationalHolidays() {
+        const year = new Date().getFullYear();
+        try {
+            const res = await fetch('/admin/holidays/import-national', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ year: year })
+            });
+            if (res.ok) {
+                Swal.fire({ icon: 'success', title: 'Berhasil', text: 'Hari libur nasional berhasil diimport', timer: 1500, showConfirmButton: false });
+                loadHolidays();
+            }
+        } catch (e) {
+            Swal.fire('Error', 'Gagal import hari libur', 'error');
+        }
+    }
+
+    async function loadAISettings() {
+        try {
+            const res = await fetch('/api/ai/settings');
+            const data = await res.json();
+            if (data) {
+                if (document.getElementById('ai_base_url')) document.getElementById('ai_base_url').value = data.ai_base_url || '';
+                if (document.getElementById('ai_api_key')) document.getElementById('ai_api_key').value = data.ai_api_key || '';
+                if (document.getElementById('ai_model')) document.getElementById('ai_model').value = data.ai_model || '';
+            }
+        } catch (e) { }
+    }
+
+    async function saveAISettings(e) {
+        e.preventDefault();
+        const body = {
+            ai_base_url: document.getElementById('ai_base_url').value,
+            ai_api_key: document.getElementById('ai_api_key').value,
+            ai_model: document.getElementById('ai_model').value
+        };
+        try {
+            const res = await fetch('/api/ai/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            if (res.ok) Swal.fire({ icon: 'success', title: 'Tersimpan', text: 'Pengaturan AI disimpan', timer: 1500 });
+        } catch (e) { Swal.fire('Error', 'Gagal menyimpan AI', 'error'); }
+    }
+
+    async function testAIConnection() {
+        try {
+            const res = await fetch('/api/ai/test');
+            const data = await res.json();
+            if (res.ok && data.status === 'ok') {
+                Swal.fire({ icon: 'success', title: 'Terhubung!', text: data.message || 'Koneksi AI aktif' });
+            } else {
+                Swal.fire('Gagal', data.message || 'Gagal tersambung ke endpoint AI', 'error');
+            }
+        } catch (e) { Swal.fire('Error', 'Gagal menghubungi server', 'error'); }
+    }
+
+    async function loadSchoolSettings() {
+        try {
+            const res = await fetch('/admin/settings/school');
+            const data = await res.json();
+            if (data && data.work_days) {
+                document.querySelectorAll('input[name="work_day"]').forEach(cb => {
+                    cb.checked = data.work_days.includes(parseInt(cb.value));
+                });
+            }
+        } catch (e) { }
+    }
+
+    async function saveSchoolSettings(e) {
+        e.preventDefault();
+        const selected = Array.from(document.querySelectorAll('input[name="work_day"]:checked')).map(cb => parseInt(cb.value));
+        try {
+            const res = await fetch('/admin/settings/school', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ work_days: selected })
+            });
+            if (res.ok) Swal.fire({ icon: 'success', title: 'Tersimpan', text: 'Hari kerja sekolah diperbarui', timer: 1500 });
+        } catch (e) { Swal.fire('Error', 'Gagal menyimpan', 'error'); }
+    }
+
+    function downloadBackup() {
+        window.location.href = '/admin/backup/download';
+    }
+
+    async function uploadRestore() {
+        const file = document.getElementById('restore-file').files[0];
+        if (!file) {
+            Swal.fire('Perhatian', 'Pilih berkas .zip backup terlebih dahulu', 'warning');
+            return;
+        }
+
+        const confirm = await Swal.fire({
+            title: 'Pulihkan Database?',
+            text: 'PERINGATAN: Seluruh data saat ini akan ditimpa dengan data dari file backup!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e11d48',
+            cancelButtonColor: '#71717a',
+            confirmButtonText: 'Ya, Pulihkan Sekarang!'
+        });
+
+        if (confirm.isConfirmed) {
+            const formData = new FormData();
+            formData.append('backup_file', file);
+            try {
+                const res = await fetch('/admin/backup/restore', { method: 'POST', body: formData });
+                if (res.ok) {
+                    Swal.fire({ icon: 'success', title: 'Pemulihan Berhasil', text: 'Database dipulihkan. Silakan restart server jika diperlukan.' });
+                } else {
+                    Swal.fire('Gagal', 'File backup tidak valid', 'error');
+                }
+            } catch (e) {
+                Swal.fire('Error', 'Gagal memproses restore', 'error');
+            }
+        }
+    }
+
+    async function testWAConnection() {
+        const phone = prompt("Masukkan nomor WhatsApp uji coba (format 628...):");
+        if (!phone) return;
+        try {
+            const res = await fetch('/api/attendance/test-wa', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: phone, message: 'Halo dari SMK NIBA Super Apps!' })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                Swal.fire({ icon: 'success', title: 'Terkirim', text: data.message || 'Pesan uji coba terkirim' });
+            } else {
+                Swal.fire('Gagal', data.message || 'Gagal mengirim pesan', 'error');
+            }
+        } catch (e) {
+            Swal.fire('Error', 'Gagal menghubungi server', 'error');
+        }
+    }
+</script>
+{{template "admin_footer" .}}

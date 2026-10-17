@@ -88,7 +88,7 @@ func ExportAttendance(db *sql.DB) echo.HandlerFunc {
 		baseQuery := `
 			SELECT a.date, a.timestamp, s.nis, s.name, c.name, a.status, a.method
 			FROM attendance_logs a
-			LEFT JOIN students s ON a.rfid_uid = s.rfid_uid
+			LEFT JOIN students s ON (a.student_id > 0 AND a.student_id = s.id) OR (a.rfid_uid != '' AND a.rfid_uid = s.rfid_uid)
 			LEFT JOIN classes c ON s.class_id = c.id
 			WHERE a.user_type = 'Siswa'`
 
@@ -404,7 +404,7 @@ func GetDailyAttendance(db *sql.DB) echo.HandlerFunc {
 		rows, err := db.Query(`
 			SELECT al.id, al.rfid_uid, al.user_name, al.user_type, al.status, al.method, al.timestamp, al.date, s.photo
 			FROM attendance_logs al
-			LEFT JOIN students s ON al.rfid_uid = s.rfid_uid
+			LEFT JOIN students s ON (al.student_id > 0 AND al.student_id = s.id) OR (al.rfid_uid != '' AND al.rfid_uid = s.rfid_uid)
 			WHERE al.date = ?
 			ORDER BY al.timestamp DESC`, dateStr)
 
@@ -563,10 +563,29 @@ func BulkAttendance(db *sql.DB) echo.HandlerFunc {
 				continue
 			}
 
-			_, err = tx.Exec("INSERT INTO attendance_logs (rfid_uid, user_name, user_type, status, method, timestamp, date) VALUES (?, ?, 'Siswa', ?, 'MANUAL', ?, ?)",
-				rfid, name, att.Status, timestamp, dateStr)
+			_, err = tx.Exec("INSERT INTO attendance_logs (student_id, rfid_uid, user_name, user_type, status, method, timestamp, date) VALUES (?, ?, ?, 'Siswa', ?, 'MANUAL', ?, ?)",
+				att.StudentID, rfid, name, att.Status, timestamp, dateStr)
 			if err == nil {
 				successCount++
+
+				// Record point mutation
+				var pointsChange int
+				var pointDesc string
+				switch att.Status {
+				case "Hadir":
+					pointsChange = 20
+					pointDesc = "Hadir (Manual) (+20)"
+				case "Terlambat":
+					pointsChange = -10
+					pointDesc = "Terlambat (Manual) (-10)"
+				case "Alpha":
+					pointsChange = -20
+					pointDesc = "Alpha (Manual) (-20)"
+				}
+				if pointsChange != 0 && att.StudentID > 0 {
+					_, _ = tx.Exec("INSERT INTO student_points (student_id, points_change, description, recorded_by) VALUES (?, ?, ?, ?)",
+						att.StudentID, pointsChange, pointDesc, "System-Manual")
+				}
 			}
 		}
 

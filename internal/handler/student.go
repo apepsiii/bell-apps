@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"net/http"
 	"path/filepath"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
@@ -388,7 +389,7 @@ func GetStudentIDCard(db *sql.DB) echo.HandlerFunc {
 		}
 
 		err := db.QueryRow(`
-			SELECT s.id, s.nis, s.name, s.class_id, c.name, s.rfid_uid
+			SELECT s.id, COALESCE(s.nis, ''), s.name, COALESCE(s.class_id, 0), COALESCE(c.name, '-'), COALESCE(s.rfid_uid, '')
 			FROM students s
 			LEFT JOIN classes c ON s.class_id = c.id
 			WHERE s.id = ?
@@ -403,13 +404,26 @@ func GetStudentIDCard(db *sql.DB) echo.HandlerFunc {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to generate QR"})
 		}
 
+		accept := c.Request().Header.Get("Accept")
+		format := c.QueryParam("format")
+		if format != "json" && strings.Contains(accept, "text/html") {
+			return c.Render(http.StatusOK, "idcard_single.html", map[string]interface{}{
+				"ID":        student.ID,
+				"NIS":       student.NIS,
+				"Name":      student.Name,
+				"ClassName": student.ClassName,
+				"RFID":      student.RFID,
+				"QRImage":   qrImage,
+			})
+		}
+
 		return c.JSON(http.StatusOK, map[string]interface{}{
-			"id":        student.ID,
-			"nis":       student.NIS,
-			"name":      student.Name,
-			"class":     student.ClassName,
-			"rfid":      student.RFID,
-			"qr_image":  qrImage,
+			"id":       student.ID,
+			"nis":      student.NIS,
+			"name":     student.Name,
+			"class":    student.ClassName,
+			"rfid":     student.RFID,
+			"qr_image": qrImage,
 		})
 	}
 }

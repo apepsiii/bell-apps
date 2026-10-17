@@ -2,9 +2,9 @@ package router
 
 import (
 	"database/sql"
-	"embed"
 	"html/template"
 	"io"
+	"io/fs"
 	"net/http"
 	"os"
 	"strings"
@@ -74,6 +74,13 @@ func withVersionData(data interface{}) interface{} {
 // Once those are extracted, this interface can be removed.
 type AppHandlers interface {
 	DashboardHandler(c echo.Context) error
+	SchedulesPageHandler(c echo.Context) error
+	AudioPageHandler(c echo.Context) error
+	AttendancePageHandler(c echo.Context) error
+	AcademicsPageHandler(c echo.Context) error
+	PointsPageHandler(c echo.Context) error
+	SettingsPageHandler(c echo.Context) error
+	ReportsPageHandler(c echo.Context) error
 	ManualAttendanceHandler(c echo.Context) error
 	RecordAttendanceHandler(c echo.Context) error
 	PrayerAttendanceHandler(c echo.Context) error
@@ -85,11 +92,25 @@ type AppHandlers interface {
 	VersionHandler(c echo.Context) error
 }
 
-// Register sets up all routes on the given Echo instance.
-func Register(e *echo.Echo, db *sql.DB, viewsFS embed.FS, app AppHandlers) {
+// Register sets up all routes on the given Echo instance and starts the HTTP server.
+func Register(e *echo.Echo, db *sql.DB, viewsFS fs.FS, app AppHandlers) {
+	RegisterRoutes(e, db, viewsFS, app)
+
+	port := getEnv("PORT", config.GetServerPort())
+	host := config.GetServerHost()
+	e.Logger.Printf("Starting SMK NIBA Super Apps server on %s:%s", host, port)
+	e.Logger.Fatal(e.Start(host + ":" + port))
+}
+
+// RegisterRoutes sets up all routes and middlewares on the given Echo instance without starting the HTTP server.
+func RegisterRoutes(e *echo.Echo, db *sql.DB, viewsFS fs.FS, app AppHandlers) {
+	// SEC-09: Secure IP Extraction against IP spoofing via X-Forwarded-For / X-Real-IP headers
+	e.IPExtractor = echo.ExtractIPDirect()
+
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 	e.Use(appMiddleware.SecurityHeaders())
+	e.Use(appMiddleware.CSRF())
 
 	e.HTTPErrorHandler = func(err error, c echo.Context) {
 		code := http.StatusInternalServerError
@@ -110,7 +131,7 @@ func Register(e *echo.Echo, db *sql.DB, viewsFS embed.FS, app AppHandlers) {
 	}
 
 	e.Renderer = &templateRenderer{
-		templates: template.Must(template.ParseFS(viewsFS, "views/*.html")),
+		templates: template.Must(template.ParseFS(viewsFS, "views/*.html", "views/admin/*.html")),
 	}
 	e.Static("/assets", "public/assets")
 
@@ -124,6 +145,9 @@ func Register(e *echo.Echo, db *sql.DB, viewsFS embed.FS, app AppHandlers) {
 	e.GET("/scan-sholat", handler.ScanPrayerPage(db))
 
 	e.POST("/api/login", handler.Login(), appMiddleware.AuthRateLimiter())
+	e.GET("/logout", handler.Logout())
+	e.POST("/logout", handler.Logout())
+	e.GET("/api/logout", handler.Logout())
 	e.POST("/api/logout", handler.Logout())
 	e.GET("/api/version", app.VersionHandler)
 	e.GET("/api/sync", app.SyncHandler)
@@ -131,15 +155,28 @@ func Register(e *echo.Echo, db *sql.DB, viewsFS embed.FS, app AppHandlers) {
 	e.GET("/api/point-rules", handler.GetPointRulesV2(db))
 	e.GET("/api/attendance/prayer-logs", handler.PrayerLogs(db))
 	e.GET("/api/attendance/record", app.RecordAttendanceHandler)
+	e.POST("/api/attendance/record", app.RecordAttendanceHandler)
 	e.GET("/api/attendance/prayer", app.PrayerAttendanceHandler)
+	e.POST("/api/attendance/prayer", app.PrayerAttendanceHandler)
 	e.GET("/api/attendance/today-stats", app.TodayStatsHandler)
 	e.GET("/api/attendance/recent-logs", app.RecentLogsHandler)
 	e.POST("/api/attendance/verify-face", app.VerifyFaceAttendanceHandler)
-	e.POST("/api/attendance/test-wa", handler.TestWA(db))
+	e.GET("/api/face/descriptors", handler.GetFaceDescriptors(db))
+	e.POST("/api/attendance/test-wa", handler.TestWA(db), appMiddleware.AdminAuth())
 
 	// --- ADMIN ROUTES ---
 	admin := e.Group("/admin", appMiddleware.AdminAuth(), appMiddleware.AdminRateLimiter())
 	admin.GET("", app.DashboardHandler)
+	admin.GET("/dashboard", app.DashboardHandler)
+	admin.GET("/logout", handler.Logout())
+	admin.POST("/logout", handler.Logout())
+	admin.GET("/schedules", app.SchedulesPageHandler)
+	admin.GET("/audio", app.AudioPageHandler)
+	admin.GET("/attendance", app.AttendancePageHandler)
+	admin.GET("/academics", app.AcademicsPageHandler)
+	admin.GET("/points", app.PointsPageHandler)
+	admin.GET("/settings", app.SettingsPageHandler)
+	admin.GET("/reports", app.ReportsPageHandler)
 
 	admin.GET("/announcements", handler.GetAnnouncements(db))
 	admin.POST("/announcement/add", handler.CreateAnnouncement(db))
@@ -209,9 +246,7 @@ func Register(e *echo.Echo, db *sql.DB, viewsFS embed.FS, app AppHandlers) {
 
 	// Point Management: Reset & Adjust
 	admin.POST("/points/reset/:id", handler.ResetStudentPoints(db))
-	admin.GET("/points/reset/:id", handler.ResetStudentPoints(db))
 	admin.POST("/points/reset-bulk", handler.BulkResetPoints(db))
-	admin.GET("/points/reset-bulk", handler.BulkResetPoints(db))
 	admin.POST("/points/adjust", handler.AdjustStudentPoints(db))
 	admin.POST("/points/adjust-bulk", handler.BulkAdjustPoints(db))
 
@@ -236,6 +271,7 @@ func Register(e *echo.Echo, db *sql.DB, viewsFS embed.FS, app AppHandlers) {
 	admin.GET("/qr-generate", handler.GenerateQR(db))
 
 	admin.POST("/face/register", handler.RegisterFace(db))
+	admin.POST("/face/save-descriptor", handler.SaveFaceDescriptor(db))
 	admin.GET("/face/status", handler.GetFaceStatus(db))
 	admin.GET("/faces", handler.ListFaces(db))
 	admin.DELETE("/face/:student_id", handler.DeleteFace(db))
@@ -245,6 +281,7 @@ func Register(e *echo.Echo, db *sql.DB, viewsFS embed.FS, app AppHandlers) {
 	admin.PUT("/settings/school", handler.UpdateSchoolSettings(db))
 
 	admin.GET("/wa-logs", handler.GetWhatsAppLogs(db))
+	admin.POST("/attendance/test-wa", handler.TestWA(db))
 
 	admin.POST("/attendance/manual", app.ManualAttendanceHandler)
 	admin.GET("/attendance/daily", handler.GetDailyAttendance(db))
@@ -271,6 +308,12 @@ func Register(e *echo.Echo, db *sql.DB, viewsFS embed.FS, app AppHandlers) {
 	admin.POST("/scoring/achievement/approve", handler.ApproveAchievement(db))
 	admin.GET("/scoring/achievement/pending", handler.GetPendingAchievements(db))
 	admin.GET("/scoring/composite", handler.GetCompositeScores(db))
+	admin.GET("/composite-scores/leaderboard", handler.GetCompositeScores(db))
+	admin.POST("/composite-scores/recalculate-all", handler.RecalculateAllCompositeScores(db))
+
+	// Direct API endpoints for composite scores (matching AJAX calls in points.html)
+	e.GET("/api/composite-scores/leaderboard", handler.GetCompositeScores(db), appMiddleware.AdminAuth())
+	e.POST("/api/composite-scores/recalculate-all", handler.RecalculateAllCompositeScores(db), appMiddleware.AdminAuth())
 
 	// --- COMPOSITE SCORING (Phase 3) ---
 	admin.POST("/scoring/violation/record", handler.RecordViolation(db))
@@ -282,7 +325,7 @@ func Register(e *echo.Echo, db *sql.DB, viewsFS embed.FS, app AppHandlers) {
 	// --- OPERATOR ROUTES ---
 	serveEmbedPage := func(path string) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			data, err := viewsFS.ReadFile(path)
+			data, err := fs.ReadFile(viewsFS, path)
 			if err != nil {
 				return c.String(http.StatusNotFound, "Page not found")
 			}
@@ -348,10 +391,18 @@ func Register(e *echo.Echo, db *sql.DB, viewsFS embed.FS, app AppHandlers) {
 	studentAPI.Use(handler.StudentAuth(db))
 	studentAPI.GET("/dashboard", handler.GetStudentDashboard(db))
 	studentAPI.GET("/profile", handler.GetStudentPortalProfile(db))
+	studentAPI.PUT("/profile", handler.UpdateStudentPortalProfile(db))
+	studentAPI.POST("/photo", handler.UploadStudentPhoto(db))
 	studentAPI.PUT("/pin", handler.ChangeStudentPIN(db))
 	studentAPI.GET("/qrcard", handler.GetMyQRCard(db))
 	studentAPI.GET("/calendar", handler.GetMyCalendar(db))
 	studentAPI.GET("/points", handler.GetMyPoints(db))
+	studentAPI.GET("/claim-rules", handler.GetStudentClaimRules(db))
+	studentAPI.GET("/claims", handler.GetMyClaimsHistory(db))
+	studentAPI.POST("/claims", handler.SubmitStudentClaim(db))
+	studentAPI.POST("/announcement/:id/read", handler.MarkAnnouncementRead(db))
+	studentAPI.POST("/announcements/read-all", handler.MarkAllAnnouncementsRead(db))
+	studentAPI.GET("/doa", handler.GetDailyPrayers())
 
 	// --- ENGLISH DAILY QUEST ROUTES ---
 	studentPages.GET("/english", serveStudentPage("app.html"))
@@ -394,12 +445,22 @@ func Register(e *echo.Echo, db *sql.DB, viewsFS embed.FS, app AppHandlers) {
 	admin.GET("/v2/violation-rules/export", handler.ExportViolationRules(db))
 	admin.POST("/v2/violation-rules/import", handler.ImportViolationRules(db))
 	admin.GET("/v2/student/:id/points", handler.GetStudentDualPointProfile(db))
+	admin.GET("/v2/student-detail", func(c echo.Context) error {
+		id := c.QueryParam("id")
+		if id == "" {
+			id = c.Param("id")
+		}
+		c.SetParamNames("id")
+		c.SetParamValues(id)
+		return handler.GetStudentDualPointProfile(db)(c)
+	})
 	admin.POST("/v2/student/achievement", handler.AddAchievementPoint(db))
 	admin.POST("/v2/student/violation", handler.AddViolationPoint(db))
 	admin.DELETE("/v2/achievement/:id", handler.DeleteAchievementPoint(db))
 	admin.DELETE("/v2/violation/:id", handler.DeleteViolationPoint(db))
 	admin.GET("/v2/leaderboard", handler.GetDualPointLeaderboard(db))
 	admin.GET("/v2/class-summary", handler.GetClassDualPointSummary(db))
+	admin.GET("/v2/recent-activities", handler.GetDualPointRecentActivities(db))
 
 	// Dual-Track Point System Pages
 	admin.GET("/dual-point/dashboard", func(c echo.Context) error {
@@ -422,38 +483,20 @@ func Register(e *echo.Echo, db *sql.DB, viewsFS embed.FS, app AppHandlers) {
 	})
 
 	// === SARPRAS (ASSET MANAGEMENT) ROUTES ===
+	admin.GET("/sarpras", handler.SarprasPage(db))
 	sarpras := admin.Group("/sarpras")
 
-	// Dashboard
-	sarpras.GET("", func(c echo.Context) error {
-		return c.Render(http.StatusOK, "sarpras_dashboard.html", nil)
-	})
-
-	// Pages
-	sarpras.GET("/categories", func(c echo.Context) error {
-		return c.Render(http.StatusOK, "sarpras_categories.html", nil)
-	})
-	sarpras.GET("/funding", func(c echo.Context) error {
-		return c.Render(http.StatusOK, "sarpras_funding.html", nil)
-	})
-	sarpras.GET("/locations", func(c echo.Context) error {
-		return c.Render(http.StatusOK, "sarpras_locations.html", nil)
-	})
-	sarpras.GET("/assets", func(c echo.Context) error {
-		return c.Render(http.StatusOK, "sarpras_assets.html", nil)
-	})
-	sarpras.GET("/asset/add", func(c echo.Context) error {
-		return c.Render(http.StatusOK, "sarpras_asset_add.html", nil)
-	})
-	sarpras.GET("/asset/:id", func(c echo.Context) error {
-		return c.Render(http.StatusOK, "sarpras_asset_detail.html", nil)
-	})
-	sarpras.GET("/borrowings", func(c echo.Context) error {
-		return c.Render(http.StatusOK, "sarpras_borrowings.html", nil)
-	})
-	sarpras.GET("/maintenance", func(c echo.Context) error {
-		return c.Render(http.StatusOK, "sarpras_maintenance.html", nil)
-	})
+	// Dashboard & Integrated shadcn Pages
+	sarpras.GET("", handler.SarprasPage(db))
+	sarpras.GET("/dashboard", handler.SarprasPage(db))
+	sarpras.GET("/categories", handler.SarprasPage(db))
+	sarpras.GET("/funding", handler.SarprasPage(db))
+	sarpras.GET("/locations", handler.SarprasPage(db))
+	sarpras.GET("/assets", handler.SarprasPage(db))
+	sarpras.GET("/asset/add", handler.SarprasPage(db))
+	sarpras.GET("/asset/:id", handler.SarprasPage(db))
+	sarpras.GET("/borrowings", handler.SarprasPage(db))
+	sarpras.GET("/maintenance", handler.SarprasPage(db))
 
 	// API Endpoints
 	sarprasAPI := sarpras.Group("/api")
@@ -484,6 +527,9 @@ func Register(e *echo.Echo, db *sql.DB, viewsFS embed.FS, app AppHandlers) {
 	sarprasAPI.DELETE("/asset/:id", handler.DeleteAsset(db))
 	sarprasAPI.GET("/asset/:id/qr", handler.GenerateAssetQRCode(db))
 	sarprasAPI.GET("/stats", handler.GetAssetStats(db))
+	sarprasAPI.GET("/asset/export-excel", handler.ExportAssetsExcel(db))
+	sarprasAPI.GET("/asset/template-excel", handler.DownloadAssetTemplateExcel(db))
+	sarprasAPI.POST("/asset/import-excel", handler.ImportAssetsExcel(db))
 
 	// Asset Borrowings
 	sarprasAPI.GET("/borrowings", handler.GetAssetBorrowings(db))
@@ -500,12 +546,6 @@ func Register(e *echo.Echo, db *sql.DB, viewsFS embed.FS, app AppHandlers) {
 
 	// Public scan endpoint (for QR code scanning)
 	e.GET("/sarpras/scan", handler.ScanAssetQRCode(db))
-
-	// Port config
-	port := getEnv("PORT", config.GetServerPort())
-	host := config.GetServerHost()
-	e.Logger.Printf("Starting SMK NIBA Super Apps server on %s:%s", host, port)
-	e.Logger.Fatal(e.Start(host + ":" + port))
 }
 
 func getEnv(key, def string) string {

@@ -1,9 +1,8 @@
 //go:build ignore
 
-package main
+package tests
 
 import (
-	"bytes"
 	"fmt"
 	"net/http"
 	"net/http/httptest"

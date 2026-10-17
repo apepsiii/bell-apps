@@ -1,0 +1,1440 @@
+{{define "sarpras.html"}}
+{{template "admin_head" .}}
+
+<!-- Header & Action Row -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-zinc-200/80 dark:border-zinc-800">
+    <div>
+        <div class="flex items-center gap-2">
+            <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+                Sarpras & Manajemen Aset
+            </h1>
+            <span class="px-2 py-0.5 text-[11px] font-semibold rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
+                Inventarisasi
+            </span>
+        </div>
+        <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+            Katalog sarana sekolah, pelacakan ruang/lab, sirkulasi peminjaman alat, dan tiket pemeliharaan.
+        </p>
+    </div>
+
+    <!-- Quick Action Buttons -->
+    <div class="flex flex-wrap items-center gap-2">
+        <button type="button" onclick="openModal('modal-add-location')"
+            class="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs">
+            <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
+            <span>+ Ruang/Lab</span>
+        </button>
+        <button type="button" onclick="openModal('modal-add-borrowing')"
+            class="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs">
+            <i data-lucide="arrow-left-right" class="w-3.5 h-3.5"></i>
+            <span>+ Pinjam Barang</span>
+        </button>
+        <button type="button" onclick="openModal('modal-add-asset')"
+            class="px-3.5 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            <span>+ Tambah Aset</span>
+        </button>
+    </div>
+</div>
+
+<!-- 4 Metric Stat Cards -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    <!-- Total Aset -->
+    <div class="bg-white dark:bg-zinc-900/60 p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex flex-col justify-between">
+        <div class="flex items-center justify-between text-zinc-500 dark:text-zinc-400">
+            <span class="text-xs font-medium">Total Inventaris</span>
+            <div class="w-7 h-7 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-700 dark:text-zinc-300">
+                <i data-lucide="package" class="w-4 h-4"></i>
+            </div>
+        </div>
+        <div class="mt-2">
+            <div class="text-2xl font-bold text-zinc-900 dark:text-zinc-100 font-mono">{{.Stats.TotalAssets}}</div>
+            <p class="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">Nilai: <span class="font-mono font-semibold">{{.Stats.TotalValueFormat}}</span></p>
+        </div>
+    </div>
+
+    <!-- Kondisi Baik -->
+    <div class="bg-white dark:bg-zinc-900/60 p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex flex-col justify-between">
+        <div class="flex items-center justify-between text-zinc-500 dark:text-zinc-400">
+            <span class="text-xs font-medium">Kondisi Baik</span>
+            <div class="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+            </div>
+        </div>
+        <div class="mt-2">
+            <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 font-mono">{{.Stats.GoodCondition}}</div>
+            <p class="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">Laik pakai & operasional</p>
+        </div>
+    </div>
+
+    <!-- Perlu Perbaikan -->
+    <div class="bg-white dark:bg-zinc-900/60 p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex flex-col justify-between">
+        <div class="flex items-center justify-between text-zinc-500 dark:text-zinc-400">
+            <span class="text-xs font-medium">Perlu Servis / Rusak</span>
+            <div class="w-7 h-7 rounded-lg bg-rose-50 dark:bg-rose-950/40 flex items-center justify-center text-rose-600 dark:text-rose-400">
+                <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+            </div>
+        </div>
+        <div class="mt-2">
+            <div class="text-2xl font-bold text-rose-600 dark:text-rose-400 font-mono">{{.Stats.NeedsRepair}}</div>
+            <p class="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">Rusak ringan & berat</p>
+        </div>
+    </div>
+
+    <!-- Sedang Dipinjam -->
+    <div class="bg-white dark:bg-zinc-900/60 p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex flex-col justify-between">
+        <div class="flex items-center justify-between text-zinc-500 dark:text-zinc-400">
+            <span class="text-xs font-medium">Sedang Dipinjam</span>
+            <div class="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                <i data-lucide="clock" class="w-4 h-4"></i>
+            </div>
+        </div>
+        <div class="mt-2">
+            <div class="text-2xl font-bold text-indigo-600 dark:text-indigo-400 font-mono">{{.Stats.ActiveBorrowings}}</div>
+            <p class="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">{{.Stats.OpenTickets}} tiket perawatan aktif</p>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs Navigation Container -->
+<div class="border-b border-zinc-200/80 dark:border-zinc-800">
+    <div class="flex items-center gap-1 overflow-x-auto pb-px">
+        <button type="button" onclick="switchSarprasTab('assets')" id="tab-btn-assets"
+            class="sarpras-tab-btn px-4 py-2 border-b-2 font-medium text-xs transition-all flex items-center gap-2 {{if or (eq .ActiveTab "assets") (not .ActiveTab)}}border-zinc-900 dark:border-zinc-100 text-zinc-900 dark:text-zinc-100 font-semibold{{else}}border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200{{end}}">
+            <i data-lucide="package" class="w-4 h-4"></i>
+            <span>Data Master Aset ({{len .Assets}})</span>
+        </button>
+        <button type="button" onclick="switchSarprasTab('borrowings')" id="tab-btn-borrowings"
+            class="sarpras-tab-btn px-4 py-2 border-b-2 font-medium text-xs transition-all flex items-center gap-2 {{if eq .ActiveTab "borrowings"}}border-zinc-900 dark:border-zinc-100 text-zinc-900 dark:text-zinc-100 font-semibold{{else}}border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200{{end}}">
+            <i data-lucide="arrow-left-right" class="w-4 h-4"></i>
+            <span>Peminjaman ({{len .Borrowings}})</span>
+        </button>
+        <button type="button" onclick="switchSarprasTab('maintenance')" id="tab-btn-maintenance"
+            class="sarpras-tab-btn px-4 py-2 border-b-2 font-medium text-xs transition-all flex items-center gap-2 {{if eq .ActiveTab "maintenance"}}border-zinc-900 dark:border-zinc-100 text-zinc-900 dark:text-zinc-100 font-semibold{{else}}border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200{{end}}">
+            <i data-lucide="wrench" class="w-4 h-4"></i>
+            <span>Tiket Perawatan ({{len .MaintenanceTickets}})</span>
+        </button>
+        <button type="button" onclick="switchSarprasTab('master')" id="tab-btn-master"
+            class="sarpras-tab-btn px-4 py-2 border-b-2 font-medium text-xs transition-all flex items-center gap-2 {{if eq .ActiveTab "master"}}border-zinc-900 dark:border-zinc-100 text-zinc-900 dark:text-zinc-100 font-semibold{{else}}border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200{{end}}">
+            <i data-lucide="folder-cog" class="w-4 h-4"></i>
+            <span>Ruang & Kategori</span>
+        </button>
+    </div>
+</div>
+
+<!-- ==================================================== -->
+<!-- TAB 1: KATALOG ASET & INVENTARIS                     -->
+<!-- ==================================================== -->
+<div id="sarpras-tab-assets" class="sarpras-tab-content space-y-4 {{if and .ActiveTab (ne .ActiveTab "assets")}}hidden{{end}}">
+    <!-- Search & Filters Bar -->
+    <div class="bg-white dark:bg-zinc-900/60 p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div class="flex-1 flex flex-col sm:flex-row items-center gap-3">
+            <!-- Search -->
+            <div class="relative w-full sm:w-64">
+                <i data-lucide="search" class="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                <input type="text" id="search-asset" onkeyup="filterAssets()" placeholder="Cari nama, kode, merk..."
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+            </div>
+
+            <!-- Filter Kategori KIB -->
+            <div class="w-full sm:w-44">
+                <select id="filter-asset-category" onchange="filterAssets()"
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                    <option value="">Semua Kategori KIB</option>
+                    {{range .Categories}}
+                    <option value="{{.Name}}">{{.Code}} - {{.Name}}</option>
+                    {{end}}
+                </select>
+            </div>
+
+            <!-- Filter Ruang / Lokasi -->
+            <div class="w-full sm:w-40">
+                <select id="filter-asset-location" onchange="filterAssets()"
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                    <option value="">Semua Lokasi</option>
+                    {{range .Locations}}
+                    <option value="{{.Name}}">{{.Name}}</option>
+                    {{end}}
+                </select>
+            </div>
+
+            <!-- Filter Kondisi -->
+            <div class="w-full sm:w-36">
+                <select id="filter-asset-condition" onchange="filterAssets()"
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                    <option value="">Semua Kondisi</option>
+                    <option value="good">Kondisi Baik</option>
+                    <option value="poor">Rusak Ringan</option>
+                    <option value="broken">Rusak Berat</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <!-- Export Excel -->
+            <button type="button" onclick="exportAssetsExcel()"
+                class="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs"
+                title="Unduh seluruh atau data terfilter ke format Excel (.xlsx)">
+                <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
+                <span>Export Excel</span>
+            </button>
+            <!-- Import Excel -->
+            <button type="button" onclick="openModal('modal-import-asset-excel')"
+                class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/60 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs"
+                title="Unggah dan impor data aset secara massal dari file Excel (.xlsx)">
+                <i data-lucide="file-up" class="w-3.5 h-3.5"></i>
+                <span>Import Excel</span>
+            </button>
+            <!-- Cetak PDF / Laporan -->
+            <button type="button" onclick="printFilteredAssets()"
+                class="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs">
+                <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                <span>Cetak</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Assets Table -->
+    <div class="bg-white dark:bg-zinc-900/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left" id="assets-table">
+                <thead class="bg-zinc-50/80 dark:bg-zinc-900/80 border-b border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400">
+                    <tr>
+                        <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Aset / Barang</th>
+                        <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Kode & QR</th>
+                        <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Kategori & Lokasi</th>
+                        <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Sumber Dana</th>
+                        <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Kondisi</th>
+                        <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Status Pinjam</th>
+                        <th class="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+                    {{range .Assets}}
+                    <tr class="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/30 transition-colors asset-row"
+                        data-category="{{.CategoryName}}" data-location="{{.LocationName}}" data-condition="{{.Condition}}">
+                        <!-- Nama & Merk -->
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700/60 flex items-center justify-center text-zinc-600 dark:text-zinc-300 flex-shrink-0">
+                                    {{if .PhotoURL}}
+                                    <img src="{{.PhotoURL}}" class="w-full h-full object-cover rounded-lg">
+                                    {{else}}
+                                    <i data-lucide="package" class="w-4 h-4"></i>
+                                    {{end}}
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="font-semibold text-xs text-zinc-900 dark:text-zinc-100 truncate">{{.Name}}</div>
+                                    <div class="text-[11px] text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5 mt-0.5">
+                                        <span>{{if .Brand}}{{.Brand}}{{else}}-{{end}}</span>
+                                        {{if .SerialNumber}}<span>• SN: <span class="font-mono">{{.SerialNumber}}</span></span>{{end}}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- Kode Inventaris -->
+                        <td class="px-4 py-3">
+                            <span class="font-mono text-xs font-semibold text-zinc-800 dark:text-zinc-200">{{.InventoryCode}}</span>
+                            <div class="text-[10px] text-zinc-400 font-mono mt-0.5">Tahun: {{if .AcquisitionYear}}{{.AcquisitionYear}}{{else}}-{{end}}</div>
+                        </td>
+
+                        <!-- Kategori & Lokasi -->
+                        <td class="px-4 py-3">
+                            <div class="text-xs text-zinc-800 dark:text-zinc-200 font-medium">{{.CategoryName}}</div>
+                            <div class="text-[11px] text-zinc-500 dark:text-zinc-400 flex items-center gap-1 mt-0.5">
+                                <i data-lucide="map-pin" class="w-3 h-3 text-zinc-400"></i>
+                                <span>{{if .LocationName}}{{.LocationName}}{{else}}Belum ditempatkan{{end}}</span>
+                            </div>
+                        </td>
+
+                        <!-- Sumber Dana & Harga -->
+                        <td class="px-4 py-3">
+                            <span class="inline-flex px-2 py-0.5 rounded text-[10.5px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60">
+                                {{if .FundingSource}}{{.FundingSource}}{{else}}-{{end}}
+                            </span>
+                        </td>
+
+                        <!-- Kondisi -->
+                        <td class="px-4 py-3">
+                            {{if eq .Condition "good"}}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">
+                                Baik
+                            </span>
+                            {{else if eq .Condition "poor"}}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60">
+                                Rusak Ringan
+                            </span>
+                            {{else}}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800/60">
+                                Rusak Berat
+                            </span>
+                            {{end}}
+                        </td>
+
+                        <!-- Status Pinjam -->
+                        <td class="px-4 py-3">
+                            {{if .IsBorrowable}}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/60">
+                                Bisa Dipinjam
+                            </span>
+                            {{else}}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">
+                                Tidak Dipinjamkan
+                            </span>
+                            {{end}}
+                        </td>
+
+                        <!-- Aksi -->
+                        <td class="px-4 py-3 text-right">
+                            <div class="flex items-center justify-end gap-1">
+                                <button type="button" onclick="previewQRCode('{{.ID}}', '{{.InventoryCode}}', '{{.Name}}')"
+                                    class="p-1.5 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
+                                    title="Lihat & Cetak QR Code">
+                                    <i data-lucide="qr-code" class="w-3.5 h-3.5"></i>
+                                </button>
+                                <button type="button" onclick="editAsset('{{.ID}}', '{{.Name}}', '{{.CategoryID}}', '{{.LocationID}}', '{{.Brand}}', '{{.SerialNumber}}', '{{.Specification}}', '{{.Condition}}', '{{.IsBorrowable}}', '{{.FundingSourceID}}', '{{.PurchasePrice}}')"
+                                    class="p-1.5 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
+                                    title="Edit Data Aset">
+                                    <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                                </button>
+                                <button type="button" onclick="deleteItem('sarpras/api/asset', {{.ID}})"
+                                    class="p-1.5 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-md transition-colors"
+                                    title="Hapus Aset">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {{else}}
+                    <tr>
+                        <td colspan="7" class="px-6 py-16 text-center text-zinc-400 dark:text-zinc-500 text-xs">
+                            Belum ada data inventaris aset sarpras terdaftar. Klik <strong>+ Tambah Aset</strong> untuk menambahkan.
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ==================================================== -->
+<!-- TAB 2: SIRKULASI PEMINJAMAN                          -->
+<!-- ==================================================== -->
+<div id="sarpras-tab-borrowings" class="sarpras-tab-content space-y-4 {{if ne .ActiveTab "borrowings"}}hidden{{end}}">
+    <!-- Filter Status -->
+    <div class="bg-white dark:bg-zinc-900/60 p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+            <span class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Filter Status:</span>
+            <select id="filter-borrow-status" onchange="filterBorrowings()"
+                class="bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10">
+                <option value="">Semua Riwayat</option>
+                <option value="pending">Menunggu Persetujuan</option>
+                <option value="approved">Sedang Dipinjam</option>
+                <option value="returned">Sudah Dikembalikan</option>
+                <option value="rejected">Ditolak</option>
+            </select>
+        </div>
+        <button type="button" onclick="openModal('modal-add-borrowing')"
+            class="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            <span>+ Catat Peminjaman</span>
+        </button>
+    </div>
+
+    <!-- Borrowings Table -->
+    <div class="bg-white dark:bg-zinc-900/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden">
+        <table class="w-full text-left" id="borrowings-table">
+            <thead class="bg-zinc-50/80 dark:bg-zinc-900/80 border-b border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400">
+                <tr>
+                    <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Aset Barang</th>
+                    <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Peminjam</th>
+                    <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Keperluan</th>
+                    <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Tgl Pinjam & Batas</th>
+                    <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Status</th>
+                    <th class="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider">Aksi</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+                {{range .Borrowings}}
+                <tr class="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/30 transition-colors borrow-row" data-status="{{.Status}}">
+                    <td class="px-4 py-3 font-semibold text-xs text-zinc-900 dark:text-zinc-100">
+                        {{.AssetName}}
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="text-xs font-medium text-zinc-900 dark:text-zinc-100">{{.BorrowerName}}</div>
+                        <span class="text-[10px] uppercase font-mono text-zinc-400">{{.BorrowerType}}</span>
+                    </td>
+                    <td class="px-4 py-3 text-xs text-zinc-600 dark:text-zinc-300">
+                        {{if .Purpose}}{{.Purpose}}{{else}}-{{end}}
+                    </td>
+                    <td class="px-4 py-3 font-mono text-xs text-zinc-600 dark:text-zinc-400">
+                        <div>Pinjam: {{.BorrowDate.Format "02/01/2006"}}</div>
+                        <div class="text-rose-600 dark:text-rose-400 font-semibold">Batas: {{.DueDate.Format "02/01/2006"}}</div>
+                    </td>
+                    <td class="px-4 py-3">
+                        {{if eq .Status "pending"}}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200">
+                            Menunggu
+                        </span>
+                        {{else if or (eq .Status "approved") (eq .Status "borrowed")}}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 border border-indigo-200">
+                            Sedang Dipinjam
+                        </span>
+                        {{else if eq .Status "returned"}}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200">
+                            Dikembalikan
+                        </span>
+                        {{else}}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200">
+                            {{.Status}}
+                        </span>
+                        {{end}}
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                        <div class="flex items-center justify-end gap-1.5">
+                            {{if eq .Status "pending"}}
+                            <button type="button" onclick="approveBorrowing('{{.ID}}')"
+                                class="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[11px] font-semibold transition-colors">
+                                Setujui
+                            </button>
+                            <button type="button" onclick="rejectBorrowing('{{.ID}}')"
+                                class="px-2 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded text-[11px] font-semibold transition-colors">
+                                Tolak
+                            </button>
+                            {{else if or (eq .Status "approved") (eq .Status "borrowed")}}
+                            <button type="button" onclick="openReturnModal('{{.ID}}', '{{.AssetName}}', '{{.BorrowerName}}')"
+                                class="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:text-zinc-900 rounded text-[11px] font-semibold transition-colors">
+                                Kembalikan
+                            </button>
+                            {{else}}
+                            <span class="text-xs text-zinc-400">-</span>
+                            {{end}}
+                        </div>
+                    </td>
+                </tr>
+                {{else}}
+                <tr>
+                    <td colspan="6" class="px-6 py-16 text-center text-zinc-400 dark:text-zinc-500 text-xs">
+                        Belum ada riwayat peminjaman barang saat ini.
+                    </td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ==================================================== -->
+<!-- TAB 3: TIKET PERAWATAN & KERUSAKAN                   -->
+<!-- ==================================================== -->
+<div id="sarpras-tab-maintenance" class="sarpras-tab-content space-y-4 {{if ne .ActiveTab "maintenance"}}hidden{{end}}">
+    <div class="bg-white dark:bg-zinc-900/60 p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between">
+        <div>
+            <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Tiket Perawatan & Pemeliharaan</h3>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400">Daftar laporan kerusakan fasilitas sekolah dan jadwal perbaikan.</p>
+        </div>
+        <button type="button" onclick="openModal('modal-add-ticket')"
+            class="px-3.5 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            <span>+ Lapor Kerusakan</span>
+        </button>
+    </div>
+
+    <!-- Maintenance Tickets Table -->
+    <div class="bg-white dark:bg-zinc-900/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden">
+        <table class="w-full text-left" id="tickets-table">
+            <thead class="bg-zinc-50/80 dark:bg-zinc-900/80 border-b border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400">
+                <tr>
+                    <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">No. Tiket</th>
+                    <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Aset / Lokasi</th>
+                    <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Uraian Kerusakan</th>
+                    <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Pelapor & Biaya</th>
+                    <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Status</th>
+                    <th class="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider">Aksi</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+                {{range .MaintenanceTickets}}
+                <tr class="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/30 transition-colors">
+                    <td class="px-4 py-3 font-mono text-xs font-bold text-zinc-900 dark:text-zinc-100">
+                        {{.TicketNumber}}
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="text-xs font-semibold text-zinc-900 dark:text-zinc-100">{{if .AssetName}}{{.AssetName}}{{else}}Fasilitas Umum{{end}}</div>
+                        <div class="text-[11px] text-zinc-500 dark:text-zinc-400">{{if .LocationName}}{{.LocationName}}{{else}}-{{end}}</div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="text-xs font-medium text-zinc-800 dark:text-zinc-200">{{.Title}}</div>
+                        <p class="text-[11px] text-zinc-500 dark:text-zinc-400 line-clamp-1">{{.Description}}</p>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="text-xs text-zinc-800 dark:text-zinc-200">{{if .ReporterName}}{{.ReporterName}}{{else}}-{{end}}</div>
+                        <div class="text-[11px] font-mono text-zinc-500">{{if .Cost}}Biaya: Rp {{printf "%.0f" .Cost}}{{else}}Biaya: -{{end}}</div>
+                    </td>
+                    <td class="px-4 py-3">
+                        {{if eq .Status "open"}}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200">
+                            Terbuka (Open)
+                        </span>
+                        {{else if eq .Status "in_progress"}}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200">
+                            Sedang Dikerjakan
+                        </span>
+                        {{else}}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200">
+                            Selesai
+                        </span>
+                        {{end}}
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                        <div class="flex items-center justify-end gap-1">
+                            {{if eq .Status "open"}}
+                            <button type="button" onclick="updateTicketStatus('{{.ID}}', 'in_progress')"
+                                class="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-[11px] font-semibold">
+                                Kerjakan
+                            </button>
+                            {{else if eq .Status "in_progress"}}
+                            <button type="button" onclick="updateTicketStatus('{{.ID}}', 'resolved')"
+                                class="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[11px] font-semibold">
+                                Selesai
+                            </button>
+                            {{end}}
+                            <button type="button" onclick="deleteItem('sarpras/api/ticket', {{.ID}})"
+                                class="p-1.5 text-zinc-400 hover:text-rose-600 rounded">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {{else}}
+                <tr>
+                    <td colspan="6" class="px-6 py-16 text-center text-zinc-400 dark:text-zinc-500 text-xs">
+                        Tidak ada laporan tiket perawatan atau kerusakan saat ini.
+                    </td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ==================================================== -->
+<!-- TAB 4: MASTER RUANG, LOKASI & KATEGORI               -->
+<!-- ==================================================== -->
+<div id="sarpras-tab-master" class="sarpras-tab-content space-y-6 {{if ne .ActiveTab "master"}}hidden{{end}}">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Master Ruang & Lokasi -->
+        <div class="space-y-3">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Daftar Ruang & Lokasi</h3>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400">Tempat penempatan unit aset & fasilitas sekolah</p>
+                </div>
+                <button type="button" onclick="openModal('modal-add-location')"
+                    class="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 rounded text-xs font-semibold">
+                    + Tambah Ruang
+                </button>
+            </div>
+
+            <div class="bg-white dark:bg-zinc-900/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500">
+                        <tr>
+                            <th class="px-3.5 py-2.5">Kode</th>
+                            <th class="px-3.5 py-2.5">Nama Ruang/Lab</th>
+                            <th class="px-3.5 py-2.5">PIC Ruangan</th>
+                            <th class="px-3.5 py-2.5 text-right">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                        {{range .Locations}}
+                        <tr>
+                            <td class="px-3.5 py-2.5 font-mono font-semibold text-zinc-800 dark:text-zinc-200">{{.Code}}</td>
+                            <td class="px-3.5 py-2.5 text-zinc-900 dark:text-zinc-100 font-medium">{{.Name}}</td>
+                            <td class="px-3.5 py-2.5 text-zinc-500">{{if .PICName}}{{.PICName}}{{else}}-{{end}}</td>
+                            <td class="px-3.5 py-2.5 text-right">
+                                <button type="button" onclick="deleteItem('sarpras/api/location', {{.ID}})" class="text-rose-600 hover:underline">Hapus</button>
+                            </td>
+                        </tr>
+                        {{else}}
+                        <tr><td colspan="4" class="px-3.5 py-6 text-center text-zinc-400">Belum ada data ruangan.</td></tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Master Kategori KIB & Sumber Dana -->
+        <div class="space-y-6">
+            <!-- Kategori KIB -->
+            <div class="space-y-3">
+                <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Klasifikasi Kategori KIB</h3>
+                <div class="bg-white dark:bg-zinc-900/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500">
+                            <tr>
+                                <th class="px-3.5 py-2.5">Kode KIB</th>
+                                <th class="px-3.5 py-2.5">Nama Klasifikasi</th>
+                                <th class="px-3.5 py-2.5">Keterangan</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                            {{range .Categories}}
+                            <tr>
+                                <td class="px-3.5 py-2.5 font-mono font-bold text-zinc-900 dark:text-zinc-100">{{.Code}}</td>
+                                <td class="px-3.5 py-2.5 font-medium text-zinc-800 dark:text-zinc-200">{{.Name}}</td>
+                                <td class="px-3.5 py-2.5 text-zinc-400 text-[11px] truncate max-w-xs">{{.Description}}</td>
+                            </tr>
+                            {{end}}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Sumber Dana -->
+            <div class="space-y-3">
+                <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Sumber Dana Pengadaan</h3>
+                <div class="bg-white dark:bg-zinc-900/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500">
+                            <tr>
+                                <th class="px-3.5 py-2.5">Kode</th>
+                                <th class="px-3.5 py-2.5">Sumber Dana</th>
+                                <th class="px-3.5 py-2.5">Deskripsi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                            {{range .FundingSources}}
+                            <tr>
+                                <td class="px-3.5 py-2.5 font-mono font-semibold">{{.Code}}</td>
+                                <td class="px-3.5 py-2.5 font-medium">{{.Name}}</td>
+                                <td class="px-3.5 py-2.5 text-zinc-400 text-[11px]">{{.Description}}</td>
+                            </tr>
+                            {{end}}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================================================== -->
+<!-- MODALS                                               -->
+<!-- ==================================================== -->
+
+<!-- MODAL: IMPORT ASET DARI EXCEL -->
+<div id="modal-import-asset-excel" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-xs p-4 modal-wrapper">
+    <div class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
+        <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                    <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-zinc-900 dark:text-zinc-100">Import Aset dari Excel</h3>
+                    <p class="text-[11px] text-zinc-500 dark:text-zinc-400">Tambahkan banyak data aset secara massal via file .xlsx</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeModal('modal-import-asset-excel')" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <form id="import-asset-excel-form" action="/admin/sarpras/api/asset/import-excel" method="POST" enctype="multipart/form-data" onsubmit="handleAssetExcelImport(event)" class="p-6 space-y-4">
+            <!-- Template Download Alert -->
+            <div class="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200/80 dark:border-zinc-800 flex items-start gap-3">
+                <div class="p-1 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 mt-0.5">
+                    <i data-lucide="info" class="w-3.5 h-3.5"></i>
+                </div>
+                <div class="flex-1 text-xs">
+                    <p class="font-semibold text-zinc-900 dark:text-zinc-100">Gunakan Format Standar</p>
+                    <p class="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-relaxed">
+                        Pastikan kolom nama barang dan kategori telah terisi. Anda dapat mengunduh format template resmi yang telah dilengkapi contoh data dan daftar referensi kode.
+                    </p>
+                    <a href="/admin/sarpras/api/asset/template-excel" download
+                        class="inline-flex items-center gap-1.5 mt-2.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline">
+                        <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                        <span>Unduh Format Template Excel (.xlsx)</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- File Upload Zone -->
+            <div>
+                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Pilih File Spreadsheet Excel *</label>
+                <div class="relative border-2 border-dashed border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-700 rounded-xl p-5 text-center transition-colors">
+                    <input type="file" name="file" id="asset-excel-file" accept=".xlsx, .xls" required onchange="updateImportFileName(this)"
+                        class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                    <div class="flex flex-col items-center justify-center gap-2 pointer-events-none">
+                        <div class="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-500">
+                            <i data-lucide="upload-cloud" class="w-5 h-5"></i>
+                        </div>
+                        <div class="text-xs">
+                            <span id="import-file-display" class="text-zinc-500 dark:text-zinc-400">Klik untuk memilih file atau seret file ke sini</span>
+                        </div>
+                        <div class="text-[10px] text-zinc-400">Mendukung format Microsoft Excel (.xlsx / .xls)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Buttons -->
+            <div class="pt-2 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-end gap-2">
+                <button type="button" onclick="closeModal('modal-import-asset-excel')"
+                    class="px-4 py-2 border border-zinc-200 dark:border-zinc-800 rounded-lg text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
+                    Batal
+                </button>
+                <button type="submit" id="btn-submit-import-asset"
+                    class="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors">
+                    <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+                    <span>Mulai Impor</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: TAMBAH / EDIT ASET -->
+<div id="modal-add-asset" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-xs p-4 modal-wrapper">
+    <div class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl">
+        <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+            <h3 id="asset-modal-title" class="text-sm font-bold text-zinc-900 dark:text-zinc-100">Tambah Data Aset Baru</h3>
+            <button type="button" onclick="closeModal('modal-add-asset')" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <form id="asset-form" action="/admin/sarpras/api/asset/add" method="POST" onsubmit="handleFormSubmit(event)" class="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+            <input type="hidden" name="csrf_token" id="csrf-token-asset">
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Nama Barang / Aset *</label>
+                    <input type="text" name="name" id="ast-name" required placeholder="Contoh: Laptop Acer Aspire 5"
+                        class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-900">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Kategori KIB *</label>
+                    <select name="category_id" id="ast-category" required
+                        class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-900">
+                        <option value="">Pilih Kategori</option>
+                        {{range .Categories}}
+                        <option value="{{.ID}}">{{.Code}} - {{.Name}}</option>
+                        {{end}}
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Merk / Brand</label>
+                    <input type="text" name="brand" id="ast-brand" placeholder="Acer, Epson, dsb"
+                        class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Nomor Seri (Serial No)</label>
+                    <input type="text" name="serial_number" id="ast-serial" placeholder="SN12345678"
+                        class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Lokasi / Ruang *</label>
+                    <select name="location_id" id="ast-location" required
+                        class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100">
+                        <option value="">Pilih Ruang/Lab</option>
+                        {{range .Locations}}
+                        <option value="{{.ID}}">{{.Name}}</option>
+                        {{end}}
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Kondisi Aset *</label>
+                    <select name="condition" id="ast-condition" required
+                        class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100">
+                        <option value="good">Baik (Laik Pakai)</option>
+                        <option value="poor">Rusak Ringan</option>
+                        <option value="broken">Rusak Berat</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Sumber Dana</label>
+                    <select name="funding_source_id" id="ast-funding"
+                        class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100">
+                        <option value="">Pilih Sumber Dana</option>
+                        {{range .FundingSources}}
+                        <option value="{{.ID}}">{{.Name}}</option>
+                        {{end}}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Harga Pembelian (Rp)</label>
+                    <input type="number" name="purchase_price" id="ast-price" placeholder="Contoh: 7500000"
+                        class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Spesifikasi / Keterangan</label>
+                <textarea name="specification" id="ast-spec" rows="2" placeholder="Spesifikasi teknis, kelengkapan adaptor, dll"
+                    class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100"></textarea>
+            </div>
+
+            <div class="flex items-center gap-2 pt-2">
+                <input type="checkbox" name="is_borrowable" id="ast-borrowable" value="1" checked
+                    class="rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900">
+                <label for="ast-borrowable" class="text-xs text-zinc-700 dark:text-zinc-300 font-medium">Boleh dipinjam oleh siswa atau guru</label>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <button type="button" onclick="closeModal('modal-add-asset')"
+                    class="px-4 py-2 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100">Batal</button>
+                <button type="submit"
+                    class="px-5 py-2 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 rounded-lg text-xs font-semibold shadow-xs">Simpan Aset</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: CATAT PEMINJAMAN -->
+<div id="modal-add-borrowing" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-xs p-4 modal-wrapper">
+    <div class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
+        <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+            <h3 class="text-sm font-bold text-zinc-900 dark:text-zinc-100">Catat Peminjaman Barang</h3>
+            <button type="button" onclick="closeModal('modal-add-borrowing')" class="text-zinc-400 hover:text-zinc-600">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <form action="/admin/sarpras/api/borrowing/create" method="POST" onsubmit="handleFormSubmit(event)" class="p-6 space-y-4">
+            <div>
+                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Aset Barang yang Dipinjam *</label>
+                <select name="asset_id" required
+                    class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100">
+                    <option value="">Pilih Barang</option>
+                    {{range .Assets}}
+                    {{if .IsBorrowable}}
+                    <option value="{{.ID}}">{{.Name}} ({{.InventoryCode}}) - Lokasi: {{.LocationName}}</option>
+                    {{end}}
+                    {{end}}
+                </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Tipe Peminjam *</label>
+                    <select name="borrower_type" id="borrower-type-select" onchange="toggleBorrowerSelect(this.value)" required
+                        class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100">
+                        <option value="student">Siswa</option>
+                        <option value="staff">Guru / Staff</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Nama Peminjam *</label>
+                    <div id="student-borrower-box">
+                        <select name="borrower_id" id="borrower-student"
+                            class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100">
+                            <option value="">Pilih Siswa</option>
+                            {{range .Students}}
+                            <option value="{{.ID}}">{{.NIS}} - {{.Name}}</option>
+                            {{end}}
+                        </select>
+                    </div>
+                    <div id="staff-borrower-box" class="hidden">
+                        <select id="borrower-staff"
+                            class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100">
+                            <option value="">Pilih Guru/Staff</option>
+                            {{range .StaffList}}
+                            <option value="{{.ID}}">{{.Name}} ({{.Role}})</option>
+                            {{end}}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Keperluan Peminjaman *</label>
+                <input type="text" name="purpose" required placeholder="Contoh: Praktikum Presentasi Uji Kompetensi"
+                    class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Tanggal Pinjam *</label>
+                    <input type="date" name="borrow_date" id="borrow-date-input" required
+                        class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Batas Pengembalian (Due Date) *</label>
+                    <input type="date" name="due_date" id="due-date-input" required
+                        class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100">
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <button type="button" onclick="closeModal('modal-add-borrowing')"
+                    class="px-4 py-2 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100">Batal</button>
+                <button type="submit"
+                    class="px-5 py-2 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 rounded-lg text-xs font-semibold shadow-xs">Simpan Peminjaman</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: KONFIRMASI PENGEMBALIAN -->
+<div id="modal-return-borrowing" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-xs p-4 modal-wrapper">
+    <div class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+        <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+            <h3 class="text-sm font-bold text-zinc-900 dark:text-zinc-100">Pengembalian Barang</h3>
+            <button type="button" onclick="closeModal('modal-return-borrowing')" class="text-zinc-400 hover:text-zinc-600">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <form id="return-form" method="POST" onsubmit="handleReturnSubmit(event)" class="p-6 space-y-4">
+            <div class="p-3 bg-zinc-50 dark:bg-zinc-800/60 rounded-lg border border-zinc-200 dark:border-zinc-700 text-xs">
+                <div class="font-semibold text-zinc-900 dark:text-zinc-100" id="return-asset-name">Nama Barang</div>
+                <div class="text-zinc-500 mt-0.5">Peminjam: <span id="return-borrower-name">-</span></div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Kondisi Saat Dikembalikan *</label>
+                <select name="return_condition" required
+                    class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100">
+                    <option value="good">Baik (Lengkap & Normal)</option>
+                    <option value="poor">Rusak Ringan (Perlu Pengecekan)</option>
+                    <option value="broken">Rusak / Tidak Berfungsi</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Catatan Pengembalian</label>
+                <textarea name="return_notes" rows="2" placeholder="Catatan fisik, kelengkapan kabel, dll"
+                    class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100"></textarea>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2">
+                <button type="button" onclick="closeModal('modal-return-borrowing')"
+                    class="px-4 py-2 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-semibold text-zinc-600 hover:bg-zinc-100">Batal</button>
+                <button type="submit"
+                    class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold">Konfirmasi Kembali</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: PREVIEW & CETAK LABEL QR -->
+<div id="modal-qr-preview" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-xs p-4 modal-wrapper">
+    <div class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl text-center p-6 space-y-4">
+        <div class="flex items-center justify-between pb-2 border-b border-zinc-100 dark:border-zinc-800">
+            <h3 class="text-sm font-bold text-zinc-900 dark:text-zinc-100">Label QR Inventaris</h3>
+            <button type="button" onclick="closeModal('modal-qr-preview')" class="text-zinc-400 hover:text-zinc-600">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <div class="p-4 bg-white border border-zinc-200 rounded-xl inline-block shadow-inner">
+            <img id="qr-image-display" src="" alt="QR Code" class="w-48 h-48 mx-auto">
+        </div>
+
+        <div>
+            <h4 id="qr-asset-name" class="font-bold text-sm text-zinc-900 dark:text-zinc-100">-</h4>
+            <p id="qr-inventory-code" class="font-mono text-xs text-zinc-500 font-semibold">-</p>
+            <p class="text-[10px] text-zinc-400 mt-1">SMK NIBA Business School • Smart Sarpras</p>
+        </div>
+
+        <div class="flex items-center justify-center gap-2 pt-2">
+            <button type="button" onclick="printQRCodeLabel()"
+                class="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:text-zinc-900 rounded-lg text-xs font-semibold flex items-center gap-1.5">
+                <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                <span>Cetak Stiker QR</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: TAMBAH RUANG / LOKASI -->
+<div id="modal-add-location" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-xs p-4 modal-wrapper">
+    <div class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+        <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+            <h3 class="text-sm font-bold text-zinc-900 dark:text-zinc-100">Tambah Ruang / Lab Baru</h3>
+            <button type="button" onclick="closeModal('modal-add-location')" class="text-zinc-400 hover:text-zinc-600">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <form action="/admin/sarpras/api/location/add" method="POST" onsubmit="handleFormSubmit(event)" class="p-6 space-y-4">
+            <div>
+                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Kode Ruangan *</label>
+                <input type="text" name="code" required placeholder="Contoh: LAB-RPL-01"
+                    class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Nama Ruang / Lab *</label>
+                <input type="text" name="name" required placeholder="Contoh: Laboratorium Software Engineering"
+                    class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Penanggung Jawab (PIC Staff)</label>
+                <select name="pic_staff_id"
+                    class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100">
+                    <option value="">Pilih Guru/Staff</option>
+                    {{range .StaffList}}
+                    <option value="{{.ID}}">{{.Name}} ({{.Role}})</option>
+                    {{end}}
+                </select>
+            </div>
+            <div class="flex justify-end gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                <button type="button" onclick="closeModal('modal-add-location')"
+                    class="px-4 py-2 border border-zinc-200 rounded-lg text-xs font-semibold">Batal</button>
+                <button type="submit"
+                    class="px-5 py-2 bg-zinc-900 text-white rounded-lg text-xs font-semibold">Simpan Ruang</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: LAPOR TIKET KERUSAKAN -->
+<div id="modal-add-ticket" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-xs p-4 modal-wrapper">
+    <div class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
+        <div class="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+            <h3 class="text-sm font-bold text-zinc-900 dark:text-zinc-100">Buat Tiket Perawatan & Kerusakan</h3>
+            <button type="button" onclick="closeModal('modal-add-ticket')" class="text-zinc-400 hover:text-zinc-600">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <form action="/admin/sarpras/api/ticket/create" method="POST" onsubmit="handleFormSubmit(event)" class="p-6 space-y-4">
+            <div>
+                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Aset Barang (Opsional)</label>
+                <select name="asset_id"
+                    class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100">
+                    <option value="">Fasilitas Umum / Bukan Aset Khusus</option>
+                    {{range .Assets}}
+                    <option value="{{.ID}}">{{.Name}} ({{.InventoryCode}})</option>
+                    {{end}}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Lokasi Ruang / Fasilitas *</label>
+                <select name="location_id" required
+                    class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100">
+                    <option value="">Pilih Lokasi</option>
+                    {{range .Locations}}
+                    <option value="{{.ID}}">{{.Name}}</option>
+                    {{end}}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Judul Kerusakan / Keluhan *</label>
+                <input type="text" name="title" required placeholder="Contoh: Layar monitor bergaris / AC tidak dingin"
+                    class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Uraian Detail Masalah</label>
+                <textarea name="description" rows="3" placeholder="Jelaskan kondisi kerusakan..."
+                    class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100"></textarea>
+            </div>
+            <div class="flex justify-end gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                <button type="button" onclick="closeModal('modal-add-ticket')"
+                    class="px-4 py-2 border border-zinc-200 rounded-lg text-xs font-semibold">Batal</button>
+                <button type="submit"
+                    class="px-5 py-2 bg-zinc-900 text-white rounded-lg text-xs font-semibold">Kirim Laporan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ==================================================== -->
+<!-- JAVASCRIPT LOGIC                                     -->
+<!-- ==================================================== -->
+<script>
+    // Tab Switching
+    function switchSarprasTab(tab) {
+        document.querySelectorAll('.sarpras-tab-content').forEach(el => el.classList.add('hidden'));
+        document.querySelectorAll('.sarpras-tab-btn').forEach(btn => {
+            btn.classList.remove('border-zinc-900', 'dark:border-zinc-100', 'text-zinc-900', 'dark:text-zinc-100', 'font-semibold');
+            btn.classList.add('border-transparent', 'text-zinc-500', 'dark:text-zinc-400', 'font-medium');
+        });
+        const target = document.getElementById(`sarpras-tab-${tab}`);
+        const btn = document.getElementById(`tab-btn-${tab}`);
+        if (target) target.classList.remove('hidden');
+        if (btn) {
+            btn.classList.add('border-zinc-900', 'dark:border-zinc-100', 'text-zinc-900', 'dark:text-zinc-100', 'font-semibold');
+            btn.classList.remove('border-transparent', 'text-zinc-500', 'dark:text-zinc-400', 'font-medium');
+        }
+
+        try {
+            const url = new URL(window.location.href);
+            url.searchParams.set('tab', tab);
+            window.history.replaceState({}, '', url.toString());
+
+            document.querySelectorAll('.sidebar-submenu-item').forEach(sub => {
+                if (sub.getAttribute('data-tab') === tab) {
+                    sub.classList.add('active');
+                } else {
+                    sub.classList.remove('active');
+                }
+            });
+        } catch(e) {}
+
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    // Auto-activate tab from URL on page load
+    (function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tab = urlParams.get('tab');
+        if (tab && ['assets', 'borrowings', 'maintenance', 'master'].includes(tab)) {
+            switchSarprasTab(tab);
+        }
+    })();
+
+    // Toggle Borrower Type (Student vs Staff)
+    function toggleBorrowerSelect(type) {
+        const studentBox = document.getElementById('student-borrower-box');
+        const staffBox = document.getElementById('staff-borrower-box');
+        const studentSelect = document.getElementById('borrower-student');
+        const staffSelect = document.getElementById('borrower-staff');
+
+        if (type === 'staff') {
+            studentBox.classList.add('hidden');
+            staffBox.classList.remove('hidden');
+            if (studentSelect) studentSelect.removeAttribute('name');
+            if (staffSelect) staffSelect.setAttribute('name', 'borrower_id');
+        } else {
+            studentBox.classList.remove('hidden');
+            staffBox.classList.add('hidden');
+            if (staffSelect) staffSelect.removeAttribute('name');
+            if (studentSelect) studentSelect.setAttribute('name', 'borrower_id');
+        }
+    }
+
+    // Generic AJAX Form Handler
+    async function handleFormSubmit(event) {
+        if (event) event.preventDefault();
+        const form = event.target || event;
+        try {
+            const formData = new FormData(form);
+            const token = window.getCsrfToken ? window.getCsrfToken() : '';
+            const res = await fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: token ? { 'X-CSRF-Token': token } : {}
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil Disimpan',
+                    text: data.message || 'Data telah berhasil diperbarui.',
+                    timer: 1300,
+                    showConfirmButton: false
+                }).then(() => window.location.reload());
+            } else {
+                Swal.fire('Gagal', data.error || data.message || 'Terjadi kesalahan saat memproses formulir', 'error');
+            }
+        } catch (err) {
+            Swal.fire('Error', 'Kesalahan koneksi ke server', 'error');
+        }
+    }
+
+    // Set Default Dates
+    (function () {
+        const today = new Date().toISOString().split('T')[0];
+        const borrowDateEl = document.getElementById('borrow-date-input');
+        const dueDateEl = document.getElementById('due-date-input');
+        if (borrowDateEl) borrowDateEl.value = today;
+        if (dueDateEl) {
+            const nextWeek = new Date();
+            nextWeek.setDate(nextWeek.getDate() + 3);
+            dueDateEl.value = nextWeek.toISOString().split('T')[0];
+        }
+    })();
+
+    // Filter Assets in Table
+    function filterAssets() {
+        const query = document.getElementById('search-asset').value.toLowerCase();
+        const category = document.getElementById('filter-asset-category').value.toLowerCase();
+        const location = document.getElementById('filter-asset-location').value.toLowerCase();
+        const condition = document.getElementById('filter-asset-condition').value.toLowerCase();
+        const rows = document.querySelectorAll('.asset-row');
+
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            const rowCat = (row.getAttribute('data-category') || '').toLowerCase();
+            const rowLoc = (row.getAttribute('data-location') || '').toLowerCase();
+            const rowCond = (row.getAttribute('data-condition') || '').toLowerCase();
+
+            const matchesQuery = !query || text.includes(query);
+            const matchesCat = !category || rowCat.includes(category);
+            const matchesLoc = !location || rowLoc.includes(location);
+            const matchesCond = !condition || rowCond === condition;
+
+            row.style.display = matchesQuery && matchesCat && matchesLoc && matchesCond ? '' : 'none';
+        });
+    }
+
+    // Filter Borrowings in Table
+    function filterBorrowings() {
+        const status = document.getElementById('filter-borrow-status').value.toLowerCase();
+        const rows = document.querySelectorAll('.borrow-row');
+        rows.forEach(row => {
+            const rowStatus = (row.getAttribute('data-status') || '').toLowerCase();
+            const matches = !status || rowStatus === status || (status === 'approved' && rowStatus === 'borrowed');
+            row.style.display = matches ? '' : 'none';
+        });
+    }
+
+    // Preview QR Code
+    function previewQRCode(id, invCode, name) {
+        document.getElementById('qr-asset-name').textContent = name;
+        document.getElementById('qr-inventory-code').textContent = invCode;
+        document.getElementById('qr-image-display').src = `/admin/sarpras/api/asset/${id}/qr`;
+        openModal('modal-qr-preview');
+    }
+
+    // Print QR Code
+    function printQRCodeLabel() {
+        const win = window.open('', '_blank');
+        const img = document.getElementById('qr-image-display').src;
+        const name = document.getElementById('qr-asset-name').textContent;
+        const code = document.getElementById('qr-inventory-code').textContent;
+        win.document.write(`
+            <html>
+            <head><title>Cetak Label QR - ${code}</title>
+            <style>
+                body { font-family: monospace; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+                .label { border: 2px solid black; padding: 16px; border-radius: 8px; text-align: center; width: 220px; }
+                img { width: 140px; height: 140px; margin-bottom: 8px; }
+                .name { font-weight: bold; font-size: 13px; }
+                .code { font-size: 11px; margin-top: 4px; }
+            </style>
+            </head>
+            <body onload="window.print(); window.close();">
+                <div class="label">
+                    <img src="${img}">
+                    <div class="name">${name}</div>
+                    <div class="code">${code}</div>
+                    <div style="font-size:9px; margin-top:6px; color:#555;">SMK NIBA SUPER APPS</div>
+                </div>
+            </body>
+            </html>
+        `);
+        win.document.close();
+    }
+
+    // Edit Asset Helper
+    function editAsset(id, name, catId, locId, brand, sn, spec, cond, borrowable, fsId, price) {
+        document.getElementById('asset-form').action = `/admin/sarpras/api/asset/update/${id}`;
+        document.getElementById('asset-modal-title').textContent = 'Edit Data Aset';
+        document.getElementById('ast-name').value = name;
+        document.getElementById('ast-category').value = catId;
+        document.getElementById('ast-location').value = locId || '';
+        document.getElementById('ast-brand').value = brand || '';
+        document.getElementById('ast-serial').value = sn || '';
+        document.getElementById('ast-spec').value = spec || '';
+        document.getElementById('ast-condition').value = cond || 'good';
+        document.getElementById('ast-borrowable').checked = (borrowable === 'true' || borrowable === true);
+        document.getElementById('ast-funding').value = fsId || '';
+        document.getElementById('ast-price').value = price || '';
+        openModal('modal-add-asset');
+    }
+
+    // Borrowing Approval
+    async function approveBorrowing(id) {
+        const confirm = await Swal.fire({
+            title: 'Setujui Peminjaman?',
+            text: 'Barang akan berstatus sedang dipinjam.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Ya, Setujui',
+            cancelButtonText: 'Batal'
+        });
+        if (!confirm.isConfirmed) return;
+        try {
+            const token = window.getCsrfToken ? window.getCsrfToken() : '';
+            const res = await fetch(`/admin/sarpras/api/borrowing/${id}/approve`, {
+                method: 'POST',
+                headers: token ? { 'X-CSRF-Token': token } : {}
+            });
+            if (res.ok) {
+                Swal.fire({ icon: 'success', title: 'Disetujui', timer: 1200, showConfirmButton: false })
+                    .then(() => window.location.reload());
+            } else {
+                Swal.fire('Gagal', 'Gagal memproses persetujuan', 'error');
+            }
+        } catch (e) {
+            Swal.fire('Error', 'Kesalahan koneksi ke server', 'error');
+        }
+    }
+
+    // Borrowing Reject
+    async function rejectBorrowing(id) {
+        const { value: reason } = await Swal.fire({
+            title: 'Tolak Peminjaman',
+            input: 'text',
+            inputLabel: 'Alasan penolakan',
+            inputPlaceholder: 'Barang sedang dipakai / kondisi belum siap...',
+            showCancelButton: true,
+            confirmButtonColor: '#e11d48'
+        });
+        if (!reason) return;
+        try {
+            const token = window.getCsrfToken ? window.getCsrfToken() : '';
+            const formData = new FormData();
+            formData.append('reason', reason);
+            const res = await fetch(`/admin/sarpras/api/borrowing/${id}/reject`, {
+                method: 'POST',
+                body: formData,
+                headers: token ? { 'X-CSRF-Token': token } : {}
+            });
+            if (res.ok) {
+                Swal.fire({ icon: 'success', title: 'Peminjaman Ditolak', timer: 1200, showConfirmButton: false })
+                    .then(() => window.location.reload());
+            } else {
+                Swal.fire('Gagal', 'Gagal memproses penolakan', 'error');
+            }
+        } catch (e) {
+            Swal.fire('Error', 'Kesalahan koneksi ke server', 'error');
+        }
+    }
+
+    // Open Return Modal
+    function openReturnModal(id, assetName, borrowerName) {
+        document.getElementById('return-form').action = `/admin/sarpras/api/borrowing/${id}/return`;
+        document.getElementById('return-asset-name').textContent = assetName;
+        document.getElementById('return-borrower-name').textContent = borrowerName;
+        openModal('modal-return-borrowing');
+    }
+
+    // Submit Return Borrowing
+    async function handleReturnSubmit(e) {
+        e.preventDefault();
+        const form = e.target;
+        try {
+            const formData = new FormData(form);
+            const token = window.getCsrfToken ? window.getCsrfToken() : '';
+            const res = await fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: token ? { 'X-CSRF-Token': token } : {}
+            });
+            if (res.ok) {
+                Swal.fire({ icon: 'success', title: 'Barang Berhasil Dikembalikan', timer: 1200, showConfirmButton: false })
+                    .then(() => window.location.reload());
+            } else {
+                Swal.fire('Gagal', 'Gagal memproses pengembalian', 'error');
+            }
+        } catch (err) {
+            Swal.fire('Error', 'Kesalahan koneksi', 'error');
+        }
+    }
+
+    // Update Maintenance Ticket Status
+    async function updateTicketStatus(id, newStatus) {
+        try {
+            const token = window.getCsrfToken ? window.getCsrfToken() : '';
+            const formData = new FormData();
+            formData.append('status', newStatus);
+            const res = await fetch(`/admin/sarpras/api/ticket/${id}/update`, {
+                method: 'POST',
+                body: formData,
+                headers: token ? { 'X-CSRF-Token': token } : {}
+            });
+            if (res.ok) {
+                Swal.fire({ icon: 'success', title: 'Status Diperbarui', timer: 1200, showConfirmButton: false })
+                    .then(() => window.location.reload());
+            } else {
+                Swal.fire('Gagal', 'Gagal memperbarui status', 'error');
+            }
+        } catch (e) {
+            Swal.fire('Error', 'Kesalahan koneksi ke server', 'error');
+        }
+    }
+
+    // Print Filtered Assets Report
+    function printFilteredAssets() {
+        window.print();
+    }
+
+    // Export Assets to Excel (.xlsx)
+    function exportAssetsExcel() {
+        const search = document.getElementById('search-asset') ? document.getElementById('search-asset').value.trim() : '';
+        const category = document.getElementById('filter-asset-category') ? document.getElementById('filter-asset-category').value : '';
+        const location = document.getElementById('filter-asset-location') ? document.getElementById('filter-asset-location').value : '';
+        const condition = document.getElementById('filter-asset-condition') ? document.getElementById('filter-asset-condition').value : '';
+
+        const params = new URLSearchParams();
+        if (search) params.append('search', search);
+        if (category) params.append('category_name', category);
+        if (location) params.append('location_name', location);
+        if (condition) params.append('condition', condition);
+
+        window.location.href = `/admin/sarpras/api/asset/export-excel?${params.toString()}`;
+    }
+
+    // Update Display Name when File Selected
+    function updateImportFileName(input) {
+        const display = document.getElementById('import-file-display');
+        if (display && input.files && input.files[0]) {
+            display.textContent = 'File dipilih: ' + input.files[0].name;
+            display.classList.remove('text-zinc-500', 'dark:text-zinc-400');
+            display.classList.add('text-zinc-900', 'dark:text-zinc-100', 'font-semibold');
+        }
+    }
+
+    // Handle Asset Excel Import with SweetAlert2
+    async function handleAssetExcelImport(e) {
+        e.preventDefault();
+        const form = e.target;
+        const fileInput = document.getElementById('asset-excel-file');
+        if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+            Swal.fire('Peringatan', 'Silakan pilih file Excel (.xlsx) terlebih dahulu.', 'warning');
+            return;
+        }
+
+        const submitBtn = document.getElementById('btn-submit-import-asset');
+        const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>Mengimpor Data...</span>';
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        try {
+            const formData = new FormData(form);
+            const token = window.getCsrfToken ? window.getCsrfToken() : '';
+            const res = await fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: token ? { 'X-CSRF-Token': token } : {}
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok) {
+                closeModal('modal-import-asset-excel');
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Import Berhasil!',
+                    text: data.message || 'Data inventaris aset berhasil diimpor.',
+                    confirmButtonText: 'Bagus'
+                }).then(() => {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('tab', 'assets');
+                    window.location.href = url.toString();
+                });
+            } else {
+                Swal.fire('Gagal Import', data.message || data.error || 'Terjadi kesalahan saat memproses file Excel.', 'error');
+            }
+        } catch (err) {
+            Swal.fire('Error', 'Gagal menghubungi server.', 'error');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnHtml;
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
+        }
+    }
+</script>
+
+{{template "admin_footer" .}}
+{{end}}

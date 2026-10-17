@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -141,25 +142,23 @@ func RestoreDatabase(db *sql.DB) echo.HandlerFunc {
 
 		dbPath := config.GetDBConfig().Path
 
-		// Backup current database before restoring
-		backupPath := dbPath + ".bak"
-		if _, err := os.Stat(dbPath); err == nil {
-			os.Rename(dbPath, backupPath)
-		}
-
-		restoredDB := false
-		restoredFiles := 0
-
+		// PHASE 1: Validation Pass (Dry-Run Check)
+		// Validate all entries BEFORE touching, renaming, or writing any files to disk.
 		var totalUnzipped int64
+		hasDatabaseFile := false
+		type plannedFile struct {
+			zipFile       *zip.File
+			destPath      string
+			baseTargetDir string
+		}
+		var plannedFiles []plannedFile
+
 		for _, f := range zr.File {
 			if f.FileInfo().IsDir() {
 				continue
 			}
 
 			if f.UncompressedSize64 > maxUnzippedFileSize {
-				if _, err := os.Stat(backupPath); err == nil {
-					os.Rename(backupPath, dbPath)
-				}
 				return c.JSON(http.StatusBadRequest, map[string]string{
 					"status":  "error",
 					"message": "File di dalam zip terlalu besar",
@@ -167,9 +166,6 @@ func RestoreDatabase(db *sql.DB) echo.HandlerFunc {
 			}
 			totalUnzipped += int64(f.UncompressedSize64)
 			if totalUnzipped > maxUnzippedSize {
-				if _, err := os.Stat(backupPath); err == nil {
-					os.Rename(backupPath, dbPath)
-				}
 				return c.JSON(http.StatusBadRequest, map[string]string{
 					"status":  "error",
 					"message": "Total ukuran file backup terlalu besar (zip bomb protection)",
@@ -177,48 +173,107 @@ func RestoreDatabase(db *sql.DB) echo.HandlerFunc {
 			}
 
 			var destPath string
+			var baseTargetDir string
 			if f.Name == "database.db" {
-				destPath = dbPath
-				restoredDB = true
+				destPath = filepath.Clean(dbPath)
+				baseTargetDir = filepath.Dir(destPath)
+				hasDatabaseFile = true
 			} else if len(f.Name) > 8 && f.Name[:8] == "uploads/" {
 				rel := f.Name[8:]
 				if len(rel) > 7 && rel[:7] == "photos/" {
-					destPath = filepath.Join(config.GetPhotoPath(), rel[7:])
+					baseTargetDir = filepath.Clean(config.GetPhotoPath())
+					destPath = filepath.Clean(filepath.Join(baseTargetDir, rel[7:]))
 				} else if len(rel) > 6 && rel[:6] == "audio/" {
-					destPath = filepath.Join(config.GetAudioPath(), rel[6:])
+					baseTargetDir = filepath.Clean(config.GetAudioPath())
+					destPath = filepath.Clean(filepath.Join(baseTargetDir, rel[6:]))
 				} else {
 					continue
 				}
-				restoredFiles++
+
+				// Zip Slip Protection: Ensure destPath is strictly inside baseTargetDir
+				relToTarget, err := filepath.Rel(baseTargetDir, destPath)
+				if err != nil || strings.HasPrefix(relToTarget, "..") || strings.HasPrefix(relToTarget, string(filepath.Separator)) {
+					return c.JSON(http.StatusBadRequest, map[string]string{
+						"status":  "error",
+						"message": "File backup tidak valid: terdeteksi path traversal ilegal",
+					})
+				}
 			} else {
 				continue
 			}
 
-			os.MkdirAll(filepath.Dir(destPath), 0755)
-
-			rc, err := f.Open()
-			if err != nil {
-				continue
-			}
-			out, err := os.Create(destPath)
-			if err != nil {
-				rc.Close()
-				continue
-			}
-			io.Copy(out, rc)
-			out.Close()
-			rc.Close()
+			plannedFiles = append(plannedFiles, plannedFile{
+				zipFile:       f,
+				destPath:      destPath,
+				baseTargetDir: baseTargetDir,
+			})
 		}
 
-		if !restoredDB {
-			// Rollback
-			if _, err := os.Stat(backupPath); err == nil {
-				os.Rename(backupPath, dbPath)
-			}
+		if !hasDatabaseFile {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"status":  "error",
 				"message": "File backup tidak valid: database.db tidak ditemukan di dalam zip",
 			})
+		}
+
+		// PHASE 2: Extraction Pass
+		// Backup current database before replacing
+		backupPath := dbPath + ".bak"
+		if _, err := os.Stat(dbPath); err == nil {
+			os.Remove(backupPath) // Ensure destination is clear on Windows
+			os.Rename(dbPath, backupPath)
+		}
+
+		rollback := func() {
+			if _, err := os.Stat(backupPath); err == nil {
+				os.Remove(dbPath)
+				os.Rename(backupPath, dbPath)
+			}
+		}
+
+		restoredFiles := 0
+		for _, pf := range plannedFiles {
+			if err := os.MkdirAll(filepath.Dir(pf.destPath), 0755); err != nil {
+				rollback()
+				return c.JSON(http.StatusInternalServerError, map[string]string{
+					"status":  "error",
+					"message": "Gagal membuat direktori tujuan restore",
+				})
+			}
+
+			rc, err := pf.zipFile.Open()
+			if err != nil {
+				rollback()
+				return c.JSON(http.StatusInternalServerError, map[string]string{
+					"status":  "error",
+					"message": "Gagal membaca isi zip: " + pf.zipFile.Name,
+				})
+			}
+
+			out, err := os.Create(pf.destPath)
+			if err != nil {
+				rc.Close()
+				rollback()
+				return c.JSON(http.StatusInternalServerError, map[string]string{
+					"status":  "error",
+					"message": "Gagal menulis file tujuan restore: " + pf.destPath,
+				})
+			}
+
+			_, copyErr := io.Copy(out, rc)
+			out.Close()
+			rc.Close()
+			if copyErr != nil {
+				rollback()
+				return c.JSON(http.StatusInternalServerError, map[string]string{
+					"status":  "error",
+					"message": "Gagal mengekstrak file restore: " + pf.destPath,
+				})
+			}
+
+			if pf.zipFile.Name != "database.db" {
+				restoredFiles++
+			}
 		}
 
 		// Remove old backup file

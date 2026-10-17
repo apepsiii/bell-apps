@@ -1,356 +1,599 @@
 <!DOCTYPE html>
 <html lang="id">
 
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Terminal Absensi</title>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <script src="https://unpkg.com/lucide@latest"></script>
-        <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-        <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Archivo+Black&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-        <style>
-            :root {
-                --black: #000000;
-                --yellow: #FFE45C;
-                --pink: #FF6B9D;
-                --cyan: #4ECDC4;
-                --lime: #C6F432;
-                --orange: #FF8C42;
-                --cream: #FFF8E7;
-                --red: #FF4747;
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminal Absensi — SMK NIBA Super Apps</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: ['selector', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: {
+                        zinc: {
+                            50: '#fafafa',
+                            100: '#f4f4f5',
+                            200: '#e4e4e7',
+                            300: '#d4d4d8',
+                            400: '#a1a1aa',
+                            500: '#71717a',
+                            600: '#52525b',
+                            700: '#3f3f46',
+                            800: '#27272a',
+                            900: '#18181b',
+                            950: '#09090b',
+                        },
+                        brand: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            200: '#ddd6fe',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            900: '#1e1b4b',
+                            dark: '#131326',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'Inter', '-apple-system', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    borderRadius: {
+                        '4xl': '2rem',
+                        '5xl': '2.5rem',
+                    }
+                }
             }
-            * { font-family: 'Space Grotesk', sans-serif; }
-            .font-display { font-family: 'Archivo Black', sans-serif; letter-spacing: -0.02em; }
-            .mono { font-family: 'JetBrains Mono', monospace; }
+        }
+    </script>
 
-            body { background-color: var(--cream); }
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-            .nb-border { border: 4px solid var(--black); }
-            .nb-shadow { box-shadow: 8px 8px 0 0 var(--black); }
-            .nb-shadow-sm { box-shadow: 4px 4px 0 0 var(--black); }
-            .nb-shadow-lg { box-shadow: 12px 12px 0 0 var(--black); }
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-            .nb-press { transition: transform 0.1s ease, box-shadow 0.1s ease; }
-            .nb-press:hover { transform: translate(-2px, -2px); box-shadow: 8px 8px 0 0 var(--black); }
-            .nb-press:active { transform: translate(4px, 4px); box-shadow: 2px 2px 0 0 var(--black); }
-
-            .tilt-l { transform: rotate(-2deg); }
-            .tilt-r { transform: rotate(2deg); }
-
-            .bg-dots {
-                background-image: radial-gradient(var(--black) 2px, transparent 2px);
-                background-size: 28px 28px;
+    <!-- Pre-paint Theme Script -->
+    <script>
+        (function () {
+            var savedTheme = localStorage.getItem('app-theme') || localStorage.getItem('stisla-theme');
+            if (savedTheme === 'dark') {
+                document.documentElement.dataset.theme = 'dark';
+            } else if (savedTheme === 'light') {
+                document.documentElement.dataset.theme = 'light';
+            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.dataset.theme = 'dark';
             }
+        })();
+    </script>
 
-            /* Scan pulse ring (neobrutalism square pulse) */
-            @keyframes nb-pulse-square {
-                0%, 100% { box-shadow: 0 0 0 0 var(--black); }
-                50% { box-shadow: 0 0 0 16px transparent; }
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+            font-feature-settings: "tnum";
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Ambient backdrop matching landing page */
+        .ambient-bg {
+            background-color: #f0edf6;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(139, 92, 246, 0.08) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(192, 132, 252, 0.08) 0px, transparent 50%),
+                radial-gradient(at 50% 100%, rgba(99, 102, 241, 0.06) 0px, transparent 50%);
+        }
+
+        [data-theme="dark"] .ambient-bg {
+            background-color: #06060c;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(124, 58, 237, 0.12) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.08) 0px, transparent 50%);
+        }
+
+        /* Glassmorphism */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+
+        [data-theme="dark"] .glass-card {
+            background: rgba(18, 18, 26, 0.8);
+        }
+
+        /* Radar scan pulse */
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.4);
             }
-            .nb-pulse-square { animation: nb-pulse-square 1.6s ease-in-out infinite; }
-
-            /* Animations */
-            @keyframes slideUp {
-                from { transform: translateY(30px) rotate(-2deg); opacity: 0; }
-                to { transform: translateY(0) rotate(0); opacity: 1; }
+            70% {
+                transform: scale(1.05);
+                box-shadow: 0 0 0 24px rgba(124, 58, 237, 0);
             }
-            @keyframes scaleIn {
-                from { transform: scale(0.85) rotate(-3deg); opacity: 0; }
-                to { transform: scale(1) rotate(0); opacity: 1; }
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(124, 58, 237, 0);
             }
-            .animate-slideUp { animation: slideUp 0.5s ease-out; }
-            .animate-scaleIn { animation: scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        }
 
-            /* Scrollbar (neobrutalism) */
-            ::-webkit-scrollbar { width: 12px; }
-            ::-webkit-scrollbar-track { background: var(--cream); border-left: 4px solid var(--black); }
-            ::-webkit-scrollbar-thumb { background: var(--black); border: 2px solid var(--cream); }
-        </style>
-    </head>
+        .pulse-scanner {
+            animation: pulse-ring 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
 
-    <body class="text-black h-screen overflow-hidden flex bg-dots" id="main-body">
+        /* Smooth scaling animations */
+        @keyframes scaleIn {
+            from {
+                transform: scale(0.94);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
 
-        <!-- Statistics Sidebar -->
-        <div class="w-80 p-5 flex flex-col gap-4 bg-[var(--yellow)] border-r-4 border-black">
+        .animate-scaleIn {
+            animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
 
-            <!-- Mode Switcher -->
-            <div class="nb-border nb-shadow-sm bg-black p-1 flex">
-                <a href="/scan" id="btn-mode-presence"
-                    class="flex-1 py-2 text-center text-xs font-display bg-[var(--lime)] text-black">
-                    PRESENSI
+        /* Custom minimal scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(161, 161, 170, 0.3);
+            border-radius: 9999px;
+        }
+
+        [data-theme="dark"] ::-webkit-scrollbar-thumb {
+            background: rgba(63, 63, 70, 0.4);
+        }
+    </style>
+</head>
+
+<body class="ambient-bg min-h-screen text-zinc-900 dark:text-zinc-100 flex flex-col justify-between p-3 sm:p-6 select-none overflow-hidden" id="main-body">
+
+    <!-- ========================================== -->
+    <!-- TOP EYEBROW META                           -->
+    <!-- ========================================== -->
+    <div class="w-full max-w-7xl mx-auto px-2 pb-2.5 flex items-center justify-between text-[11px] font-medium tracking-tight text-zinc-500 dark:text-zinc-400">
+        <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="font-semibold text-zinc-800 dark:text-zinc-200">Terminal Absensi Kiosk</span>
+            <span class="text-zinc-300 dark:text-zinc-700">•</span>
+            <span id="stats-date" class="font-mono text-zinc-600 dark:text-zinc-400"></span>
+        </div>
+        <div class="flex items-center gap-4">
+            <span class="hidden sm:inline">SMK NIBA Business School</span>
+            <span class="hidden sm:inline text-zinc-300 dark:text-zinc-700">•</span>
+            <!-- Theme Toggle -->
+            <button onclick="toggleTheme()" type="button" class="flex items-center gap-1.5 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors" title="Ganti Tema">
+                <i data-lucide="sun" class="w-3.5 h-3.5 dark:hidden"></i>
+                <i data-lucide="moon" class="w-3.5 h-3.5 hidden dark:inline"></i>
+                <span class="hidden sm:inline text-[10px] uppercase font-mono">Tema</span>
+            </button>
+            <a href="/" class="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors flex items-center gap-1">
+                <i data-lucide="home" class="w-3.5 h-3.5"></i>
+                <span class="hidden sm:inline">Portal</span>
+            </a>
+            <a href="/admin" class="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors flex items-center gap-1">
+                <i data-lucide="shield" class="w-3.5 h-3.5"></i>
+                <span class="hidden sm:inline">Admin</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MAIN FLOATING CANVAS                       -->
+    <!-- ========================================== -->
+    <div class="w-full max-w-7xl mx-auto flex-1 bg-white/95 dark:bg-[#0c0c14]/95 border border-zinc-200/90 dark:border-zinc-800/80 rounded-3xl sm:rounded-4xl shadow-2xl shadow-purple-950/5 flex flex-col overflow-hidden backdrop-blur-xl">
+
+        <!-- Kiosk Header Bar -->
+        <header class="px-5 sm:px-8 py-3.5 border-b border-zinc-100 dark:border-zinc-800/80 flex flex-wrap items-center justify-between gap-3">
+            <!-- Brand & Navigation -->
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 flex items-center justify-center font-bold shadow-xs">
+                    <i data-lucide="bell" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <div class="font-bold text-sm tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                        <span>SMK NIBA</span>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-50 text-brand-600 border border-brand-200 dark:bg-brand-900/40 dark:text-brand-200 dark:border-brand-600/40">RFID / QR</span>
+                    </div>
+                    <div class="text-[11px] text-zinc-400 dark:text-zinc-500">Terminal Kehadiran Terpadu</div>
+                </div>
+            </div>
+
+            <!-- Mode & Input Controls -->
+            <div class="flex items-center gap-2">
+                <!-- Mode Switcher (Presensi vs Sholat) -->
+                <div class="p-0.5 rounded-xl bg-zinc-100 dark:bg-zinc-900/90 border border-zinc-200/70 dark:border-zinc-800 flex items-center text-xs font-semibold">
+                    <a href="/scan" id="btn-mode-presence"
+                        class="px-3 py-1 rounded-lg transition-all text-zinc-900 dark:text-zinc-100 bg-white dark:bg-zinc-800 shadow-2xs">
+                        Presensi Harian
+                    </a>
+                    <a href="/scan-sholat" id="btn-mode-prayer"
+                        class="px-3 py-1 rounded-lg transition-all text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100">
+                        Sholat Berjamaah
+                    </a>
+                </div>
+
+                <!-- Input Switcher (RFID vs QR) -->
+                <div class="p-0.5 rounded-xl bg-zinc-100 dark:bg-zinc-900/90 border border-zinc-200/70 dark:border-zinc-800 flex items-center text-xs font-semibold">
+                    <button onclick="setInputMode('rfid')" id="btn-input-rfid"
+                        class="px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 text-zinc-900 dark:text-zinc-100 bg-white dark:bg-zinc-800 shadow-2xs">
+                        <i data-lucide="radio" class="w-3.5 h-3.5 text-brand-600 dark:text-brand-400"></i>
+                        <span>RFID</span>
+                    </button>
+                    <button onclick="setInputMode('qr')" id="btn-input-qr"
+                        class="px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100">
+                        <i data-lucide="qr-code" class="w-3.5 h-3.5"></i>
+                        <span>QR Code</span>
+                    </button>
+                </div>
+
+                <!-- Quick Jump to Face Scan -->
+                <a href="/scan-face" class="px-3 py-1.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors shadow-2xs flex items-center gap-1.5">
+                    <i data-lucide="scan-face" class="w-3.5 h-3.5 text-blue-500"></i>
+                    <span class="hidden md:inline">Face Kiosk</span>
                 </a>
-                <a href="/scan-sholat" id="btn-mode-prayer"
-                    class="flex-1 py-2 text-center text-xs font-display text-white/60 hover:text-white">
-                    SHOLAT
-                </a>
             </div>
+        </header>
 
-            <!-- Input Mode Switcher -->
-            <div class="nb-border nb-shadow-sm bg-black p-1 flex">
-                <button onclick="setInputMode('rfid')" id="btn-input-rfid"
-                    class="flex-1 py-2 text-xs font-display bg-[var(--cyan)] text-black flex items-center justify-center gap-1">
-                    <i data-lucide="radio" class="w-3 h-3"></i> RFID
-                </button>
-                <button onclick="setInputMode('qr')" id="btn-input-qr"
-                    class="flex-1 py-2 text-xs font-display text-white/60 hover:text-white flex items-center justify-center gap-1">
-                    <i data-lucide="qr-code" class="w-3 h-3"></i> QR
-                </button>
-            </div>
+        <!-- Kiosk Workspace Body (3-Column Layout: Left Stats, Center Scanner, Right Live Logs) -->
+        <div class="flex-1 grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-zinc-100 dark:divide-zinc-800/80 overflow-hidden">
 
-            <div class="text-center">
-                <h2 class="font-display text-2xl text-black">STATISTIK HARI INI</h2>
-                <p id="stats-date" class="mono text-sm text-black/70 font-bold mt-1"></p>
-            </div>
+            <!-- ========================================== -->
+            <!-- 1. LEFT PANEL: DAILY STATS (Col 1-3)       -->
+            <!-- ========================================== -->
+            <div class="lg:col-span-3 p-5 sm:p-6 flex flex-col justify-between gap-5 bg-zinc-50/50 dark:bg-zinc-900/20 overflow-y-auto">
+                <div class="space-y-4">
+                    <!-- Progress Card -->
+                    <div class="p-5 rounded-2xl bg-white dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800 shadow-2xs text-center relative overflow-hidden">
+                        <div class="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-3">Tingkat Kehadiran Siswa</div>
+                        <div class="relative w-32 h-32 mx-auto mb-2">
+                            <svg class="transform -rotate-90 w-32 h-32">
+                                <circle cx="64" cy="64" r="56" stroke="currentColor" stroke-width="8" fill="none" class="text-zinc-100 dark:text-zinc-800" />
+                                <circle id="progress-circle" cx="64" cy="64" r="56" stroke="currentColor" stroke-width="8" fill="none"
+                                    stroke-dasharray="352" stroke-dashoffset="352" class="text-zinc-900 dark:text-zinc-100 transition-all duration-1000" />
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <span id="attendance-percent" class="font-bold text-3xl tracking-tight text-zinc-900 dark:text-zinc-100 mono">0%</span>
+                                <span class="text-[10px] text-zinc-400 font-medium">Hadir</span>
+                            </div>
+                        </div>
+                    </div>
 
-            <!-- Attendance Percentage -->
-            <div class="nb-border nb-shadow bg-[var(--pink)] p-5 text-center tilt-l">
-                <div class="relative w-32 h-32 mx-auto mb-3">
-                    <svg class="transform -rotate-90 w-32 h-32">
-                        <circle cx="64" cy="64" r="56" stroke="rgba(0,0,0,0.15)" stroke-width="10" fill="none" />
-                        <circle id="progress-circle" cx="64" cy="64" r="56" stroke="#000" stroke-width="10"
-                            fill="none" stroke-dasharray="352" stroke-dashoffset="352"
-                            class="transition-all duration-1000" />
-                    </svg>
-                    <div class="absolute inset-0 flex items-center justify-center">
-                        <span id="attendance-percent" class="font-display text-3xl text-black">0%</span>
+                    <!-- 2 Mini Metric Cards -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="p-3.5 rounded-2xl bg-white dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800 shadow-2xs">
+                            <div class="flex items-center justify-between text-zinc-400 text-xs mb-1">
+                                <span>Hadir</span>
+                                <i data-lucide="user-check" class="w-3.5 h-3.5 text-emerald-500"></i>
+                            </div>
+                            <div id="present-count" class="font-bold text-2xl text-emerald-600 dark:text-emerald-400 mono">0</div>
+                            <div class="text-[10px] text-zinc-400 mt-0.5">Tepat Waktu</div>
+                        </div>
+                        <div class="p-3.5 rounded-2xl bg-white dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800 shadow-2xs">
+                            <div class="flex items-center justify-between text-zinc-400 text-xs mb-1">
+                                <span>Terlambat</span>
+                                <i data-lucide="clock-alert" class="w-3.5 h-3.5 text-amber-500"></i>
+                            </div>
+                            <div id="late-count" class="font-bold text-2xl text-amber-600 dark:text-amber-400 mono">0</div>
+                            <div class="text-[10px] text-zinc-400 mt-0.5">Lewat Toleransi</div>
+                        </div>
+                    </div>
+
+                    <!-- Total Breakdown -->
+                    <div class="p-4 rounded-2xl bg-white dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800 shadow-2xs space-y-2.5 text-xs">
+                        <div class="flex items-center justify-between">
+                            <span class="text-zinc-500 dark:text-zinc-400 font-medium">Total Siswa Terdaftar</span>
+                            <span id="total-students" class="font-bold text-zinc-900 dark:text-zinc-100 mono">0</span>
+                        </div>
+                        <div class="h-px bg-zinc-100 dark:bg-zinc-800"></div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-zinc-500 dark:text-zinc-400 font-medium">Staff / Guru Hadir</span>
+                            <span id="staff-count" class="font-bold text-zinc-900 dark:text-zinc-100 mono">0</span>
+                        </div>
                     </div>
                 </div>
-                <p class="font-bold text-black text-sm">KEHADIRAN SISWA</p>
-            </div>
 
-            <!-- Stats Cards -->
-            <div class="grid grid-cols-2 gap-3">
-                <div class="nb-border nb-shadow-sm bg-[var(--lime)] p-4 text-center tilt-l">
-                    <div id="present-count" class="font-display text-4xl text-black">0</div>
-                    <div class="text-xs font-bold text-black/70 mt-1 uppercase">Hadir</div>
-                </div>
-                <div class="nb-border nb-shadow-sm bg-[var(--orange)] p-4 text-center tilt-r">
-                    <div id="late-count" class="font-display text-4xl text-black">0</div>
-                    <div class="text-xs font-bold text-black/70 mt-1 uppercase">Terlambat</div>
+                <!-- Footer Hint -->
+                <div class="text-center p-3 rounded-xl bg-zinc-100/70 dark:bg-zinc-850/40 text-[11px] text-zinc-400 dark:text-zinc-500 flex items-center justify-center gap-1.5">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5 text-brand-500"></i>
+                    <span>Sinkronisasi Otomatis Realtime</span>
                 </div>
             </div>
 
-            <!-- Totals -->
-            <div class="nb-border nb-shadow-sm bg-[var(--cream)] p-4">
-                <div class="flex justify-between items-center mb-2 pb-2 border-b-2 border-dashed border-black/30">
-                    <span class="font-bold text-black/70 text-sm">TOTAL SISWA</span>
-                    <span id="total-students" class="font-display text-xl text-black">0</span>
-                </div>
-                <div class="flex justify-between items-center">
-                    <span class="font-bold text-black/70 text-sm">STAFF HADIR</span>
-                    <span id="staff-count" class="font-display text-xl text-black bg-[var(--cyan)] px-2 border-2 border-black">0</span>
-                </div>
-            </div>
-        </div>
+            <!-- ========================================== -->
+            <!-- 2. CENTER PANEL: ACTIVE SCANNER (Col 4-8)  -->
+            <!-- ========================================== -->
+            <div class="lg:col-span-6 p-6 sm:p-10 flex flex-col items-center justify-center relative overflow-hidden bg-white dark:bg-[#0c0c14]">
 
-        <!-- Main Content -->
-        <div class="flex-1 flex gap-6 p-6">
-            <!-- Left: Status Card -->
-            <div class="flex-1 flex flex-col items-center justify-center">
-                <!-- Clock Header -->
-                <div class="text-right mb-6">
-                    <div id="clock-time" class="font-mono font-bold text-black text-5xl tabular-nums">00:00:00</div>
-                    <div id="clock-date" class="font-bold text-black/70 text-lg mt-1">Senin, 1 Januari 2025</div>
+                <!-- Live Clock Header -->
+                <div class="mb-6 text-center">
+                    <div id="clock-time" class="mono font-bold text-4xl sm:text-5xl tracking-tight text-zinc-900 dark:text-zinc-100">00:00:00</div>
+                    <div id="clock-date" class="text-xs sm:text-sm font-medium text-zinc-500 dark:text-zinc-400 mt-1">Senin, 1 Januari 2026</div>
                 </div>
 
-                <div class="w-full max-w-2xl">
-                    <h1
-                        class="font-display text-5xl mb-2 text-center text-black bg-[var(--lime)] nb-border nb-shadow py-2 px-4 inline-block transform -rotate-1 mx-auto w-full">
-                        TERMINAL ABSENSI
-                    </h1>
-                    <p class="font-bold text-black/60 mb-8 text-center" id="subtitle-msg">Silakan tempel kartu pada Reader</p>
+                <!-- Hidden Input for RFID Card Reader Keypresses -->
+                <input type="text" id="rfid-input" class="opacity-0 absolute top-0 left-0 w-0 h-0 pointer-events-none" autocomplete="off" autofocus>
 
-                    <!-- Hidden Input -->
-                    <input type="text" id="rfid-input" class="opacity-0 absolute top-0 left-0 w-0 h-0"
-                        autocomplete="off" autofocus>
+                <!-- Scanner Card Container -->
+                <div id="status-card" class="w-full max-w-md p-6 sm:p-8 rounded-3xl bg-zinc-50/80 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800 shadow-sm transition-all duration-300 relative">
 
-                    <!-- Status Card -->
-                    <div id="status-card" class="nb-border nb-shadow bg-[var(--cyan)] p-10 transition-all duration-300">
-
-                        <!-- QR Scanner (hidden by default) -->
-                        <div id="qr-scanner-container" class="hidden mb-6">
-                            <video id="qr-video" class="w-full max-w-md mx-auto nb-border nb-shadow-sm bg-black" autoplay playsinline></video>
+                    <!-- QR Scanner Video Container (hidden by default) -->
+                    <div id="qr-scanner-container" class="hidden mb-4">
+                        <div class="w-full h-56 rounded-2xl bg-black overflow-hidden relative border border-zinc-200 dark:border-zinc-800 shadow-inner flex items-center justify-center">
+                            <video id="qr-video" class="w-full h-full object-cover" autoplay playsinline></video>
                             <canvas id="qr-canvas" class="hidden"></canvas>
-                            <p class="text-center font-bold text-black/60 mt-2 text-sm">Arahkan QR Code ke kamera</p>
+                            <div class="absolute inset-x-8 top-1/2 -translate-y-1/2 h-0.5 bg-brand-500 shadow-lg shadow-brand-500/50 animate-pulse"></div>
+                        </div>
+                        <p class="text-center font-medium text-zinc-500 dark:text-zinc-400 mt-2 text-xs">Posisikan QR Code siswa di depan kamera</p>
+                    </div>
+
+                    <!-- STATE 1: IDLE / WAITING -->
+                    <div id="state-idle" class="text-center py-4">
+                        <div id="icon-container" class="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-white dark:bg-zinc-850 border border-zinc-200/80 dark:border-zinc-750 mx-auto flex items-center justify-center mb-5 pulse-scanner shadow-md text-brand-600 dark:text-brand-400">
+                            <i data-lucide="scan-line" class="w-12 h-12" id="icon-idle"></i>
+                        </div>
+                        <h2 class="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">Siap Menerima Presensi</h2>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-2 font-medium" id="idle-hint">Tempelkan kartu RFID siswa pada scanner</p>
+                    </div>
+
+                    <!-- STATE 2: LOADING / PROCESSING -->
+                    <div id="state-loading" class="hidden text-center py-6">
+                        <div class="w-24 h-24 rounded-3xl bg-white dark:bg-zinc-850 border border-zinc-200/80 dark:border-zinc-750 mx-auto flex items-center justify-center mb-5 shadow-sm text-zinc-900 dark:text-zinc-100">
+                            <i data-lucide="loader-2" class="w-12 h-12 animate-spin text-brand-600"></i>
+                        </div>
+                        <h2 class="text-xl font-bold text-zinc-900 dark:text-zinc-100">Memproses Presensi...</h2>
+                        <p class="text-xs text-zinc-400 mt-1.5 font-medium">Memvalidasi identitas ke server</p>
+                    </div>
+
+                    <!-- STATE 3: SUCCESS -->
+                    <div id="state-success" class="hidden text-center py-2 animate-scaleIn">
+                        <!-- Photo / Avatar Container -->
+                        <div id="photo-container" class="w-24 h-24 rounded-2xl bg-zinc-100 dark:bg-zinc-800 border-2 border-emerald-500/50 mx-auto flex items-center justify-center mb-4 overflow-hidden shadow-md">
+                            <i data-lucide="check" class="w-10 h-10 text-emerald-500" id="default-icon"></i>
+                            <img id="student-photo" src="" class="w-full h-full object-cover hidden" alt="Foto Siswa">
                         </div>
 
-                        <!-- Idle State -->
-                        <div id="state-idle">
-                            <div id="icon-container"
-                                class="w-40 h-40 bg-[var(--yellow)] nb-border nb-pulse-square mx-auto flex items-center justify-center mb-6">
-                                <i data-lucide="scan-line" class="w-20 h-20 text-black" id="icon-idle"></i>
-                            </div>
-                            <h2 class="font-display text-3xl text-center text-black">MENUNGGU KARTU...</h2>
-                            <p class="font-bold text-black/60 mt-3 text-center" id="idle-hint">Tempelkan kartu RFID pada reader</p>
+                        <!-- Student Details -->
+                        <h2 id="success-name" class="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 truncate mb-1.5">Nama Siswa</h2>
+                        <div class="flex items-center justify-center gap-2 mb-4 flex-wrap">
+                            <span id="success-identity" class="mono font-semibold text-xs px-2.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700"></span>
+                            <span id="success-class" class="font-semibold text-xs px-2.5 py-0.5 rounded-full bg-brand-50 dark:bg-brand-900/40 text-brand-600 dark:text-brand-300 border border-brand-200 dark:border-brand-800"></span>
                         </div>
 
-                        <!-- Loading State -->
-                        <div id="state-loading" class="hidden">
-                            <div class="w-40 h-40 mx-auto mb-6 flex items-center justify-center nb-border bg-[var(--cream)]">
-                                <div class="w-20 h-20 border-8 border-black border-t-transparent rounded-full animate-spin"></div>
-                            </div>
-                            <h2 class="font-display text-3xl text-center text-black">MEMPROSES...</h2>
+                        <!-- Status Badge Pill -->
+                        <div id="success-status" class="inline-flex items-center justify-center px-6 py-2 rounded-full text-sm font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 shadow-xs mx-auto">
+                            MASUK - TEPAT WAKTU
                         </div>
 
-                        <!-- Success State -->
-                        <div id="state-success" class="hidden">
-                            <div id="photo-container"
-                                class="w-40 h-40 bg-[var(--lime)] nb-border nb-shadow-sm mx-auto flex items-center justify-center mb-6 overflow-hidden">
-                                <i data-lucide="check" class="w-20 h-20 text-black" id="default-icon"></i>
-                                <img id="student-photo" src="" class="w-full h-full object-cover hidden">
+                        <!-- Points Display -->
+                        <div id="success-points-container" class="mt-3.5 hidden">
+                            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60 shadow-2xs">
+                                <i data-lucide="star" class="w-3.5 h-3.5 fill-amber-500 text-amber-500"></i>
+                                <span id="success-points" class="mono font-bold">+20</span>
+                                <span class="text-zinc-500 dark:text-zinc-400" id="success-points-desc">Poin Karakter</span>
                             </div>
-                            <h2 id="success-name" class="font-display text-5xl text-center text-black mb-3">NAMA SISWA</h2>
-                            <div class="flex items-center justify-center gap-3 mb-4 flex-wrap">
-                                <span id="success-identity" class="mono font-bold text-black bg-[var(--cream)] nb-border px-3 py-1 text-sm"></span>
-                                <span id="success-class"
-                                    class="font-display px-3 py-1 bg-black text-[var(--yellow)] text-sm"></span>
-                            </div>
-                            <div class="nb-border nb-shadow-sm bg-[var(--lime)] inline-block px-6 py-3 font-display text-2xl text-black mx-auto block text-center tilt-l"
-                                id="success-status">
-                                MASUK - TEPAT WAKTU
-                            </div>
-                            <!-- Points Display -->
-                            <div id="success-points-container" class="mt-4 hidden">
-                                <div class="inline-flex items-center gap-2 nb-border nb-shadow-sm bg-[var(--yellow)] px-4 py-2 font-display text-xl text-black">
-                                    <i data-lucide="star" class="w-5 h-5"></i>
-                                    <span id="success-points">+20</span>
-                                    <span class="font-bold text-sm text-black/70" id="success-points-desc"></span>
-                                </div>
-                            </div>
-                            <p class="mono font-bold text-black/60 mt-6 text-center text-xl" id="success-time">07:05:00</p>
                         </div>
 
-                        <!-- Error State -->
-                        <div id="state-error" class="hidden">
-                            <div class="w-40 h-40 bg-[var(--red)] nb-border nb-shadow-sm mx-auto flex items-center justify-center mb-6">
-                                <i data-lucide="x" class="w-20 h-20 text-black"></i>
-                            </div>
-                            <h2 id="error-title" class="font-display text-4xl text-center text-black mb-3">KARTU TIDAK DIKENALI</h2>
-                            <p id="error-msg" class="font-bold text-black/70 text-lg text-center">Silakan hubungi Admin</p>
-                        </div>
+                        <p class="mono text-xs text-zinc-400 dark:text-zinc-500 mt-4 font-semibold" id="success-time">07:05:00</p>
+                    </div>
 
+                    <!-- STATE 4: ERROR / NOT RECOGNIZED / DUPLICATE -->
+                    <div id="state-error" class="hidden text-center py-4 animate-scaleIn">
+                        <div class="w-20 h-20 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 mx-auto flex items-center justify-center mb-4 text-rose-600 dark:text-rose-400 shadow-sm">
+                            <i data-lucide="alert-triangle" class="w-10 h-10"></i>
+                        </div>
+                        <h2 id="error-title" class="text-xl font-bold text-rose-700 dark:text-rose-400 mb-1.5">KARTU TIDAK DIKENALI</h2>
+                        <p id="error-msg" class="text-xs text-zinc-500 dark:text-zinc-400 max-w-xs mx-auto font-medium">Silakan hubungi operator atau administrator.</p>
+                    </div>
+
+                </div>
+
+                <!-- Subtitle Indicator -->
+                <p class="text-xs text-zinc-400 dark:text-zinc-500 mt-6 font-medium text-center" id="subtitle-msg">
+                    Sistem otomatis mengenali kartu siswa & guru secara instan
+                </p>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- 3. RIGHT PANEL: RECENT SCANS (Col 9-12)    -->
+            <!-- ========================================== -->
+            <div class="lg:col-span-3 p-5 sm:p-6 flex flex-col bg-zinc-50/50 dark:bg-zinc-900/20 overflow-hidden">
+                <div class="flex items-center justify-between pb-3.5 mb-3 border-b border-zinc-100 dark:border-zinc-800/80">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="history" class="w-4 h-4 text-zinc-500"></i>
+                        <h3 class="font-bold text-xs uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Presensi Terkini</h3>
+                    </div>
+                    <span class="text-[10px] font-mono px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500">Live</span>
+                </div>
+
+                <!-- Recent Logs List Container -->
+                <div id="recent-logs" class="flex-1 overflow-y-auto space-y-2 pr-1">
+                    <div class="text-center text-zinc-400 text-xs py-10 flex flex-col items-center justify-center gap-2">
+                        <i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>
+                        <span>Memuat aktivitas...</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Right: Recent Logs Sidebar -->
-            <div class="w-80 flex flex-col">
-                <div class="nb-border nb-shadow bg-[var(--pink)] p-4 flex-1 flex flex-col">
-                    <h3 class="font-display text-xl text-black mb-4 text-center border-b-4 border-black pb-3">PRESENSI TERAKHIR</h3>
-                    <div id="recent-logs" class="flex-1 overflow-y-auto space-y-3 pr-1">
-                        <div class="text-center font-display text-black/50 text-sm py-8">Memuat...</div>
-                    </div>
-                </div>
-            </div>
         </div>
 
-        <script>
-            lucide.createIcons();
+        <!-- Kiosk Footer Info Bar -->
+        <footer class="px-6 py-2.5 bg-zinc-50/80 dark:bg-zinc-900/60 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-[11px] text-zinc-400">
+            <div class="flex items-center gap-2">
+                <span>Status Terminal: <strong class="text-emerald-600 dark:text-emerald-400 font-semibold">Online (Ready)</strong></span>
+            </div>
+            <div class="font-mono">
+                SMK NIBA Super Apps • Terminal Kiosk v2.1.0
+            </div>
+        </footer>
 
-            // --- Clock ---
-            function updateClock() {
-                const now = new Date();
-                document.getElementById('clock-time').innerText = now.toLocaleTimeString('id-ID', { hour12: false });
-                document.getElementById('clock-date').innerText = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-            }
-            setInterval(updateClock, 1000);
-            updateClock();
+    </div>
 
-            // --- Statistics ---
-            async function fetchStats() {
-                try {
-                    const res = await fetch('/api/attendance/today-stats');
-                    const data = await res.json();
+    <!-- ========================================== -->
+    <!-- JAVASCRIPT LOGIC                           -->
+    <!-- ========================================== -->
+    <script>
+        lucide.createIcons();
 
-                    document.getElementById('present-count').innerText = data.present_students || 0;
-                    document.getElementById('late-count').innerText = data.late_students || 0;
-                    document.getElementById('total-students').innerText = data.total_students || 0;
-                    document.getElementById('staff-count').innerText = data.present_staff || 0;
+        // Theme Toggle Functionality
+        function toggleTheme() {
+            var current = document.documentElement.dataset.theme;
+            var next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.dataset.theme = next;
+            localStorage.setItem('app-theme', next);
+            localStorage.setItem('stisla-theme', next);
+        }
 
-                    const percent = Math.round(data.attendance_percentage || 0);
-                    document.getElementById('attendance-percent').innerText = percent + '%';
+        // --- Clock ---
+        function updateClock() {
+            const now = new Date();
+            const timeEl = document.getElementById('clock-time');
+            const dateEl = document.getElementById('clock-date');
+            if (timeEl) timeEl.innerText = now.toLocaleTimeString('id-ID', { hour12: false });
+            if (dateEl) dateEl.innerText = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
 
-                    const circle = document.getElementById('progress-circle');
+        // --- Statistics ---
+        async function fetchStats() {
+            try {
+                const res = await fetch('/api/attendance/today-stats');
+                const data = await res.json();
+
+                const presentEl = document.getElementById('present-count');
+                const lateEl = document.getElementById('late-count');
+                const totalEl = document.getElementById('total-students');
+                const staffEl = document.getElementById('staff-count');
+                const percentEl = document.getElementById('attendance-percent');
+                const circleEl = document.getElementById('progress-circle');
+                const dateEl = document.getElementById('stats-date');
+
+                if (presentEl) presentEl.innerText = data.present_students || 0;
+                if (lateEl) lateEl.innerText = data.late_students || 0;
+                if (totalEl) totalEl.innerText = data.total_students || 0;
+                if (staffEl) staffEl.innerText = data.present_staff || 0;
+
+                const percent = Math.round(data.attendance_percentage || 0);
+                if (percentEl) percentEl.innerText = percent + '%';
+
+                if (circleEl) {
                     const circumference = 2 * Math.PI * 56;
                     const offset = circumference - (percent / 100) * circumference;
-                    circle.style.strokeDashoffset = offset;
+                    circleEl.style.strokeDashoffset = offset;
+                }
 
+                if (dateEl) {
                     const date = new Date(data.date);
-                    document.getElementById('stats-date').innerText = isNaN(date) ? '-' : date.toLocaleDateString('id-ID');
-                } catch (err) {
-                    console.error('Failed to fetch stats:', err);
+                    dateEl.innerText = isNaN(date) ? '-' : date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
                 }
+            } catch (err) {
+                console.error('Failed to fetch stats:', err);
             }
+        }
 
-            fetchStats();
-            setInterval(fetchStats, 30000);
+        fetchStats();
+        setInterval(fetchStats, 30000);
 
-            // --- Recent Logs (neobrutalism cards) ---
-            async function fetchRecentLogs() {
-                try {
-                    const res = await fetch('/api/attendance/recent-logs');
-                    const logs = await res.json();
+        // --- Recent Logs ---
+        function escapeHTML(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
 
-                    const container = document.getElementById('recent-logs');
+        async function fetchRecentLogs() {
+            try {
+                const res = await fetch('/api/attendance/recent-logs');
+                const logs = await res.json();
+                const container = document.getElementById('recent-logs');
+                if (!container) return;
+
+                if (logs && logs.length > 0) {
                     container.innerHTML = '';
+                    logs.slice(0, 10).forEach(log => {
+                        const card = document.createElement('div');
+                        card.className = 'p-2.5 rounded-xl bg-white dark:bg-zinc-900/70 border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex items-center gap-3 transition-colors';
 
-                    if (logs && logs.length > 0) {
-                        const cardColors = ['var(--lime)', 'var(--yellow)', 'var(--cyan)', 'var(--cream)', 'var(--orange)'];
-                        logs.slice(0, 10).forEach((log, idx) => {
-                            const card = document.createElement('div');
-                            const tilt = idx % 2 === 0 ? 'tilt-l' : 'tilt-r';
-                            const bg = cardColors[idx % cardColors.length];
-                            card.className = `nb-border nb-shadow-sm ${tilt} p-2 flex items-center gap-3 bg-[${bg}]`;
+                        let badgeClass = 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60';
+                        if (log.status === 'Terlambat') {
+                            badgeClass = 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60';
+                        } else if (log.status === 'Pulang') {
+                            badgeClass = 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/60';
+                        } else if (log.status === 'Alpha') {
+                            badgeClass = 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800/60';
+                        }
 
-                            // Status badge style (neobrutalism: solid color + black border)
-                            let statusBg = 'bg-[var(--lime)]';
-                            let statusText = 'text-black';
-                            if (log.status === 'Terlambat') {
-                                statusBg = 'bg-[var(--orange)]';
-                            } else if (log.status === 'Pulang') {
-                                statusBg = 'bg-[var(--cyan)]';
-                            } else if (log.status === 'Alpha') {
-                                statusBg = 'bg-[var(--red)]';
-                                statusText = 'text-black';
-                            }
+                        const safePhoto = encodeURIComponent(log.photo || '');
+                        const safeName = escapeHTML(log.name);
+                        const safeTime = escapeHTML(log.time);
+                        const safeStatus = escapeHTML(log.status);
 
-                            card.innerHTML = `
-                                <div class="w-10 h-10 nb-border bg-[var(--cream)] overflow-hidden flex-shrink-0 flex items-center justify-center">
-                                    ${log.photo ?
-                                    `<img src="/assets/photos/${log.photo}" class="w-full h-full object-cover">` :
-                                    `<i data-lucide="user" class="w-5 h-5 text-black"></i>`
+                        card.innerHTML = `
+                            <div class="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700 overflow-hidden flex-shrink-0 flex items-center justify-center text-zinc-500">
+                                ${log.photo ?
+                                    `<img src="/assets/photos/${safePhoto}" class="w-full h-full object-cover">` :
+                                    `<i data-lucide="user" class="w-4 h-4"></i>`
                                 }
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <p class="font-bold text-black truncate text-sm">${log.name}</p>
-                                    <p class="mono text-xs text-black/60 font-bold">${log.time}</p>
-                                </div>
-                                <div class="nb-border ${statusBg} px-2 py-1">
-                                    <span class="font-display text-xs ${statusText}">${log.status}</span>
-                                </div>
-                            `;
-                            container.appendChild(card);
-                        });
-                        lucide.createIcons();
-                    } else {
-                        container.innerHTML = '<div class="text-center font-display text-black/50 text-sm py-8">Belum ada data</div>';
-                    }
-                } catch (err) {
-                    console.error('Failed to fetch recent logs:', err);
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="font-semibold text-zinc-900 dark:text-zinc-100 truncate text-xs">${safeName}</p>
+                                <p class="mono text-[10px] text-zinc-400 font-medium">${safeTime}</p>
+                            </div>
+                            <div class="px-2 py-0.5 rounded-full text-[10px] font-bold ${badgeClass}">
+                                ${safeStatus}
+                            </div>
+                        `;
+                        container.appendChild(card);
+                    });
+                    lucide.createIcons();
+                } else {
+                    container.innerHTML = '<div class="text-center text-zinc-400 text-xs py-8">Belum ada aktivitas hari ini</div>';
                 }
+            } catch (err) {
+                console.error('Failed to fetch recent logs:', err);
             }
+        }
 
-            fetchRecentLogs();
-            setInterval(fetchRecentLogs, 10000);
+        fetchRecentLogs();
+        setInterval(fetchRecentLogs, 10000);
 
-            // --- RFID Handling ---
-            const input = document.getElementById('rfid-input');
-            const card = document.getElementById('status-card');
+        // --- RFID Input Capture ---
+        const input = document.getElementById('rfid-input');
+        const card = document.getElementById('status-card');
 
-            document.addEventListener('click', () => input.focus());
-            input.addEventListener('blur', () => setTimeout(() => input.focus(), 100));
-
+        document.addEventListener('click', () => {
+            if (input && currentInputMode === 'rfid') input.focus();
+        });
+        if (input) {
+            input.addEventListener('blur', () => {
+                if (currentInputMode === 'rfid') setTimeout(() => input.focus(), 100);
+            });
             input.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     const rfid = input.value.trim();
@@ -358,148 +601,150 @@
                     input.value = '';
                 }
             });
+        }
 
-            function showState(state) {
-                ['state-idle', 'state-loading', 'state-success', 'state-error'].forEach(id => {
-                    document.getElementById(id).classList.add('hidden');
-                });
-                const el = document.getElementById(state);
-                el.classList.remove('hidden');
-                el.classList.add('animate-scaleIn');
+        function showState(state) {
+            ['state-idle', 'state-loading', 'state-success', 'state-error'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.add('hidden');
+            });
+            const target = document.getElementById(state);
+            if (target) {
+                target.classList.remove('hidden');
+                target.classList.add('animate-scaleIn');
             }
+        }
 
-            // --- Mode Handling ---
-            const urlParams = new URLSearchParams(window.location.search);
-            const isPrayerMode = urlParams.get('mode') === 'sholat';
+        // --- Mode Handling ---
+        const urlParams = new URLSearchParams(window.location.search);
+        const isPrayerMode = urlParams.get('mode') === 'sholat';
 
-            if (isPrayerMode) {
-                document.title = "Absensi Sholat";
-                const titleEl = document.querySelector('h1');
-                titleEl.textContent = "ABSENSI SHOLAT";
-                titleEl.className = "font-display text-5xl mb-2 text-center text-black bg-[var(--cyan)] nb-border nb-shadow py-2 px-4 inline-block transform -rotate-1 mx-auto w-full";
-                document.body.classList.remove('bg-dots');
+        if (isPrayerMode) {
+            document.title = "Absensi Sholat Berjamaah — SMK NIBA";
+            const btnPres = document.getElementById('btn-mode-presence');
+            const btnPray = document.getElementById('btn-mode-prayer');
+            if (btnPres && btnPray) {
+                btnPres.className = "px-3 py-1 rounded-lg transition-all text-zinc-500 dark:text-zinc-400 hover:text-zinc-900";
+                btnPray.className = "px-3 py-1 rounded-lg transition-all text-zinc-900 dark:text-zinc-100 bg-white dark:bg-zinc-800 shadow-2xs";
             }
+        }
 
-            async function processRFID(uid) {
-                showState('state-loading');
+        // --- Process RFID Scan ---
+        async function processRFID(uid) {
+            showState('state-loading');
 
-                try {
-                    const endpoint = isPrayerMode
-                        ? `/api/attendance/prayer?rfid=${encodeURIComponent(uid)}`
-                        : `/api/attendance/record?rfid=${encodeURIComponent(uid)}`;
+            try {
+                const endpoint = isPrayerMode
+                    ? `/api/attendance/prayer?rfid=${encodeURIComponent(uid)}`
+                    : `/api/attendance/record?rfid=${encodeURIComponent(uid)}`;
 
-                    const res = await fetch(endpoint);
-                    const data = await res.json();
+                const res = await fetch(endpoint);
+                const data = await res.json();
 
-                    if (res.ok && data.status !== 'duplicate') {
-                        document.getElementById('success-name').innerText = data.name;
+                if (res.ok && data.status !== 'duplicate') {
+                    document.getElementById('success-name').innerText = data.name;
 
-                        if (isPrayerMode) {
-                            document.getElementById('success-identity').innerText = data.prayer_type || '';
-                            document.getElementById('success-class').innerText = data.time || '';
-                        } else {
-                            document.getElementById('success-identity').innerText = data.identity_no || '';
-                            document.getElementById('success-class').innerText = data.class_name || data.type;
-                        }
-
-                        document.getElementById('success-status').innerText = data.message;
-                        document.getElementById('success-time').innerText = new Date().toLocaleTimeString('id-ID');
-
-                        const imgEl = document.getElementById('student-photo');
-                        const iconEl = document.getElementById('default-icon');
-
-                        if (data.photo) {
-                            imgEl.src = "/assets/photos/" + data.photo;
-                            imgEl.classList.remove('hidden');
-                            iconEl.classList.add('hidden');
-                        } else {
-                            imgEl.classList.add('hidden');
-                            iconEl.classList.remove('hidden');
-                        }
-
-                        const statusEl = document.getElementById('success-status');
-
-                        let statusClass = "nb-border nb-shadow-sm bg-[var(--lime)] inline-block px-6 py-3 font-display text-2xl text-black mx-auto block text-center tilt-l";
-                        let soundType = 'success';
-
-                        if (data.message.includes('Terlambat')) {
-                            statusClass = "nb-border nb-shadow-sm bg-[var(--orange)] inline-block px-6 py-3 font-display text-2xl text-black mx-auto block text-center tilt-l";
-                            soundType = 'late';
-                        } else if (data.message.includes('Pulang')) {
-                            statusClass = "nb-border nb-shadow-sm bg-[var(--cyan)] inline-block px-6 py-3 font-display text-2xl text-black mx-auto block text-center tilt-l";
-                            soundType = 'checkout';
-                        }
-
-                        statusEl.className = statusClass;
-                        playSound(soundType);
-
-                        const pointsContainer = document.getElementById('success-points-container');
-                        const pointsEl = document.getElementById('success-points');
-                        const pointsDescEl = document.getElementById('success-points-desc');
-
-                        if (data.points !== undefined && data.points !== null) {
-                            const points = data.points;
-                            const pointsBg = points >= 0 ? 'bg-[var(--yellow)]' : 'bg-[var(--red)]';
-                            const pointsColor = points >= 0 ? 'text-black' : 'text-black';
-
-                            pointsEl.innerText = (points >= 0 ? '+' : '') + points;
-                            pointsEl.parentElement.className = `inline-flex items-center gap-2 nb-border nb-shadow-sm ${pointsBg} px-4 py-2 font-display text-xl ${pointsColor}`;
-                            pointsDescEl.textContent = data.point_description || '';
-                            pointsContainer.classList.remove('hidden');
-                            lucide.createIcons();
-                        } else {
-                            pointsContainer.classList.add('hidden');
-                        }
-
-                        if (!isPrayerMode) {
-                            const hour = new Date().getHours();
-                            if (hour < 7 && soundType === 'success') {
-                                triggerConfetti();
-                            }
-                        }
-
-                        showState('state-success');
-
-                        fetchStats();
-                        fetchRecentLogs();
-
-                    } else if (data.status === 'duplicate') {
-                        document.getElementById('error-title').innerText = "SUDAH ABSEN!";
-                        document.getElementById('error-msg').innerText = `${data.name} sudah melakukan presensi hari ini.`;
-                        showState('state-error');
-                        playSound('error');
-                    } else if (res.status === 403) {
-                        document.getElementById('error-title').innerText = "AKUN TIDAK AKTIF";
-                        document.getElementById('error-msg').innerText = data.message || "Akun tidak aktif. Hubungi admin.";
-                        showState('state-error');
-                        playSound('error');
+                    if (isPrayerMode) {
+                        document.getElementById('success-identity').innerText = data.prayer_type || 'Sholat Berjamaah';
+                        document.getElementById('success-class').innerText = data.time || '';
                     } else {
-                        document.getElementById('error-title').innerText = "GAGAL";
-                        document.getElementById('error-msg').innerText = data.message || "Kartu tidak valid";
-                        showState('state-error');
-                        playSound('error');
+                        document.getElementById('success-identity').innerText = data.identity_no || 'NIS: -';
+                        document.getElementById('success-class').innerText = data.class_name || data.type || 'Siswa';
                     }
-                } catch (err) {
-                    console.error(err);
-                    document.getElementById('error-title').innerText = "ERROR SISTEM";
-                    document.getElementById('error-msg').innerText = "Koneksi ke server terputus";
+
+                    document.getElementById('success-status').innerText = data.message || 'HADIR';
+                    document.getElementById('success-time').innerText = new Date().toLocaleTimeString('id-ID');
+
+                    const imgEl = document.getElementById('student-photo');
+                    const iconEl = document.getElementById('default-icon');
+
+                    if (data.photo) {
+                        imgEl.src = "/assets/photos/" + data.photo;
+                        imgEl.classList.remove('hidden');
+                        iconEl.classList.add('hidden');
+                    } else {
+                        imgEl.classList.add('hidden');
+                        iconEl.classList.remove('hidden');
+                    }
+
+                    const statusEl = document.getElementById('success-status');
+                    let statusClass = "inline-flex items-center justify-center px-6 py-2 rounded-full text-sm font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 shadow-xs mx-auto";
+                    let soundType = 'success';
+
+                    if (data.message && data.message.includes('Terlambat')) {
+                        statusClass = "inline-flex items-center justify-center px-6 py-2 rounded-full text-sm font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60 shadow-xs mx-auto";
+                        soundType = 'late';
+                    } else if (data.message && data.message.includes('Pulang')) {
+                        statusClass = "inline-flex items-center justify-center px-6 py-2 rounded-full text-sm font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/60 shadow-xs mx-auto";
+                        soundType = 'checkout';
+                    }
+
+                    statusEl.className = statusClass;
+                    playSound(soundType);
+
+                    const pointsContainer = document.getElementById('success-points-container');
+                    const pointsEl = document.getElementById('success-points');
+                    const pointsDescEl = document.getElementById('success-points-desc');
+
+                    if (data.points !== undefined && data.points !== null) {
+                        const points = data.points;
+                        pointsEl.innerText = (points >= 0 ? '+' : '') + points;
+                        pointsDescEl.textContent = data.point_description || 'Poin Karakter';
+                        pointsContainer.classList.remove('hidden');
+                        lucide.createIcons();
+                    } else {
+                        pointsContainer.classList.add('hidden');
+                    }
+
+                    if (!isPrayerMode) {
+                        const hour = new Date().getHours();
+                        if (hour < 7 && soundType === 'success') {
+                            triggerConfetti();
+                        }
+                    }
+
+                    showState('state-success');
+                    fetchStats();
+                    fetchRecentLogs();
+
+                } else if (data.status === 'duplicate') {
+                    document.getElementById('error-title').innerText = "SUDAH TERCATAT";
+                    document.getElementById('error-msg').innerText = `${data.name || 'Siswa'} sudah melakukan presensi hari ini.`;
+                    showState('state-error');
+                    playSound('error');
+                } else if (res.status === 403) {
+                    document.getElementById('error-title').innerText = "AKUN NONAKTIF";
+                    document.getElementById('error-msg').innerText = data.message || "Status akun nonaktif. Silakan hubungi admin.";
+                    showState('state-error');
+                    playSound('error');
+                } else {
+                    document.getElementById('error-title').innerText = "KARTU TIDAK TERDAFTAR";
+                    document.getElementById('error-msg').innerText = data.message || "Nomor kartu RFID tidak ditemukan di database.";
                     showState('state-error');
                     playSound('error');
                 }
-
-                setTimeout(() => {
-                    showState('state-idle');
-                    lucide.createIcons();
-                    if (currentInputMode === 'qr') {
-                        startQRScanner();
-                    }
-                }, 4000);
+            } catch (err) {
+                console.error(err);
+                document.getElementById('error-title').innerText = "GANGGUAN SISTEM";
+                document.getElementById('error-msg').innerText = "Koneksi ke server terputus.";
+                showState('state-error');
+                playSound('error');
             }
 
-            // --- Audio Feedback ---
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            setTimeout(() => {
+                showState('state-idle');
+                lucide.createIcons();
+                if (currentInputMode === 'qr') {
+                    startQRScanner();
+                }
+            }, 4000);
+        }
 
-            function playSound(type) {
+        // --- Audio Feedback via Web Audio API ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            try {
                 if (type === 'success') {
                     playBeep(1000, 0.1);
                     setTimeout(() => playBeep(1500, 0.1), 150);
@@ -510,9 +755,11 @@
                 } else {
                     playBeep(300, 0.5, 'sawtooth');
                 }
-            }
+            } catch(e) {}
+        }
 
-            function playBeep(freq, duration, type = 'sine') {
+        function playBeep(freq, duration, type = 'sine') {
+            try {
                 const osc = audioCtx.createOscillator();
                 const gainNode = audioCtx.createGain();
                 osc.connect(gainNode);
@@ -522,11 +769,13 @@
                 gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
                 osc.start();
                 osc.stop(audioCtx.currentTime + duration);
-            }
+            } catch(e) {}
+        }
 
-            // --- Confetti Effect ---
-            function triggerConfetti() {
-                const duration = 3000;
+        // --- Refined Confetti Effect ---
+        function triggerConfetti() {
+            try {
+                const duration = 2500;
                 const end = Date.now() + duration;
 
                 (function frame() {
@@ -535,241 +784,238 @@
                         angle: 60,
                         spread: 55,
                         origin: { x: 0 },
-                        colors: ['#FFE45C', '#FF6B9D', '#4ECDC4', '#C6F432', '#000000']
+                        colors: ['#7c3aed', '#8b5cf6', '#10b981', '#3b82f6', '#f59e0b']
                     });
                     confetti({
                         particleCount: 3,
                         angle: 120,
                         spread: 55,
                         origin: { x: 1 },
-                        colors: ['#FFE45C', '#FF6B9D', '#4ECDC4', '#C6F432', '#000000']
+                        colors: ['#7c3aed', '#8b5cf6', '#10b981', '#3b82f6', '#f59e0b']
                     });
 
                     if (Date.now() < end) {
                         requestAnimationFrame(frame);
                     }
                 }());
-            }
+            } catch(e) {}
+        }
 
-            // --- QR Code Scanner ---
-            let currentInputMode = 'rfid';
-            let qrStream = null;
-            let qrAnimationId = null;
+        // --- QR Code Scanner ---
+        let currentInputMode = 'rfid';
+        let qrStream = null;
+        let qrAnimationId = null;
 
-            function setInputMode(mode) {
-                currentInputMode = mode;
-                const btnRfid = document.getElementById('btn-input-rfid');
-                const btnQr = document.getElementById('btn-input-qr');
-                const qrContainer = document.getElementById('qr-scanner-container');
-                const idleHint = document.getElementById('idle-hint');
-                const rfidInput = document.getElementById('rfid-input');
+        function setInputMode(mode) {
+            currentInputMode = mode;
+            const btnRfid = document.getElementById('btn-input-rfid');
+            const btnQr = document.getElementById('btn-input-qr');
+            const qrContainer = document.getElementById('qr-scanner-container');
+            const idleHint = document.getElementById('idle-hint');
+            const rfidInput = document.getElementById('rfid-input');
 
-                if (mode === 'qr') {
-                    btnRfid.classList.remove('bg-[var(--cyan)]', 'text-black');
-                    btnRfid.classList.add('text-white/60');
-                    btnQr.classList.add('bg-[var(--cyan)]', 'text-black');
-                    btnQr.classList.remove('text-white/60');
-                    qrContainer.classList.remove('hidden');
-                    idleHint.textContent = 'Scan QR Code dengan kamera';
-                    rfidInput.blur();
-                    startQRScanner();
-                } else {
-                    btnQr.classList.remove('bg-[var(--cyan)]', 'text-black');
-                    btnQr.classList.add('text-white/60');
-                    btnRfid.classList.add('bg-[var(--cyan)]', 'text-black');
-                    btnRfid.classList.remove('text-white/60');
-                    qrContainer.classList.add('hidden');
-                    idleHint.textContent = 'Tempelkan kartu RFID pada reader';
-                    rfidInput.focus();
-                    stopQRScanner();
+            if (mode === 'qr') {
+                if (btnRfid && btnQr) {
+                    btnRfid.className = 'px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900';
+                    btnQr.className = 'px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 text-zinc-900 dark:text-zinc-100 bg-white dark:bg-zinc-800 shadow-2xs';
                 }
+                if (qrContainer) qrContainer.classList.remove('hidden');
+                if (idleHint) idleHint.textContent = 'Arahkan QR Code siswa ke kamera';
+                if (rfidInput) rfidInput.blur();
+                startQRScanner();
+            } else {
+                if (btnRfid && btnQr) {
+                    btnQr.className = 'px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900';
+                    btnRfid.className = 'px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 text-zinc-900 dark:text-zinc-100 bg-white dark:bg-zinc-800 shadow-2xs';
+                }
+                if (qrContainer) qrContainer.classList.add('hidden');
+                if (idleHint) idleHint.textContent = 'Tempelkan kartu RFID siswa pada scanner';
+                if (rfidInput) rfidInput.focus();
+                stopQRScanner();
             }
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
 
-            async function startQRScanner() {
-                try {
-                    qrStream = await navigator.mediaDevices.getUserMedia({
-                        video: { facingMode: 'environment' }
-                    });
-                    const video = document.getElementById('qr-video');
+        async function startQRScanner() {
+            try {
+                qrStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment' }
+                });
+                const video = document.getElementById('qr-video');
+                if (video) {
                     video.srcObject = qrStream;
                     video.play();
                     scanQRFrame();
-                } catch (err) {
-                    console.error('Camera access denied:', err);
-                    document.getElementById('idle-hint').textContent = 'Kamera tidak tersedia';
                 }
+            } catch (err) {
+                console.error('Camera access denied:', err);
+                const idleHint = document.getElementById('idle-hint');
+                if (idleHint) idleHint.textContent = 'Kamera tidak tersedia';
             }
+        }
 
-            function stopQRScanner() {
-                if (qrStream) {
-                    qrStream.getTracks().forEach(track => track.stop());
-                    qrStream = null;
-                }
-                if (qrAnimationId) {
-                    cancelAnimationFrame(qrAnimationId);
-                    qrAnimationId = null;
-                }
+        function stopQRScanner() {
+            if (qrStream) {
+                qrStream.getTracks().forEach(track => track.stop());
+                qrStream = null;
             }
-
-            function scanQRFrame() {
-                const video = document.getElementById('qr-video');
-                const canvas = document.getElementById('qr-canvas');
-                const ctx = canvas.getContext('2d');
-
-                if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-                    if (typeof jsQR !== 'undefined') {
-                        const code = jsQR(imageData.data, imageData.width, imageData.height);
-                        if (code) {
-                            processQRCode(code.data);
-                            return;
-                        }
-                    }
-                }
-
-                qrAnimationId = requestAnimationFrame(scanQRFrame);
+            if (qrAnimationId) {
+                cancelAnimationFrame(qrAnimationId);
+                qrAnimationId = null;
             }
+        }
 
-            function processQRCode(data) {
-                stopQRScanner();
+        function scanQRFrame() {
+            const video = document.getElementById('qr-video');
+            const canvas = document.getElementById('qr-canvas');
+            if (!video || !canvas) return;
+            const ctx = canvas.getContext('2d');
 
-                // Legacy JSON QR: {type:"student", id:123}
-                try {
-                    const qrData = JSON.parse(data);
-                    if (qrData.type === 'student' && qrData.id) {
-                        processStudentID(qrData.id);
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+                if (typeof jsQR !== 'undefined') {
+                    const code = jsQR(imageData.data, imageData.width, imageData.height);
+                    if (code) {
+                        processQRCode(code.data);
                         return;
                     }
-                } catch (e) {
-                    // Not JSON, treat as plain payload below
                 }
-
-                // New QR format: bare RFID number (e.g. "3730162260").
-                // Strip any "RFID:" prefix if present, then send as RFID.
-                let payload = data.trim();
-                if (payload.startsWith('RFID:')) {
-                    payload = payload.substring('RFID:'.length);
-                }
-                processRFID(payload);
             }
 
-            async function processStudentID(studentId) {
-                showState('state-loading');
+            qrAnimationId = requestAnimationFrame(scanQRFrame);
+        }
 
-                try {
-                    const endpoint = isPrayerMode
-                        ? `/api/attendance/prayer?student_id=${studentId}`
-                        : `/api/attendance/record?student_id=${studentId}`;
+        function processQRCode(data) {
+            stopQRScanner();
 
-                    const res = await fetch(endpoint);
-                    const data = await res.json();
+            try {
+                const qrData = JSON.parse(data);
+                if (qrData.type === 'student' && qrData.id) {
+                    processStudentID(qrData.id);
+                    return;
+                }
+            } catch (e) {}
 
-                    if (res.ok && data.status !== 'duplicate') {
-                        document.getElementById('success-name').innerText = data.name;
+            let payload = data.trim();
+            if (payload.startsWith('RFID:')) {
+                payload = payload.substring('RFID:'.length);
+            }
+            processRFID(payload);
+        }
 
-                        if (isPrayerMode) {
-                            document.getElementById('success-identity').innerText = data.prayer_type || '';
-                            document.getElementById('success-class').innerText = data.time || '';
-                        } else {
-                            document.getElementById('success-identity').innerText = data.identity_no || '';
-                            document.getElementById('success-class').innerText = data.class_name || data.type;
-                        }
+        async function processStudentID(studentId) {
+            showState('state-loading');
 
-                        document.getElementById('success-status').innerText = data.message;
-                        document.getElementById('success-time').innerText = new Date().toLocaleTimeString('id-ID');
+            try {
+                const endpoint = isPrayerMode
+                    ? `/api/attendance/prayer?student_id=${studentId}`
+                    : `/api/attendance/record?student_id=${studentId}`;
 
-                        const imgEl = document.getElementById('student-photo');
-                        const iconEl = document.getElementById('default-icon');
+                const res = await fetch(endpoint);
+                const data = await res.json();
 
-                        if (data.photo) {
-                            imgEl.src = "/assets/photos/" + data.photo;
-                            imgEl.classList.remove('hidden');
-                            iconEl.classList.add('hidden');
-                        } else {
-                            imgEl.classList.add('hidden');
-                            iconEl.classList.remove('hidden');
-                        }
+                if (res.ok && data.status !== 'duplicate') {
+                    document.getElementById('success-name').innerText = data.name;
 
-                        const statusEl = document.getElementById('success-status');
-                        let statusClass = "nb-border nb-shadow-sm bg-[var(--lime)] inline-block px-6 py-3 font-display text-2xl text-black mx-auto block text-center tilt-l";
-                        let soundType = 'success';
-
-                        if (data.message.includes('Terlambat')) {
-                            statusClass = "nb-border nb-shadow-sm bg-[var(--orange)] inline-block px-6 py-3 font-display text-2xl text-black mx-auto block text-center tilt-l";
-                            soundType = 'late';
-                        } else if (data.message.includes('Pulang')) {
-                            statusClass = "nb-border nb-shadow-sm bg-[var(--cyan)] inline-block px-6 py-3 font-display text-2xl text-black mx-auto block text-center tilt-l";
-                            soundType = 'checkout';
-                        }
-
-                        statusEl.className = statusClass;
-                        playSound(soundType);
-
-                        const pointsContainer = document.getElementById('success-points-container');
-                        const pointsEl = document.getElementById('success-points');
-                        const pointsDescEl = document.getElementById('success-points-desc');
-
-                        if (data.points !== undefined && data.points !== null) {
-                            const points = data.points;
-                            const pointsBg = points >= 0 ? 'bg-[var(--yellow)]' : 'bg-[var(--red)]';
-                            const pointsColor = points >= 0 ? 'text-black' : 'text-black';
-
-                            pointsEl.innerText = (points >= 0 ? '+' : '') + points;
-                            pointsEl.parentElement.className = `inline-flex items-center gap-2 nb-border nb-shadow-sm ${pointsBg} px-4 py-2 font-display text-xl ${pointsColor}`;
-                            pointsDescEl.textContent = data.point_description || '';
-                            pointsContainer.classList.remove('hidden');
-                            lucide.createIcons();
-                        } else {
-                            pointsContainer.classList.add('hidden');
-                        }
-
-                        showState('state-success');
-                        fetchStats();
-                        fetchRecentLogs();
-                    } else if (data.status === 'duplicate') {
-                        document.getElementById('error-title').innerText = "SUDAH ABSEN!";
-                        document.getElementById('error-msg').innerText = `${data.name} sudah melakukan presensi hari ini.`;
-                        showState('state-error');
-                        playSound('error');
-                    } else if (res.status === 403) {
-                        document.getElementById('error-title').innerText = "AKUN TIDAK AKTIF";
-                        document.getElementById('error-msg').innerText = data.message || "Akun tidak aktif. Hubungi admin.";
-                        showState('state-error');
-                        playSound('error');
+                    if (isPrayerMode) {
+                        document.getElementById('success-identity').innerText = data.prayer_type || 'Sholat Berjamaah';
+                        document.getElementById('success-class').innerText = data.time || '';
                     } else {
-                        document.getElementById('error-title').innerText = "GAGAL";
-                        document.getElementById('error-msg').innerText = data.message || "ID tidak valid";
-                        showState('state-error');
-                        playSound('error');
+                        document.getElementById('success-identity').innerText = data.identity_no || 'NIS: -';
+                        document.getElementById('success-class').innerText = data.class_name || data.type || 'Siswa';
                     }
-                } catch (err) {
-                    console.error(err);
-                    document.getElementById('error-title').innerText = "ERROR SISTEM";
-                    document.getElementById('error-msg').innerText = "Koneksi ke server terputus";
+
+                    document.getElementById('success-status').innerText = data.message || 'HADIR';
+                    document.getElementById('success-time').innerText = new Date().toLocaleTimeString('id-ID');
+
+                    const imgEl = document.getElementById('student-photo');
+                    const iconEl = document.getElementById('default-icon');
+
+                    if (data.photo) {
+                        imgEl.src = "/assets/photos/" + data.photo;
+                        imgEl.classList.remove('hidden');
+                        iconEl.classList.add('hidden');
+                    } else {
+                        imgEl.classList.add('hidden');
+                        iconEl.classList.remove('hidden');
+                    }
+
+                    const statusEl = document.getElementById('success-status');
+                    let statusClass = "inline-flex items-center justify-center px-6 py-2 rounded-full text-sm font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 shadow-xs mx-auto";
+                    let soundType = 'success';
+
+                    if (data.message && data.message.includes('Terlambat')) {
+                        statusClass = "inline-flex items-center justify-center px-6 py-2 rounded-full text-sm font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60 shadow-xs mx-auto";
+                        soundType = 'late';
+                    } else if (data.message && data.message.includes('Pulang')) {
+                        statusClass = "inline-flex items-center justify-center px-6 py-2 rounded-full text-sm font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/60 shadow-xs mx-auto";
+                        soundType = 'checkout';
+                    }
+
+                    statusEl.className = statusClass;
+                    playSound(soundType);
+
+                    const pointsContainer = document.getElementById('success-points-container');
+                    const pointsEl = document.getElementById('success-points');
+                    const pointsDescEl = document.getElementById('success-points-desc');
+
+                    if (data.points !== undefined && data.points !== null) {
+                        const points = data.points;
+                        pointsEl.innerText = (points >= 0 ? '+' : '') + points;
+                        pointsDescEl.textContent = data.point_description || 'Poin Karakter';
+                        pointsContainer.classList.remove('hidden');
+                        lucide.createIcons();
+                    } else {
+                        pointsContainer.classList.add('hidden');
+                    }
+
+                    showState('state-success');
+                    fetchStats();
+                    fetchRecentLogs();
+                } else if (data.status === 'duplicate') {
+                    document.getElementById('error-title').innerText = "SUDAH TERCATAT";
+                    document.getElementById('error-msg').innerText = `${data.name || 'Siswa'} sudah melakukan presensi hari ini.`;
+                    showState('state-error');
+                    playSound('error');
+                } else if (res.status === 403) {
+                    document.getElementById('error-title').innerText = "AKUN NONAKTIF";
+                    document.getElementById('error-msg').innerText = data.message || "Akun tidak aktif. Hubungi admin.";
+                    showState('state-error');
+                    playSound('error');
+                } else {
+                    document.getElementById('error-title').innerText = "GAGAL";
+                    document.getElementById('error-msg').innerText = data.message || "ID tidak valid";
                     showState('state-error');
                     playSound('error');
                 }
-
-                setTimeout(() => {
-                    showState('state-idle');
-                    lucide.createIcons();
-                    if (currentInputMode === 'qr') {
-                        startQRScanner();
-                    }
-                }, 4000);
+            } catch (err) {
+                console.error(err);
+                document.getElementById('error-title').innerText = "GANGGUAN SISTEM";
+                document.getElementById('error-msg').innerText = "Koneksi ke server terputus";
+                showState('state-error');
+                playSound('error');
             }
 
-            document.addEventListener('DOMContentLoaded', () => {
-                setInputMode('rfid');
-            });
-        </script>
-        <!-- QR Code library -->
-        <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
-    </body>
+            setTimeout(() => {
+                showState('state-idle');
+                lucide.createIcons();
+                if (currentInputMode === 'qr') {
+                    startQRScanner();
+                }
+            }, 4000);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setInputMode('rfid');
+        });
+    </script>
+    <!-- QR Code engine -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+</body>
 
 </html>

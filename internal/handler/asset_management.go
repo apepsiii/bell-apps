@@ -27,15 +27,15 @@ func GetAssets(db *sql.DB) echo.HandlerFunc {
 
 		query := `
 			SELECT 
-				a.id, a.inventory_code, a.qr_code, a.category_id, 
-				ac.name as category_name,
-				a.name, a.specification, a.brand, a.serial_number,
-				a.acquisition_year, a.acquisition_date, a.purchase_price,
+				a.id, a.inventory_code, COALESCE(a.qr_code, ''), a.category_id, 
+				COALESCE(ac.name, '') as category_name,
+				a.name, COALESCE(a.specification, ''), COALESCE(a.brand, ''), COALESCE(a.serial_number, ''),
+				COALESCE(a.acquisition_year, 0), COALESCE(a.acquisition_date, ''), COALESCE(a.purchase_price, 0),
 				a.funding_source_id, COALESCE(fs.name, '') as funding_source,
 				a.location_id, COALESCE(l.name, '') as location_name,
 				a.pic_staff_id, COALESCE(s.name, '') as pic_name,
-				a.condition, a.quantity, a.unit, a.notes, a.photo_url,
-				a.is_borrowable, a.created_at, a.updated_at, a.created_by
+				COALESCE(a.condition, 'good'), COALESCE(a.quantity, 1), COALESCE(a.unit, 'unit'), COALESCE(a.notes, ''), COALESCE(a.photo_url, ''),
+				COALESCE(a.is_borrowable, 0), COALESCE(a.created_at, ''), COALESCE(a.updated_at, ''), COALESCE(a.created_by, '')
 			FROM assets a
 			LEFT JOIN asset_categories ac ON a.category_id = ac.id
 			LEFT JOIN asset_funding_sources fs ON a.funding_source_id = fs.id
@@ -79,19 +79,32 @@ func GetAssets(db *sql.DB) echo.HandlerFunc {
 		for rows.Next() {
 			var asset models.Asset
 			var isBorrowable int
+			var rawAcqDate, rawCreatedAt, rawUpdatedAt interface{}
+			var rawFundingSourceID, rawLocationID, rawPICStaffID, rawCreatedBy interface{}
 			if err := rows.Scan(
 				&asset.ID, &asset.InventoryCode, &asset.QRCode, &asset.CategoryID,
 				&asset.CategoryName, &asset.Name, &asset.Specification, &asset.Brand,
-				&asset.SerialNumber, &asset.AcquisitionYear, &asset.AcquisitionDate,
-				&asset.PurchasePrice, &asset.FundingSourceID, &asset.FundingSource,
-				&asset.LocationID, &asset.LocationName, &asset.PICStaffID, &asset.PICName,
+				&asset.SerialNumber, &asset.AcquisitionYear, &rawAcqDate,
+				&asset.PurchasePrice, &rawFundingSourceID, &asset.FundingSource,
+				&rawLocationID, &asset.LocationName, &rawPICStaffID, &asset.PICName,
 				&asset.Condition, &asset.Quantity, &asset.Unit, &asset.Notes,
-				&asset.PhotoURL, &isBorrowable, &asset.CreatedAt, &asset.UpdatedAt,
-				&asset.CreatedBy,
+				&asset.PhotoURL, &isBorrowable, &rawCreatedAt, &rawUpdatedAt,
+				&rawCreatedBy,
 			); err != nil {
 				continue
 			}
-			asset.IsBorrowable = isBorrowable == 1
+			asset.IsBorrowable = (isBorrowable == 1)
+			asset.FundingSourceID = parseSqliteIntPtr(rawFundingSourceID)
+			asset.LocationID = parseSqliteIntPtr(rawLocationID)
+			asset.PICStaffID = parseSqliteIntPtr(rawPICStaffID)
+			asset.CreatedBy = parseSqliteIntPtr(rawCreatedBy)
+			if t := parseSqliteTime(rawAcqDate); !t.IsZero() {
+				asset.AcquisitionDate = &t
+			}
+			asset.CreatedAt = parseSqliteTime(rawCreatedAt)
+			if t := parseSqliteTime(rawUpdatedAt); !t.IsZero() {
+				asset.UpdatedAt = &t
+			}
 			assets = append(assets, asset)
 		}
 
@@ -106,32 +119,34 @@ func GetAssetByID(db *sql.DB) echo.HandlerFunc {
 
 		var asset models.Asset
 		var isBorrowable int
+		var rawAcqDate, rawCreatedAt, rawUpdatedAt interface{}
+		var rawFundingSourceID, rawLocationID, rawPICStaffID, rawCreatedBy interface{}
 		err := db.QueryRow(`
 			SELECT 
-				a.id, a.inventory_code, a.qr_code, a.category_id, 
-				ac.name as category_name,
-				a.name, a.specification, a.brand, a.serial_number,
-				a.acquisition_year, a.acquisition_date, a.purchase_price,
+				a.id, a.inventory_code, COALESCE(a.qr_code, ''), a.category_id, 
+				COALESCE(ac.name, '') as category_name,
+				a.name, COALESCE(a.specification, ''), COALESCE(a.brand, ''), COALESCE(a.serial_number, ''),
+				COALESCE(a.acquisition_year, 0), COALESCE(a.acquisition_date, ''), COALESCE(a.purchase_price, 0),
 				a.funding_source_id, COALESCE(fs.name, '') as funding_source,
 				a.location_id, COALESCE(l.name, '') as location_name,
 				a.pic_staff_id, COALESCE(s.name, '') as pic_name,
-				a.condition, a.quantity, a.unit, a.notes, a.photo_url,
-				a.is_borrowable, a.created_at, a.updated_at, a.created_by
+				COALESCE(a.condition, 'good'), COALESCE(a.quantity, 1), COALESCE(a.unit, 'unit'), COALESCE(a.notes, ''), COALESCE(a.photo_url, ''),
+				COALESCE(a.is_borrowable, 0), COALESCE(a.created_at, ''), COALESCE(a.updated_at, ''), COALESCE(a.created_by, '')
 			FROM assets a
 			LEFT JOIN asset_categories ac ON a.category_id = ac.id
-			LEFT JOIN asset_funding_sources fs ON a.funding_source_id = fs.id
-			LEFT JOIN asset_locations l ON a.location_id = l.id
-			LEFT JOIN staff s ON a.pic_staff_id = s.id
+			LEFT JOIN asset_funding_sources fs ON NULLIF(a.funding_source_id, '') = fs.id
+			LEFT JOIN asset_locations l ON NULLIF(a.location_id, '') = l.id
+			LEFT JOIN staff s ON NULLIF(a.pic_staff_id, '') = s.id
 			WHERE a.id = ?
 		`, id).Scan(
 			&asset.ID, &asset.InventoryCode, &asset.QRCode, &asset.CategoryID,
 			&asset.CategoryName, &asset.Name, &asset.Specification, &asset.Brand,
-			&asset.SerialNumber, &asset.AcquisitionYear, &asset.AcquisitionDate,
-			&asset.PurchasePrice, &asset.FundingSourceID, &asset.FundingSource,
-			&asset.LocationID, &asset.LocationName, &asset.PICStaffID, &asset.PICName,
+			&asset.SerialNumber, &asset.AcquisitionYear, &rawAcqDate,
+			&asset.PurchasePrice, &rawFundingSourceID, &asset.FundingSource,
+			&rawLocationID, &asset.LocationName, &rawPICStaffID, &asset.PICName,
 			&asset.Condition, &asset.Quantity, &asset.Unit, &asset.Notes,
-			&asset.PhotoURL, &isBorrowable, &asset.CreatedAt, &asset.UpdatedAt,
-			&asset.CreatedBy,
+			&asset.PhotoURL, &isBorrowable, &rawCreatedAt, &rawUpdatedAt,
+			&rawCreatedBy,
 		)
 
 		if err == sql.ErrNoRows {
@@ -141,7 +156,18 @@ func GetAssetByID(db *sql.DB) echo.HandlerFunc {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		}
 
-		asset.IsBorrowable = isBorrowable == 1
+		asset.IsBorrowable = (isBorrowable == 1)
+		asset.FundingSourceID = parseSqliteIntPtr(rawFundingSourceID)
+		asset.LocationID = parseSqliteIntPtr(rawLocationID)
+		asset.PICStaffID = parseSqliteIntPtr(rawPICStaffID)
+		asset.CreatedBy = parseSqliteIntPtr(rawCreatedBy)
+		if t := parseSqliteTime(rawAcqDate); !t.IsZero() {
+			asset.AcquisitionDate = &t
+		}
+		asset.CreatedAt = parseSqliteTime(rawCreatedAt)
+		if t := parseSqliteTime(rawUpdatedAt); !t.IsZero() {
+			asset.UpdatedAt = &t
+		}
 
 		return c.JSON(http.StatusOK, asset)
 	}
@@ -165,15 +191,33 @@ func AddAsset(db *sql.DB) echo.HandlerFunc {
 		acquisitionYearStr := c.FormValue("acquisition_year")
 		acquisitionDateStr := c.FormValue("acquisition_date")
 		purchasePriceStr := c.FormValue("purchase_price")
-		fundingSourceID := c.FormValue("funding_source_id")
-		locationID := c.FormValue("location_id")
-		picStaffID := c.FormValue("pic_staff_id")
 		condition := c.FormValue("condition")
 		quantityStr := c.FormValue("quantity")
 		unit := c.FormValue("unit")
 		notes := c.FormValue("notes")
 		photoURL := c.FormValue("photo_url")
 		isBorrowableStr := c.FormValue("is_borrowable")
+
+		var fundingSourceID *int
+		if fsStr := c.FormValue("funding_source_id"); fsStr != "" {
+			if id, err := strconv.Atoi(fsStr); err == nil && id > 0 {
+				fundingSourceID = &id
+			}
+		}
+
+		var locationID *int
+		if locStr := c.FormValue("location_id"); locStr != "" {
+			if id, err := strconv.Atoi(locStr); err == nil && id > 0 {
+				locationID = &id
+			}
+		}
+
+		var picStaffID *int
+		if picStr := c.FormValue("pic_staff_id"); picStr != "" {
+			if id, err := strconv.Atoi(picStr); err == nil && id > 0 {
+				picStaffID = &id
+			}
+		}
 
 		if categoryID == "" || name == "" {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Category and name are required"})
@@ -217,8 +261,6 @@ func AddAsset(db *sql.DB) echo.HandlerFunc {
 			}
 		}
 
-		// Get created_by from session (you can implement this based on your auth)
-		// For now, we'll use a placeholder
 		var createdBy *int
 
 		result, err := db.Exec(`
@@ -259,15 +301,33 @@ func UpdateAsset(db *sql.DB) echo.HandlerFunc {
 		acquisitionYearStr := c.FormValue("acquisition_year")
 		acquisitionDateStr := c.FormValue("acquisition_date")
 		purchasePriceStr := c.FormValue("purchase_price")
-		fundingSourceID := c.FormValue("funding_source_id")
-		locationID := c.FormValue("location_id")
-		picStaffID := c.FormValue("pic_staff_id")
 		condition := c.FormValue("condition")
 		quantityStr := c.FormValue("quantity")
 		unit := c.FormValue("unit")
 		notes := c.FormValue("notes")
 		photoURL := c.FormValue("photo_url")
 		isBorrowableStr := c.FormValue("is_borrowable")
+
+		var fundingSourceID *int
+		if fsStr := c.FormValue("funding_source_id"); fsStr != "" {
+			if id, err := strconv.Atoi(fsStr); err == nil && id > 0 {
+				fundingSourceID = &id
+			}
+		}
+
+		var locationID *int
+		if locStr := c.FormValue("location_id"); locStr != "" {
+			if id, err := strconv.Atoi(locStr); err == nil && id > 0 {
+				locationID = &id
+			}
+		}
+
+		var picStaffID *int
+		if picStr := c.FormValue("pic_staff_id"); picStr != "" {
+			if id, err := strconv.Atoi(picStr); err == nil && id > 0 {
+				picStaffID = &id
+			}
+		}
 
 		if categoryID == "" || name == "" {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Category and name are required"})

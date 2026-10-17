@@ -1,101 +1,203 @@
 <!DOCTYPE html>
 <html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - SMK NIBA Super Apps Admin</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        .fade-in-up { animation: fadeInUp 0.8s ease-out; }
-        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-    </style>
-</head>
-<body class="bg-white font-sans min-h-screen flex">
 
-    <!-- BAGIAN KIRI: Gambar -->
-    <div class="hidden md:flex md:w-1/2 bg-blue-900 relative items-center justify-center overflow-hidden">
-        <img src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop" 
-             alt="School Hallway" 
-             class="absolute inset-0 w-full h-full object-cover opacity-40 mix-blend-overlay">
-        <div class="absolute inset-0 bg-gradient-to-br from-blue-600/90 to-slate-900/90 mix-blend-multiply"></div>
-        <div class="relative z-10 text-center px-12 text-white max-w-lg fade-in-up">
-            <div class="mb-6 inline-flex items-center justify-center w-20 h-20 bg-white/10 rounded-2xl backdrop-blur-md border border-white/20 shadow-2xl">
-                <i data-lucide="bell-ring" class="w-10 h-10 text-white"></i>
-            </div>
-            <h2 class="text-4xl font-bold mb-4 tracking-tight">SMK NIBA Super Apps System</h2>
-            <p class="text-blue-100 text-lg leading-relaxed font-light">
-                Kelola jadwal bel sekolah, audio pengumuman, dan perangkat tablet dalam satu dashboard.
-            </p>
-        </div>
-    </div>
-
-    <!-- BAGIAN KANAN: Form Login -->
-    <div class="w-full md:w-1/2 flex items-center justify-center p-8 bg-white relative">
-        <div class="w-full max-w-md space-y-8 fade-in-up" style="animation-delay: 0.2s;">
-            <div class="text-left">
-                <h3 class="text-3xl font-bold text-slate-900 mb-2">Selamat Datang 👋</h3>
-                <p class="text-slate-500">Silakan masukkan detail akun admin Anda.</p>
-            </div>
-
-            <!-- FORM LOGIN: Menggunakan metode POST standar -->
-            <form action="/api/login" method="POST" class="space-y-6">
-                
-                <!-- Alert Error (Ditampilkan jika ada parameter ?error=1 di URL) -->
-                <div id="login-error" class="hidden bg-red-50 text-red-600 text-sm p-4 rounded-xl flex items-center gap-3 border border-red-100 animate-pulse">
-                    <i data-lucide="alert-circle" class="w-5 h-5 shrink-0"></i>
-                    <span>Username atau password salah.</span>
-                </div>
-
-                <div class="space-y-5">
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-2">Username</label>
-                        <div class="relative group">
-                            <span class="absolute left-4 top-3.5 text-slate-400 group-focus-within:text-blue-600 transition-colors"><i data-lucide="user" class="w-5 h-5"></i></span>
-                            <input type="text" name="username" placeholder="admin" required class="w-full pl-12 pr-4 py-3.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition bg-slate-50 focus:bg-white">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-2">Password</label>
-                        <div class="relative group">
-                            <span class="absolute left-4 top-3.5 text-slate-400 group-focus-within:text-blue-600 transition-colors"><i data-lucide="lock" class="w-5 h-5"></i></span>
-                            <input type="password" name="password" placeholder="••••••••" required class="w-full pl-12 pr-4 py-3.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition bg-slate-50 focus:bg-white">
-                        </div>
-                    </div>
-                </div>
-
-                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-xl shadow-blue-600/20 transition-all transform active:scale-[0.99] flex justify-center items-center gap-2 text-lg">
-                    Masuk Dashboard <i data-lucide="arrow-right" class="w-5 h-5"></i>
-                </button>
-            </form>
-
-            <div class="pt-6 text-center text-sm text-slate-400">&copy; 2026 {{.AppName}} {{.AppVersion}}</div>
-            <div class="text-center text-xs text-slate-300">Build {{.BuildDate}} · {{.GitCommit}}</div>
-        </div>
-    </div>
-
-    <script>
-        lucide.createIcons();
-
-        // Cek URL parameter untuk menampilkan error
-        const urlParams = new URLSearchParams(window.location.search);
-        const errorDiv = document.getElementById('login-error');
-        const errorMessage = errorDiv.querySelector('span');
-
-        if (urlParams.has('error')) {
-            errorDiv.classList.remove('hidden');
-            const errCode = urlParams.get('error');
-            
-            if (errCode === '1') {
-                errorMessage.textContent = "Username atau Password salah!";
-            } else if (errCode === 'session_missing') {
-                errorMessage.textContent = "Browser menolak menyimpan cookie. Coba gunakan Chrome/Edge biasa (bukan Incognito) atau matikan blocker.";
-            } else if (errCode === 'session_invalid') {
-                errorMessage.textContent = "Sesi kadaluarsa. Silakan login ulang.";
-            } else {
-                errorMessage.textContent = "Terjadi kesalahan: " + errCode;
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Login - SMK NIBA Super Apps Admin</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script src="https://unpkg.com/lucide@latest"></script>
+        <script>
+            tailwind.config = {
+                darkMode: 'class',
+                theme: {
+                    extend: {
+                        colors: {
+                            zinc: {
+                                50: '#fafafa',
+                                100: '#f4f4f5',
+                                200: '#e4e4e7',
+                                300: '#d4d4d8',
+                                400: '#a1a1aa',
+                                500: '#71717a',
+                                600: '#52525b',
+                                700: '#3f3f46',
+                                800: '#27272a',
+                                900: '#18181b',
+                                950: '#09090b',
+                            }
+                        },
+                        fontFamily: {
+                            sans: ['Inter', 'system-ui', 'sans-serif'],
+                            mono: ['JetBrains Mono', 'monospace']
+                        }
+                    }
+                }
             }
-        }
-    </script>
-</body>
+        </script>
+        <script>
+            if (localStorage.getItem('app-theme') === 'dark' || (!localStorage.getItem('app-theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        </script>
+    </head>
+
+    <body class="bg-zinc-50 dark:bg-zinc-950 font-sans min-h-screen flex text-zinc-900 dark:text-zinc-100 antialiased">
+
+        <!-- BAGIAN KIRI: Showcase Panel (Shadcn Auth Style) -->
+        <div class="hidden lg:flex lg:w-1/2 bg-zinc-950 text-white relative flex-col justify-between p-12 overflow-hidden border-r border-zinc-800">
+            <!-- Background Gradients & Grid Pattern -->
+            <div class="absolute inset-0 bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:24px_24px] opacity-25"></div>
+            <div class="absolute -top-40 -left-40 w-96 h-96 bg-zinc-800/40 rounded-full blur-3xl pointer-events-none"></div>
+
+            <!-- Top Logo -->
+            <div class="relative z-10 flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-white text-zinc-950 flex items-center justify-center font-bold shadow-xs">
+                    <i data-lucide="bell" class="w-4 h-4"></i>
+                </div>
+                <div class="flex flex-col">
+                    <span class="font-bold text-sm tracking-tight text-white">SMK NIBA Business School</span>
+                    <span class="text-[10px] text-zinc-400 font-mono">Super Apps Ecosystem</span>
+                </div>
+            </div>
+
+            <!-- Central Pitch -->
+            <div class="relative z-10 max-w-md space-y-4">
+                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono font-medium bg-zinc-900 border border-zinc-800 text-zinc-300">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>Admin Command Center</span>
+                </div>
+                <h2 class="text-3xl font-extrabold tracking-tight text-white leading-tight">
+                    Presensi Kios, Jadwal Bel Cerdas, & Karakter Siswa Terintegrasi.
+                </h2>
+                <p class="text-zinc-400 text-sm leading-relaxed">
+                    Satu portal terpusat untuk monitoring kehadiran RFID/Face recognition, otomasi bel sekolah audio, dan manajemen poin kesiswaan 3 Reka.
+                </p>
+            </div>
+
+            <!-- Bottom Quote / Build Info -->
+            <div class="relative z-10 flex items-center justify-between text-xs text-zinc-500 border-t border-zinc-900 pt-6">
+                <span class="font-mono">{{.AppName}} v{{.AppVersion}}</span>
+                <span class="font-mono">Commit: {{slice .GitCommit 0 7}}</span>
+            </div>
+        </div>
+
+        <!-- BAGIAN KANAN: Form Login -->
+        <div class="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 relative bg-white dark:bg-zinc-900">
+            <div class="w-full max-w-sm space-y-6">
+                <!-- Mobile Branding Header (visible < lg) -->
+                <div class="lg:hidden flex items-center gap-2.5 pb-2">
+                    <div class="w-8 h-8 rounded-lg bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900 flex items-center justify-center font-bold shadow-xs">
+                        <i data-lucide="bell" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <div class="font-bold text-sm tracking-tight text-zinc-900 dark:text-zinc-100">SMK NIBA Business School</div>
+                        <div class="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono">Super Apps Admin</div>
+                    </div>
+                </div>
+
+                <div class="space-y-1.5">
+                    <h3 class="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">Masuk Akun Admin</h3>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400">Masukkan kredensial administrator untuk mengakses panel kontrol.</p>
+                </div>
+
+                <!-- FORM LOGIN: Menggunakan metode POST standar -->
+                <form action="/api/login" method="POST" class="space-y-4">
+
+                    <!-- Alert Error (Ditampilkan jika ada parameter ?error=1 di URL) -->
+                    <div id="login-error"
+                        class="hidden bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 text-xs p-3.5 rounded-lg flex items-center gap-2.5 border border-rose-200 dark:border-rose-900/50">
+                        <i data-lucide="alert-circle" class="w-4 h-4 shrink-0"></i>
+                        <span class="font-medium">Username atau password salah.</span>
+                    </div>
+
+                    <div class="space-y-3.5">
+                        <div>
+                            <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Username</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-2.5 text-zinc-400">
+                                    <i data-lucide="user" class="w-4 h-4"></i>
+                                </span>
+                                <input type="text" name="username" placeholder="admin" required autofocus
+                                    class="w-full pl-9 pr-3 py-2 bg-transparent dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-950/20 dark:focus:ring-zinc-300/20 focus:border-zinc-900 dark:focus:border-zinc-100 transition-all">
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300">Password</label>
+                            </div>
+                            <div class="relative">
+                                <span class="absolute left-3 top-2.5 text-zinc-400">
+                                    <i data-lucide="lock" class="w-4 h-4"></i>
+                                </span>
+                                <input type="password" id="admin-password" name="password" placeholder="••••••••"
+                                    required autocomplete="current-password"
+                                    class="w-full pl-9 pr-10 py-2 bg-transparent dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-950/20 dark:focus:ring-zinc-300/20 focus:border-zinc-900 dark:focus:border-zinc-100 transition-all">
+                                <button type="button" onclick="toggleAdminPassword()"
+                                    class="absolute right-3 top-2.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 focus:outline-none transition-colors"
+                                    aria-label="Lihat Password" title="Lihat/Sembunyikan Password">
+                                    <i id="password-toggle-icon" data-lucide="eye" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit"
+                        class="w-full bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 font-medium py-2.5 px-4 rounded-lg shadow-xs transition-colors flex justify-center items-center gap-2 text-xs">
+                        <span>Masuk ke Dashboard</span>
+                        <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                    </button>
+                </form>
+
+                <div class="pt-4 border-t border-zinc-100 dark:border-zinc-800 flex flex-col gap-1 text-center">
+                    <div class="text-[11px] text-zinc-400 dark:text-zinc-500">&copy; 2026 {{.AppName}} {{.AppVersion}}</div>
+                    <div class="text-[10px] font-mono text-zinc-400 dark:text-zinc-500">Build {{.BuildDate}} · {{slice .GitCommit 0 7}}</div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            lucide.createIcons();
+
+            // Cek URL parameter untuk menampilkan error
+            const urlParams = new URLSearchParams(window.location.search);
+            const errorDiv = document.getElementById('login-error');
+            const errorMessage = errorDiv.querySelector('span');
+
+            if (urlParams.has('error')) {
+                errorDiv.classList.remove('hidden');
+                const errCode = urlParams.get('error');
+
+                if (errCode === '1') {
+                    errorMessage.textContent = "Username atau Password salah!";
+                } else if (errCode === 'session_missing') {
+                    errorMessage.textContent = "Browser menolak menyimpan cookie. Coba gunakan browser biasa atau matikan blocker.";
+                } else if (errCode === 'session_invalid') {
+                    errorMessage.textContent = "Sesi kadaluarsa. Silakan login ulang.";
+                } else {
+                    errorMessage.textContent = "Terjadi kesalahan: " + errCode;
+                }
+            }
+
+            function toggleAdminPassword() {
+                const input = document.getElementById('admin-password');
+                const icon = document.getElementById('password-toggle-icon');
+                if (!input || !icon) return;
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.setAttribute('data-lucide', 'eye-off');
+                } else {
+                    input.type = 'password';
+                    icon.setAttribute('data-lucide', 'eye');
+                }
+                lucide.createIcons();
+            }
+        </script>
+    </body>
+
 </html>

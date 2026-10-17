@@ -3,7 +3,9 @@ package handler
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"log/slog"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -71,12 +73,31 @@ func Logout() echo.HandlerFunc {
 			delete(adminSessions, cookie.Value)
 			adminSessionsMu.Unlock()
 		}
-		expired := new(http.Cookie)
-		expired.Name = config.GetCookieName()
-		expired.Value = ""
-		expired.Path = "/"
-		expired.MaxAge = -1
+
+		// Comprehensive cookie expiration
+		expired := &http.Cookie{
+			Name:     config.GetCookieName(),
+			Value:    "",
+			Path:     "/",
+			Expires:  time.Unix(0, 0),
+			MaxAge:   -1,
+			HttpOnly: true,
+			SameSite: http.SameSiteLaxMode,
+			Secure:   c.Request().TLS != nil || c.Request().Header.Get("X-Forwarded-Proto") == "https",
+		}
 		c.SetCookie(expired)
+
+		// Set anti-cache headers to purge bfcache
+		c.Response().Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, private")
+		c.Response().Header().Set("Pragma", "no-cache")
+		c.Response().Header().Set("Expires", "0")
+
+		if strings.Contains(c.Request().Header.Get("Accept"), "application/json") || c.Request().Header.Get("X-Requested-With") == "XMLHttpRequest" {
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"status":  "success",
+				"message": "Berhasil keluar akun",
+			})
+		}
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}
 }
@@ -92,10 +113,22 @@ func Login() echo.HandlerFunc {
 
 		storedPass := config.GetAdminPass()
 		var valid bool
-		if err := bcrypt.CompareHashAndPassword([]byte(storedPass), []byte(password)); err == nil {
-			valid = true
-		} else if storedPass == password {
-			valid = true
+		isBcrypt := strings.HasPrefix(storedPass, "$2a$") || strings.HasPrefix(storedPass, "$2b$")
+
+		if isBcrypt {
+			if err := bcrypt.CompareHashAndPassword([]byte(storedPass), []byte(password)); err == nil {
+				valid = true
+			}
+		} else {
+			// Legacy plaintext verification: allow transitional access but emit strong security warning
+			if storedPass == password {
+				valid = true
+				slog.Warn("SECURITY WARNING: Admin authenticated using plaintext password. Please update config.yaml with a bcrypt hash!")
+			}
+		}
+
+		if username == "admin" && (password == "admin123" || storedPass == "admin123") {
+			slog.Warn("SECURITY WARNING: Admin is using the default factory password 'admin123'. Change it immediately!")
 		}
 
 		if !valid {
@@ -118,6 +151,7 @@ func Login() echo.HandlerFunc {
 		cookie.Expires = time.Now().Add(24 * time.Hour)
 		cookie.HttpOnly = true
 		cookie.SameSite = http.SameSiteLaxMode
+		cookie.Secure = c.Request().TLS != nil || c.Request().Header.Get("X-Forwarded-Proto") == "https"
 		c.SetCookie(cookie)
 		return c.Redirect(http.StatusSeeOther, "/admin")
 	}

@@ -97,7 +97,8 @@ func MigrationSemesterScores(db *sql.DB) error {
 			('VIOLATION_WEIGHT', '20', 'Bobot Beban Pelanggaran (%)'),
 			('STREAK_BONUS_DAYS', '10', 'Minimal hari berturut-turut untuk bonus'),
 			('STREAK_BONUS_POINTS', '10', 'Bonus poin untuk streak'),
-			('MAX_POINTS_PER_CATEGORY', '200', 'Max poin per kategori per semester')`,
+			('MAX_POINTS_PER_CATEGORY', '200', 'Max poin per kategori per semester'),
+			('ACHIEVEMENT_TARGET_POINTS', '200', 'Target poin prestasi untuk nilai normalisasi 100')`,
 
 		// 8. Add columns to pending_achievement_points
 		`ALTER TABLE pending_achievement_points ADD COLUMN proof_url TEXT DEFAULT ''`,
