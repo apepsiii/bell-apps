@@ -3,6 +3,7 @@ package handler
 import (
 	"database/sql"
 	"net/http"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 
@@ -16,7 +17,15 @@ func AddStaff(db *sql.DB) echo.HandlerFunc {
 		name := c.FormValue("name")
 		phone := utils.FormatPhone(c.FormValue("phone"))
 		role := c.FormValue("role")
-		_, err := db.Exec("INSERT INTO staff (rfid_uid, nip, name, phone, role) VALUES (?, ?, ?, ?, ?)", rfid, nip, name, phone, role)
+		gender := strings.ToUpper(strings.TrimSpace(c.FormValue("gender")))
+		if gender != "P" && gender != "L" {
+			if DetermineStaffHonorific("", name) == "Ibu" {
+				gender = "P"
+			} else {
+				gender = "L"
+			}
+		}
+		_, err := db.Exec("INSERT INTO staff (rfid_uid, nip, name, phone, role, gender) VALUES (?, ?, ?, ?, ?, ?)", rfid, nip, name, phone, role, gender)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
 		}
@@ -32,7 +41,11 @@ func UpdateStaff(db *sql.DB) echo.HandlerFunc {
 		name := c.FormValue("name")
 		phone := utils.FormatPhone(c.FormValue("phone"))
 		role := c.FormValue("role")
-		_, err := db.Exec("UPDATE staff SET rfid_uid=?, nip=?, name=?, phone=?, role=? WHERE id=?", rfid, nip, name, phone, role, id)
+		gender := strings.ToUpper(strings.TrimSpace(c.FormValue("gender")))
+		if gender != "P" && gender != "L" {
+			gender = "L"
+		}
+		_, err := db.Exec("UPDATE staff SET rfid_uid=?, nip=?, name=?, phone=?, role=?, gender=? WHERE id=?", rfid, nip, name, phone, role, gender, id)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
 		}

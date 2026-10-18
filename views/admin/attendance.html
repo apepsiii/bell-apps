@@ -3,16 +3,20 @@
 <div
     class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-zinc-900/60 p-5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs">
     <div>
-        <h1 class="text-xl font-bold text-zinc-900 dark:text-zinc-100">Kontrol Presensi Siswa</h1>
-        <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Monitoring kehadiran harian, tap RFID gerbang, dan input
-            presensi sholat berjamaah</p>
+        <h1 class="text-xl font-bold text-zinc-900 dark:text-zinc-100">Kontrol Presensi Siswa & Staff</h1>
+        <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Monitoring kehadiran harian siswa, guru & staff, tap RFID gerbang, scan wajah, dan presensi sholat</p>
     </div>
     <div class="flex flex-wrap items-center gap-2">
-        <button onclick="openModal('modal-manual-attendance')"
+        <button type="button" onclick="openCurrentManualModal()"
             class="px-3.5 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all">
             <i data-lucide="clipboard-list" class="w-3.5 h-3.5"></i>
-            <span>Presensi Manual</span>
+            <span id="btn-manual-label">Presensi Manual</span>
         </button>
+        <a href="/scan-face" target="_blank"
+            class="px-3.5 py-1.5 bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 dark:hover:bg-purple-900/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all">
+            <i data-lucide="scan-face" class="w-3.5 h-3.5"></i>
+            <span>Kiosk Wajah</span>
+        </a>
         <a href="/scan" target="_blank"
             class="px-3.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all">
             <i data-lucide="scan-line" class="w-3.5 h-3.5"></i>
@@ -23,7 +27,7 @@
             <i data-lucide="heart-handshake" class="w-3.5 h-3.5"></i>
             <span>Terminal Sholat</span>
         </a>
-        <button onclick="openModal('modal-att-settings')"
+        <button type="button" onclick="openModal('modal-att-settings')"
             class="px-3.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all">
             <i data-lucide="settings" class="w-3.5 h-3.5"></i>
             <span>Pengaturan Jam</span>
@@ -31,159 +35,451 @@
     </div>
 </div>
 
-<!-- Attendance Stats Cards -->
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-    <div class="bg-white dark:bg-zinc-900/60 p-5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between">
-        <div>
-            <p class="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Sudah Presensi Hari Ini</p>
-            <h3 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight mt-1">{{len .PresentStudents}} <span
-                    class="text-xs font-medium text-zinc-400 dark:text-zinc-500">Siswa</span></h3>
-            <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Tap masuk & presensi manual</p>
+<!-- Tab Navigation: Presensi Siswa vs Presensi Guru & Staff -->
+<div class="flex items-center gap-2 border-b border-zinc-200/80 dark:border-zinc-800 pb-2">
+    <button type="button" onclick="switchAttTab('students')" id="tab-btn-students"
+        class="px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900 shadow-xs">
+        <i data-lucide="graduation-cap" class="w-4 h-4"></i>
+        <span>Presensi Siswa</span>
+        <span class="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-white/20 dark:bg-zinc-900/20">{{len .PresentStudents}}/{{.Stats.TotalStudents}}</span>
+    </button>
+    <button type="button" onclick="switchAttTab('staff')" id="tab-btn-staff"
+        class="px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300">
+        <i data-lucide="briefcase" class="w-4 h-4"></i>
+        <span>Presensi Guru & Staff</span>
+        <span class="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-zinc-200 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-200">{{.StaffAttendanceStats.PresentStaff}}/{{.StaffAttendanceStats.TotalStaff}}</span>
+    </button>
+</div>
+
+<!-- ========================================== -->
+<!-- TAB 1: PRESENSI SISWA                      -->
+<!-- ========================================== -->
+<div id="att-tab-students" class="space-y-6">
+    <!-- Attendance Stats Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+        <div class="bg-white dark:bg-zinc-900/60 p-5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between">
+            <div>
+                <p class="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Sudah Presensi Hari Ini</p>
+                <h3 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight mt-1">{{len .PresentStudents}} <span
+                        class="text-xs font-medium text-zinc-400 dark:text-zinc-500">Siswa</span></h3>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Tap masuk, scan wajah & manual</p>
+            </div>
+            <div class="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200/60 dark:border-emerald-800/40">
+                <i data-lucide="user-check" class="w-5 h-5"></i>
+            </div>
         </div>
-        <div class="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200/60 dark:border-emerald-800/40">
-            <i data-lucide="user-check" class="w-5 h-5"></i>
+
+        <div class="bg-white dark:bg-zinc-900/60 p-5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between">
+            <div>
+                <p class="text-[11px] font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider">Belum Presensi / Alpha</p>
+                <h3 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight mt-1">{{len .AbsentStudents}} <span
+                        class="text-xs font-medium text-zinc-400 dark:text-zinc-500">Siswa</span></h3>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Belum melakukan presensi hari ini</p>
+            </div>
+            <div class="w-10 h-10 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center border border-rose-200/60 dark:border-rose-800/40">
+                <i data-lucide="user-x" class="w-5 h-5"></i>
+            </div>
+        </div>
+
+        <div
+            class="bg-white dark:bg-zinc-900/60 p-5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between sm:col-span-2 lg:col-span-1">
+            <div>
+                <p class="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Total Siswa Terdaftar</p>
+                <h3 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight mt-1">{{.Stats.TotalStudents}} <span
+                        class="text-xs font-medium text-zinc-400 dark:text-zinc-500">Siswa</span></h3>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">{{.Stats.ActiveStudents}} Siswa aktif terdata</p>
+            </div>
+            <div class="w-10 h-10 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 flex items-center justify-center border border-zinc-200/60 dark:border-zinc-700/60">
+                <i data-lucide="users" class="w-5 h-5"></i>
+            </div>
         </div>
     </div>
 
-    <div class="bg-white dark:bg-zinc-900/60 p-5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between">
-        <div>
-            <p class="text-[11px] font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider">Belum Presensi / Alpha</p>
-            <h3 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight mt-1">{{len .AbsentStudents}} <span
-                    class="text-xs font-medium text-zinc-400 dark:text-zinc-500">Siswa</span></h3>
-            <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Belum melakukan tap kartu gerbang</p>
+    <!-- Two-Column Real-time Attendance Feed -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Left: Belum Datang (Actionable) -->
+        <div class="bg-white dark:bg-zinc-900/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex flex-col h-[520px]">
+            <div class="p-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-3">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                    <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Belum Hadir ({{len .AbsentStudents}})</h3>
+                </div>
+                <input type="text" placeholder="Cari nama siswa..."
+                    class="text-xs bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all"
+                    onkeyup="filterTable(this, 'table-absent')">
+            </div>
+            <div class="overflow-y-auto flex-1">
+                <table class="w-full text-left" id="table-absent">
+                    <thead class="bg-zinc-50/80 dark:bg-zinc-900/80 border-b border-zinc-100 dark:border-zinc-800 sticky top-0 text-zinc-500 dark:text-zinc-400">
+                        <tr>
+                            <th class="px-4 py-2.5 text-[11px] font-semibold uppercase">Nama Siswa</th>
+                            <th class="px-4 py-2.5 text-[11px] font-semibold uppercase">Kelas</th>
+                            <th class="px-4 py-2.5 text-[11px] font-semibold uppercase text-right">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+                        {{range .AbsentStudents}}
+                        <tr class="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/30 transition-colors">
+                            <td class="px-4 py-2.5 text-xs font-semibold text-zinc-900 dark:text-zinc-100">{{.Name}}</td>
+                            <td class="px-4 py-2.5 text-xs text-zinc-500 dark:text-zinc-400">{{.ClassName}}</td>
+                            <td class="px-4 py-2.5 text-right">
+                                <button type="button" onclick="quickManualModal('{{.ID}}', '{{.Name}}')"
+                                    class="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 text-xs font-medium rounded-md shadow-xs transition-colors">Proses</button>
+                            </td>
+                        </tr>
+                        {{else}}
+                        <tr>
+                            <td colspan="3" class="px-4 py-16 text-center text-zinc-400 dark:text-zinc-500 text-xs">Semua siswa
+                                sudah presensi hari ini.</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
         </div>
-        <div class="w-10 h-10 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center border border-rose-200/60 dark:border-rose-800/40">
-            <i data-lucide="user-x" class="w-5 h-5"></i>
+
+        <!-- Right: Sudah Masuk (Live Logs) -->
+        <div class="bg-white dark:bg-zinc-900/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex flex-col h-[520px]">
+            <div class="p-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-3">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Riwayat Masuk Hari Ini ({{len .PresentStudents}})</h3>
+                </div>
+                <input type="text" placeholder="Cari nama..."
+                    class="text-xs bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all"
+                    onkeyup="filterTable(this, 'table-present')">
+            </div>
+            <div class="overflow-y-auto flex-1">
+                <table class="w-full text-left" id="table-present">
+                    <thead class="bg-zinc-50/80 dark:bg-zinc-900/80 border-b border-zinc-100 dark:border-zinc-800 sticky top-0 text-zinc-500 dark:text-zinc-400">
+                        <tr>
+                            <th class="px-4 py-2.5 text-[11px] font-semibold uppercase">Waktu</th>
+                            <th class="px-4 py-2.5 text-[11px] font-semibold uppercase">Siswa</th>
+                            <th class="px-4 py-2.5 text-[11px] font-semibold uppercase text-right">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+                        {{range .PresentStudents}}
+                        <tr class="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/30 transition-colors">
+                            <td class="px-4 py-2.5 text-xs font-mono font-medium text-zinc-500 dark:text-zinc-400">{{.Time}}</td>
+                            <td class="px-4 py-2.5">
+                                <div class="flex items-center gap-2.5">
+                                    {{if .Photo}}
+                                    <img src="/assets/photos/{{.Photo}}"
+                                        class="w-6 h-6 rounded-full object-cover border border-zinc-200 dark:border-zinc-700 flex-shrink-0">
+                                    {{else}}
+                                    <div
+                                        class="w-6 h-6 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                                        <i data-lucide="user" class="w-3 h-3"></i>
+                                    </div>
+                                    {{end}}
+                                    <div class="min-w-0">
+                                        <div class="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate flex items-center gap-1.5">
+                                            <span>{{.Name}}</span>
+                                            {{if eq .Method "MANUAL"}}
+                                            <span
+                                                class="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60">Manual</span>
+                                            {{else if eq .Method "FACE"}}
+                                            <span
+                                                class="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-semibold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800/60">Wajah</span>
+                                            {{end}}
+                                        </div>
+                                        <div class="text-[10px] text-zinc-400 dark:text-zinc-500 truncate">{{.ClassName}}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-4 py-2.5 text-right">
+                                {{if eq .Status "Datang"}}
+                                <span
+                                    class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">Hadir</span>
+                                {{else if eq .Status "Terlambat"}}
+                                <span
+                                    class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60">Terlambat</span>
+                                {{else if eq .Status "Sakit"}}
+                                <span
+                                    class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/60">Sakit</span>
+                                {{else if eq .Status "Izin"}}
+                                <span
+                                    class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800/60">Izin</span>
+                                {{else}}
+                                <span
+                                    class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">{{.Status}}</span>
+                                {{end}}
+                            </td>
+                        </tr>
+                        {{else}}
+                        <tr>
+                            <td colspan="3" class="px-4 py-16 text-center text-zinc-400 dark:text-zinc-500 text-xs">Belum ada
+                                catatan presensi masuk hari ini.</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
-    <div
-        class="bg-white dark:bg-zinc-900/60 p-5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between sm:col-span-2 lg:col-span-1">
-        <div>
-            <p class="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Total Siswa Terdaftar</p>
-            <h3 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight mt-1">{{.Stats.TotalStudents}} <span
-                    class="text-xs font-medium text-zinc-400 dark:text-zinc-500">Siswa</span></h3>
-            <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">{{.Stats.ActiveStudents}} Siswa aktif terdata</p>
+    <!-- Prayer Attendance Section -->
+    <div class="bg-white dark:bg-zinc-900/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs p-5 sm:p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 dark:border-zinc-800 pb-4 mb-4">
+            <div>
+                <h3 class="font-semibold text-base text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                    <i data-lucide="heart-handshake" class="w-4.5 h-4.5 text-zinc-700 dark:text-zinc-300"></i>
+                    Presensi Sholat Berjamaah
+                </h3>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Input kehadiran sholat Dzuhur dan Ashar per kelas</p>
+            </div>
         </div>
-        <div class="w-10 h-10 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 flex items-center justify-center border border-zinc-200/60 dark:border-zinc-700/60">
-            <i data-lucide="users" class="w-5 h-5"></i>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Kelas</label>
+                <select id="prayer-class-select"
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                    <option value="">-- Pilih Kelas --</option>
+                    {{range .Classes}}
+                    <option value="{{.ID}}">{{.Name}}</option>
+                    {{end}}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Waktu Sholat</label>
+                <select id="prayer-time-select"
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                    <option value="Dzuhur">Dzuhur</option>
+                    <option value="Ashar">Ashar</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Tanggal</label>
+                <input type="date" id="prayer-date-input"
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+            </div>
+            <div class="flex items-end">
+                <button type="button" onclick="loadPrayerStudents()"
+                    class="w-full px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 shadow-xs transition-all">
+                    <i data-lucide="search" class="w-3.5 h-3.5"></i>
+                    <span>Muat Siswa</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="prayer-students-container" class="hidden">
+            <form id="prayer-attendance-form" onsubmit="submitBulkPrayerAttendance(event)">
+                <div class="overflow-x-auto border border-zinc-200 dark:border-zinc-800 rounded-lg mb-4">
+                    <table class="w-full text-left" id="prayer-table">
+                        <thead class="bg-zinc-50/80 dark:bg-zinc-900/80 border-b border-zinc-100 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400">
+                            <tr>
+                                <th class="px-4 py-2.5 w-10 text-center">
+                                    <input type="checkbox" id="prayer-check-all" onchange="togglePrayerCheckAll(this)"
+                                        class="rounded border-zinc-300 dark:border-zinc-700 text-zinc-900 focus:ring-zinc-950/20">
+                                </th>
+                                <th class="px-4 py-2.5 text-[11px] font-semibold uppercase">NIS</th>
+                                <th class="px-4 py-2.5 text-[11px] font-semibold uppercase">Nama Siswa</th>
+                                <th class="px-4 py-2.5 text-[11px] font-semibold uppercase">Status Kehadiran</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800/80" id="prayer-students-tbody"></tbody>
+                    </table>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="submit"
+                        class="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-semibold shadow-xs transition-all">Simpan
+                        Presensi Sholat</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
-<!-- Two-Column Real-time Attendance Feed -->
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <!-- Left: Belum Datang (Actionable) -->
-    <div class="bg-white dark:bg-zinc-900/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex flex-col h-[520px]">
-        <div class="p-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-3">
-            <div class="flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-rose-500"></span>
-                <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Belum Hadir ({{len .AbsentStudents}})</h3>
+<!-- ========================================== -->
+<!-- TAB 2: PRESENSI GURU & STAFF               -->
+<!-- ========================================== -->
+<div id="att-tab-staff" class="space-y-6 hidden">
+    <!-- Staff Stats Cards (4 Metrics) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        <div class="bg-white dark:bg-zinc-900/60 p-5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between">
+            <div>
+                <p class="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Total Guru & Staff</p>
+                <h3 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight mt-1">{{.StaffAttendanceStats.TotalStaff}} <span
+                        class="text-xs font-medium text-zinc-400 dark:text-zinc-500">Orang</span></h3>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Pendidik & Tenaga Kependidikan</p>
             </div>
-            <input type="text" placeholder="Cari nama siswa..."
-                class="text-xs bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all"
-                onkeyup="filterTable(this, 'table-absent')">
+            <div class="w-10 h-10 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 flex items-center justify-center border border-zinc-200/60 dark:border-zinc-700/60">
+                <i data-lucide="users" class="w-5 h-5"></i>
+            </div>
         </div>
-        <div class="overflow-y-auto flex-1">
-            <table class="w-full text-left" id="table-absent">
-                <thead class="bg-zinc-50/80 dark:bg-zinc-900/80 border-b border-zinc-100 dark:border-zinc-800 sticky top-0 text-zinc-500 dark:text-zinc-400">
-                    <tr>
-                        <th class="px-4 py-2.5 text-[11px] font-semibold uppercase">Nama Siswa</th>
-                        <th class="px-4 py-2.5 text-[11px] font-semibold uppercase">Kelas</th>
-                        <th class="px-4 py-2.5 text-[11px] font-semibold uppercase text-right">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800/80">
-                    {{range .AbsentStudents}}
-                    <tr class="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/30 transition-colors">
-                        <td class="px-4 py-2.5 text-xs font-semibold text-zinc-900 dark:text-zinc-100">{{.Name}}</td>
-                        <td class="px-4 py-2.5 text-xs text-zinc-500 dark:text-zinc-400">{{.ClassName}}</td>
-                        <td class="px-4 py-2.5 text-right">
-                            <button type="button" onclick="quickManualModal('{{.ID}}', '{{.Name}}')"
-                                class="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 text-xs font-medium rounded-md shadow-xs transition-colors">Proses</button>
-                        </td>
-                    </tr>
-                    {{else}}
-                    <tr>
-                        <td colspan="3" class="px-4 py-16 text-center text-zinc-400 dark:text-zinc-500 text-xs">Semua siswa
-                            sudah presensi hari ini.</td>
-                    </tr>
-                    {{end}}
-                </tbody>
-            </table>
+
+        <div class="bg-white dark:bg-zinc-900/60 p-5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between">
+            <div>
+                <p class="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Hadir Tepat Waktu</p>
+                <h3 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight mt-1">{{.StaffAttendanceStats.OnTimeStaff}} <span
+                        class="text-xs font-medium text-zinc-400 dark:text-zinc-500">Orang</span></h3>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Presensi sebelum batas jam datang</p>
+            </div>
+            <div class="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200/60 dark:border-emerald-800/40">
+                <i data-lucide="clock-check" class="w-5 h-5"></i>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-zinc-900/60 p-5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between">
+            <div>
+                <p class="text-[11px] font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Terlambat</p>
+                <h3 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight mt-1">{{.StaffAttendanceStats.LateStaff}} <span
+                        class="text-xs font-medium text-zinc-400 dark:text-zinc-500">Orang</span></h3>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Presensi melewati batas datang</p>
+            </div>
+            <div class="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-200/60 dark:border-amber-800/40">
+                <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-zinc-900/60 p-5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between">
+            <div>
+                <p class="text-[11px] font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider">Belum Hadir / Alpha</p>
+                <h3 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight mt-1">{{.StaffAttendanceStats.AbsentStaff}} <span
+                        class="text-xs font-medium text-zinc-400 dark:text-zinc-500">Orang</span></h3>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Belum tercatat tap/wajah</p>
+            </div>
+            <div class="w-10 h-10 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center border border-rose-200/60 dark:border-rose-800/40">
+                <i data-lucide="user-minus" class="w-5 h-5"></i>
+            </div>
         </div>
     </div>
 
-    <!-- Right: Sudah Masuk (Live Logs) -->
-    <div class="bg-white dark:bg-zinc-900/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex flex-col h-[520px]">
-        <div class="p-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-3">
+    <!-- Staff Attendance Monitoring Table Card -->
+    <div class="bg-white dark:bg-zinc-900/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex flex-col">
+        <!-- Table Header Toolbar -->
+        <div class="p-4 sm:p-5 border-b border-zinc-100 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div class="flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Riwayat Masuk Hari Ini ({{len .PresentStudents}})</h3>
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Monitoring Presensi Guru & Staff Hari Ini</h3>
             </div>
-            <input type="text" placeholder="Cari nama..."
-                class="text-xs bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all"
-                onkeyup="filterTable(this, 'table-present')">
+            <div class="flex flex-wrap items-center gap-2">
+                <input type="text" placeholder="Cari nama / NIP..."
+                    class="text-xs bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all w-48"
+                    onkeyup="filterTable(this, 'table-staff-attendance')">
+                <select id="staff-status-filter" onchange="filterStaffByStatus(this)"
+                    class="text-xs bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                    <option value="">Semua Status</option>
+                    <option value="Hadir">Hadir (Datang)</option>
+                    <option value="Terlambat">Terlambat</option>
+                    <option value="Belum Hadir">Belum Hadir</option>
+                    <option value="Sakit">Sakit</option>
+                    <option value="Izin">Izin</option>
+                    <option value="Alpha">Alpha</option>
+                </select>
+                <button type="button" onclick="openModal('modal-staff-manual')"
+                    class="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all">
+                    <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+                    <span>Input Presensi</span>
+                </button>
+                <a href="/admin/attendance/staff-export"
+                    class="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all">
+                    <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                    <span>Export CSV</span>
+                </a>
+            </div>
         </div>
-        <div class="overflow-y-auto flex-1">
-            <table class="w-full text-left" id="table-present">
-                <thead class="bg-zinc-50/80 dark:bg-zinc-900/80 border-b border-zinc-100 dark:border-zinc-800 sticky top-0 text-zinc-500 dark:text-zinc-400">
+
+        <!-- Table Responsive -->
+        <div class="overflow-x-auto">
+            <table class="w-full text-left" id="table-staff-attendance">
+                <thead class="bg-zinc-50/80 dark:bg-zinc-900/80 border-b border-zinc-100 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400">
                     <tr>
-                        <th class="px-4 py-2.5 text-[11px] font-semibold uppercase">Waktu</th>
-                        <th class="px-4 py-2.5 text-[11px] font-semibold uppercase">Siswa</th>
-                        <th class="px-4 py-2.5 text-[11px] font-semibold uppercase text-right">Status</th>
+                        <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Guru / Staff</th>
+                        <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Jabatan</th>
+                        <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Jam Masuk</th>
+                        <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Jam Pulang</th>
+                        <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Status</th>
+                        <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Metode</th>
+                        <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Catatan</th>
+                        <th class="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800/80">
-                    {{range .PresentStudents}}
-                    <tr class="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/30 transition-colors">
-                        <td class="px-4 py-2.5 text-xs font-mono font-medium text-zinc-500 dark:text-zinc-400">{{.Time}}</td>
-                        <td class="px-4 py-2.5">
+                    {{range .StaffAttendanceList}}
+                    <tr class="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/30 transition-colors staff-att-row" data-status="{{.Status}}">
+                        <td class="px-4 py-3">
                             <div class="flex items-center gap-2.5">
-                                {{if .Photo}}
-                                <img src="/assets/photos/{{.Photo}}"
-                                    class="w-6 h-6 rounded-full object-cover border border-zinc-200 dark:border-zinc-700 flex-shrink-0">
-                                {{else}}
-                                <div
-                                    class="w-6 h-6 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 flex items-center justify-center text-xs font-bold flex-shrink-0">
-                                    <i data-lucide="user" class="w-3 h-3"></i>
+                                <div class="w-7 h-7 rounded-full {{if eq .Gender "P"}}bg-pink-100 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300{{else}}bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300{{end}} flex items-center justify-center text-xs font-bold flex-shrink-0">
+                                    {{if eq .Gender "P"}}<i data-lucide="user" class="w-3.5 h-3.5"></i>{{else}}<i data-lucide="user" class="w-3.5 h-3.5"></i>{{end}}
                                 </div>
-                                {{end}}
                                 <div class="min-w-0">
-                                    <div class="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate flex items-center gap-1.5">
+                                    <div class="text-xs font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
                                         <span>{{.Name}}</span>
-                                        {{if eq .Method "MANUAL"}}
-                                        <span
-                                            class="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60">Manual</span>
-                                        {{end}}
+                                        <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-medium {{if eq .Gender "P"}}bg-pink-50 dark:bg-pink-950/40 text-pink-700 dark:text-pink-400 border border-pink-200 dark:border-pink-800/60{{else}}bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/60{{end}}">
+                                            {{.Honorific}}
+                                        </span>
                                     </div>
-                                    <div class="text-[10px] text-zinc-400 dark:text-zinc-500 truncate">{{.ClassName}}</div>
+                                    <div class="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono">NIP: {{if .NIP}}{{.NIP}}{{else}}-{{end}}</div>
                                 </div>
                             </div>
                         </td>
-                        <td class="px-4 py-2.5 text-right">
-                            {{if eq .Status "Datang"}}
-                            <span
-                                class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">Hadir</span>
+                        <td class="px-4 py-3 text-xs text-zinc-600 dark:text-zinc-400">{{.Role}}</td>
+                        <td class="px-4 py-3 text-xs font-mono font-medium {{if ne .CheckInTime "-"}}text-emerald-600 dark:text-emerald-400 font-semibold{{else}}text-zinc-400 dark:text-zinc-500{{end}}">
+                            {{.CheckInTime}}
+                        </td>
+                        <td class="px-4 py-3 text-xs font-mono font-medium {{if ne .CheckOutTime "-"}}text-blue-600 dark:text-blue-400 font-semibold{{else}}text-zinc-400 dark:text-zinc-500{{end}}">
+                            {{.CheckOutTime}}
+                        </td>
+                        <td class="px-4 py-3">
+                            {{if or (eq .Status "Datang") (eq .Status "Hadir")}}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">
+                                Hadir
+                            </span>
                             {{else if eq .Status "Terlambat"}}
-                            <span
-                                class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60">Terlambat</span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60">
+                                Terlambat
+                            </span>
                             {{else if eq .Status "Sakit"}}
-                            <span
-                                class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/60">Sakit</span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/60">
+                                Sakit
+                            </span>
                             {{else if eq .Status "Izin"}}
-                            <span
-                                class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800/60">Izin</span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800/60">
+                                Izin
+                            </span>
+                            {{else if eq .Status "Alpha"}}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800/60">
+                                Alpha
+                            </span>
                             {{else}}
-                            <span
-                                class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">{{.Status}}</span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60">
+                                Belum Hadir
+                            </span>
                             {{end}}
+                        </td>
+                        <td class="px-4 py-3 text-xs">
+                            {{if eq .Method "FACE"}}
+                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800/60">
+                                <i data-lucide="scan-face" class="w-3 h-3"></i> Wajah
+                            </span>
+                            {{else if eq .Method "RFID"}}
+                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/60">
+                                <i data-lucide="scan-line" class="w-3 h-3"></i> RFID
+                            </span>
+                            {{else if eq .Method "MANUAL"}}
+                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60">
+                                <i data-lucide="edit-3" class="w-3 h-3"></i> Manual
+                            </span>
+                            {{else}}
+                            <span class="text-zinc-400 dark:text-zinc-500 text-xs">-</span>
+                            {{end}}
+                        </td>
+                        <td class="px-4 py-3 text-xs text-zinc-500 dark:text-zinc-400 max-w-xs truncate">
+                            {{if .Note}}{{.Note}}{{else}}-{{end}}
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            <button type="button" onclick="quickStaffManual('{{.ID}}', '{{.Name}}')"
+                                class="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 text-xs font-medium rounded-md shadow-xs transition-colors">
+                                Proses
+                            </button>
                         </td>
                     </tr>
                     {{else}}
                     <tr>
-                        <td colspan="3" class="px-4 py-16 text-center text-zinc-400 dark:text-zinc-500 text-xs">Belum ada
-                            catatan presensi masuk hari ini.</td>
+                        <td colspan="8" class="px-4 py-16 text-center text-zinc-400 dark:text-zinc-500 text-xs">Belum ada data guru & staff terdaftar.</td>
                     </tr>
                     {{end}}
                 </tbody>
@@ -192,97 +488,27 @@
     </div>
 </div>
 
-<!-- Prayer Attendance Section -->
-<div class="bg-white dark:bg-zinc-900/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs p-5 sm:p-6">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 dark:border-zinc-800 pb-4 mb-4">
-        <div>
-            <h3 class="font-semibold text-base text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                <i data-lucide="heart-handshake" class="w-4.5 h-4.5 text-zinc-700 dark:text-zinc-300"></i>
-                Presensi Sholat Berjamaah
-            </h3>
-            <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Input kehadiran sholat Dzuhur dan Ashar per kelas</p>
-        </div>
-    </div>
+<!-- ========================================== -->
+<!-- MODALS                                     -->
+<!-- ========================================== -->
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-        <div>
-            <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Kelas</label>
-            <select id="prayer-class-select"
-                class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
-                <option value="">-- Pilih Kelas --</option>
-                {{range .Classes}}
-                <option value="{{.ID}}">{{.Name}}</option>
-                {{end}}
-            </select>
-        </div>
-        <div>
-            <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Waktu Sholat</label>
-            <select id="prayer-time-select"
-                class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
-                <option value="Dzuhur">Dzuhur</option>
-                <option value="Ashar">Ashar</option>
-            </select>
-        </div>
-        <div>
-            <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Tanggal</label>
-            <input type="date" id="prayer-date-input"
-                class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
-        </div>
-        <div class="flex items-end">
-            <button type="button" onclick="loadPrayerStudents()"
-                class="w-full px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 shadow-xs transition-all">
-                <i data-lucide="search" class="w-3.5 h-3.5"></i>
-                <span>Muat Siswa</span>
-            </button>
-        </div>
-    </div>
-
-    <div id="prayer-students-container" class="hidden">
-        <form id="prayer-attendance-form" onsubmit="submitBulkPrayerAttendance(event)">
-            <div class="overflow-x-auto border border-zinc-200 dark:border-zinc-800 rounded-lg mb-4">
-                <table class="w-full text-left" id="prayer-table">
-                    <thead class="bg-zinc-50/80 dark:bg-zinc-900/80 border-b border-zinc-100 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400">
-                        <tr>
-                            <th class="px-4 py-2.5 w-10 text-center">
-                                <input type="checkbox" id="prayer-check-all" onchange="togglePrayerCheckAll(this)"
-                                    class="rounded border-zinc-300 dark:border-zinc-700 text-zinc-900 focus:ring-zinc-950/20">
-                            </th>
-                            <th class="px-4 py-2.5 text-[11px] font-semibold uppercase">NIS</th>
-                            <th class="px-4 py-2.5 text-[11px] font-semibold uppercase">Nama Siswa</th>
-                            <th class="px-4 py-2.5 text-[11px] font-semibold uppercase">Status Kehadiran</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800/80" id="prayer-students-tbody"></tbody>
-                </table>
-            </div>
-            <div class="flex justify-end gap-2">
-                <button type="submit"
-                    class="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-semibold shadow-xs transition-all">Simpan
-                    Presensi Sholat</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-
-<!-- Modal Quick Manual Attendance -->
+<!-- Modal Manual Attendance (Students) -->
 <div id="modal-manual-attendance"
     class="modal-wrapper hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
     <div class="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-xl shadow-xl w-full max-w-md p-6">
         <div class="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800 mb-4">
-            <h3 class="font-semibold text-base text-zinc-900 dark:text-zinc-100">Proses Kehadiran Manual</h3>
+            <h3 class="font-semibold text-base text-zinc-900 dark:text-zinc-100">Presensi Manual Siswa</h3>
             <button type="button" onclick="closeModal('modal-manual-attendance')"
                 class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
                 <i data-lucide="x" class="w-5 h-5"></i>
             </button>
         </div>
-        <form id="manual-attendance-form" onsubmit="handleFormSubmit(event)" action="/admin/attendance/manual"
-            method="POST" class="space-y-4">
+        <form action="/admin/attendance/manual" method="POST" onsubmit="handleFormSubmit(event)" class="space-y-3.5">
             <div>
                 <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Pilih Siswa</label>
                 <select name="student_id" id="manual-student-select" required
                     class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
-                    <option value="">-- Pilih Siswa --</option>
+                    <option value="">-- Cari Nama Siswa --</option>
                     {{range .Students}}
                     <option value="{{.ID}}">{{.Name}} ({{.ClassName}})</option>
                     {{end}}
@@ -290,15 +516,38 @@
             </div>
             <div>
                 <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Status Kehadiran</label>
-                <select name="status" required
+                <select name="status" id="manual-status-select" required onchange="toggleLetterStatus(this.value)"
                     class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
-                    <option value="Hadir">Hadir</option>
+                    <option value="Hadir">Hadir (Tepat Waktu)</option>
                     <option value="Terlambat">Terlambat</option>
                     <option value="Sakit">Sakit</option>
+                    <option value="Izin">Izin</option>
                     <option value="Dispensasi">Dispensasi</option>
-                    <option value="Alpha">Alpha</option>
+                    <option value="Alpha">Alpha (Tanpa Keterangan)</option>
                 </select>
             </div>
+
+            <div id="letter-status-container" class="hidden">
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Keterangan Surat Dokter / Orang Tua</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <label class="flex items-center gap-2 p-2 bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg cursor-pointer text-xs text-zinc-900 dark:text-zinc-100">
+                        <input type="radio" name="letter_status" value="with" class="text-zinc-900 focus:ring-zinc-950/20">
+                        <span>Dengan Surat</span>
+                    </label>
+                    <label class="flex items-center gap-2 p-2 bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg cursor-pointer text-xs text-zinc-900 dark:text-zinc-100">
+                        <input type="radio" name="letter_status" value="without" checked class="text-zinc-900 focus:ring-zinc-950/20">
+                        <span>Tanpa Surat</span>
+                    </label>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Jam Kehadiran (Opsional)</label>
+                <input type="time" name="time" id="manual-time-input"
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                <p class="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1">Kosongkan untuk menggunakan jam saat ini</p>
+            </div>
+
             <div>
                 <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Keterangan / Alasan</label>
                 <textarea name="note" rows="2" placeholder="Keterangan opsional..."
@@ -310,6 +559,61 @@
                 <button type="submit"
                     class="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 px-5 py-2 rounded-lg text-xs font-semibold shadow-xs transition-all">Simpan
                     Kehadiran</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Manual Attendance (Staff) -->
+<div id="modal-staff-manual"
+    class="modal-wrapper hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-xl shadow-xl w-full max-w-md p-6">
+        <div class="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800 mb-4">
+            <h3 class="font-semibold text-base text-zinc-900 dark:text-zinc-100">Presensi Manual Guru & Staff</h3>
+            <button type="button" onclick="closeModal('modal-staff-manual')"
+                class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <form action="/admin/attendance/staff-manual" method="POST" onsubmit="handleFormSubmit(event)" class="space-y-3.5">
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Pilih Guru / Staff</label>
+                <select name="staff_id" id="manual-staff-select" required
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                    <option value="">-- Pilih Guru / Staff --</option>
+                    {{range .StaffList}}
+                    <option value="{{.ID}}">{{.Honorific}} {{.Name}} ({{.Role}})</option>
+                    {{end}}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Status Kehadiran</label>
+                <select name="status" id="manual-staff-status" required
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                    <option value="Hadir">Hadir (Tepat Waktu)</option>
+                    <option value="Terlambat">Terlambat</option>
+                    <option value="Sakit">Sakit</option>
+                    <option value="Izin">Izin / Dinas Luar</option>
+                    <option value="Alpha">Alpha</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Jam Kehadiran (Opsional)</label>
+                <input type="time" name="time" id="manual-staff-time"
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                <p class="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1">Kosongkan untuk menggunakan jam saat ini</p>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Catatan / Keterangan</label>
+                <textarea name="note" rows="2" placeholder="Contoh: Izin MGMP di Dinas, Sakit surat dokter, dll."
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all"></textarea>
+            </div>
+            <div class="flex justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <button type="button" onclick="closeModal('modal-staff-manual')"
+                    class="px-4 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200">Batal</button>
+                <button type="submit"
+                    class="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 px-5 py-2 rounded-lg text-xs font-semibold shadow-xs transition-all">Simpan
+                    Presensi Staff</button>
             </div>
         </form>
     </div>
@@ -396,16 +700,70 @@
 </div>
 
 <script>
+    let currentAttTab = 'students';
+
     document.addEventListener('DOMContentLoaded', function () {
         const today = new Date().toISOString().split('T')[0];
         const dateInput = document.getElementById('prayer-date-input');
         if (dateInput) dateInput.value = today;
+
+        // Check hash in URL (e.g. #staff or #students)
+        if (window.location.hash === '#staff') {
+            switchAttTab('staff');
+        } else {
+            switchAttTab('students');
+        }
     });
+
+    function switchAttTab(tab) {
+        currentAttTab = tab;
+        const studentTab = document.getElementById('att-tab-students');
+        const staffTab = document.getElementById('att-tab-staff');
+        const studentBtn = document.getElementById('tab-btn-students');
+        const staffBtn = document.getElementById('tab-btn-staff');
+        const manualLabel = document.getElementById('btn-manual-label');
+
+        if (tab === 'staff') {
+            studentTab.classList.add('hidden');
+            staffTab.classList.remove('hidden');
+
+            staffBtn.className = 'px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900 shadow-xs';
+            studentBtn.className = 'px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300';
+
+            if (manualLabel) manualLabel.textContent = 'Presensi Staff';
+            window.location.hash = 'staff';
+        } else {
+            staffTab.classList.add('hidden');
+            studentTab.classList.remove('hidden');
+
+            studentBtn.className = 'px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900 shadow-xs';
+            staffBtn.className = 'px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300';
+
+            if (manualLabel) manualLabel.textContent = 'Presensi Siswa';
+            window.location.hash = 'students';
+        }
+
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function openCurrentManualModal() {
+        if (currentAttTab === 'staff') {
+            openModal('modal-staff-manual');
+        } else {
+            openModal('modal-manual-attendance');
+        }
+    }
 
     function quickManualModal(studentId, studentName) {
         const select = document.getElementById('manual-student-select');
         if (select) select.value = studentId;
         openModal('modal-manual-attendance');
+    }
+
+    function quickStaffManual(staffId, staffName) {
+        const select = document.getElementById('manual-staff-select');
+        if (select) select.value = staffId;
+        openModal('modal-staff-manual');
     }
 
     function filterTable(input, tableId) {
@@ -416,6 +774,33 @@
         for (let i = 1; i < trs.length; i++) {
             const text = trs[i].textContent || trs[i].innerText;
             trs[i].style.display = text.toLowerCase().indexOf(filter) > -1 ? "" : "none";
+        }
+    }
+
+    function filterStaffByStatus(select) {
+        const filterVal = select.value.toLowerCase();
+        const rows = document.querySelectorAll('.staff-att-row');
+        rows.forEach(r => {
+            const status = (r.getAttribute('data-status') || '').toLowerCase();
+            if (!filterVal) {
+                r.style.display = '';
+            } else if (filterVal === 'hadir') {
+                r.style.display = (status === 'hadir' || status === 'datang') ? '' : 'none';
+            } else if (status.includes(filterVal)) {
+                r.style.display = '';
+            } else {
+                r.style.display = 'none';
+            }
+        });
+    }
+
+    function toggleLetterStatus(status) {
+        const container = document.getElementById('letter-status-container');
+        if (!container) return;
+        if (status === 'Sakit') {
+            container.classList.remove('hidden');
+        } else {
+            container.classList.add('hidden');
         }
     }
 

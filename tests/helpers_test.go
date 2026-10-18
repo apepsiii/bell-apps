@@ -599,7 +599,11 @@ func (a *TestApp) ManualAttendanceHandler(c echo.Context) error {
 
 func (a *TestApp) VerifyFaceAttendanceHandler(c echo.Context) error {
 	type VerifyRequest struct {
-		ImageBase64 string `json:"image_base64"`
+		StudentID   interface{} `json:"student_id"`
+		StaffID     interface{} `json:"staff_id"`
+		UserType    string      `json:"user_type"`
+		Distance    float64     `json:"distance"`
+		ImageBase64 string      `json:"image_base64"`
 	}
 
 	var req VerifyRequest
@@ -607,50 +611,211 @@ func (a *TestApp) VerifyFaceAttendanceHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid request"})
 	}
 
-	faceURL := "http://localhost:8001/verify"
-	var customFaceURL string
-	a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='face_service_url'").Scan(&customFaceURL)
-	if customFaceURL != "" {
-		faceURL = customFaceURL
-	}
-	payload, _ := json.Marshal(map[string]string{"image_base64": req.ImageBase64})
-
-	resp, err := http.Post(faceURL, "application/json", bytes.NewBuffer(payload))
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Face service error: " + err.Error()})
-	}
-	defer resp.Body.Close()
-
-	body, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusOK {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"message": fmt.Sprintf("Face service returned %d", resp.StatusCode)})
+	var studentID int
+	switch v := req.StudentID.(type) {
+	case float64:
+		studentID = int(v)
+	case int:
+		studentID = v
+	case string:
+		studentID, _ = strconv.Atoi(v)
 	}
 
-	var faceResult struct {
-		Matched   bool    `json:"matched"`
-		StudentID int     `json:"student_id"`
-		Name      string  `json:"name"`
-		ClassName string  `json:"class_name"`
-		Distance  float64 `json:"distance"`
-		Message   string  `json:"message"`
+	var staffID int
+	switch v := req.StaffID.(type) {
+	case float64:
+		staffID = int(v)
+	case int:
+		staffID = v
+	case string:
+		staffID, _ = strconv.Atoi(v)
 	}
 
-	if err := json.Unmarshal(body, &faceResult); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Invalid response from face service"})
-	}
+	userType := req.UserType
 
-	if !faceResult.Matched {
-		return c.JSON(http.StatusOK, map[string]string{
-			"status":  "not_matched",
-			"message": faceResult.Message,
+	// 1. Staff Recognition Branch
+	if userType == "Staff" || staffID > 0 {
+		var name, nip, phone, role, gender string
+		var rfidNull sql.NullString
+		err := a.DB.QueryRow(`
+			SELECT name, nip, COALESCE(phone, ''), role, rfid_uid, COALESCE(gender, 'L')
+			FROM staff
+			WHERE id = ?`, staffID).Scan(&name, &nip, &phone, &role, &rfidNull, &gender)
+		if err != nil {
+			return c.JSON(http.StatusNotFound, map[string]string{"message": "Guru/Staff tidak ditemukan"})
+		}
+		rfid := rfidNull.String
+		honorific := handler.DetermineStaffHonorific(gender, name)
+
+		now := time.Now()
+		timeStr := now.Format("15:04")
+		dateStr := now.Format("2006-01-02")
+		timestamp := now.Format("2006-01-02 15:04:05")
+
+		var arrStart, arrEnd, depStart, depEnd string
+		a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='arrival_start'").Scan(&arrStart)
+		if arrStart == "" {
+			arrStart = "06:00"
+		}
+		a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='arrival_end'").Scan(&arrEnd)
+		if arrEnd == "" {
+			arrEnd = "07:15"
+		}
+		a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='departure_start'").Scan(&depStart)
+		if depStart == "" {
+			depStart = "15:00"
+		}
+		a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='departure_end'").Scan(&depEnd)
+		if depEnd == "" {
+			depEnd = "18:00"
+		}
+
+		var checkInCount int
+		a.DB.QueryRow(`
+			SELECT COUNT(*) FROM attendance_logs
+			WHERE user_type = 'Staff'
+			  AND ((rfid_uid = ? AND rfid_uid != '') OR user_name = ?)
+			  AND date = ? AND (status = 'Datang' OR status = 'Hadir' OR status = 'Terlambat')`,
+			rfid, name, dateStr).Scan(&checkInCount)
+
+		var checkOutCount int
+		a.DB.QueryRow(`
+			SELECT COUNT(*) FROM attendance_logs
+			WHERE user_type = 'Staff'
+			  AND ((rfid_uid = ? AND rfid_uid != '') OR user_name = ?)
+			  AND date = ? AND status = 'Pulang'`,
+			rfid, name, dateStr).Scan(&checkOutCount)
+
+		var status, speechMessage string
+		if timeStr >= arrStart && timeStr <= arrEnd {
+			if checkInCount > 0 {
+				return c.JSON(http.StatusOK, map[string]interface{}{
+					"status":            "duplicate",
+					"attendance_status": "Datang",
+					"user_type":         "Staff",
+					"staff_id":          staffID,
+					"name":              name,
+					"honorific":         honorific,
+					"message":           fmt.Sprintf("%s %s sudah presensi datang hari ini", honorific, name),
+				})
+			}
+			status = "Datang"
+			speechMessage = fmt.Sprintf("Selamat Datang %s %s", honorific, name)
+		} else if timeStr > arrEnd && timeStr < depStart {
+			if checkInCount > 0 {
+				return c.JSON(http.StatusOK, map[string]interface{}{
+					"status":            "not_time",
+					"attendance_status": "Belum Pulang",
+					"user_type":         "Staff",
+					"staff_id":          staffID,
+					"message":           "Presensi Pulang belum tersedia",
+				})
+			}
+			status = "Terlambat"
+			speechMessage = fmt.Sprintf("Selamat Datang %s %s, presensi tercatat terlambat", honorific, name)
+		} else if timeStr >= depStart && (depEnd == "" || timeStr <= depEnd) {
+			if checkOutCount > 0 {
+				return c.JSON(http.StatusOK, map[string]interface{}{
+					"status":            "duplicate",
+					"attendance_status": "Pulang",
+					"user_type":         "Staff",
+					"staff_id":          staffID,
+					"message":           fmt.Sprintf("%s %s sudah presensi pulang hari ini", honorific, name),
+				})
+			}
+			status = "Pulang"
+			speechMessage = fmt.Sprintf("Terima kasih %s %s", honorific, name)
+		} else {
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"status":            "out_of_hours",
+				"attendance_status": "Di Luar Jam",
+				"user_type":         "Staff",
+				"staff_id":          staffID,
+			})
+		}
+
+		_, err = a.DB.Exec("INSERT INTO attendance_logs (student_id, rfid_uid, user_name, user_type, status, method, timestamp, date) VALUES (0, ?, ?, 'Staff', ?, 'FACE', ?, ?)",
+			rfid, name, status, timestamp, dateStr)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+		}
+
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"status":            "matched",
+			"attendance_status": status,
+			"user_type":         "Staff",
+			"staff_id":          staffID,
+			"name":              name,
+			"nip":               nip,
+			"role":              role,
+			"gender":            gender,
+			"honorific":         honorific,
+			"speech_message":    speechMessage,
+			"message":           "Presensi " + status + " Berhasil",
+			"time":              timeStr,
 		})
 	}
 
-	var rfid string
-	var photoNull sql.NullString
-	err = a.DB.QueryRow("SELECT rfid_uid, photo FROM students WHERE id=?", faceResult.StudentID).Scan(&rfid, &photoNull)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Student not found"})
+	// 2. Student Recognition Branch
+	var name, className, rfid string
+	if studentID > 0 {
+		var photoNull, rfidNull, classNull sql.NullString
+		err := a.DB.QueryRow(`
+			SELECT s.name, COALESCE(c.name, ''), s.rfid_uid, s.photo
+			FROM students s
+			LEFT JOIN classes c ON s.class_id = c.id
+			WHERE s.id = ?`, studentID).Scan(&name, &classNull, &rfidNull, &photoNull)
+		if err != nil {
+			return c.JSON(http.StatusNotFound, map[string]string{"message": "Student not found"})
+		}
+		className = classNull.String
+		rfid = rfidNull.String
+	} else {
+		// Call legacy Face Service via URL if only image_base64 provided
+		faceURL := "http://localhost:8001/verify"
+		var customFaceURL string
+		a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='face_service_url'").Scan(&customFaceURL)
+		if customFaceURL != "" {
+			faceURL = customFaceURL
+		}
+		payload, _ := json.Marshal(map[string]string{"image_base64": req.ImageBase64})
+
+		resp, err := http.Post(faceURL, "application/json", bytes.NewBuffer(payload))
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Face service error: " + err.Error()})
+		}
+		defer resp.Body.Close()
+
+		body, _ := io.ReadAll(resp.Body)
+		if resp.StatusCode != http.StatusOK {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": fmt.Sprintf("Face service returned %d", resp.StatusCode)})
+		}
+
+		var faceResult struct {
+			Matched   bool    `json:"matched"`
+			StudentID int     `json:"student_id"`
+			Name      string  `json:"name"`
+			ClassName string  `json:"class_name"`
+			Distance  float64 `json:"distance"`
+			Message   string  `json:"message"`
+		}
+
+		if err := json.Unmarshal(body, &faceResult); err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Invalid response from face service"})
+		}
+
+		if !faceResult.Matched {
+			return c.JSON(http.StatusOK, map[string]string{
+				"status":  "not_matched",
+				"message": faceResult.Message,
+			})
+		}
+
+		studentID = faceResult.StudentID
+		name = faceResult.Name
+		className = faceResult.ClassName
+		var photoNull sql.NullString
+		_ = a.DB.QueryRow("SELECT rfid_uid, photo FROM students WHERE id=?", studentID).Scan(&rfid, &photoNull)
 	}
 
 	now := time.Now()
@@ -680,23 +845,24 @@ func (a *TestApp) VerifyFaceAttendanceHandler(c echo.Context) error {
 		pointDescription = "Terlambat Wajah (-10)"
 	}
 
-	_, err = a.DB.Exec("INSERT INTO attendance_logs (student_id, rfid_uid, user_name, user_type, status, method, timestamp, date) VALUES (?, ?, ?, 'Siswa', ?, 'FACE', ?, ?)",
-		faceResult.StudentID, rfid, faceResult.Name, status, timestamp, dateStr)
+	_, err := a.DB.Exec("INSERT INTO attendance_logs (student_id, rfid_uid, user_name, user_type, status, method, timestamp, date) VALUES (?, ?, ?, 'Siswa', ?, 'FACE', ?, ?)",
+		studentID, rfid, name, status, timestamp, dateStr)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
 	}
 
-	if pointsChange != 0 && faceResult.StudentID > 0 {
+	if pointsChange != 0 && studentID > 0 {
 		a.DB.Exec("INSERT INTO student_points (student_id, points_change, description, recorded_by) VALUES (?, ?, ?, ?)",
-			faceResult.StudentID, pointsChange, pointDescription, "Terminal-Face")
+			studentID, pointsChange, pointDescription, "Terminal-Face")
 	}
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"status":            "matched",
 		"attendance_status": status,
-		"student_id":        faceResult.StudentID,
-		"name":              faceResult.Name,
-		"class_name":        faceResult.ClassName,
+		"user_type":         "Siswa",
+		"student_id":        studentID,
+		"name":              name,
+		"class_name":        className,
 		"points":            pointsChange,
 	})
 }

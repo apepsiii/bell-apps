@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg_dark">#09090b</color>
+    <color name="bg_card_dark">#18181b</color>
+    <color name="brand_purple">#8b5cf6</color>
+    <color name="brand_purple_dark">#6d28d9</color>
+    <color name="text_white">#ffffff</color>
+    <color name="text_muted">#a1a1aa</color>
+    <color name="status_error">#f43f5e</color>
+</resources>

@@ -12,15 +12,23 @@ var (
 func init() {
 	if v := os.Getenv("APP_VERSION"); v != "" {
 		Version = v
+	} else {
+		os.Setenv("APP_VERSION", Version)
 	}
 	if v := os.Getenv("BUILD_DATE"); v != "" {
 		BuildDate = v
+	} else {
+		os.Setenv("BUILD_DATE", BuildDate)
 	}
 	if v := os.Getenv("GIT_COMMIT"); v != "" {
 		GitCommit = v
+	} else {
+		os.Setenv("GIT_COMMIT", GitCommit)
 	}
 	if v := os.Getenv("APP_NAME"); v != "" {
 		AppName = v
+	} else {
+		os.Setenv("APP_NAME", AppName)
 	}
 }
 

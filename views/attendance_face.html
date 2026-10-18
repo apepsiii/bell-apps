@@ -396,12 +396,14 @@
 
         let mediaStream = null;
         let isModelsLoaded = false;
-        let registeredStudents = [];
+        let registeredPersons = [];
+        let registeredStudents = registeredPersons; // Backward compatibility
         let faceMatcher = null;
 
         let isScanning = true;
         let scanLock = false;
-        let studentLastScanned = new Map(); // studentId -> timestamp
+        let personLastScanned = new Map(); // personKey -> timestamp
+        let studentLastScanned = personLastScanned; // Backward compatibility
 
         let frameCount = 0;
         let lastFpsTime = Date.now();
@@ -471,13 +473,15 @@
                 if (!res.ok) throw new Error("Gagal mengambil data dari server");
                 const data = await res.json();
 
-                registeredStudents = data || [];
-                document.getElementById('db-count-badge').innerText = `${registeredStudents.length} Wajah`;
+                registeredPersons = data || [];
+                registeredStudents = registeredPersons;
+                document.getElementById('db-count-badge').innerText = `${registeredPersons.length} Wajah`;
 
-                if (registeredStudents.length > 0) {
-                    const labeled = registeredStudents.map(s => {
-                        const descriptorArray = new Float32Array(s.descriptor);
-                        return new faceapi.LabeledFaceDescriptors(s.student_id.toString(), [descriptorArray]);
+                if (registeredPersons.length > 0) {
+                    const labeled = registeredPersons.map(p => {
+                        const descriptorArray = new Float32Array(p.descriptor);
+                        const label = (p.user_type === 'Staff' || p.staff_id > 0) ? `staff_${p.staff_id}` : `student_${p.student_id}`;
+                        return new faceapi.LabeledFaceDescriptors(label, [descriptorArray]);
                     });
                     faceMatcher = new faceapi.FaceMatcher(labeled, MATCH_THRESHOLD);
                 } else {
@@ -533,19 +537,33 @@
                                 const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
 
                                 if (bestMatch.label !== 'unknown') {
-                                    const studentId = parseInt(bestMatch.label);
-                                    const student = registeredStudents.find(s => s.student_id === studentId);
+                                    let person = null;
+                                    let payload = { distance: parseFloat(bestMatch.distance.toFixed(4)) };
+                                    const label = bestMatch.label;
 
-                                    // Check cooldown for this particular student
-                                    const lastScan = studentLastScanned.get(studentId) || 0;
+                                    if (label.startsWith('staff_')) {
+                                        const staffId = parseInt(label.replace('staff_', ''));
+                                        person = registeredPersons.find(p => (p.user_type === 'Staff' || p.staff_id > 0) && p.staff_id === staffId);
+                                        payload.staff_id = staffId;
+                                        payload.user_type = 'Staff';
+                                    } else {
+                                        const sId = parseInt(label.replace('student_', ''));
+                                        person = registeredPersons.find(p => p.student_id === sId);
+                                        payload.student_id = sId;
+                                        payload.user_type = 'Siswa';
+                                    }
+
+                                    // Check cooldown for this particular person
+                                    const lastScan = personLastScanned.get(label) || 0;
                                     if (now - lastScan < STUDENT_COOLDOWN_MS) {
                                         faceGuide.className = 'face-oval-guide matched';
-                                        detectionPrompt.innerHTML = `<i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> ${student ? student.name : 'Siswa'} sudah absen tadi`;
+                                        const pName = person ? person.name : (payload.user_type === 'Staff' ? 'Guru/Staff' : 'Siswa');
+                                        detectionPrompt.innerHTML = `<i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> ${pName} sudah absen tadi`;
                                         lucide.createIcons();
                                     } else {
                                         // Match Found! Record Attendance
                                         faceGuide.className = 'face-oval-guide matched';
-                                        await onFaceRecognized(student, bestMatch.distance);
+                                        await onFaceRecognized(person, payload, label);
                                     }
                                 } else {
                                     faceGuide.className = 'face-oval-guide unknown';
@@ -580,9 +598,9 @@
         }
 
         // 5. Handle Matched Face
-        async function onFaceRecognized(student, distance) {
+        async function onFaceRecognized(person, payload, personKey) {
             scanLock = true;
-            studentLastScanned.set(student.student_id, Date.now());
+            personLastScanned.set(personKey, Date.now());
 
             try {
                 const headers = { 'Content-Type': 'application/json' };
@@ -592,26 +610,43 @@
                 const response = await fetch('/api/attendance/verify-face', {
                     method: 'POST',
                     headers: headers,
-                    body: JSON.stringify({
-                        student_id: student.student_id,
-                        distance: parseFloat(distance.toFixed(4))
-                    })
+                    body: JSON.stringify(payload)
                 });
 
                 const data = await response.json();
 
                 if (response.ok) {
-                    const firstName = (data.name || student.name || 'Siswa').split(' ')[0];
+                    const isStaff = (data.user_type === 'Staff' || payload.user_type === 'Staff' || (person && person.user_type === 'Staff'));
+                    const fullName = data.name || (person ? person.name : (isStaff ? 'Guru / Staff' : 'Siswa'));
+                    const firstName = fullName.split(' ')[0];
+                    const honorific = data.honorific || (data.gender === 'P' || (person && person.gender === 'P') ? 'Ibu' : 'Bapak');
 
                     if (data.status === 'matched') {
-                        // Play chime & positive speech
+                        // Play chime
                         playSuccessAudio();
-                        if (data.attendance_status === 'Pulang') {
-                            speakMessage(`Terima kasih ${firstName}, hati-hati di jalan`);
-                        } else if (data.attendance_status === 'Terlambat') {
-                            speakMessage(`Terima kasih ${firstName}, presensi terlambat dicatat`);
+
+                        if (isStaff) {
+                            // Ucapan Khusus Guru / Staff Berdasarkan Gender:
+                            // Datang: "Selamat Datang Bapak/Ibu {Nama}"
+                            // Pulang: "Terima kasih Bapak/Ibu {Nama}"
+                            if (data.speech_message) {
+                                speakMessage(data.speech_message);
+                            } else if (data.attendance_status === 'Pulang') {
+                                speakMessage(`Terima kasih ${honorific} ${fullName}`);
+                            } else if (data.attendance_status === 'Terlambat') {
+                                speakMessage(`Selamat Datang ${honorific} ${fullName}, presensi tercatat terlambat`);
+                            } else {
+                                speakMessage(`Selamat Datang ${honorific} ${fullName}`);
+                            }
                         } else {
-                            speakMessage(`Terima kasih ${firstName}, selamat belajar`);
+                            // Ucapan Siswa / Murid
+                            if (data.attendance_status === 'Pulang') {
+                                speakMessage(`Terima kasih ${firstName}, hati-hati di jalan`);
+                            } else if (data.attendance_status === 'Terlambat') {
+                                speakMessage(`Terima kasih ${firstName}, presensi terlambat dicatat`);
+                            } else {
+                                speakMessage(`Terima kasih ${firstName}, selamat belajar`);
+                            }
                         }
 
                         // Confetti
@@ -621,19 +656,21 @@
                             }
                         } catch (e) {}
                     } else if (data.status === 'not_time') {
-                        // Belum jam pulang
                         speakMessage("Presensi Pulang belum tersedia");
-                        studentLastScanned.set(student.student_id, Date.now() + 30000);
+                        personLastScanned.set(personKey, Date.now() + 30000);
                     } else if (data.status === 'duplicate') {
-                        // Sudah absen
-                        speakMessage(`${firstName} sudah presensi hari ini`);
-                        studentLastScanned.set(student.student_id, Date.now() + 30000);
+                        if (isStaff) {
+                            speakMessage(`${honorific} ${fullName} sudah presensi hari ini`);
+                        } else {
+                            speakMessage(`${firstName} sudah presensi hari ini`);
+                        }
+                        personLastScanned.set(personKey, Date.now() + 30000);
                     } else if (data.status === 'out_of_hours') {
                         speakMessage("Di luar jam operasional presensi");
-                        studentLastScanned.set(student.student_id, Date.now() + 30000);
+                        personLastScanned.set(personKey, Date.now() + 30000);
                     }
 
-                    showResultCard(data, student, distance);
+                    showResultCard(data, person, payload.distance);
                     fetchStats();
                     fetchRecentLogs();
                 } else {
@@ -650,7 +687,7 @@
         }
 
         // 6. UI Result Presentation
-        function showResultCard(apiData, student, distance) {
+        function showResultCard(apiData, person, distance) {
             const nameEl = document.getElementById('result-name');
             const classEl = document.getElementById('result-class');
             const badgeEl = document.getElementById('result-badge');
@@ -660,8 +697,20 @@
             const msgEl = document.getElementById('result-message');
 
             const status = apiData.attendance_status || apiData.status;
-            nameEl.innerText = apiData.name || student.name;
-            classEl.innerText = apiData.class_name || student.class_name;
+            const isStaff = (apiData.user_type === 'Staff' || (person && person.user_type === 'Staff'));
+
+            if (isStaff && apiData.honorific) {
+                nameEl.innerText = `${apiData.honorific} ${apiData.name || (person ? person.name : 'Guru/Staff')}`;
+            } else {
+                nameEl.innerText = apiData.name || (person ? person.name : 'Siswa');
+            }
+
+            if (isStaff) {
+                classEl.innerText = apiData.role || (person ? (person.role || person.class_name) : 'Guru & Tenaga Pendidik');
+            } else {
+                classEl.innerText = apiData.class_name || (person ? person.class_name : 'Siswa');
+            }
+
             distEl.innerText = `Skor: ${( (1 - distance) * 100 ).toFixed(0)}%`;
             timeEl.innerText = apiData.time || new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
@@ -697,7 +746,7 @@
                 msgEl.className = 'text-xs text-emerald-600 dark:text-emerald-400 mt-1 font-semibold';
             }
 
-            const photoFile = apiData.photo || student.photo;
+            const photoFile = apiData.photo || (person ? person.photo : '');
             if (photoFile && photoFile.trim() !== '') {
                 photoBox.innerHTML = `
                     <img src="/assets/photos/${photoFile}" 
@@ -705,7 +754,11 @@
                          onerror="this.onerror=null; this.parentElement.innerHTML='<i data-lucide=\\'user\\' class=\\'w-10 h-10 text-zinc-400\\'></i>'; lucide.createIcons();">
                 `;
             } else {
-                photoBox.innerHTML = `<i data-lucide="user" class="w-10 h-10 text-zinc-400"></i>`;
+                if (isStaff) {
+                    photoBox.innerHTML = `<div class="w-full h-full flex flex-col items-center justify-center bg-brand-500/10 text-brand-500"><i data-lucide="award" class="w-10 h-10"></i><span class="text-[9px] font-bold mt-1 uppercase">Staff</span></div>`;
+                } else {
+                    photoBox.innerHTML = `<i data-lucide="user" class="w-10 h-10 text-zinc-400"></i>`;
+                }
                 lucide.createIcons();
             }
 
@@ -715,7 +768,6 @@
             // Auto-hide card after 4.5 seconds
             setTimeout(() => {
                 resultCard.classList.add('hidden');
-            }, 4500);
         }
 
         // 7. Audio & Speech Feedback
@@ -809,7 +861,7 @@
                                     </div>
                                     <div class="min-w-0">
                                         <p class="font-semibold text-zinc-900 dark:text-zinc-100 truncate">${studentName}</p>
-                                        <p class="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono">${log.method || 'FACE'} • ${timeFormatted}</p>
+                                        <p class="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono">${log.user_type === 'Staff' ? '<span class="text-brand-500 font-bold">STAFF</span> • ' : ''}${log.method || 'FACE'} • ${timeFormatted}</p>
                                     </div>
                                 </div>
                                 <span class="px-2 py-0.5 rounded-full border text-[10px] font-semibold uppercase font-mono ${badgeColor}">

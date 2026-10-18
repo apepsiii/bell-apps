@@ -152,6 +152,35 @@ func RegisterRoutes(e *echo.Echo, db *sql.DB, viewsFS fs.FS, app AppHandlers) {
 	e.GET("/api/version", app.VersionHandler)
 	e.GET("/api/sync", app.SyncHandler)
 	e.GET("/api/leaderboard", app.PublicLeaderboardHandler)
+	e.GET("/health", func(c echo.Context) error {
+		if err := db.Ping(); err != nil {
+			return c.JSON(http.StatusServiceUnavailable, map[string]string{
+				"status": "unhealthy",
+				"error":  err.Error(),
+			})
+		}
+		appName := os.Getenv("APP_NAME")
+		if appName == "" {
+			appName = "NIBA SuperApps"
+		}
+		appVer := os.Getenv("APP_VERSION")
+		if appVer == "" {
+			appVer = "2.1.0"
+		}
+		if !strings.HasPrefix(appVer, "v") {
+			appVer = "v" + appVer
+		}
+		gitCommit := os.Getenv("GIT_COMMIT")
+		if gitCommit == "" {
+			gitCommit = "unknown"
+		}
+		return c.JSON(http.StatusOK, map[string]string{
+			"status":     "ok",
+			"app":        appName,
+			"version":    appVer,
+			"git_commit": gitCommit,
+		})
+	})
 	e.GET("/api/point-rules", handler.GetPointRulesV2(db))
 	e.GET("/api/attendance/prayer-logs", handler.PrayerLogs(db))
 	e.GET("/api/attendance/record", app.RecordAttendanceHandler)
@@ -220,6 +249,7 @@ func RegisterRoutes(e *echo.Echo, db *sql.DB, viewsFS fs.FS, app AppHandlers) {
 	admin.GET("/students/idcard", handler.GetAllStudentsForIDCard(db))
 	admin.GET("/staff/:id", handler.StaffProfile(db))
 	admin.GET("/face/register/:id", handler.FaceRegisterPage(db))
+	admin.GET("/face/register-staff/:id", handler.StaffFaceRegisterPage(db))
 
 	// Recent Activity
 	admin.GET("/recent-activity", handler.GetRecentActivity(db))
@@ -275,6 +305,7 @@ func RegisterRoutes(e *echo.Echo, db *sql.DB, viewsFS fs.FS, app AppHandlers) {
 	admin.GET("/face/status", handler.GetFaceStatus(db))
 	admin.GET("/faces", handler.ListFaces(db))
 	admin.DELETE("/face/:student_id", handler.DeleteFace(db))
+	admin.DELETE("/face/staff/:staff_id", handler.DeleteStaffFace(db))
 	admin.POST("/face/verify", handler.VerifyFace(db))
 
 	admin.GET("/settings/school", handler.GetSchoolSettings(db))
@@ -284,6 +315,8 @@ func RegisterRoutes(e *echo.Echo, db *sql.DB, viewsFS fs.FS, app AppHandlers) {
 	admin.POST("/attendance/test-wa", handler.TestWA(db))
 
 	admin.POST("/attendance/manual", app.ManualAttendanceHandler)
+	admin.POST("/attendance/staff-manual", handler.ManualStaffAttendance(db))
+	admin.GET("/attendance/staff-export", handler.ExportStaffAttendance(db))
 	admin.GET("/attendance/daily", handler.GetDailyAttendance(db))
 	admin.GET("/attendance/sheet", handler.GetClassAttendanceSheet(db))
 	admin.POST("/attendance/bulk", handler.BulkAttendance(db))

@@ -1,0 +1,141 @@
+name: Deploy Staging (Dev)
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  test-and-build:
+    name: Test & Build ARM64
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+          cache: true
+
+      - name: Run Tests
+        run: |
+          go test -v ./tests/...
+
+      - name: Compile Binary (Linux ARM64)
+        run: |
+          BUILD_DATE=$(date +"%Y%m%d_%H%M")
+          GIT_COMMIT=${GITHUB_SHA:0:7}
+          echo "Building for ARM64 with commit ${GIT_COMMIT}..."
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build \
+            -ldflags="-s -w -X main.Version=dev -X main.BuildDate=${BUILD_DATE} -X main.GitCommit=${GIT_COMMIT}" \
+            -o bell-apps .
+
+      - name: Setup SSH & Cloudflare Tunnel
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
+          CF_CLIENT_ID: ${{ secrets.CF_CLIENT_ID }}
+          CF_CLIENT_SECRET: ${{ secrets.CF_CLIENT_SECRET }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+          # Install cloudflared for Cloudflare Tunnel SSH proxy
+          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /usr/local/bin/cloudflared
+          chmod +x /usr/local/bin/cloudflared
+
+          # Setup SSH config with Cloudflare Tunnel proxy command
+          if [ -n "$CF_CLIENT_ID" ] && [ -n "$CF_CLIENT_SECRET" ]; then
+            cat << EOF > ~/.ssh/config
+          Host armbian-server
+              HostName $SSH_HOST
+              Port $SSH_PORT
+              User $SSH_USER
+              IdentityFile ~/.ssh/id_rsa
+              StrictHostKeyChecking no
+              ProxyCommand /usr/local/bin/cloudflared access ssh --hostname %h --service-token-id $CF_CLIENT_ID --service-token-secret $CF_CLIENT_SECRET
+          EOF
+          else
+            cat << EOF > ~/.ssh/config
+          Host armbian-server
+              HostName $SSH_HOST
+              Port $SSH_PORT
+              User $SSH_USER
+              IdentityFile ~/.ssh/id_rsa
+              StrictHostKeyChecking no
+              ProxyCommand /usr/local/bin/cloudflared access ssh --hostname %h
+          EOF
+          fi
+
+      - name: Deploy to Staging Server
+        run: |
+          echo "Uploading binary to staging..."
+          scp bell-apps armbian-server:/tmp/bell-apps-staging
+
+          echo "Applying update & restarting bell-apps-dev service..."
+          ssh armbian-server << 'EOF'
+            set -e
+            mkdir -p /var/www/bell-apps-dev
+            mv -f /tmp/bell-apps-staging /var/www/bell-apps-dev/bell-apps
+            chmod +x /var/www/bell-apps-dev/bell-apps
+            sudo systemctl restart bell-apps-dev.service
+          EOF
+
+      - name: Health Check Staging
+        run: |
+          echo "Verifying health check on staging..."
+          ssh armbian-server << 'EOF'
+            set -e
+            HEALTH_URL="http://localhost:8083/health"
+            ALT_HEALTH_URL="http://localhost:8082/health"
+            SUCCESS=0
+            for i in {1..10}; do
+              echo "Health check attempt $i..."
+              if curl -fsSL "$HEALTH_URL" 2>/dev/null; then
+                SUCCESS=1
+                echo -e "\n✓ Health check passed on port 8083!"
+                break
+              elif curl -fsSL "$ALT_HEALTH_URL" 2>/dev/null; then
+                SUCCESS=1
+                echo -e "\n✓ Health check passed on port 8082!"
+                break
+              fi
+              sleep 2
+            done
+
+            if [ $SUCCESS -ne 1 ]; then
+              echo "❌ Health check failed after 10 attempts!"
+              exit 1
+            fi
+          EOF
+
+      - name: Send Telegram Notification (Success)
+        if: success() && env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          MESSAGE="🚀 *[Staging] NIBA SuperApps Deployed!*%0ACommit: \`${GITHUB_SHA:0:7}\`%0AStatus: *Online (Healthy)*"
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d "chat_id=${TELEGRAM_CHAT_ID}" \
+            -d "parse_mode=Markdown" \
+            -d "text=${MESSAGE}" > /dev/null || true
+
+      - name: Send Telegram Notification (Failure)
+        if: failure() && env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          MESSAGE="🚨 *[Staging] NIBA SuperApps Deployment FAILED!*%0ACommit: \`${GITHUB_SHA:0:7}\`%0APeriksa GitHub Actions log."
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d "chat_id=${TELEGRAM_CHAT_ID}" \
+            -d "parse_mode=Markdown" \
+            -d "text=${MESSAGE}" > /dev/null || true
+

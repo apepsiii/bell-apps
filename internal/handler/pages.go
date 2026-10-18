@@ -242,3 +242,41 @@ func FaceRegisterPage(db *sql.DB) echo.HandlerFunc {
 		return c.Render(http.StatusOK, "face_register.html", data)
 	}
 }
+
+func StaffFaceRegisterPage(db *sql.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		id := c.Param("id")
+		var s struct {
+			ID     int
+			Name   string
+			Role   string
+			NIP    string
+			RFID   string
+			Phone  string
+			Gender string
+		}
+
+		err := db.QueryRow(`
+			SELECT id, name, COALESCE(role, 'Staff'), COALESCE(nip, '-'), COALESCE(rfid_uid, ''), COALESCE(phone, ''), COALESCE(gender, 'L')
+			FROM staff
+			WHERE id = ?`, id).Scan(&s.ID, &s.Name, &s.Role, &s.NIP, &s.RFID, &s.Phone, &s.Gender)
+
+		if err != nil {
+			return c.Redirect(http.StatusSeeOther, "/admin/academics")
+		}
+
+		data := map[string]interface{}{
+			"ID":         s.ID,
+			"Name":       s.Name,
+			"ExtraInfo":  s.Role,
+			"Photo":      "",
+			"IdentityNo": s.NIP,
+			"RFID":       s.RFID,
+			"Phone":      s.Phone,
+			"Type":       "Staff",
+			"Gender":     s.Gender,
+		}
+
+		return c.Render(http.StatusOK, "face_register.html", data)
+	}
+}

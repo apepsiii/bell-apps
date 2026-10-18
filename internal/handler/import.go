@@ -133,8 +133,19 @@ func ImportStaff(db *sql.DB) echo.HandlerFunc {
 			role := strings.TrimSpace(row[2])
 			phone := utils.FormatPhone(row[3])
 			rfid := strings.TrimSpace(row[4])
+			gender := "L"
+			if len(row) >= 6 && strings.TrimSpace(row[5]) != "" {
+				g := strings.ToUpper(strings.TrimSpace(row[5]))
+				if g == "P" || g == "PEREMPUAN" || g == "FEMALE" || g == "IBU" {
+					gender = "P"
+				}
+			} else {
+				if DetermineStaffHonorific("", name) == "Ibu" {
+					gender = "P"
+				}
+			}
 
-			_, err := tx.Exec("INSERT OR IGNORE INTO staff (rfid_uid, nip, name, phone, role) VALUES (?, ?, ?, ?, ?)", rfid, nip, name, phone, role)
+			_, err := tx.Exec("INSERT OR IGNORE INTO staff (rfid_uid, nip, name, phone, role, gender) VALUES (?, ?, ?, ?, ?, ?)", rfid, nip, name, phone, role, gender)
 			if err == nil {
 				successCount++
 			}

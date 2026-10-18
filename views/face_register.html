@@ -38,12 +38,12 @@
         <!-- Header -->
         <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
             <div class="flex items-center gap-3">
-                <a href="/admin/student/{{.ID}}" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 transition">
+                <a href="{{if eq .Type "Staff"}}/admin/academics{{else}}/admin/student/{{.ID}}{{end}}" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 transition">
                     <i data-lucide="arrow-left" class="w-5 h-5"></i>
                 </a>
                 <div>
-                    <h1 class="font-bold text-lg text-white">Registrasi Wajah Siswa</h1>
-                    <p class="text-xs text-slate-400">{{.Name}} • {{.ExtraInfo}} • NIS: {{.IdentityNo}}</p>
+                    <h1 class="font-bold text-lg text-white">Registrasi Wajah {{if eq .Type "Staff"}}Guru & Staff{{else}}Siswa{{end}}</h1>
+                    <p class="text-xs text-slate-400">{{.Name}} • {{.ExtraInfo}} • {{if eq .Type "Staff"}}NIP: {{.IdentityNo}}{{else}}NIS: {{.IdentityNo}}{{end}}</p>
                 </div>
             </div>
             <div id="model-badge" class="text-[11px] px-2.5 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full font-medium">
@@ -101,6 +101,7 @@
         lucide.createIcons();
 
         const USER_ID = {{.ID}};
+        const USER_TYPE = "{{.Type}}";
         const MODEL_URL = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/";
 
         let mediaStream = null;
@@ -257,7 +258,9 @@
                     method: 'POST',
                     headers: headers,
                     body: JSON.stringify({
-                        student_id: USER_ID,
+                        student_id: USER_TYPE === 'Staff' ? 0 : USER_ID,
+                        staff_id: USER_TYPE === 'Staff' ? USER_ID : 0,
+                        user_type: USER_TYPE,
                         descriptor: meanDesc
                     })
                 });
@@ -269,7 +272,11 @@
                     btnSave.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Sukses!';
                     lucide.createIcons();
                     setTimeout(() => {
-                        window.location.href = `/admin/student/${USER_ID}`;
+                        if (USER_TYPE === 'Staff') {
+                            window.location.href = '/admin/academics';
+                        } else {
+                            window.location.href = `/admin/student/${USER_ID}`;
+                        }
                     }, 1000);
                 } else {
                     showErr(data.message || "Gagal menyimpan wajah");

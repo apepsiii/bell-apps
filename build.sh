@@ -30,18 +30,24 @@ mkdir -p "${DIST_DIR}/public/assets/audio"
 mkdir -p "${DIST_DIR}/public/assets/photos"
 mkdir -p "${DIST_DIR}/public/assets/signage"
 
-echo -e "\n${BLUE}[2/6] Melakukan kompilasi Go binary untuk Linux (amd64)...${NC}"
+TARGET_ARCH="${1:-${GOARCH:-arm64}}"
+VERSION=$(git describe --tags --always 2>/dev/null || grep 'Version.*=' version.go | grep -oP '"[0-9\.]+"' | tr -d '"' || echo "2.1.0")
+GIT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+
+echo -e "\n${BLUE}[2/6] Melakukan kompilasi Go binary untuk Linux (${TARGET_ARCH})...${NC}"
 echo "    - Target OS   : Linux"
-echo "    - Target Arch : amd64"
+echo "    - Target Arch : ${TARGET_ARCH}"
 echo "    - CGO         : Disabled (Pure Go SQLite)"
+echo "    - Version     : ${VERSION}"
+echo "    - Git Commit  : ${GIT_COMMIT}"
 
 export CGO_ENABLED=0
 export GOOS=linux
-export GOARCH=amd64
+export GOARCH="${TARGET_ARCH}"
 
-go build -ldflags="-s -w" -o "${DIST_DIR}/${APP_NAME}" .
+go build -ldflags="-s -w -X main.Version=${VERSION} -X main.BuildDate=${TIMESTAMP} -X main.GitCommit=${GIT_COMMIT}" -o "${DIST_DIR}/${APP_NAME}" .
 chmod +x "${DIST_DIR}/${APP_NAME}" 2>/dev/null || true
-echo -e "${GREEN}✓ Kompilasi sukses: ${DIST_DIR}/${APP_NAME}${NC}"
+echo -e "${GREEN}✓ Kompilasi sukses: ${DIST_DIR}/${APP_NAME} (${TARGET_ARCH})${NC}"
 
 echo -e "\n${BLUE}[3/6] Menyalin aset dan konfigurasi...${NC}"
 if [ -f "config.yaml" ]; then

@@ -247,7 +247,16 @@ func runSQLiteMigrations(db *sql.DB) {
 			nip TEXT,
 			name TEXT,
 			phone TEXT,
-			role TEXT
+			role TEXT,
+			gender TEXT DEFAULT 'L'
+		)`,
+		`CREATE TABLE IF NOT EXISTS staff_faces (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			staff_id INTEGER NOT NULL UNIQUE,
+			descriptor TEXT NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (staff_id) REFERENCES staff(id) ON DELETE CASCADE
 		)`,
 		`CREATE TABLE IF NOT EXISTS attendance_logs (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -736,6 +745,7 @@ func runSQLiteMigrations(db *sql.DB) {
 		{"student_violation_points", "deleted_at", "ALTER TABLE student_violation_points ADD COLUMN deleted_at DATETIME"},
 		{"student_violation_points", "deleted_by", "ALTER TABLE student_violation_points ADD COLUMN deleted_by TEXT"},
 		{"student_violation_points", "deletion_reason", "ALTER TABLE student_violation_points ADD COLUMN deletion_reason TEXT"},
+		{"staff", "gender", "ALTER TABLE staff ADD COLUMN gender TEXT DEFAULT 'L'"},
 	}
 
 	for _, m := range migrations {
@@ -791,7 +801,16 @@ func runMySQLMigrations(db *sql.DB) {
 			nip VARCHAR(50) UNIQUE,
 			name VARCHAR(255),
 			phone VARCHAR(30),
-			role VARCHAR(50)
+			role VARCHAR(50),
+			gender VARCHAR(10) DEFAULT 'L'
+		)`,
+		`CREATE TABLE IF NOT EXISTS staff_faces (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			staff_id INT NOT NULL UNIQUE,
+			descriptor TEXT NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (staff_id) REFERENCES staff(id) ON DELETE CASCADE
 		)`,
 		`CREATE TABLE IF NOT EXISTS attendance_logs (
 			id INT PRIMARY KEY AUTO_INCREMENT,
@@ -1288,6 +1307,7 @@ func runMySQLMigrations(db *sql.DB) {
 		{"student_violation_points", "deleted_at", "ALTER TABLE student_violation_points ADD COLUMN deleted_at DATETIME"},
 		{"student_violation_points", "deleted_by", "ALTER TABLE student_violation_points ADD COLUMN deleted_by VARCHAR(100)"},
 		{"student_violation_points", "deletion_reason", "ALTER TABLE student_violation_points ADD COLUMN deletion_reason TEXT"},
+		{"staff", "gender", "ALTER TABLE staff ADD COLUMN gender VARCHAR(10) DEFAULT 'L'"},
 	}
 
 	for _, m := range migrations {

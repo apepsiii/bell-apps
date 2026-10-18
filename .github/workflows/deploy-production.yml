@@ -1,0 +1,155 @@
+name: Deploy Production
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  test-and-build:
+    name: Test & Build Production ARM64
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+          cache: true
+
+      - name: Run Tests
+        run: |
+          go test -v ./tests/...
+
+      - name: Extract Version Info & Compile ARM64
+        run: |
+          TAG_NAME="${GITHUB_REF_NAME}"
+          VERSION="${TAG_NAME#v}"
+          BUILD_DATE=$(date +"%Y%m%d_%H%M")
+          GIT_COMMIT=${GITHUB_SHA:0:7}
+          echo "Building Production ARM64 - Tag: ${TAG_NAME}, Version: ${VERSION}, Commit: ${GIT_COMMIT}"
+          
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build \
+            -ldflags="-s -w -X main.Version=${VERSION} -X main.BuildDate=${BUILD_DATE} -X main.GitCommit=${GIT_COMMIT}" \
+            -o bell-apps .
+
+      - name: Setup SSH & Cloudflare Tunnel
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
+          CF_CLIENT_ID: ${{ secrets.CF_CLIENT_ID }}
+          CF_CLIENT_SECRET: ${{ secrets.CF_CLIENT_SECRET }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+          # Install cloudflared for Cloudflare Tunnel SSH proxy
+          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /usr/local/bin/cloudflared
+          chmod +x /usr/local/bin/cloudflared
+
+          # Setup SSH config with Cloudflare Tunnel proxy command
+          if [ -n "$CF_CLIENT_ID" ] && [ -n "$CF_CLIENT_SECRET" ]; then
+            cat << EOF > ~/.ssh/config
+          Host armbian-server
+              HostName $SSH_HOST
+              Port $SSH_PORT
+              User $SSH_USER
+              IdentityFile ~/.ssh/id_rsa
+              StrictHostKeyChecking no
+              ProxyCommand /usr/local/bin/cloudflared access ssh --hostname %h --service-token-id $CF_CLIENT_ID --service-token-secret $CF_CLIENT_SECRET
+          EOF
+          else
+            cat << EOF > ~/.ssh/config
+          Host armbian-server
+              HostName $SSH_HOST
+              Port $SSH_PORT
+              User $SSH_USER
+              IdentityFile ~/.ssh/id_rsa
+              StrictHostKeyChecking no
+              ProxyCommand /usr/local/bin/cloudflared access ssh --hostname %h
+          EOF
+          fi
+
+      - name: Deploy to Production Server with Auto-Rollback
+        id: deploy
+        run: |
+          echo "Uploading production binary..."
+          scp bell-apps armbian-server:/tmp/bell-apps-new
+
+          echo "Applying update to /var/www/bell-apps with health check and auto-rollback..."
+          ssh armbian-server << 'EOF'
+            set -e
+
+            PROD_DIR="/var/www/bell-apps"
+            SERVICE="bell-apps.service"
+            HEALTH_URL="http://localhost:8080/health"
+
+            # 1. Backup binary lama
+            if [ -f "$PROD_DIR/bell-apps" ]; then
+              echo "Membuat cadangan: $PROD_DIR/bell-apps.bak"
+              cp -f "$PROD_DIR/bell-apps" "$PROD_DIR/bell-apps.bak"
+            fi
+
+            # 2. Swap binary baru
+            mv -f /tmp/bell-apps-new "$PROD_DIR/bell-apps"
+            chmod +x "$PROD_DIR/bell-apps"
+
+            # 3. Restart service
+            echo "Restarting $SERVICE..."
+            sudo systemctl restart "$SERVICE"
+
+            # 4. Verifikasi Health Check
+            SUCCESS=0
+            echo "Memverifikasi endpoint $HEALTH_URL..."
+            for i in {1..10}; do
+              sleep 2
+              echo "Percobaan $i/10..."
+              if curl -fsSL "$HEALTH_URL" 2>/dev/null; then
+                SUCCESS=1
+                echo -e "\n✓ Health check lulus! Service berjalan normal."
+                break
+              fi
+            done
+
+            # 5. Rollback jika health check gagal
+            if [ $SUCCESS -ne 1 ]; then
+              echo "❌ Health check GAGAL! Memulai auto-rollback..."
+              if [ -f "$PROD_DIR/bell-apps.bak" ]; then
+                cp -f "$PROD_DIR/bell-apps.bak" "$PROD_DIR/bell-apps"
+                sudo systemctl restart "$SERVICE"
+                echo "✓ Rollback ke binary cadangan berhasil dipulihkan."
+              fi
+              exit 1
+            fi
+          EOF
+
+      - name: Send Telegram Notification (Success)
+        if: success() && env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          MESSAGE="🎉 *[Production] NIBA SuperApps ${GITHUB_REF_NAME} Deployed!*%0ACommit: \`${GITHUB_SHA:0:7}\`%0AHost: \`Armbian 192.168.1.101\`%0APort: \`8080\`%0AStatus: *Online (Healthy)*"
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d "chat_id=${TELEGRAM_CHAT_ID}" \
+            -d "parse_mode=Markdown" \
+            -d "text=${MESSAGE}" > /dev/null || true
+
+      - name: Send Telegram Notification (Failure / Rollback)
+        if: failure() && env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          MESSAGE="🚨 *[Production] GAGAL DEPLOY ${GITHUB_REF_NAME}!*%0ASistem telah di-*rollback* otomatis ke binary sebelumnya.%0APeriksa log GitHub Actions!"
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d "chat_id=${TELEGRAM_CHAT_ID}" \
+            -d "parse_mode=Markdown" \
+            -d "text=${MESSAGE}" > /dev/null || true
+

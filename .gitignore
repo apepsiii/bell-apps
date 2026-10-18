@@ -49,3 +49,11 @@ scratch/
 # Kilo config
 .kilo/
 
+# Android Kiosk Build
+**/build/
+**/.gradle/
+android-kiosk/local.properties
+.gradle/
+*.apk
+*.aab
+

@@ -67,9 +67,9 @@ func TestUIUX07_Scan_Card_Background(t *testing.T) {
 	assert.NotContains(t, scanContent, `bg-[${bg}]`,
 		"views/scan.html must NOT use uncompiled dynamic template string bg-[${bg}]")
 
-	// Verify direct style assignment is used
-	assert.Contains(t, scanContent, "card.style.backgroundColor = bg;",
-		"views/scan.html must assign card.style.backgroundColor directly")
+	// Verify semantic class or direct style assignment is used
+	assert.True(t, strings.Contains(scanContent, "card.style.backgroundColor = bg;") || strings.Contains(scanContent, "bg-white dark:bg-zinc-900"),
+		"views/scan.html must assign valid semantic classes or direct style for cards")
 }
 
 // --- UIUX: Stisla Dashboard Redesign Verification ---

@@ -185,12 +185,15 @@ type Student struct {
 }
 
 type Staff struct {
-	ID    int
-	RFID  string
-	NIP   string
-	Name  string
-	Phone string
-	Role  string // Guru/Staff
+	ID        int
+	RFID      string
+	NIP       string
+	Name      string
+	Phone     string
+	Role      string // Guru/Staff
+	Gender    string // L or P
+	Honorific string // Bapak or Ibu
+	HasFace   bool
 }
 
 type AttendanceSetting struct {
@@ -243,6 +246,23 @@ type StudentStatus struct {
 	Time   string
 }
 
+type StaffAttendanceItem struct {
+	Staff
+	CheckInTime  string // HH:MM or "-"
+	CheckOutTime string // HH:MM or "-"
+	Status       string // Hadir, Terlambat, Sakit, Izin, Alpha, Belum Hadir
+	Method       string // FACE, RFID, MANUAL, or "-"
+	Note         string
+}
+
+type StaffAttendanceStats struct {
+	TotalStaff   int
+	PresentStaff int
+	OnTimeStaff  int
+	LateStaff    int
+	AbsentStaff  int
+}
+
 type CalendarLog struct {
 	Status string `json:"status"`
 	Time   string `json:"time"`
@@ -286,6 +306,10 @@ type DashboardData struct {
 	// New Fields for Attendance Control
 	PresentStudents []StudentStatus
 	AbsentStudents  []Student
+
+	// Staff Attendance Monitoring
+	StaffAttendanceList  []StaffAttendanceItem
+	StaffAttendanceStats StaffAttendanceStats
 
 	// Signage Data
 	RunningTexts []RunningText
@@ -725,14 +749,24 @@ func (a *App) getDashboardData() DashboardData {
 	rowsStudent.Close()
 
 	// 4. Staff
-	rowsStaff, _ := a.DB.Query("SELECT id, rfid_uid, nip, name, phone, role FROM staff ORDER BY name ASC")
+	rowsStaff, _ := a.DB.Query(`
+		SELECT s.id, COALESCE(s.rfid_uid, ''), s.nip, s.name, COALESCE(s.phone, ''), s.role, COALESCE(s.gender, 'L'),
+		       CASE WHEN sf.id IS NOT NULL THEN 1 ELSE 0 END as has_face
+		FROM staff s
+		LEFT JOIN staff_faces sf ON s.id = sf.staff_id
+		ORDER BY s.name ASC`)
 	var staffList []Staff
-	for rowsStaff.Next() {
-		var st Staff
-		rowsStaff.Scan(&st.ID, &st.RFID, &st.NIP, &st.Name, &st.Phone, &st.Role)
-		staffList = append(staffList, st)
+	if rowsStaff != nil {
+		for rowsStaff.Next() {
+			var st Staff
+			var hasFaceInt int
+			rowsStaff.Scan(&st.ID, &st.RFID, &st.NIP, &st.Name, &st.Phone, &st.Role, &st.Gender, &hasFaceInt)
+			st.HasFace = (hasFaceInt == 1)
+			st.Honorific = handler.DetermineStaffHonorific(st.Gender, st.Name)
+			staffList = append(staffList, st)
+		}
+		rowsStaff.Close()
 	}
-	rowsStaff.Close()
 
 	// 5. Attendance (Today's Logs & Settings)
 	// Logs (Join Students for Photo)
@@ -792,6 +826,104 @@ func (a *App) getDashboardData() DashboardData {
 	sort.Slice(presentList, func(i, j int) bool {
 		return presentList[i].Time > presentList[j].Time
 	})
+
+	// Process Staff Attendance for Today
+	type staffLogRecord struct {
+		CheckIn  string
+		CheckOut string
+		Status   string
+		Method   string
+		Note     string
+	}
+	staffLogMap := make(map[string]*staffLogRecord)
+
+	rowsStaffLog, _ := a.DB.Query(`
+		SELECT COALESCE(rfid_uid, ''), user_name, status, COALESCE(method, 'RFID'), timestamp, COALESCE(note, '')
+		FROM attendance_logs
+		WHERE user_type = 'Staff' AND date = ?
+		ORDER BY timestamp ASC`, today)
+
+	if rowsStaffLog != nil {
+		for rowsStaffLog.Next() {
+			var rfid, userName, status, method, ts, note string
+			rowsStaffLog.Scan(&rfid, &userName, &status, &method, &ts, &note)
+
+			timeOnly := "-"
+			if len(ts) >= 16 {
+				timeOnly = ts[11:16]
+			}
+
+			key := strings.ToLower(userName)
+			rec, exists := staffLogMap[key]
+			if !exists {
+				rec = &staffLogRecord{CheckIn: "-", CheckOut: "-", Status: "Belum Hadir", Method: "-"}
+				staffLogMap[key] = rec
+			}
+			if rfid != "" {
+				staffLogMap[rfid] = rec
+			}
+
+			if status == "Pulang" {
+				rec.CheckOut = timeOnly
+			} else {
+				if rec.CheckIn == "-" {
+					rec.CheckIn = timeOnly
+				}
+				rec.Status = status
+				rec.Method = method
+				if note != "" {
+					rec.Note = note
+				}
+			}
+		}
+		rowsStaffLog.Close()
+	}
+
+	var staffAttendanceList []StaffAttendanceItem
+	var staffStats StaffAttendanceStats
+	staffStats.TotalStaff = len(staffList)
+
+	for _, st := range staffList {
+		item := StaffAttendanceItem{
+			Staff:        st,
+			CheckInTime:  "-",
+			CheckOutTime: "-",
+			Status:       "Belum Hadir",
+			Method:       "-",
+			Note:         "",
+		}
+
+		var rec *staffLogRecord
+		if r, ok := staffLogMap[st.RFID]; ok && st.RFID != "" {
+			rec = r
+		} else if r, ok := staffLogMap[strings.ToLower(st.Name)]; ok {
+			rec = r
+		}
+
+		if rec != nil {
+			item.CheckInTime = rec.CheckIn
+			item.CheckOutTime = rec.CheckOut
+			item.Status = rec.Status
+			item.Method = rec.Method
+			item.Note = rec.Note
+
+			if rec.Status == "Datang" || rec.Status == "Hadir" {
+				staffStats.PresentStaff++
+				staffStats.OnTimeStaff++
+			} else if rec.Status == "Terlambat" {
+				staffStats.PresentStaff++
+				staffStats.LateStaff++
+			} else if rec.Status == "Sakit" || rec.Status == "Izin" || rec.Status == "Alpha" {
+				staffStats.AbsentStaff++
+			} else {
+				staffStats.AbsentStaff++
+			}
+		} else {
+			staffStats.AbsentStaff++
+		}
+
+		staffAttendanceList = append(staffAttendanceList, item)
+	}
 
 	// Settings
 	rowsSet, _ := a.DB.Query("SELECT setting_key, setting_value FROM attendance_settings")
@@ -990,9 +1122,11 @@ func (a *App) getDashboardData() DashboardData {
 		Announcements:      announcements,
 		AttendanceLogs:     logs,
 		AttendanceSettings: attSettings,
-		PresentStudents:    presentList,
-		AbsentStudents:     absentList,
-		RunningTexts:       runningTexts,
+		PresentStudents:      presentList,
+		AbsentStudents:       absentList,
+		StaffAttendanceList:  staffAttendanceList,
+		StaffAttendanceStats: staffStats,
+		RunningTexts:         runningTexts,
 		SignageMedia:       signageMedia,
 		ChartWeeklyClass:   string(jsonChart1),
 		ChartStatus:        string(jsonChart2),
@@ -2524,11 +2658,12 @@ func (a *App) RecordAttendanceHandler(c echo.Context) error {
 }
 
 // API for Face Recognition Attendance
-// API for Face Recognition Attendance
 // Endpoint: /api/attendance/verify-face
 func (a *App) VerifyFaceAttendanceHandler(c echo.Context) error {
 	type VerifyRequest struct {
 		StudentID   interface{} `json:"student_id"`
+		StaffID     interface{} `json:"staff_id"`
+		UserType    string      `json:"user_type"`
 		Distance    float64     `json:"distance"`
 		ImageBase64 string      `json:"image_base64"`
 	}
@@ -2538,6 +2673,248 @@ func (a *App) VerifyFaceAttendanceHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid request body"})
 	}
 
+	var staffID int
+	switch v := req.StaffID.(type) {
+	case float64:
+		staffID = int(v)
+	case int:
+		staffID = v
+	case string:
+		staffID, _ = strconv.Atoi(v)
+	}
+	if staffID <= 0 {
+		staffID, _ = strconv.Atoi(c.FormValue("staff_id"))
+		if staffID <= 0 {
+			staffID, _ = strconv.Atoi(c.QueryParam("staff_id"))
+		}
+	}
+
+	userType := req.UserType
+	if userType == "" {
+		userType = c.FormValue("user_type")
+		if userType == "" {
+			userType = c.QueryParam("user_type")
+		}
+	}
+
+	// -------------------------------------------------------------
+	// STAFF FACE RECOGNITION BRANCH
+	// -------------------------------------------------------------
+	if userType == "Staff" || staffID > 0 {
+		if staffID <= 0 {
+			return c.JSON(http.StatusBadRequest, map[string]string{"message": "Valid staff_id required"})
+		}
+
+		// 1. Get Staff Data
+		var name, nip, phone, role, gender string
+		var rfidNull sql.NullString
+		err := a.DB.QueryRow(`
+			SELECT name, nip, COALESCE(phone, ''), role, rfid_uid, COALESCE(gender, 'L')
+			FROM staff
+			WHERE id = ?`, staffID).Scan(&name, &nip, &phone, &role, &rfidNull, &gender)
+		if err != nil {
+			return c.JSON(http.StatusNotFound, map[string]string{"message": "Guru/Staff tidak ditemukan"})
+		}
+		rfid := rfidNull.String
+		honorific := handler.DetermineStaffHonorific(gender, name)
+
+		// 2. Attendance Time Windows
+		settings := getAllSettings(a.DB)
+		arrStart := settings["arrival_start"]
+		if arrStart == "" {
+			arrStart = "06:00"
+		}
+		arrEnd := settings["arrival_end"]
+		if arrEnd == "" {
+			arrEnd = "07:15"
+		}
+		depStart := settings["departure_start"]
+		if depStart == "" {
+			depStart = "15:00"
+		}
+		depEnd := settings["departure_end"]
+		if depEnd == "" {
+			depEnd = "18:00"
+		}
+
+		now := time.Now()
+		timeStr := now.Format("15:04")
+		dateStr := now.Format("2006-01-02")
+		timestamp := now.Format("2006-01-02 15:04:05")
+
+		// 3. Duplicate check for Staff
+		var checkInCount int
+		a.DB.QueryRow(`
+			SELECT COUNT(*) FROM attendance_logs
+			WHERE user_type = 'Staff'
+			  AND ((rfid_uid = ? AND rfid_uid != '') OR user_name = ?)
+			  AND date = ? AND (status = 'Datang' OR status = 'Hadir' OR status = 'Terlambat')`,
+			rfid, name, dateStr).Scan(&checkInCount)
+
+		var checkOutCount int
+		a.DB.QueryRow(`
+			SELECT COUNT(*) FROM attendance_logs
+			WHERE user_type = 'Staff'
+			  AND ((rfid_uid = ? AND rfid_uid != '') OR user_name = ?)
+			  AND date = ? AND status = 'Pulang'`,
+			rfid, name, dateStr).Scan(&checkOutCount)
+
+		var status string
+		var speechMessage string
+
+		if timeStr >= arrStart && timeStr <= arrEnd {
+			if checkInCount > 0 {
+				return c.JSON(http.StatusOK, map[string]interface{}{
+					"status":            "duplicate",
+					"attendance_status": "Datang",
+					"user_type":         "Staff",
+					"staff_id":          staffID,
+					"name":              name,
+					"nip":               nip,
+					"role":              role,
+					"gender":            gender,
+					"honorific":         honorific,
+					"message":           fmt.Sprintf("%s %s sudah presensi datang hari ini", honorific, name),
+					"speech_message":    fmt.Sprintf("%s %s sudah presensi hari ini", honorific, name),
+					"time":              timeStr,
+				})
+			}
+			status = "Datang"
+			speechMessage = fmt.Sprintf("Selamat Datang %s %s", honorific, name)
+		} else if timeStr > arrEnd && timeStr < depStart {
+			if checkInCount > 0 {
+				return c.JSON(http.StatusOK, map[string]interface{}{
+					"status":            "not_time",
+					"attendance_status": "Belum Pulang",
+					"user_type":         "Staff",
+					"staff_id":          staffID,
+					"name":              name,
+					"nip":               nip,
+					"role":              role,
+					"gender":            gender,
+					"honorific":         honorific,
+					"message":           "Presensi Pulang belum tersedia",
+					"speech_message":    "Presensi Pulang belum tersedia",
+					"time":              timeStr,
+				})
+			}
+			status = "Terlambat"
+			speechMessage = fmt.Sprintf("Selamat Datang %s %s, presensi tercatat terlambat", honorific, name)
+		} else if timeStr >= depStart && (depEnd == "" || timeStr <= depEnd) {
+			if checkOutCount > 0 {
+				return c.JSON(http.StatusOK, map[string]interface{}{
+					"status":            "duplicate",
+					"attendance_status": "Pulang",
+					"user_type":         "Staff",
+					"staff_id":          staffID,
+					"name":              name,
+					"nip":               nip,
+					"role":              role,
+					"gender":            gender,
+					"honorific":         honorific,
+					"message":           fmt.Sprintf("%s %s sudah presensi pulang hari ini", honorific, name),
+					"speech_message":    fmt.Sprintf("%s %s sudah presensi pulang hari ini", honorific, name),
+					"time":              timeStr,
+				})
+			}
+			status = "Pulang"
+			speechMessage = fmt.Sprintf("Terima kasih %s %s", honorific, name)
+		} else {
+			if checkInCount > 0 && checkOutCount > 0 {
+				return c.JSON(http.StatusOK, map[string]interface{}{
+					"status":            "duplicate",
+					"attendance_status": "Selesai",
+					"user_type":         "Staff",
+					"staff_id":          staffID,
+					"name":              name,
+					"nip":               nip,
+					"role":              role,
+					"gender":            gender,
+					"honorific":         honorific,
+					"message":           "Sudah menyelesaikan presensi hari ini",
+					"speech_message":    fmt.Sprintf("%s %s sudah presensi hari ini", honorific, name),
+					"time":              timeStr,
+				})
+			} else if checkInCount > 0 {
+				return c.JSON(http.StatusOK, map[string]interface{}{
+					"status":            "not_time",
+					"attendance_status": "Di Luar Jam",
+					"user_type":         "Staff",
+					"staff_id":          staffID,
+					"name":              name,
+					"nip":               nip,
+					"role":              role,
+					"gender":            gender,
+					"honorific":         honorific,
+					"message":           "Presensi Pulang belum tersedia",
+					"speech_message":    "Presensi Pulang belum tersedia",
+					"time":              timeStr,
+				})
+			}
+
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"status":            "out_of_hours",
+				"attendance_status": "Di Luar Jam",
+				"user_type":         "Staff",
+				"staff_id":          staffID,
+				"name":              name,
+				"nip":               nip,
+				"role":              role,
+				"gender":            gender,
+				"honorific":         honorific,
+				"message":           "Di luar jam operasional presensi",
+				"speech_message":    "Di luar jam operasional presensi",
+				"time":              timeStr,
+			})
+		}
+
+		// 4. Record Attendance Log for Staff
+		_, err = a.DB.Exec(`
+			INSERT INTO attendance_logs (student_id, rfid_uid, user_name, user_type, status, method, timestamp, date)
+			VALUES (0, ?, ?, 'Staff', ?, 'FACE', ?, ?)`,
+			rfid, name, status, timestamp, dateStr)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Gagal mencatat presensi: " + err.Error()})
+		}
+
+		// 5. WA Notification (Async)
+		go func() {
+			waURL := settings["onesender_api_url"]
+			waToken := settings["onesender_api_token"]
+			waTemplateStaff := settings["wa_template_staff"]
+			waImage := settings["wa_image_link"]
+			if waTemplateStaff == "" {
+				waTemplateStaff = "Halo {honorific} {name}, presensi {status} Anda tercatat pada {time}."
+			}
+			msg := strings.ReplaceAll(waTemplateStaff, "{honorific}", honorific)
+			msg = strings.ReplaceAll(msg, "{name}", name)
+			msg = strings.ReplaceAll(msg, "{status}", status)
+			msg = strings.ReplaceAll(msg, "{time}", timeStr)
+
+			if phone != "" {
+				a.SendOneSenderMessage(phone, msg, waToken, waURL, "individual", waImage)
+			}
+		}()
+
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"status":            "matched",
+			"attendance_status": status,
+			"user_type":         "Staff",
+			"staff_id":          staffID,
+			"name":              name,
+			"nip":               nip,
+			"role":              role,
+			"gender":            gender,
+			"honorific":         honorific,
+			"speech_message":    speechMessage,
+			"message":           "Presensi " + status + " Berhasil",
+			"time":              timeStr,
+		})
+	}
+
+	// -------------------------------------------------------------
+	// STUDENT FACE RECOGNITION BRANCH
+	// -------------------------------------------------------------
 	var studentID int
 	switch v := req.StudentID.(type) {
 	case float64:
@@ -2625,6 +3002,7 @@ func (a *App) VerifyFaceAttendanceHandler(c echo.Context) error {
 			return c.JSON(http.StatusOK, map[string]interface{}{
 				"status":            "duplicate",
 				"attendance_status": "Datang",
+				"user_type":         "Siswa",
 				"message":           "Sudah absen datang hari ini",
 				"student_id":        studentID,
 				"name":              name,
@@ -2653,6 +3031,7 @@ func (a *App) VerifyFaceAttendanceHandler(c echo.Context) error {
 			return c.JSON(http.StatusOK, map[string]interface{}{
 				"status":            "not_time",
 				"attendance_status": "Belum Pulang",
+				"user_type":         "Siswa",
 				"message":           "Presensi Pulang belum tersedia",
 				"student_id":        studentID,
 				"name":              name,
@@ -2672,6 +3051,7 @@ func (a *App) VerifyFaceAttendanceHandler(c echo.Context) error {
 			return c.JSON(http.StatusOK, map[string]interface{}{
 				"status":            "duplicate",
 				"attendance_status": "Pulang",
+				"user_type":         "Siswa",
 				"message":           "Sudah absen pulang hari ini",
 				"student_id":        studentID,
 				"name":              name,
@@ -2686,11 +3066,11 @@ func (a *App) VerifyFaceAttendanceHandler(c echo.Context) error {
 
 	// D. Di luar jam operasional (misal sebelum 06:00 pagi atau tengah malam lewat 18:00)
 	} else {
-		// Jika saat pengujian/malam siswa belum pernah absen dan ingin diizinkan atau diinfokan
 		if checkInCount > 0 && checkOutCount > 0 {
 			return c.JSON(http.StatusOK, map[string]interface{}{
 				"status":            "duplicate",
 				"attendance_status": "Selesai",
+				"user_type":         "Siswa",
 				"message":           "Sudah menyelesaikan presensi hari ini",
 				"student_id":        studentID,
 				"name":              name,
@@ -2702,6 +3082,7 @@ func (a *App) VerifyFaceAttendanceHandler(c echo.Context) error {
 			return c.JSON(http.StatusOK, map[string]interface{}{
 				"status":            "not_time",
 				"attendance_status": "Di Luar Jam",
+				"user_type":         "Siswa",
 				"message":           "Presensi Pulang belum tersedia",
 				"student_id":        studentID,
 				"name":              name,
@@ -2714,6 +3095,7 @@ func (a *App) VerifyFaceAttendanceHandler(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"status":            "out_of_hours",
 			"attendance_status": "Di Luar Jam",
+			"user_type":         "Siswa",
 			"message":           "Di luar jam operasional presensi",
 			"student_id":        studentID,
 			"name":              name,
@@ -2782,6 +3164,7 @@ func (a *App) VerifyFaceAttendanceHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"status":            "matched",
 		"attendance_status": status,
+		"user_type":         "Siswa",
 		"student_id":        studentID,
 		"name":              name,
 		"class_name":        className,
@@ -2802,10 +3185,10 @@ func (a *App) TodayStatsHandler(c echo.Context) error {
 	a.DB.QueryRow("SELECT COUNT(DISTINCT CASE WHEN student_id > 0 THEN student_id ELSE rfid_uid END) FROM attendance_logs WHERE date=? AND user_type='Siswa' AND status='Datang'", dateStr).Scan(&presentStudents)
 	a.DB.QueryRow("SELECT COUNT(DISTINCT CASE WHEN student_id > 0 THEN student_id ELSE rfid_uid END) FROM attendance_logs WHERE date=? AND user_type='Siswa' AND status='Terlambat'", dateStr).Scan(&lateStudents)
 
-	// Count staff
+	// Count staff (including FACE scans with empty rfid_uid and manual entries)
 	var totalStaff, presentStaff int
 	a.DB.QueryRow("SELECT COUNT(*) FROM staff").Scan(&totalStaff)
-	a.DB.QueryRow("SELECT COUNT(DISTINCT rfid_uid) FROM attendance_logs WHERE date=? AND user_type='Staff' AND (status='Datang' OR status='Terlambat')", dateStr).Scan(&presentStaff)
+	a.DB.QueryRow("SELECT COUNT(DISTINCT CASE WHEN rfid_uid != '' THEN rfid_uid ELSE user_name END) FROM attendance_logs WHERE date=? AND user_type='Staff' AND (status='Datang' OR status='Hadir' OR status='Terlambat')", dateStr).Scan(&presentStaff)
 
 	// Calculate percentage
 	var attendancePercentage float64

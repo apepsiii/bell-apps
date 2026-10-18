@@ -143,10 +143,24 @@ func TestAdminModularTemplates_ParseAndRender(t *testing.T) {
 		"ChartWeeklyClass": `{"labels":[],"datasets":[]}`,
 		"ChartStatus":      `{"labels":[],"datasets":[]}`,
 		"ChartArrival":     `{"labels":[],"datasets":[]}`,
-		"PresentStudents": []interface{}{},
-		"AbsentStudents":  []interface{}{},
-		"Students":        []interface{}{},
-		"StaffList":       []interface{}{},
+		"PresentStudents":     []interface{}{},
+		"AbsentStudents":      []interface{}{},
+		"StaffAttendanceList": []interface{}{},
+		"StaffAttendanceStats": struct {
+			TotalStaff   int
+			PresentStaff int
+			OnTimeStaff  int
+			LateStaff    int
+			AbsentStaff  int
+		}{
+			TotalStaff:   20,
+			PresentStaff: 18,
+			OnTimeStaff:  15,
+			LateStaff:    3,
+			AbsentStaff:  2,
+		},
+		"Students":  []interface{}{},
+		"StaffList": []interface{}{},
 		"Classes":         []interface{}{},
 		"Majors":          []interface{}{},
 		"Devices":         []interface{}{},
