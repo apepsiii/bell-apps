@@ -103,6 +103,36 @@
                         value="{{index .AttendanceSettings "onesender_device_id"}}" placeholder="Pionir"
                         class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 font-mono focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
                 </div>
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+                        Nomor WhatsApp Bot / Sekolah (Reverse OTP & Magic Link)
+                    </label>
+                    <input type="text" name="school_wa_phone"
+                        value="{{index .AttendanceSettings "school_wa_phone"}}" placeholder="Contoh: 628123456789"
+                        class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 font-mono focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                    <p class="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1">
+                        Nomor WA bot ini digunakan pada tombol <em>"Buka WhatsApp"</em> saat orang tua/siswa melakukan login cepat. Format: 628xxx (tanpa tanda + atau spasi).
+                    </p>
+                </div>
+                <div class="sm:col-span-2 p-3 bg-zinc-50 dark:bg-zinc-950/40 rounded-xl border border-zinc-200/80 dark:border-zinc-800">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <span class="text-xs font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
+                                <i data-lucide="webhook" class="w-3.5 h-3.5 text-purple-600"></i>
+                                URL Webhook WhatsApp Gateway
+                            </span>
+                            <p class="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
+                                Pasang URL ini di pengaturan Webhook OneSender atau Gowa agar bot otomatis membalas kode login dan pesan:
+                            </p>
+                            <code id="webhookUrlText" class="inline-block mt-1.5 px-2.5 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-xs font-mono text-purple-600 dark:text-purple-400 select-all">
+                                /api/webhook/whatsapp
+                            </code>
+                        </div>
+                        <button type="button" onclick="copyWebhookUrl()" class="mt-1 px-3 py-1.5 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-medium transition-all shadow-2xs flex items-center gap-1">
+                            <i data-lucide="copy" class="w-3 h-3"></i> Salin
+                        </button>
+                    </div>
+                </div>
             </div>
             <div class="mt-5 flex items-center gap-3">
                 <button type="submit"
@@ -222,13 +252,13 @@
             <i data-lucide="sparkles" class="w-4 h-4 text-zinc-700 dark:text-zinc-300"></i>
             Pengaturan AI Quest Generator (OpenAI Compatible)
         </h3>
-        <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-4">Gunakan API OpenAI, Groq, atau Ollama untuk pembuatan
-            tantangan bahasa Inggris otomatis.</p>
+        <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-4">Gunakan API OpenAI, Groq, Ollama, atau provider OpenAI-compatible lainnya untuk pembuatan tantangan bahasa Inggris otomatis.</p>
         <form id="ai-settings-form" onsubmit="saveAISettings(event)" class="space-y-4 max-w-xl">
             <div>
                 <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Base URL API</label>
                 <input type="url" id="ai_base_url" name="ai_base_url" placeholder="https://api.openai.com/v1"
                     class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 font-mono focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                <p class="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1">Contoh: https://api.openai.com/v1 atau https://api.groq.com/openai/v1</p>
             </div>
             <div>
                 <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">API Key</label>
@@ -236,17 +266,38 @@
                     class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 font-mono focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
             </div>
             <div>
-                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">Model Name</label>
-                <input type="text" id="ai_model" name="ai_model" placeholder="gpt-4o-mini"
-                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 font-mono focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                <div class="flex items-center justify-between mb-1.5">
+                    <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300">Model Name</label>
+                    <button type="button" id="btn-fetch-models" onclick="fetchAIModels()"
+                        class="inline-flex items-center gap-1.5 text-[11px] font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 px-2.5 py-1 rounded-md border border-zinc-200 dark:border-zinc-700 transition-colors">
+                        <i data-lucide="refresh-cw" class="w-3 h-3" id="icon-fetch-models"></i>
+                        <span>Tarik Model dari API</span>
+                    </button>
+                </div>
+                <div class="space-y-2">
+                    <input type="text" id="ai_model" name="ai_model" placeholder="gpt-4o-mini"
+                        class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 font-mono focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+
+                    <div id="model-select-wrapper" class="hidden space-y-1">
+                        <select id="ai_model_select" onchange="selectModelFromDropdown(this.value)"
+                            class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 font-mono focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
+                            <option value="">-- Pilih Model dari Daftar Tersedia --</option>
+                        </select>
+                        <p class="text-[11px] text-zinc-500 dark:text-zinc-400">Pilih model dari daftar yang berhasil ditarik untuk mengisinya secara otomatis ke kolom Model Name.</p>
+                    </div>
+                </div>
             </div>
             <div class="flex items-center gap-3 pt-2">
                 <button type="submit"
-                    class="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-semibold shadow-xs transition-all">Simpan
-                    AI Config</button>
-                <button type="button" onclick="testAIConnection()"
-                    class="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-semibold transition-all">Test
-                    AI Connection</button>
+                    class="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5">
+                    <i data-lucide="save" class="w-3.5 h-3.5"></i>
+                    <span>Simpan AI Config</span>
+                </button>
+                <button type="button" id="btn-test-ai" onclick="testAIConnection()"
+                    class="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5">
+                    <i data-lucide="zap" class="w-3.5 h-3.5"></i>
+                    <span>Test AI Connection</span>
+                </button>
             </div>
         </form>
     </div>
@@ -511,7 +562,7 @@
 
     async function loadAISettings() {
         try {
-            const res = await fetch('/api/ai/settings');
+            const res = await fetch('/admin/ai/settings');
             const data = await res.json();
             if (data) {
                 if (document.getElementById('ai_base_url')) document.getElementById('ai_base_url').value = data.ai_base_url || '';
@@ -521,33 +572,140 @@
         } catch (e) { }
     }
 
+    async function fetchAIModels() {
+        const baseUrl = document.getElementById('ai_base_url').value.trim();
+        const apiKey = document.getElementById('ai_api_key').value.trim();
+        const btn = document.getElementById('btn-fetch-models');
+        const icon = document.getElementById('icon-fetch-models');
+
+        if (!baseUrl) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Base URL Kosong',
+                text: 'Silakan isi Base URL API terlebih dahulu untuk menarik daftar model.'
+            });
+            return;
+        }
+
+        if (btn) btn.disabled = true;
+        if (icon) icon.classList.add('animate-spin');
+
+        try {
+            const res = await fetch('/admin/ai/models', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ai_base_url: baseUrl,
+                    ai_api_key: apiKey
+                })
+            });
+            const data = await res.json();
+
+            if (res.ok && (data.status === 'success' || data.ok) && Array.isArray(data.models) && data.models.length > 0) {
+                const select = document.getElementById('ai_model_select');
+                const wrapper = document.getElementById('model-select-wrapper');
+                const currentModel = document.getElementById('ai_model').value.trim();
+
+                select.innerHTML = `<option value="">-- Pilih Model Tersedia (${data.models.length} model) --</option>`;
+                data.models.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m;
+                    opt.textContent = m;
+                    if (m === currentModel) opt.selected = true;
+                    select.appendChild(opt);
+                });
+
+                if (wrapper) wrapper.classList.remove('hidden');
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Model Berhasil Ditarik',
+                    text: `Ditemukan ${data.models.length} model dari API. Silakan pilih dari dropdown di bawah.`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } else {
+                Swal.fire('Gagal Menarik Model', data.message || 'Tidak ada model yang ditemukan atau provider tidak menyediakan endpoint /models', 'error');
+            }
+        } catch (err) {
+            Swal.fire('Error', 'Gagal menghubungi server untuk mengambil model: ' + err.message, 'error');
+        } finally {
+            if (btn) btn.disabled = false;
+            if (icon) icon.classList.remove('animate-spin');
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+    }
+
+    function selectModelFromDropdown(val) {
+        if (!val) return;
+        const input = document.getElementById('ai_model');
+        if (input) {
+            input.value = val;
+            input.classList.add('ring-2', 'ring-emerald-500');
+            setTimeout(() => input.classList.remove('ring-2', 'ring-emerald-500'), 800);
+        }
+    }
+
     async function saveAISettings(e) {
         e.preventDefault();
         const body = {
-            ai_base_url: document.getElementById('ai_base_url').value,
-            ai_api_key: document.getElementById('ai_api_key').value,
-            ai_model: document.getElementById('ai_model').value
+            ai_base_url: document.getElementById('ai_base_url').value.trim(),
+            ai_api_key: document.getElementById('ai_api_key').value.trim(),
+            ai_model: document.getElementById('ai_model').value.trim()
         };
         try {
-            const res = await fetch('/api/ai/settings', {
+            const res = await fetch('/admin/ai/settings', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
             });
-            if (res.ok) Swal.fire({ icon: 'success', title: 'Tersimpan', text: 'Pengaturan AI disimpan', timer: 1500 });
-        } catch (e) { Swal.fire('Error', 'Gagal menyimpan AI', 'error'); }
+            const data = await res.json();
+            if (res.ok && (data.status === 'success' || data.ok || (!data.message || !data.message.includes('Gagal')))) {
+                Swal.fire({ icon: 'success', title: 'Tersimpan', text: data.message || 'Pengaturan AI berhasil disimpan', timer: 1500, showConfirmButton: false });
+                loadAISettings();
+            } else {
+                Swal.fire('Gagal', data.message || 'Gagal menyimpan AI', 'error');
+            }
+        } catch (e) { Swal.fire('Error', 'Gagal menyimpan AI: ' + e.message, 'error'); }
     }
 
     async function testAIConnection() {
-        try {
-            const res = await fetch('/api/ai/test');
-            const data = await res.json();
-            if (res.ok && data.status === 'ok') {
-                Swal.fire({ icon: 'success', title: 'Terhubung!', text: data.message || 'Koneksi AI aktif' });
-            } else {
-                Swal.fire('Gagal', data.message || 'Gagal tersambung ke endpoint AI', 'error');
+        const baseUrl = document.getElementById('ai_base_url').value.trim();
+        const apiKey = document.getElementById('ai_api_key').value.trim();
+        const model = document.getElementById('ai_model').value.trim();
+
+        Swal.fire({
+            title: 'Menguji Koneksi AI...',
+            text: 'Menghubungi endpoint AI untuk memastikan kredensial & model valid...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
             }
-        } catch (e) { Swal.fire('Error', 'Gagal menghubungi server', 'error'); }
+        });
+
+        try {
+            const res = await fetch('/admin/ai/test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ai_base_url: baseUrl,
+                    ai_api_key: apiKey,
+                    ai_model: model
+                })
+            });
+            const data = await res.json();
+            if (res.ok && (data.status === 'success' || data.status === 'ok' || data.ok)) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Terhubung!',
+                    text: data.message || 'Koneksi AI aktif dan berhasil merespons'
+                });
+            } else {
+                Swal.fire('Koneksi Gagal', data.message || 'Gagal tersambung ke endpoint AI', 'error');
+            }
+        } catch (e) {
+            Swal.fire('Error', 'Gagal menghubungi server: ' + e.message, 'error');
+        }
     }
 
     async function loadSchoolSettings() {
@@ -630,6 +788,29 @@
         } catch (e) {
             Swal.fire('Error', 'Gagal menghubungi server', 'error');
         }
+    }
+
+    function initWebhookUrl() {
+        const el = document.getElementById('webhookUrlText');
+        if (el) {
+            el.textContent = window.location.origin + '/api/webhook/whatsapp';
+        }
+    }
+    window.addEventListener('DOMContentLoaded', initWebhookUrl);
+
+    function copyWebhookUrl() {
+        const fullUrl = window.location.origin + '/api/webhook/whatsapp';
+        navigator.clipboard.writeText(fullUrl).then(() => {
+            Swal.fire({
+                icon: 'success',
+                title: 'Disalin!',
+                text: 'URL Webhook berhasil disalin ke clipboard: ' + fullUrl,
+                timer: 2000,
+                showConfirmButton: false
+            });
+        }).catch(() => {
+            prompt("Salin URL Webhook berikut:", fullUrl);
+        });
     }
 </script>
 {{template "admin_footer" .}}

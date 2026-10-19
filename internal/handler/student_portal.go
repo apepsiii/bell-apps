@@ -111,6 +111,16 @@ func StudentLogout(db *sql.DB) echo.HandlerFunc {
 			db.Exec("DELETE FROM attendance_settings WHERE setting_key = ?", studentSessionPrefix+cookie.Value)
 		}
 
+		if pCookie, err := c.Cookie(ParentSessionCookie); err == nil {
+			db.Exec("DELETE FROM parent_sessions WHERE token = ?", pCookie.Value)
+			c.SetCookie(&http.Cookie{
+				Name:   ParentSessionCookie,
+				Value:  "",
+				Path:   "/",
+				MaxAge: -1,
+			})
+		}
+
 		cookie := new(http.Cookie)
 		cookie.Name = StudentSessionCookie
 		cookie.Value = ""

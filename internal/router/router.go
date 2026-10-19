@@ -407,6 +407,17 @@ func RegisterRoutes(e *echo.Echo, db *sql.DB, viewsFS fs.FS, app AppHandlers) {
 	e.POST("/api/student/login", handler.StudentLogin(db), appMiddleware.AuthRateLimiter())
 	e.POST("/api/student/logout", handler.StudentLogout(db))
 
+	// --- REVERSE OTP & MAGIC LINK AUTHENTICATION ROUTES ---
+	e.POST("/api/auth/magic-request", handler.RequestMagicLogin(db), appMiddleware.AuthRateLimiter())
+	e.GET("/api/auth/magic-status", handler.CheckMagicStatus(db))
+	e.GET("/auth/magic", handler.ConsumeMagicLink(db))
+	e.POST("/api/webhook/whatsapp", handler.HandleWhatsAppWebhook(db))
+	e.POST("/api/webhook/onesender", handler.HandleWhatsAppWebhook(db))
+
+	// Parent Portal APIs
+	e.GET("/api/parent/info", handler.GetParentInfo(db))
+	e.POST("/api/parent/switch-child", handler.SwitchActiveChild(db))
+
 	// Weather API (public, proxied from backend to hide API key)
 	e.GET("/api/weather/current", handler.WeatherCurrent())
 	e.GET("/api/weather/forecast", handler.WeatherForecast())
@@ -452,11 +463,23 @@ func RegisterRoutes(e *echo.Echo, db *sql.DB, viewsFS fs.FS, app AppHandlers) {
 	admin.GET("/english/leaderboard", handler.GetEnglishLeaderboard(db))
 	admin.GET("/english/progress", handler.GetEnglishProgressReport(db))
 
-	// AI Settings
+	// AI Settings (Both /admin/ai and /api/ai aliases)
 	admin.GET("/ai/settings", handler.GetAISettings(db))
 	admin.POST("/ai/settings", handler.UpdateAISettings(db))
+	admin.GET("/ai/test", handler.TestAIConnection(db))
 	admin.POST("/ai/test", handler.TestAIConnection(db))
+	admin.GET("/ai/models", handler.GetAIModels(db))
+	admin.POST("/ai/models", handler.GetAIModels(db))
 	admin.POST("/ai/generate-quest", handler.GenerateAIQuest(db))
+
+	aiAPI := e.Group("/api/ai", appMiddleware.AdminAuth())
+	aiAPI.GET("/settings", handler.GetAISettings(db))
+	aiAPI.POST("/settings", handler.UpdateAISettings(db))
+	aiAPI.GET("/test", handler.TestAIConnection(db))
+	aiAPI.POST("/test", handler.TestAIConnection(db))
+	aiAPI.GET("/models", handler.GetAIModels(db))
+	aiAPI.POST("/models", handler.GetAIModels(db))
+	aiAPI.POST("/generate-quest", handler.GenerateAIQuest(db))
 
 	// Backup & Restore
 	admin.GET("/backup", handler.BackupDatabase(db))

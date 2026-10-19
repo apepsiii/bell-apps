@@ -399,7 +399,17 @@
                                     <i id="homeAvatarIcon" class="ph ph-user text-xl text-white"></i>
                                 </div>
                                 <div>
-                                    <p class="text-[11px] font-medium text-purple-200">Assalamualaikum,</p>
+                                    <div id="parentBadgeWrap" class="hidden mb-1 flex items-center gap-1.5 flex-wrap">
+                                        <span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-400/25 text-amber-200 border border-amber-400/30 flex items-center gap-1">
+                                            <i class="ph-fill ph-users text-[10px]"></i>
+                                            <span id="parentBadgeLabel">Mode Wali</span>
+                                        </span>
+                                        <button type="button" id="childSwitcherBtn" onclick="openChildSwitcherModal()" class="hidden text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/20 hover:bg-white/30 text-white border border-white/25 transition-all flex items-center gap-1 cursor-pointer">
+                                            <span>Ganti Anak</span>
+                                            <i class="ph ph-caret-down text-[9px]"></i>
+                                        </button>
+                                    </div>
+                                    <p class="text-[11px] font-medium text-purple-200" id="studentGreetingLabel">Assalamualaikum,</p>
                                     <h2 class="text-base font-bold leading-tight" id="studentGreetingName">Loading...</h2>
                                     <p class="text-[11px] font-medium text-purple-200/80" id="studentClassName">-</p>
                                 </div>
@@ -1611,6 +1621,27 @@
                     </button>
                 </div>
                 <div id="engLbContent"></div>
+        <!-- CHILD SWITCHER MODAL (FOR MULTI-CHILD PARENTS) -->
+        <div id="childSwitcherModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+            style="display:none!important">
+            <div class="bg-white rounded-t-[36px] sm:rounded-[36px] w-full max-w-md p-6 max-h-[85vh] overflow-y-auto shadow-2xl border border-purple-100/70">
+                <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-10 h-10 rounded-2xl bg-amber-50 border border-amber-200/60 text-amber-600 flex items-center justify-center text-xl">
+                            <i class="ph-fill ph-users"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-base text-slate-900 leading-tight">Pilih Siswa / Anak</h3>
+                            <p class="text-xs text-slate-500">Beralih akun anak untuk memantau kehadiran & poin</p>
+                        </div>
+                    </div>
+                    <button onclick="closeChildSwitcherModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors cursor-pointer">
+                        <i class="ph-bold ph-x text-base"></i>
+                    </button>
+                </div>
+                <div id="childSwitcherList" class="space-y-2.5 my-3">
+                    <!-- Populated via JS -->
+                </div>
             </div>
         </div>
         </main>
@@ -1704,7 +1735,113 @@
                 });
 
                 loadWeather();
+                loadParentStatus();
             });
+
+            // ===== PARENT MODE & MULTI-CHILD SWITCHER =====
+            let parentState = null;
+
+            async function loadParentStatus() {
+                try {
+                    const res = await fetch('/api/parent/info');
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    if (data.is_parent) {
+                        parentState = data;
+                        const badgeWrap = document.getElementById('parentBadgeWrap');
+                        const badgeLabel = document.getElementById('parentBadgeLabel');
+                        const switcherBtn = document.getElementById('childSwitcherBtn');
+
+                        if (badgeWrap) badgeWrap.classList.remove('hidden');
+                        if (badgeLabel) badgeLabel.textContent = data.parent_name ? ('Wali: ' + data.parent_name) : 'Mode Wali Murid';
+
+                        if (data.children && data.children.length > 1) {
+                            if (switcherBtn) switcherBtn.classList.remove('hidden');
+                            renderChildSwitcherList(data.children, data.active_student_id);
+                        }
+
+                        // In profile, show parent mode notice and disable pin change
+                        const pinForm = document.getElementById('pinForm');
+                        if (pinForm) {
+                            let note = document.getElementById('parentPinNotice');
+                            if (!note) {
+                                note = document.createElement('div');
+                                note.id = 'parentPinNotice';
+                                note.className = 'p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl text-xs font-medium mb-3 flex items-center gap-2';
+                                note.innerHTML = '<i class="ph-fill ph-info text-base text-amber-600 flex-shrink-0"></i><span>Anda masuk sebagai Orang Tua/Wali. PIN akun siswa hanya dapat diubah oleh siswa langsung.</span>';
+                                pinForm.parentNode.insertBefore(note, pinForm);
+                            }
+                            const pinBtn = document.getElementById('pinBtn');
+                            if (pinBtn) pinBtn.disabled = true;
+                        }
+                    }
+                } catch (e) {
+                    // Ignored
+                }
+            }
+
+            function renderChildSwitcherList(children, activeId) {
+                const listEl = document.getElementById('childSwitcherList');
+                if (!listEl) return;
+                listEl.innerHTML = '';
+
+                children.forEach(ch => {
+                    const isActive = ch.id === activeId;
+                    const item = document.createElement('div');
+                    item.className = `p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${isActive ? 'bg-purple-50/80 border-purple-300 ring-2 ring-purple-500/20 shadow-xs' : 'bg-slate-50 border-slate-200/80 hover:bg-slate-100/80'}`;
+                    item.onclick = () => switchChild(ch.id);
+
+                    item.innerHTML = `
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="w-11 h-11 rounded-2xl bg-purple-100 border border-purple-200 overflow-hidden flex items-center justify-center flex-shrink-0">
+                                ${ch.photo ? `<img src="${ch.photo}" class="w-full h-full object-cover">` : `<i class="ph-fill ph-user text-purple-700 text-xl"></i>`}
+                            </div>
+                            <div class="min-w-0">
+                                <h4 class="text-xs font-bold text-slate-900 truncate">${ch.name}</h4>
+                                <p class="text-[11px] text-slate-500 mt-0.5">${ch.class_name} • NIS: ${ch.nis}</p>
+                            </div>
+                        </div>
+                        ${isActive ? `<span class="px-2.5 py-1 rounded-xl bg-purple-600 text-white text-[10px] font-bold flex items-center gap-1 shadow-2xs"><i class="ph-bold ph-check"></i> Aktif</span>` : `<span class="text-xs text-purple-600 font-semibold hover:underline">Pilih</span>`}
+                    `;
+                    listEl.appendChild(item);
+                });
+            }
+
+            function openChildSwitcherModal() {
+                const m = document.getElementById('childSwitcherModal');
+                if (m) m.style.setProperty('display', 'flex', 'important');
+            }
+
+            function closeChildSwitcherModal() {
+                const m = document.getElementById('childSwitcherModal');
+                if (m) m.style.setProperty('display', 'none', 'important');
+            }
+
+            async function switchChild(studentId) {
+                try {
+                    const res = await fetch('/api/parent/switch-child', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ student_id: studentId })
+                    });
+                    const d = await res.json();
+                    if (res.ok) {
+                        closeChildSwitcherModal();
+                        // Reload dashboard & components
+                        await loadDashboard();
+                        await loadParentStatus();
+                        if (typeof loadCalendar === 'function') loadCalendar();
+                        if (typeof loadQRCard === 'function') loadQRCard();
+                        if (typeof showToast === 'function') {
+                            showToast(d.message || 'Berhasil beralih data siswa');
+                        }
+                    } else {
+                        alert(d.message || 'Gagal beralih data siswa');
+                    }
+                } catch (e) {
+                    alert('Gagal menghubungi server');
+                }
+            }
 
             // ===== NAVIGATION =====
             function switchTab(tabName) {

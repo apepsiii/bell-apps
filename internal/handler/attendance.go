@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"time"
 
+	"belsekolah/pkg/utils"
+
 	"github.com/labstack/echo/v4"
 )
 
@@ -22,6 +24,7 @@ func UpdateAttendanceSettings(db *sql.DB) echo.HandlerFunc {
 		waToken := c.FormValue("onesender_api_token")
 		waUsername := c.FormValue("onesender_username")
 		waDeviceID := c.FormValue("onesender_device_id")
+		schoolWAPhone := utils.FormatPhone(c.FormValue("school_wa_phone"))
 		waTemplateIn := c.FormValue("wa_template_in")
 		waTemplateLate := c.FormValue("wa_template_late")
 		waTemplateOut := c.FormValue("wa_template_out")
@@ -49,6 +52,7 @@ func UpdateAttendanceSettings(db *sql.DB) echo.HandlerFunc {
 		tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "onesender_api_token", waToken)
 		tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "onesender_username", waUsername)
 		tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "onesender_device_id", waDeviceID)
+		tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "school_wa_phone", schoolWAPhone)
 		tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "wa_template_in", waTemplateIn)
 		tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "wa_template_late", waTemplateLate)
 		tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "wa_template_out", waTemplateOut)

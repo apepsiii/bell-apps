@@ -299,6 +299,30 @@ func runSQLiteMigrations(db *sql.DB) {
 			FOREIGN KEY (student_id) REFERENCES students(id)
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_student_sessions_expires ON student_sessions(expires_at)`,
+		`CREATE TABLE IF NOT EXISTS parent_sessions (
+			token TEXT PRIMARY KEY,
+			parent_phone TEXT NOT NULL,
+			parent_name TEXT DEFAULT '',
+			student_id INTEGER NOT NULL,
+			expires_at DATETIME NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (student_id) REFERENCES students(id)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_parent_sessions_expires ON parent_sessions(expires_at)`,
+		`CREATE TABLE IF NOT EXISTS magic_login_tokens (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			token TEXT NOT NULL UNIQUE,
+			request_code TEXT NOT NULL UNIQUE,
+			phone TEXT DEFAULT '',
+			user_type TEXT DEFAULT '',
+			user_id INTEGER DEFAULT 0,
+			status TEXT DEFAULT 'pending',
+			session_token TEXT DEFAULT '',
+			expires_at DATETIME NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_magic_tokens_code ON magic_login_tokens(request_code)`,
+		`CREATE INDEX IF NOT EXISTS idx_magic_tokens_token ON magic_login_tokens(token)`,
 		`CREATE TABLE IF NOT EXISTS operator_sessions (
 			token TEXT PRIMARY KEY,
 			operator_id INTEGER NOT NULL,
@@ -757,6 +781,7 @@ func runSQLiteMigrations(db *sql.DB) {
 		{"student_violation_points", "deleted_by", "ALTER TABLE student_violation_points ADD COLUMN deleted_by TEXT"},
 		{"student_violation_points", "deletion_reason", "ALTER TABLE student_violation_points ADD COLUMN deletion_reason TEXT"},
 		{"staff", "gender", "ALTER TABLE staff ADD COLUMN gender TEXT DEFAULT 'L'"},
+		{"students", "phone", "ALTER TABLE students ADD COLUMN phone TEXT DEFAULT ''"},
 	}
 
 	for _, m := range migrations {
@@ -857,6 +882,27 @@ func runMySQLMigrations(db *sql.DB) {
 			expires_at DATETIME NOT NULL,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			FOREIGN KEY (student_id) REFERENCES students(id)
+		)`,
+		`CREATE TABLE IF NOT EXISTS parent_sessions (
+			token VARCHAR(64) PRIMARY KEY,
+			parent_phone VARCHAR(30) NOT NULL,
+			parent_name VARCHAR(255) DEFAULT '',
+			student_id INT NOT NULL,
+			expires_at DATETIME NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (student_id) REFERENCES students(id)
+		)`,
+		`CREATE TABLE IF NOT EXISTS magic_login_tokens (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			token VARCHAR(64) NOT NULL UNIQUE,
+			request_code VARCHAR(32) NOT NULL UNIQUE,
+			phone VARCHAR(30) DEFAULT '',
+			user_type VARCHAR(20) DEFAULT '',
+			user_id INT DEFAULT 0,
+			status VARCHAR(20) DEFAULT 'pending',
+			session_token VARCHAR(64) DEFAULT '',
+			expires_at DATETIME NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		)`,
 		`CREATE TABLE IF NOT EXISTS operator_sessions (
 			token VARCHAR(64) PRIMARY KEY,
@@ -1319,6 +1365,7 @@ func runMySQLMigrations(db *sql.DB) {
 		{"student_violation_points", "deleted_by", "ALTER TABLE student_violation_points ADD COLUMN deleted_by VARCHAR(100)"},
 		{"student_violation_points", "deletion_reason", "ALTER TABLE student_violation_points ADD COLUMN deletion_reason TEXT"},
 		{"staff", "gender", "ALTER TABLE staff ADD COLUMN gender VARCHAR(10) DEFAULT 'L'"},
+		{"students", "phone", "ALTER TABLE students ADD COLUMN phone VARCHAR(30) DEFAULT ''"},
 	}
 
 	for _, m := range migrations {
@@ -1351,6 +1398,7 @@ func seedSQLiteData(db *sql.DB) {
 	db.Exec("INSERT INTO attendance_settings VALUES (?, ?)", "onesender_api_token", "")
 	db.Exec("INSERT INTO attendance_settings VALUES (?, ?)", "onesender_username", "")
 	db.Exec("INSERT INTO attendance_settings VALUES (?, ?)", "onesender_device_id", "")
+	db.Exec("INSERT INTO attendance_settings VALUES (?, ?)", "school_wa_phone", "")
 	db.Exec("INSERT INTO attendance_settings VALUES (?, ?)", "wa_template_in", "Halo, Ananda {name} telah hadir di sekolah pada pukul {time}. Status: {status}.")
 	db.Exec("INSERT INTO attendance_settings VALUES (?, ?)", "wa_template_late", "Halo, Ananda {name} terlambat hadir di sekolah pada pukul {time}.")
 	db.Exec("INSERT INTO attendance_settings VALUES (?, ?)", "wa_template_out", "Halo, Ananda {name} telah pulang sekolah pada pukul {time}.")
@@ -1381,6 +1429,7 @@ func seedMySQLData(db *sql.DB) {
 	db.Exec("INSERT IGNORE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "onesender_api_token", "")
 	db.Exec("INSERT IGNORE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "onesender_username", "")
 	db.Exec("INSERT IGNORE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "onesender_device_id", "")
+	db.Exec("INSERT IGNORE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "school_wa_phone", "")
 	db.Exec("INSERT IGNORE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "wa_template_in", "Halo, Ananda {name} telah hadir di sekolah pada pukul {time}. Status: {status}.")
 	db.Exec("INSERT IGNORE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "wa_template_late", "Halo, Ananda {name} terlambat hadir di sekolah pada pukul {time}.")
 	db.Exec("INSERT IGNORE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "wa_template_out", "Halo, Ananda {name} telah pulang sekolah pada pukul {time}.")
