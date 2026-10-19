@@ -1,0 +1,28 @@
+server:
+    port: "8080"
+    host: 0.0.0.0
+    domain: ""
+database:
+    driver: sqlite
+    host: ""
+    port: ""
+    user: ""
+    password: ""
+    name: ""
+    path: ./database.db
+paths:
+    upload: public/assets/audio
+    photo: public/assets/photos
+    signage: public/assets/signage
+    audio: public/assets/audio
+auth:
+    admin_user: admin
+    admin_password: change-this-password
+    cookie_name: session_token
+    secret_key: change-this-secret-key
+log:
+    dir: logs
+weather:
+    openweather_api_key: ""
+    city: Bogor
+    country: ID

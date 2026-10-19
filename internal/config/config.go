@@ -62,19 +62,18 @@ var (
 	configPath  = "config.yaml"
 )
 
-// Load parses the given YAML bytes as the default configuration. If a
-// config.yaml file exists on disk next to the binary, it overrides the
-// embedded default (so operators can still customize without rebuilding).
-// Environment variables override file values for specific keys.
-func Load(yamlData []byte) error {
+// Load loads the configuration from config.yaml on disk, falling back to
+// config.example.yaml or built-in defaults if no config file exists.
+// Optional yamlData may be passed for backwards compatibility.
+func Load(yamlData ...[]byte) error {
 	config = &AppConfig{}
 
-	// Start from embedded default.
-	if err := yaml.Unmarshal(yamlData, config); err != nil {
-		return err
+	// If default YAML bytes provided, start from that
+	if len(yamlData) > 0 && len(yamlData[0]) > 0 {
+		_ = yaml.Unmarshal(yamlData[0], config)
 	}
 
-	// Override with on-disk config.yaml if present (operator customization).
+	// 1. Check if config.yaml exists on disk
 	if _, err := os.Stat(configPath); err == nil {
 		data, err := os.ReadFile(configPath)
 		if err != nil {
@@ -84,15 +83,24 @@ func Load(yamlData []byte) error {
 			return err
 		}
 	} else if os.IsNotExist(err) {
-		// No on-disk config: write the embedded default so operators can see
-		// and edit it on first run.
-		_ = os.WriteFile(configPath, yamlData, 0644)
+		// 2. If config.yaml does not exist, check config.example.yaml
+		examplePath := "config.example.yaml"
+		if exampleData, err := os.ReadFile(examplePath); err == nil {
+			_ = yaml.Unmarshal(exampleData, config)
+			_ = os.WriteFile(configPath, exampleData, 0644)
+		} else if len(yamlData) > 0 && len(yamlData[0]) > 0 {
+			_ = os.WriteFile(configPath, yamlData[0], 0644)
+		} else {
+			// 3. Otherwise generate default config file
+			if err := createDefaultConfig(); err != nil {
+				return err
+			}
+		}
 	} else {
 		return err
 	}
 
-	AppVersion = getEnv("APP_VERSION", "v1.3.0")
-
+	AppVersion = getEnv("APP_VERSION", "v2.1.0")
 	return nil
 }
 

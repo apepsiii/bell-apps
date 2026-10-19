@@ -79,9 +79,6 @@ func queryOrEmpty(db *sql.DB, query string, args ...interface{}) *sql.Rows {
 //go:embed views/*.html views/admin/*.html views/mobile/*.html views/student/*.html
 var viewsFS embed.FS
 
-//go:embed config.yaml
-var configYAML []byte
-
 // --- STRUCTS & MODELS ---
 
 type App struct {
@@ -3809,9 +3806,8 @@ func migrate(db *sql.DB) {
 }
 
 func main() {
-	// Load config: embedded config.yaml is the default; an on-disk config.yaml
-	// (if present) overrides it so operators can customize without rebuilding.
-	if err := config.Load(configYAML); err != nil {
+	// Load config from disk (config.yaml), falling back to config.example.yaml or defaults
+	if err := config.Load(); err != nil {
 		log.Fatalf("Failed to initialize config: %v", err)
 	}
 

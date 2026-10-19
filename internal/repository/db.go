@@ -302,6 +302,12 @@ func runSQLiteMigrations(db *sql.DB) {
 			FOREIGN KEY (operator_id) REFERENCES operators(id)
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_operator_sessions_expires ON operator_sessions(expires_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_attendance_logs_student_date ON attendance_logs(student_id, date)`,
+		`CREATE INDEX IF NOT EXISTS idx_attendance_logs_date ON attendance_logs(date)`,
+		`CREATE INDEX IF NOT EXISTS idx_attendance_logs_rfid ON attendance_logs(rfid_uid)`,
+		`CREATE INDEX IF NOT EXISTS idx_student_points_student ON student_points(student_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_student_points_timestamp ON student_points(timestamp)`,
+		`CREATE INDEX IF NOT EXISTS idx_students_class_id ON students(class_id)`,
 		`CREATE TABLE IF NOT EXISTS whatsapp_logs (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			target TEXT,
