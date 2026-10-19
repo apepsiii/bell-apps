@@ -431,7 +431,10 @@
         // 1. Initialize System
         async function init() {
             try {
-                // A. Load Lightweight Edge AI Models (< 250 KB total)
+                // A. Jalankan kamera terlebih dahulu agar video feed langsung aktif
+                startCamera();
+
+                // B. Load Lightweight Edge AI Models (< 250 KB total)
                 await Promise.all([
                     faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
                     faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL),
@@ -442,11 +445,8 @@
                 aiStatus.className = 'bg-emerald-500/20 border border-emerald-500/30 px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-2 text-emerald-400 shadow-md';
                 aiStatus.innerHTML = '<span class="w-2 h-2 bg-emerald-400 rounded-full"></span> Model AI Siap';
 
-                // B. Load Student Face Descriptors from Go Backend
+                // C. Load Student & Staff Face Descriptors from Go Backend
                 await reloadFaceDB();
-
-                // C. Start Camera
-                await startCamera();
 
                 // D. Initial Stats & Logs
                 fetchStats();
@@ -497,17 +497,33 @@
         // 3. Start Camera
         async function startCamera() {
             try {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error("WebRTC getUserMedia tidak didukung atau browser memblokir kamera karena koneksi bukan HTTPS/localhost");
+                }
                 mediaStream = await navigator.mediaDevices.getUserMedia({
                     video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" }
                 });
                 video.srcObject = mediaStream;
+                try {
+                    await video.play();
+                } catch (playErr) {
+                    console.warn("Video auto-play interrupted:", playErr);
+                }
 
                 cameraStatus.className = 'bg-emerald-500/20 border border-emerald-500/30 px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-2 text-emerald-400 shadow-md';
                 cameraStatus.innerHTML = '<span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span> Kamera Siap';
             } catch (err) {
                 console.error("Camera access error:", err);
                 cameraStatus.className = 'bg-rose-500/20 border border-rose-500/30 px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-2 text-rose-400 shadow-md';
-                cameraStatus.innerHTML = '<span class="w-2 h-2 bg-rose-400 rounded-full"></span> Izin Kamera Ditolak';
+                let msg = 'Kamera Bermasalah';
+                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                    msg = 'Izin Kamera Ditolak';
+                } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+                    msg = 'Kamera Tidak Ditemukan';
+                } else if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+                    msg = 'Wajib HTTPS untuk Kamera';
+                }
+                cameraStatus.innerHTML = `<span class="w-2 h-2 bg-rose-400 rounded-full"></span> ${msg}`;
             }
         }
 
@@ -768,6 +784,7 @@
             // Auto-hide card after 4.5 seconds
             setTimeout(() => {
                 resultCard.classList.add('hidden');
+            }, 4500);
         }
 
         // 7. Audio & Speech Feedback
