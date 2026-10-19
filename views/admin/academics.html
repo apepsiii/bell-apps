@@ -73,7 +73,7 @@
                 <i data-lucide="upload" class="w-3.5 h-3.5"></i>
                 <span>Import CSV</span>
             </button>
-            <button type="button" onclick="openModal('modal-student')"
+            <button type="button" onclick="openAddStudentModal()"
                 class="px-3.5 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all">
                 <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                 <span>Tambah Siswa</span>
@@ -277,7 +277,7 @@
                 <i data-lucide="upload" class="w-3.5 h-3.5"></i>
                 <span>Import Staff</span>
             </button>
-            <button type="button" onclick="openModal('modal-staff')"
+            <button type="button" onclick="openAddStaffModal()"
                 class="px-3.5 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all">
                 <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                 <span>Tambah Staff</span>
@@ -300,7 +300,12 @@
             <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800/80">
                 {{range .StaffList}}
                 <tr class="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/30 transition-colors">
-                    <td class="px-4 py-3 font-mono text-xs text-zinc-600 dark:text-zinc-400">{{.NIP}}</td>
+                    <td class="px-4 py-3 font-mono text-xs text-zinc-600 dark:text-zinc-400">
+                        <div>{{.NIP}}</div>
+                        {{if .RFID}}
+                        <div class="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono">RFID: {{.RFID}}</div>
+                        {{end}}
+                    </td>
                     <td class="px-4 py-3 font-semibold text-xs text-zinc-900 dark:text-zinc-100">
                         <div class="flex items-center gap-1.5">
                             <span>{{.Name}}</span>
@@ -329,7 +334,7 @@
                                 <i data-lucide="scan-face" class="w-3.5 h-3.5"></i>
                             </a>
                             <button type="button"
-                                onclick="editStaff('{{.ID}}', '{{.NIP}}', '{{.Name}}', '{{.Role}}', '{{.Phone}}', '{{.Gender}}')"
+                                onclick="editStaff('{{.ID}}', '{{.NIP}}', '{{.Name}}', '{{.Role}}', '{{.Phone}}', '{{.Gender}}', '{{.RFID}}')"
                                 class="p-1.5 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors">
                                 <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
                             </button>
@@ -543,6 +548,11 @@
         </div>
         <form id="staff-form" action="/admin/staff/add" method="POST" onsubmit="handleFormSubmit(event)"
             class="space-y-3.5">
+            <div>
+                <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">RFID Card UID (Opsional)</label>
+                <input type="text" name="rfid_uid" id="stf-rfid" placeholder="Tempel kartu RFID atau kosongkan jika belum ada"
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-xs text-zinc-900 dark:text-zinc-100 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all font-mono">
+            </div>
             <div>
                 <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">NIP / No. Identitas</label>
                 <input type="text" name="nip" id="stf-nip" required
@@ -806,7 +816,21 @@
         }
     }
 
-    // Edit helpers
+    // Add & Edit helpers
+    function openAddStudentModal() {
+        const form = document.getElementById('student-form');
+        if (form) form.reset();
+        document.getElementById('student-form').action = '/admin/student/add';
+        document.getElementById('student-modal-title').textContent = 'Tambah Siswa Baru';
+        document.getElementById('stu-rfid').value = '';
+        document.getElementById('stu-nis').value = '';
+        document.getElementById('stu-nis-siswa').value = '';
+        document.getElementById('stu-name').value = '';
+        document.getElementById('stu-phone').value = '';
+        document.getElementById('stu-status').value = 'active';
+        openModal('modal-student');
+    }
+
     function editStudent(id, rfid, nis, nisSiswa, name, phone, classId, photo, birthday, status) {
         document.getElementById('student-form').action = `/admin/student/update/${id}`;
         document.getElementById('student-modal-title').textContent = 'Edit Data Siswa';
@@ -820,9 +844,24 @@
         openModal('modal-student');
     }
 
-    function editStaff(id, nip, name, role, phone, gender) {
+    function openAddStaffModal() {
+        const form = document.getElementById('staff-form');
+        if (form) form.reset();
+        document.getElementById('staff-form').action = '/admin/staff/add';
+        document.getElementById('staff-modal-title').textContent = 'Tambah Guru / Staff';
+        document.getElementById('stf-rfid').value = '';
+        document.getElementById('stf-nip').value = '';
+        document.getElementById('stf-name').value = '';
+        document.getElementById('stf-role').value = '';
+        document.getElementById('stf-phone').value = '';
+        document.getElementById('stf-gender').value = 'L';
+        openModal('modal-staff');
+    }
+
+    function editStaff(id, nip, name, role, phone, gender, rfid) {
         document.getElementById('staff-form').action = `/admin/staff/update/${id}`;
         document.getElementById('staff-modal-title').textContent = 'Edit Data Staff';
+        document.getElementById('stf-rfid').value = rfid || '';
         document.getElementById('stf-nip').value = nip;
         document.getElementById('stf-name').value = name;
         document.getElementById('stf-role').value = role;

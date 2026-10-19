@@ -2185,28 +2185,42 @@ func (a *App) StaffProfileHandler(c echo.Context) error {
 
 // 4. STAFF (GURU & TENDIK)
 func (a *App) AddStaffHandler(c echo.Context) error {
-	rfid := c.FormValue("rfid_uid")
+	rfid := strings.TrimSpace(c.FormValue("rfid_uid"))
+	var rfidVal interface{} = rfid
+	if rfid == "" {
+		rfidVal = nil
+	}
 	nip := c.FormValue("nip")
 	name := c.FormValue("name")
 	phone := FormatPhone(c.FormValue("phone"))
 	role := c.FormValue("role")
 
-	_, err := a.DB.Exec("INSERT INTO staff (rfid_uid, nip, name, phone, role) VALUES (?, ?, ?, ?, ?)", rfid, nip, name, phone, role)
+	_, err := a.DB.Exec("INSERT INTO staff (rfid_uid, nip, name, phone, role) VALUES (?, ?, ?, ?, ?)", rfidVal, nip, name, phone, role)
 	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed: staff.rfid_uid") || strings.Contains(err.Error(), "Duplicate entry") {
+			return c.JSON(http.StatusBadRequest, map[string]string{"message": "RFID UID '" + rfid + "' sudah terdaftar pada staf lain"})
+		}
 		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Gagal: " + err.Error()})
 	}
 	return c.JSON(http.StatusOK, map[string]string{"status": "success", "message": "Staff ditambahkan"})
 }
 func (a *App) UpdateStaffHandler(c echo.Context) error {
 	id := c.Param("id")
-	rfid := c.FormValue("rfid_uid")
+	rfid := strings.TrimSpace(c.FormValue("rfid_uid"))
+	var rfidVal interface{} = rfid
+	if rfid == "" {
+		rfidVal = nil
+	}
 	nip := c.FormValue("nip")
 	name := c.FormValue("name")
 	phone := FormatPhone(c.FormValue("phone"))
 	role := c.FormValue("role")
 
-	_, err := a.DB.Exec("UPDATE staff SET rfid_uid=?, nip=?, name=?, phone=?, role=? WHERE id=?", rfid, nip, name, phone, role, id)
+	_, err := a.DB.Exec("UPDATE staff SET rfid_uid=?, nip=?, name=?, phone=?, role=? WHERE id=?", rfidVal, nip, name, phone, role, id)
 	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed: staff.rfid_uid") || strings.Contains(err.Error(), "Duplicate entry") {
+			return c.JSON(http.StatusBadRequest, map[string]string{"message": "RFID UID '" + rfid + "' sudah terdaftar pada staf lain"})
+		}
 		return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
 	}
 	return c.JSON(http.StatusOK, map[string]string{"status": "success", "message": "Data staff diperbarui"})

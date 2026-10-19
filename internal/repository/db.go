@@ -62,6 +62,11 @@ func InitDB() *sql.DB {
 	}
 
 	RunMigrations(db)
+
+	// Ensure empty string rfid_uid is converted to NULL so UNIQUE constraints allow multiple records without RFID
+	_, _ = db.Exec("UPDATE staff SET rfid_uid = NULL WHERE rfid_uid = ''")
+	_, _ = db.Exec("UPDATE students SET rfid_uid = NULL WHERE rfid_uid = ''")
+
 	SeedDefaultData(db)
 	SeedPointRules(db)
 	SeedEnglishBadges(db)

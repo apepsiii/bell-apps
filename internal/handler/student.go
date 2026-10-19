@@ -16,7 +16,11 @@ import (
 
 func AddStudent(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		rfid := c.FormValue("rfid_uid")
+		rfid := strings.TrimSpace(c.FormValue("rfid_uid"))
+		var rfidVal interface{} = rfid
+		if rfid == "" {
+			rfidVal = nil
+		}
 		nis := c.FormValue("nis")
 		nisSiswa := c.FormValue("nis_siswa")
 		name := c.FormValue("name")
@@ -71,7 +75,7 @@ func AddStudent(db *sql.DB) echo.HandlerFunc {
 			}
 		}
 
-		_, err = db.Exec("INSERT INTO students (rfid_uid, nis, nis_siswa, name, parent_name, parent_phone, class_id, photo, birthday, status, password) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", rfid, nis, nisSiswa, name, parentName, phone, classID, photoFile, birthday, status, hashedPassword)
+		_, err = db.Exec("INSERT INTO students (rfid_uid, nis, nis_siswa, name, parent_name, parent_phone, class_id, photo, birthday, status, password) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", rfidVal, nis, nisSiswa, name, parentName, phone, classID, photoFile, birthday, status, hashedPassword)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Gagal (Mungkin RFID/NIS duplikat): " + err.Error()})
 		}
@@ -82,7 +86,11 @@ func AddStudent(db *sql.DB) echo.HandlerFunc {
 func UpdateStudent(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		id := c.Param("id")
-		rfid := c.FormValue("rfid_uid")
+		rfid := strings.TrimSpace(c.FormValue("rfid_uid"))
+		var rfidVal interface{} = rfid
+		if rfid == "" {
+			rfidVal = nil
+		}
 		nis := c.FormValue("nis")
 		nisSiswa := c.FormValue("nis_siswa")
 		name := c.FormValue("name")
@@ -121,9 +129,9 @@ func UpdateStudent(db *sql.DB) echo.HandlerFunc {
 					photoFile = filename
 					// Update with photo
 					if hashedPassword != "" {
-						db.Exec("UPDATE students SET rfid_uid=?, nis=?, nis_siswa=?, name=?, parent_name=?, parent_phone=?, class_id=?, photo=?, birthday=?, status=?, password=? WHERE id=?", rfid, nis, nisSiswa, name, parentName, phone, classID, photoFile, birthday, status, hashedPassword, id)
+						db.Exec("UPDATE students SET rfid_uid=?, nis=?, nis_siswa=?, name=?, parent_name=?, parent_phone=?, class_id=?, photo=?, birthday=?, status=?, password=? WHERE id=?", rfidVal, nis, nisSiswa, name, parentName, phone, classID, photoFile, birthday, status, hashedPassword, id)
 					} else {
-						db.Exec("UPDATE students SET rfid_uid=?, nis=?, nis_siswa=?, name=?, parent_name=?, parent_phone=?, class_id=?, photo=?, birthday=?, status=? WHERE id=?", rfid, nis, nisSiswa, name, parentName, phone, classID, photoFile, birthday, status, id)
+						db.Exec("UPDATE students SET rfid_uid=?, nis=?, nis_siswa=?, name=?, parent_name=?, parent_phone=?, class_id=?, photo=?, birthday=?, status=? WHERE id=?", rfidVal, nis, nisSiswa, name, parentName, phone, classID, photoFile, birthday, status, id)
 					}
 					return c.JSON(http.StatusOK, map[string]string{"status": "success", "message": "Data siswa diperbarui"})
 				}
@@ -137,9 +145,9 @@ func UpdateStudent(db *sql.DB) echo.HandlerFunc {
 					photoFile = filename
 					// Update with captured photo
 					if hashedPassword != "" {
-						db.Exec("UPDATE students SET rfid_uid=?, nis=?, nis_siswa=?, name=?, parent_name=?, parent_phone=?, class_id=?, photo=?, birthday=?, status=?, password=? WHERE id=?", rfid, nis, nisSiswa, name, parentName, phone, classID, photoFile, birthday, status, hashedPassword, id)
+						db.Exec("UPDATE students SET rfid_uid=?, nis=?, nis_siswa=?, name=?, parent_name=?, parent_phone=?, class_id=?, photo=?, birthday=?, status=?, password=? WHERE id=?", rfidVal, nis, nisSiswa, name, parentName, phone, classID, photoFile, birthday, status, hashedPassword, id)
 					} else {
-						db.Exec("UPDATE students SET rfid_uid=?, nis=?, nis_siswa=?, name=?, parent_name=?, parent_phone=?, class_id=?, photo=?, birthday=?, status=? WHERE id=?", rfid, nis, nisSiswa, name, parentName, phone, classID, photoFile, birthday, status, id)
+						db.Exec("UPDATE students SET rfid_uid=?, nis=?, nis_siswa=?, name=?, parent_name=?, parent_phone=?, class_id=?, photo=?, birthday=?, status=? WHERE id=?", rfidVal, nis, nisSiswa, name, parentName, phone, classID, photoFile, birthday, status, id)
 					}
 					return c.JSON(http.StatusOK, map[string]string{"status": "success", "message": "Data siswa diperbarui"})
 				}
@@ -148,9 +156,9 @@ func UpdateStudent(db *sql.DB) echo.HandlerFunc {
 
 		// Update without photo
 		if hashedPassword != "" {
-			_, err = db.Exec("UPDATE students SET rfid_uid=?, nis=?, nis_siswa=?, name=?, parent_name=?, parent_phone=?, class_id=?, birthday=?, status=?, password=? WHERE id=?", rfid, nis, nisSiswa, name, parentName, phone, classID, birthday, status, hashedPassword, id)
+			_, err = db.Exec("UPDATE students SET rfid_uid=?, nis=?, nis_siswa=?, name=?, parent_name=?, parent_phone=?, class_id=?, birthday=?, status=?, password=? WHERE id=?", rfidVal, nis, nisSiswa, name, parentName, phone, classID, birthday, status, hashedPassword, id)
 		} else {
-			_, err = db.Exec("UPDATE students SET rfid_uid=?, nis=?, nis_siswa=?, name=?, parent_name=?, parent_phone=?, class_id=?, birthday=?, status=? WHERE id=?", rfid, nis, nisSiswa, name, parentName, phone, classID, birthday, status, id)
+			_, err = db.Exec("UPDATE students SET rfid_uid=?, nis=?, nis_siswa=?, name=?, parent_name=?, parent_phone=?, class_id=?, birthday=?, status=? WHERE id=?", rfidVal, nis, nisSiswa, name, parentName, phone, classID, birthday, status, id)
 		}
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})

@@ -30,7 +30,7 @@ mkdir -p "${DIST_DIR}/public/assets/audio"
 mkdir -p "${DIST_DIR}/public/assets/photos"
 mkdir -p "${DIST_DIR}/public/assets/signage"
 
-TARGET_ARCH="${1:-${GOARCH:-arm64}}"
+TARGET_ARCH="${1:-${GOARCH:-amd64}}"
 VERSION=$(git describe --tags --always 2>/dev/null || grep 'Version.*=' version.go | grep -oP '"[0-9\.]+"' | tr -d '"' || echo "2.1.0")
 GIT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
