@@ -147,17 +147,19 @@ func TestAdminModularTemplates_ParseAndRender(t *testing.T) {
 		"AbsentStudents":      []interface{}{},
 		"StaffAttendanceList": []interface{}{},
 		"StaffAttendanceStats": struct {
-			TotalStaff   int
-			PresentStaff int
-			OnTimeStaff  int
-			LateStaff    int
-			AbsentStaff  int
+			TotalStaff    int
+			PresentStaff  int
+			OnTimeStaff   int
+			LateStaff     int
+			AbsentStaff   int
+			DepartedStaff int
 		}{
-			TotalStaff:   20,
-			PresentStaff: 18,
-			OnTimeStaff:  15,
-			LateStaff:    3,
-			AbsentStaff:  2,
+			TotalStaff:    20,
+			PresentStaff:  18,
+			OnTimeStaff:   15,
+			LateStaff:     3,
+			AbsentStaff:   2,
+			DepartedStaff: 5,
 		},
 		"Students":  []interface{}{},
 		"StaffList": []interface{}{},

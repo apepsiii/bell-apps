@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -652,90 +653,77 @@ func (a *TestApp) VerifyFaceAttendanceHandler(c echo.Context) error {
 		dateStr := now.Format("2006-01-02")
 		timestamp := now.Format("2006-01-02 15:04:05")
 
-		var arrStart, arrEnd, depStart, depEnd string
-		a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='arrival_start'").Scan(&arrStart)
-		if arrStart == "" {
-			arrStart = "06:00"
+		var checkInCount, checkOutCount int
+		var lastTimestamp string
+		rowsStaffLogs, err := a.DB.Query(`
+			SELECT status, timestamp 
+			FROM attendance_logs
+			WHERE user_type = 'Staff' AND date = ?
+			  AND (student_id = ? OR (rfid_uid = ? AND rfid_uid != '') OR user_name = ?)
+			ORDER BY timestamp ASC`,
+			dateStr, staffID, rfid, name)
+		if err == nil {
+			for rowsStaffLogs.Next() {
+				var st, ts string
+				rowsStaffLogs.Scan(&st, &ts)
+				lastTimestamp = ts
+				if st == "Pulang" {
+					checkOutCount++
+				} else {
+					checkInCount++
+				}
+			}
+			rowsStaffLogs.Close()
 		}
-		a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='arrival_end'").Scan(&arrEnd)
-		if arrEnd == "" {
-			arrEnd = "07:15"
-		}
-		a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='departure_start'").Scan(&depStart)
-		if depStart == "" {
-			depStart = "15:00"
-		}
-		a.DB.QueryRow("SELECT setting_value FROM attendance_settings WHERE setting_key='departure_end'").Scan(&depEnd)
-		if depEnd == "" {
-			depEnd = "18:00"
-		}
-
-		var checkInCount int
-		a.DB.QueryRow(`
-			SELECT COUNT(*) FROM attendance_logs
-			WHERE user_type = 'Staff'
-			  AND ((rfid_uid = ? AND rfid_uid != '') OR user_name = ?)
-			  AND date = ? AND (status = 'Datang' OR status = 'Hadir' OR status = 'Terlambat')`,
-			rfid, name, dateStr).Scan(&checkInCount)
-
-		var checkOutCount int
-		a.DB.QueryRow(`
-			SELECT COUNT(*) FROM attendance_logs
-			WHERE user_type = 'Staff'
-			  AND ((rfid_uid = ? AND rfid_uid != '') OR user_name = ?)
-			  AND date = ? AND status = 'Pulang'`,
-			rfid, name, dateStr).Scan(&checkOutCount)
 
 		var status, speechMessage string
-		if timeStr >= arrStart && timeStr <= arrEnd {
-			if checkInCount > 0 {
-				return c.JSON(http.StatusOK, map[string]interface{}{
-					"status":            "duplicate",
-					"attendance_status": "Datang",
-					"user_type":         "Staff",
-					"staff_id":          staffID,
-					"name":              name,
-					"honorific":         honorific,
-					"message":           fmt.Sprintf("%s %s sudah presensi datang hari ini", honorific, name),
-				})
+		if checkOutCount > 0 {
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"status":            "duplicate",
+				"attendance_status": "Pulang",
+				"user_type":         "Staff",
+				"staff_id":          staffID,
+				"name":              name,
+				"honorific":         honorific,
+				"message":           fmt.Sprintf("%s %s sudah presensi pulang hari ini", honorific, name),
+				"speech_message":    fmt.Sprintf("%s %s sudah presensi pulang hari ini", honorific, name),
+				"time":              timeStr,
+			})
+		} else if checkInCount > 0 {
+			cleaned := strings.TrimSuffix(strings.Replace(lastTimestamp, "T", " ", 1), "Z")
+			var lastTime time.Time
+			var errParse error
+			for _, f := range []string{"2006-01-02 15:04:05", "2006-01-02 15:04", "2006-01-02T15:04:05", time.RFC3339} {
+				lastTime, errParse = time.ParseInLocation(f, cleaned, time.Local)
+				if errParse == nil {
+					break
+				}
 			}
-			status = "Datang"
-			speechMessage = fmt.Sprintf("Selamat Datang %s %s", honorific, name)
-		} else if timeStr > arrEnd && timeStr < depStart {
-			if checkInCount > 0 {
-				return c.JSON(http.StatusOK, map[string]interface{}{
-					"status":            "not_time",
-					"attendance_status": "Belum Pulang",
-					"user_type":         "Staff",
-					"staff_id":          staffID,
-					"message":           "Presensi Pulang belum tersedia",
-				})
-			}
-			status = "Terlambat"
-			speechMessage = fmt.Sprintf("Selamat Datang %s %s, presensi tercatat terlambat", honorific, name)
-		} else if timeStr >= depStart && (depEnd == "" || timeStr <= depEnd) {
-			if checkOutCount > 0 {
-				return c.JSON(http.StatusOK, map[string]interface{}{
-					"status":            "duplicate",
-					"attendance_status": "Pulang",
-					"user_type":         "Staff",
-					"staff_id":          staffID,
-					"message":           fmt.Sprintf("%s %s sudah presensi pulang hari ini", honorific, name),
-				})
+			if errParse == nil {
+				diff := now.Sub(lastTime)
+				if diff >= 0 && diff < 2*time.Minute {
+					return c.JSON(http.StatusOK, map[string]interface{}{
+						"status":            "duplicate",
+						"attendance_status": "Hadir",
+						"user_type":         "Staff",
+						"staff_id":          staffID,
+						"name":              name,
+						"honorific":         honorific,
+						"message":           fmt.Sprintf("%s %s baru saja presensi Hadir", honorific, name),
+						"speech_message":    fmt.Sprintf("%s %s sudah presensi Hadir tadi", honorific, name),
+						"time":              timeStr,
+					})
+				}
 			}
 			status = "Pulang"
 			speechMessage = fmt.Sprintf("Terima kasih %s %s", honorific, name)
 		} else {
-			return c.JSON(http.StatusOK, map[string]interface{}{
-				"status":            "out_of_hours",
-				"attendance_status": "Di Luar Jam",
-				"user_type":         "Staff",
-				"staff_id":          staffID,
-			})
+			status = "Hadir"
+			speechMessage = fmt.Sprintf("Selamat Datang %s %s", honorific, name)
 		}
 
-		_, err = a.DB.Exec("INSERT INTO attendance_logs (student_id, rfid_uid, user_name, user_type, status, method, timestamp, date) VALUES (0, ?, ?, 'Staff', ?, 'FACE', ?, ?)",
-			rfid, name, status, timestamp, dateStr)
+		_, err = a.DB.Exec("INSERT INTO attendance_logs (student_id, rfid_uid, user_name, user_type, status, method, timestamp, date) VALUES (?, ?, ?, 'Staff', ?, 'FACE', ?, ?)",
+			staffID, rfid, name, status, timestamp, dateStr)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
 		}

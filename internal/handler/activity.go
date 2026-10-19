@@ -23,18 +23,21 @@ func GetRecentActivity(db *sql.DB) echo.HandlerFunc {
 
 		// Get recent attendance (last 10)
 		rows, _ := db.Query(`
-			SELECT 'attendance' as type, user_name, status, timestamp 
+			SELECT 'attendance' as type, user_name, status, timestamp, user_type 
 			FROM attendance_logs 
-			WHERE user_type = 'Siswa'
 			ORDER BY timestamp DESC 
 			LIMIT 10
 		`)
 		for rows.Next() {
-			var userName, status, timestamp string
-			rows.Scan(&userName, &status, &timestamp)
+			var userName, status, timestamp, uType string
+			rows.Scan(&userName, &status, &timestamp, &uType)
+			prefix := ""
+			if uType == "Staff" {
+				prefix = "[Staff] "
+			}
 			activities = append(activities, ActivityItem{
 				Type:        "attendance",
-				Description: fmt.Sprintf("%s - %s", userName, status),
+				Description: fmt.Sprintf("%s%s - %s", prefix, userName, status),
 				Timestamp:   timestamp,
 			})
 		}

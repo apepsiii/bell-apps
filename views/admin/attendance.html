@@ -312,10 +312,10 @@
 
         <div class="bg-white dark:bg-zinc-900/60 p-5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between">
             <div>
-                <p class="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Hadir Tepat Waktu</p>
-                <h3 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight mt-1">{{.StaffAttendanceStats.OnTimeStaff}} <span
+                <p class="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Hadir</p>
+                <h3 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight mt-1">{{.StaffAttendanceStats.PresentStaff}} <span
                         class="text-xs font-medium text-zinc-400 dark:text-zinc-500">Orang</span></h3>
-                <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Presensi sebelum batas jam datang</p>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Presensi hari ini</p>
             </div>
             <div class="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200/60 dark:border-emerald-800/40">
                 <i data-lucide="clock-check" class="w-5 h-5"></i>
@@ -324,13 +324,13 @@
 
         <div class="bg-white dark:bg-zinc-900/60 p-5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between">
             <div>
-                <p class="text-[11px] font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Terlambat</p>
-                <h3 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight mt-1">{{.StaffAttendanceStats.LateStaff}} <span
+                <p class="text-[11px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Sudah Pulang</p>
+                <h3 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight mt-1">{{.StaffAttendanceStats.DepartedStaff}} <span
                         class="text-xs font-medium text-zinc-400 dark:text-zinc-500">Orang</span></h3>
-                <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Presensi melewati batas datang</p>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Presensi pulang hari ini</p>
             </div>
-            <div class="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-200/60 dark:border-amber-800/40">
-                <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+            <div class="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-200/60 dark:border-blue-800/40">
+                <i data-lucide="log-out" class="w-5 h-5"></i>
             </div>
         </div>
 
@@ -339,7 +339,7 @@
                 <p class="text-[11px] font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider">Belum Hadir / Alpha</p>
                 <h3 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight mt-1">{{.StaffAttendanceStats.AbsentStaff}} <span
                         class="text-xs font-medium text-zinc-400 dark:text-zinc-500">Orang</span></h3>
-                <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Belum tercatat tap/wajah</p>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Belum tercatat presensi</p>
             </div>
             <div class="w-10 h-10 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center border border-rose-200/60 dark:border-rose-800/40">
                 <i data-lucide="user-minus" class="w-5 h-5"></i>
@@ -362,8 +362,8 @@
                 <select id="staff-status-filter" onchange="filterStaffByStatus(this)"
                     class="text-xs bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/10 focus:border-zinc-900 dark:focus:border-zinc-400 transition-all">
                     <option value="">Semua Status</option>
-                    <option value="Hadir">Hadir (Datang)</option>
-                    <option value="Terlambat">Terlambat</option>
+                    <option value="Hadir">Hadir</option>
+                    <option value="Pulang">Pulang</option>
                     <option value="Belum Hadir">Belum Hadir</option>
                     <option value="Sakit">Sakit</option>
                     <option value="Izin">Izin</option>
@@ -428,9 +428,13 @@
                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">
                                 Hadir
                             </span>
+                            {{else if eq .Status "Pulang"}}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/60">
+                                Pulang
+                            </span>
                             {{else if eq .Status "Terlambat"}}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60">
-                                Terlambat
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">
+                                Hadir
                             </span>
                             {{else if eq .Status "Sakit"}}
                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/60">
@@ -785,7 +789,9 @@
             if (!filterVal) {
                 r.style.display = '';
             } else if (filterVal === 'hadir') {
-                r.style.display = (status === 'hadir' || status === 'datang') ? '' : 'none';
+                r.style.display = (status === 'hadir' || status === 'datang' || status === 'terlambat') ? '' : 'none';
+            } else if (filterVal === 'pulang') {
+                r.style.display = (status === 'pulang') ? '' : 'none';
             } else if (status.includes(filterVal)) {
                 r.style.display = '';
             } else {

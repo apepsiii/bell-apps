@@ -56,8 +56,8 @@ func ManualStaffAttendance(db *sql.DB) echo.HandlerFunc {
 		// 3. Insert Log into attendance_logs
 		_, err = db.Exec(`
 			INSERT INTO attendance_logs (student_id, rfid_uid, user_name, user_type, status, method, timestamp, date, note)
-			VALUES (0, ?, ?, 'Staff', ?, 'MANUAL', ?, ?, ?)`,
-			rfid, name, status, timestamp, dateStr, note)
+			VALUES (?, ?, ?, 'Staff', ?, 'MANUAL', ?, ?, ?)`,
+			staffID, rfid, name, status, timestamp, dateStr, note)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Gagal menyimpan presensi staff: " + err.Error()})
 		}

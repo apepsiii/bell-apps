@@ -72,7 +72,7 @@ func TestStaffAttendanceAndFaceRecognition(t *testing.T) {
 		assert.Equal(t, "Staff", resp["user_type"])
 		assert.Equal(t, "Bapak", resp["honorific"])
 		assert.Equal(t, "Selamat Datang Bapak Syamsul Budiman", resp["speech_message"])
-		assert.Equal(t, "Datang", resp["attendance_status"])
+		assert.Equal(t, "Hadir", resp["attendance_status"])
 	}
 
 	// 4. Test Duplicate Prevention for Male Staff
@@ -95,20 +95,15 @@ func TestStaffAttendanceAndFaceRecognition(t *testing.T) {
 		var resp map[string]interface{}
 		json.Unmarshal(rec.Body.Bytes(), &resp)
 		assert.Equal(t, "duplicate", resp["status"])
-		assert.Contains(t, resp["message"], "sudah presensi datang")
+		assert.Contains(t, resp["message"], "presensi Hadir")
 	}
 
 	// 5. Test Departure (Check-Out) with Female Staff
 	{
-		// Set current time to fall into departure window
-		arrStartPast := now.Add(-3 * time.Hour).Format("15:04")
-		arrEndPast := now.Add(-2 * time.Hour).Format("15:04")
-		depStartNow := now.Add(-10 * time.Minute).Format("15:04")
-		depEndNow := now.Add(1 * time.Hour).Format("15:04")
-		app.DB.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES ('arrival_start', ?)", arrStartPast)
-		app.DB.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES ('arrival_end', ?)", arrEndPast)
-		app.DB.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES ('departure_start', ?)", depStartNow)
-		app.DB.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES ('departure_end', ?)", depEndNow)
+		// Seed earlier check-in for female staff (2 hours ago) so this scan records Pulang
+		twoHoursAgo := now.Add(-2 * time.Hour).Format("2006-01-02 15:04:05")
+		app.DB.Exec("INSERT INTO attendance_logs (student_id, rfid_uid, user_name, user_type, status, method, timestamp, date) VALUES (?, 'RFID_FEMALE_01', 'Neneng Ida Rosida', 'Staff', 'Hadir', 'FACE', ?, ?)",
+			femaleID, twoHoursAgo, now.Format("2006-01-02"))
 
 		reqBody := map[string]interface{}{
 			"staff_id":  femaleID,
