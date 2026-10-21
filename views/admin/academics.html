@@ -29,6 +29,16 @@
             <i data-lucide="graduation-cap" class="w-3.5 h-3.5"></i>
             <span>Jurusan ({{len .Majors}})</span>
         </button>
+        <button type="button" onclick="switchAcademicTab('subjects')" id="tab-btn-subjects"
+            class="academic-tab-btn px-3.5 py-1.5 rounded-md text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all flex items-center gap-1.5">
+            <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+            <span>Mata Pelajaran</span>
+        </button>
+        <button type="button" onclick="switchAcademicTab('teaching')" id="tab-btn-teaching"
+            class="academic-tab-btn px-3.5 py-1.5 rounded-md text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all flex items-center gap-1.5">
+            <i data-lucide="user-check" class="w-3.5 h-3.5"></i>
+            <span>Plotting Guru (KBM)</span>
+        </button>
     </div>
 </div>
 
@@ -462,6 +472,236 @@
     </div>
 </div>
 
+<!-- TAB 5: DATA MATA PELAJARAN -->
+<div id="academic-tab-subjects" class="academic-tab-content hidden space-y-4">
+    <div class="bg-white dark:bg-zinc-900/60 p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+            <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Kurikulum & Mata Pelajaran</h3>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400">Daftar mata pelajaran umum, kejuruan, dan muatan lokal</p>
+        </div>
+        <button type="button" onclick="openSubjectModal()"
+            class="px-3.5 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            <span>Tambah Mapel</span>
+        </button>
+    </div>
+
+    <div class="bg-white dark:bg-zinc-900/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-zinc-50/80 dark:bg-zinc-900/80 border-b border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400">
+                    <tr>
+                        <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Kode</th>
+                        <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Nama Mata Pelajaran</th>
+                        <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Kategori</th>
+                        <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Jurusan</th>
+                        <th class="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="subjectsTableBody" class="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+                    <tr>
+                        <td colspan="5" class="px-6 py-12 text-center text-zinc-400 dark:text-zinc-500 text-xs">Memuat mata pelajaran...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- TAB 6: PLOTTING GURU (KBM) -->
+<div id="academic-tab-teaching" class="academic-tab-content hidden space-y-4">
+    <div class="bg-white dark:bg-zinc-900/60 p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+            <h3 class="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Plotting Guru & Pengampu Kelas</h3>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400">Penugasan guru mengajar mata pelajaran tertentu di tiap kelas</p>
+        </div>
+        <button type="button" onclick="openTeachingModal()"
+            class="px-3.5 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all">
+            <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+            <span>Tambah Penugasan Guru</span>
+        </button>
+    </div>
+
+    <div class="bg-white dark:bg-zinc-900/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-zinc-50/80 dark:bg-zinc-900/80 border-b border-zinc-200/80 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400">
+                    <tr>
+                        <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Guru Pengampu</th>
+                        <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Mata Pelajaran</th>
+                        <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Kelas</th>
+                        <th class="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider">Tahun / Smt</th>
+                        <th class="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="teachingTableBody" class="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+                    <tr>
+                        <td colspan="5" class="px-6 py-12 text-center text-zinc-400 dark:text-zinc-500 text-xs">Memuat penugasan...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Subject -->
+<div id="modal-subject" class="modal-wrapper hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-xl shadow-xl w-full max-w-md p-6">
+        <div class="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800 mb-4">
+            <h3 class="font-semibold text-base text-zinc-900 dark:text-zinc-100" id="subject-modal-title">Tambah Mata Pelajaran</h3>
+            <button type="button" onclick="closeModal('modal-subject')" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <form id="form-subject" onsubmit="saveSubjectForm(event)" class="space-y-4">
+            <input type="hidden" id="subject-id" name="id">
+            <div>
+                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Kode Mata Pelajaran *</label>
+                <input type="text" id="subject-code" name="code" required placeholder="Contoh: RPL-WEB-XII"
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Nama Mata Pelajaran *</label>
+                <input type="text" id="subject-name" name="name" required placeholder="Contoh: Pemrograman Web & Bergerak"
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Kelompok / Kategori</label>
+                <select id="subject-category" name="category"
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20">
+                    <option value="muatan_kejuruan">Muatan Kejuruan (Produktif)</option>
+                    <option value="muatan_nasional">Muatan Nasional (Umum / Normatif)</option>
+                    <option value="muatan_kewilayahan">Muatan Kewilayahan / Lokal</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Program Keahlian / Jurusan</label>
+                <select id="subject-major" name="major_id"
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20">
+                    <option value="">Semua Jurusan (Umum)</option>
+                    {{range .Majors}}
+                    <option value="{{.ID}}">{{.Name}}</option>
+                    {{end}}
+                </select>
+            </div>
+            <!-- Banner Preset & Selector -->
+            <div>
+                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Banner Gambar Mata Pelajaran</label>
+                <div class="space-y-2">
+                    <!-- Live Banner Preview -->
+                    <div class="h-20 w-full rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 relative bg-zinc-900 shadow-2xs">
+                        <img id="subjectBannerPreview" src="/assets/banners/general.svg" alt="Preview Banner" class="w-full h-full object-cover">
+                        <span class="absolute bottom-1.5 right-2 px-2 py-0.5 rounded text-[10px] bg-black/60 text-white font-mono backdrop-blur-xs">Pratinjau Banner</span>
+                    </div>
+
+                    <!-- Preset Options Grid -->
+                    <div class="grid grid-cols-4 gap-1.5">
+                        <button type="button" onclick="selectSubjectBanner('/assets/banners/tech.svg')" class="p-1 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:border-purple-500 text-center transition-all bg-zinc-50 dark:bg-zinc-800/50">
+                            <span class="text-[10px] font-semibold text-zinc-700 dark:text-zinc-300 block truncate">💻 RPL/TIK</span>
+                        </button>
+                        <button type="button" onclick="selectSubjectBanner('/assets/banners/math.svg')" class="p-1 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:border-purple-500 text-center transition-all bg-zinc-50 dark:bg-zinc-800/50">
+                            <span class="text-[10px] font-semibold text-zinc-700 dark:text-zinc-300 block truncate">📐 Matematika</span>
+                        </button>
+                        <button type="button" onclick="selectSubjectBanner('/assets/banners/language.svg')" class="p-1 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:border-purple-500 text-center transition-all bg-zinc-50 dark:bg-zinc-800/50">
+                            <span class="text-[10px] font-semibold text-zinc-700 dark:text-zinc-300 block truncate">🌐 Bahasa</span>
+                        </button>
+                        <button type="button" onclick="selectSubjectBanner('/assets/banners/science.svg')" class="p-1 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:border-purple-500 text-center transition-all bg-zinc-50 dark:bg-zinc-800/50">
+                            <span class="text-[10px] font-semibold text-zinc-700 dark:text-zinc-300 block truncate">🧪 IPA/Sains</span>
+                        </button>
+                        <button type="button" onclick="selectSubjectBanner('/assets/banners/business.svg')" class="p-1 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:border-purple-500 text-center transition-all bg-zinc-50 dark:bg-zinc-800/50">
+                            <span class="text-[10px] font-semibold text-zinc-700 dark:text-zinc-300 block truncate">💼 Bisnis/MPLB</span>
+                        </button>
+                        <button type="button" onclick="selectSubjectBanner('/assets/banners/art.svg')" class="p-1 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:border-purple-500 text-center transition-all bg-zinc-50 dark:bg-zinc-800/50">
+                            <span class="text-[10px] font-semibold text-zinc-700 dark:text-zinc-300 block truncate">🎨 Seni/DKV</span>
+                        </button>
+                        <button type="button" onclick="selectSubjectBanner('/assets/banners/religion.svg')" class="p-1 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:border-purple-500 text-center transition-all bg-zinc-50 dark:bg-zinc-800/50">
+                            <span class="text-[10px] font-semibold text-zinc-700 dark:text-zinc-300 block truncate">📖 Agama</span>
+                        </button>
+                        <button type="button" onclick="selectSubjectBanner('/assets/banners/general.svg')" class="p-1 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:border-purple-500 text-center transition-all bg-zinc-50 dark:bg-zinc-800/50">
+                            <span class="text-[10px] font-semibold text-zinc-700 dark:text-zinc-300 block truncate">⚡ Umum</span>
+                        </button>
+                    </div>
+
+                    <input type="text" id="subject-banner-url" name="banner_url" placeholder="URL banner kustom atau pilih preset di atas..."
+                        onchange="document.getElementById('subjectBannerPreview').src = this.value || '/assets/banners/general.svg'"
+                        class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20">
+                </div>
+            </div>
+            <div class="pt-3 flex justify-end gap-2 border-t border-zinc-100 dark:border-zinc-800">
+                <button type="button" onclick="closeModal('modal-subject')" class="px-3 py-1.5 text-xs text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg">Batal</button>
+                <button type="submit" class="px-3.5 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-semibold">Simpan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Teacher Assignment -->
+<div id="modal-teacher-assignment" class="modal-wrapper hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-xl shadow-xl w-full max-w-md p-6">
+        <div class="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800 mb-4">
+            <h3 class="font-semibold text-base text-zinc-900 dark:text-zinc-100">Plotting Guru ke Kelas</h3>
+            <button type="button" onclick="closeModal('modal-teacher-assignment')" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <form id="form-teacher-assignment" onsubmit="saveTeacherAssignmentForm(event)" class="space-y-4">
+            <div>
+                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Guru Pengampu *</label>
+                <select id="ta-staff" name="staff_id" required
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20">
+                    <option value="">-- Pilih Guru / Staff --</option>
+                    {{range .StaffList}}
+                    <option value="{{.ID}}">{{.Name}} ({{if .NIP}}NIP. {{.NIP}}{{else}}{{.Role}}{{end}})</option>
+                    {{end}}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Mata Pelajaran *</label>
+                <select id="ta-subject" name="subject_id" required
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20">
+                    <option value="">-- Pilih Mata Pelajaran --</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Kelas yang Diajar *</label>
+                <select id="ta-class" name="class_id" required
+                    class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20">
+                    <option value="">-- Pilih Kelas --</option>
+                    {{range .Classes}}
+                    <option value="{{.ID}}">{{.Name}}</option>
+                    {{end}}
+                </select>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Tahun Ajaran</label>
+                    <input type="text" id="ta-year" name="academic_year" value="2026/2027"
+                        class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Semester</label>
+                    <select id="ta-semester" name="semester"
+                        class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20">
+                        <option value="1">Ganjil (1)</option>
+                        <option value="2">Genap (2)</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Banner Kelas (Opsional, Kosongkan untuk Mengikuti Mapel)</label>
+                <div class="space-y-1.5">
+                    <input type="text" id="ta-banner-url" name="banner_url" placeholder="Otomatis mengikuti banner mapel atau masukkan URL khusus..."
+                        class="w-full bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20">
+                </div>
+            </div>
+            <div class="pt-3 flex justify-end gap-2 border-t border-zinc-100 dark:border-zinc-800">
+                <button type="button" onclick="closeModal('modal-teacher-assignment')" class="px-3 py-1.5 text-xs text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg">Batal</button>
+                <button type="submit" class="px-3.5 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-lg text-xs font-semibold">Tugaskan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 
 <!-- Modal Add/Edit Student -->
 <div id="modal-student"
@@ -884,6 +1124,259 @@
         document.getElementById('major-modal-title').textContent = 'Edit Jurusan';
         document.getElementById('maj-name').value = name;
         openModal('modal-major');
+    }
+
+    // Hook into switchAcademicTab
+    const originalSwitchAcademicTab = switchAcademicTab;
+    switchAcademicTab = function(tab) {
+        originalSwitchAcademicTab(tab);
+        if (tab === 'subjects') loadSubjects();
+        if (tab === 'teaching') loadTeacherAssignments();
+    };
+
+    // --- SUBJECTS JS ---
+    let subjectsList = [];
+
+    async function loadSubjects() {
+        const tbody = document.getElementById('subjectsTableBody');
+        try {
+            const res = await fetch('/admin/subjects');
+            subjectsList = await res.json();
+            renderSubjectsTable(subjectsList);
+            populateSubjectDropdown();
+        } catch (err) {
+            tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-xs text-rose-500">Gagal memuat mata pelajaran</td></tr>`;
+        }
+    }
+
+    function renderSubjectsTable(data) {
+        const tbody = document.getElementById('subjectsTableBody');
+        if (!data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-12 text-center text-zinc-400 dark:text-zinc-500 text-xs">Belum ada mata pelajaran. Klik tombol "Tambah Mapel" untuk membuat baru.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = data.map(s => `
+            <tr class="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/30 transition-colors">
+                <td class="px-4 py-3 font-mono font-semibold text-xs text-zinc-900 dark:text-zinc-100">${s.code}</td>
+                <td class="px-4 py-3">
+                    <div class="flex items-center gap-2.5">
+                        <img src="${s.banner_url || '/assets/banners/general.svg'}" alt="Banner" class="w-11 h-7 rounded object-cover border border-zinc-200 dark:border-zinc-700 shrink-0 shadow-2xs">
+                        <span class="font-semibold text-xs text-zinc-900 dark:text-zinc-100">${s.name}</span>
+                    </div>
+                </td>
+                <td class="px-4 py-3 text-xs">
+                    <span class="px-2 py-0.5 rounded text-[10px] font-medium ${s.category === 'muatan_kejuruan' ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300'}">
+                        ${s.category ? s.category.replace(/_/g, ' ') : 'umum'}
+                    </span>
+                </td>
+                <td class="px-4 py-3 text-xs text-zinc-500 dark:text-zinc-400">${s.major_name || 'Semua Jurusan'}</td>
+                <td class="px-4 py-3 text-right">
+                    <div class="flex items-center justify-end gap-1">
+                        <button type="button" onclick="editSubjectModal(${s.id})"
+                            class="p-1.5 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors">
+                            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                        </button>
+                        <button type="button" onclick="deleteSubject(${s.id})"
+                            class="p-1.5 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-md transition-colors">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function selectSubjectBanner(url) {
+        document.getElementById('subject-banner-url').value = url;
+        document.getElementById('subjectBannerPreview').src = url;
+    }
+
+    function openSubjectModal() {
+        document.getElementById('form-subject').reset();
+        document.getElementById('subject-id').value = '';
+        document.getElementById('subject-banner-url').value = '';
+        document.getElementById('subjectBannerPreview').src = '/assets/banners/general.svg';
+        document.getElementById('subject-modal-title').textContent = 'Tambah Mata Pelajaran';
+        openModal('modal-subject');
+    }
+
+    function editSubjectModal(id) {
+        const item = subjectsList.find(s => s.id === id);
+        if (!item) return;
+        document.getElementById('subject-id').value = item.id;
+        document.getElementById('subject-code').value = item.code;
+        document.getElementById('subject-name').value = item.name;
+        document.getElementById('subject-category').value = item.category;
+        document.getElementById('subject-major').value = item.major_id || '';
+        const banner = item.banner_url || '/assets/banners/general.svg';
+        document.getElementById('subject-banner-url').value = item.banner_url || '';
+        document.getElementById('subjectBannerPreview').src = banner;
+        document.getElementById('subject-modal-title').textContent = 'Edit Mata Pelajaran';
+        openModal('modal-subject');
+    }
+
+    async function saveSubjectForm(e) {
+        e.preventDefault();
+        const id = document.getElementById('subject-id').value;
+        const form = document.getElementById('form-subject');
+        const fd = new FormData(form);
+        const url = id ? `/admin/subject/update/${id}` : '/admin/subject/add';
+
+        try {
+            const res = await fetch(url, { method: 'POST', body: fd });
+            const data = await res.json();
+            if (res.ok) {
+                closeModal('modal-subject');
+                loadSubjects();
+                Swal.fire({ icon: 'success', title: 'Berhasil', text: data.message, timer: 1200, showConfirmButton: false });
+            } else {
+                Swal.fire({ icon: 'error', title: 'Gagal', text: data.message });
+            }
+        } catch (err) {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan sistem' });
+        }
+    }
+
+    async function deleteSubject(id) {
+        const confirm = await Swal.fire({
+            title: 'Hapus Mata Pelajaran?',
+            text: 'Data mata pelajaran yang dihapus tidak dapat dipulihkan.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e11d48',
+            confirmButtonText: 'Ya, Hapus',
+            cancelButtonText: 'Batal'
+        });
+        if (confirm.isConfirmed) {
+            try {
+                const res = await fetch(`/admin/subject/${id}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (res.ok) {
+                    loadSubjects();
+                    Swal.fire({ icon: 'success', title: 'Terhapus', text: data.message, timer: 1200, showConfirmButton: false });
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Gagal', text: data.message });
+                }
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal menghapus mata pelajaran' });
+            }
+        }
+    }
+
+    // --- TEACHER ASSIGNMENTS JS ---
+    function populateSubjectDropdown() {
+        const select = document.getElementById('ta-subject');
+        if (!select) return;
+        select.innerHTML = '<option value="">-- Pilih Mata Pelajaran --</option>' +
+            subjectsList.map(s => `<option value="${s.id}">${s.name} (${s.code})</option>`).join('');
+    }
+
+    async function loadTeacherAssignments() {
+        const tbody = document.getElementById('teachingTableBody');
+        try {
+            if (subjectsList.length === 0) {
+                const sRes = await fetch('/admin/subjects');
+                subjectsList = await sRes.json();
+                populateSubjectDropdown();
+            }
+
+            const res = await fetch('/admin/teacher-assignments');
+            const data = await res.json();
+            renderTeachingTable(data);
+        } catch (err) {
+            tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-xs text-rose-500">Gagal memuat penugasan guru</td></tr>`;
+        }
+    }
+
+    function renderTeachingTable(data) {
+        const tbody = document.getElementById('teachingTableBody');
+        if (!data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-12 text-center text-zinc-400 dark:text-zinc-500 text-xs">Belum ada penugasan guru. Klik tombol "Tambah Penugasan Guru" di atas.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = data.map(a => `
+            <tr class="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/30 transition-colors">
+                <td class="px-4 py-3">
+                    <div class="font-semibold text-xs text-zinc-900 dark:text-zinc-100">${a.staff_name}</div>
+                    <div class="text-[11px] font-mono text-zinc-400">${a.staff_nip ? 'NIP. ' + a.staff_nip : 'Staff'}</div>
+                </td>
+                <td class="px-4 py-3">
+                    <div class="flex items-center gap-2.5">
+                        <img src="${a.banner_url || '/assets/banners/general.svg'}" alt="Banner" class="w-11 h-7 rounded object-cover border border-zinc-200 dark:border-zinc-700 shrink-0 shadow-2xs">
+                        <div>
+                            <div class="font-semibold text-xs text-zinc-900 dark:text-zinc-100">${a.subject_name}</div>
+                            <div class="text-[11px] font-mono text-zinc-400">${a.subject_code}</div>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-4 py-3 font-semibold text-xs text-zinc-900 dark:text-zinc-100">${a.class_name}</td>
+                <td class="px-4 py-3 text-xs text-zinc-500 dark:text-zinc-400">${a.academic_year} (Smt ${a.semester})</td>
+                <td class="px-4 py-3 text-right">
+                    <button type="button" onclick="deleteTeacherAssignment(${a.id})"
+                        class="p-1.5 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-md transition-colors">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function openTeachingModal() {
+        document.getElementById('form-teacher-assignment').reset();
+        populateSubjectDropdown();
+        openModal('modal-teacher-assignment');
+    }
+
+    async function saveTeacherAssignmentForm(e) {
+        e.preventDefault();
+        const form = document.getElementById('form-teacher-assignment');
+        const fd = new FormData(form);
+
+        try {
+            const res = await fetch('/admin/teacher-assignment/add', { method: 'POST', body: fd });
+            const data = await res.json();
+            if (res.ok) {
+                closeModal('modal-teacher-assignment');
+                loadTeacherAssignments();
+                Swal.fire({ icon: 'success', title: 'Berhasil', text: data.message, timer: 1200, showConfirmButton: false });
+            } else {
+                Swal.fire({ icon: 'error', title: 'Gagal', text: data.message });
+            }
+        } catch (err) {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan sistem' });
+        }
+    }
+
+    async function deleteTeacherAssignment(id) {
+        const confirm = await Swal.fire({
+            title: 'Hapus Penugasan Guru?',
+            text: 'Guru tidak lagi mengampu mata pelajaran ini di kelas tersebut.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e11d48',
+            confirmButtonText: 'Ya, Hapus',
+            cancelButtonText: 'Batal'
+        });
+        if (confirm.isConfirmed) {
+            try {
+                const res = await fetch(`/admin/teacher-assignment/${id}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (res.ok) {
+                    loadTeacherAssignments();
+                    Swal.fire({ icon: 'success', title: 'Terhapus', text: data.message, timer: 1200, showConfirmButton: false });
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Gagal', text: data.message });
+                }
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal menghapus penugasan' });
+            }
+        }
     }
 </script>
 {{template "admin_footer" .}}

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGradMath" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="60%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#0369a1" />
+    </linearGradient>
+    <radialGradient id="mathGlow" cx="75%" cy="30%" r="60%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <rect width="800" height="400" fill="url(#bgGradMath)" />
+  <circle cx="620" cy="140" r="260" fill="url(#mathGlow)" />
+
+  <g stroke="#38bdf8" stroke-opacity="0.25" stroke-width="2" fill="none">
+    <path d="M 0 200 Q 100 120 200 200 T 400 200 T 600 200 T 800 200" />
+    <path d="M 0 200 Q 100 280 200 200 T 400 200 T 600 200 T 800 200" stroke-dasharray="6 6" />
+    <circle cx="200" cy="200" r="6" fill="#38bdf8" />
+    <circle cx="400" cy="200" r="6" fill="#38bdf8" />
+    <circle cx="600" cy="200" r="6" fill="#38bdf8" />
+  </g>
+
+  <g fill="#e0f2fe" opacity="0.35" font-family="monospace, serif" font-weight="bold">
+    <text x="80" y="100" font-size="42">∑</text>
+    <text x="240" y="80" font-size="34">∫ f(x)dx</text>
+    <text x="140" y="320" font-size="38">π ≈ 3.14159</text>
+    <text x="360" y="340" font-size="30">√x² + y²</text>
+    <text x="500" y="80" font-size="48">∞</text>
+  </g>
+
+  <polygon points="560,320 740,120 760,320" fill="#0284c7" fill-opacity="0.2" stroke="#38bdf8" stroke-width="3" />
+  <circle cx="740" cy="120" r="30" fill="none" stroke="#7dd3fc" stroke-width="2" stroke-dasharray="4 4" />
+</svg>

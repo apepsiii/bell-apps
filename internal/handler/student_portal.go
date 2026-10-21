@@ -54,7 +54,8 @@ func StudentLogin(db *sql.DB) echo.HandlerFunc {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Terjadi kesalahan sistem"})
 		}
 
-		if status != "active" {
+		stLower := strings.ToLower(strings.TrimSpace(status))
+		if stLower != "active" && stLower != "aktif" && stLower != "" {
 			return c.JSON(http.StatusForbidden, map[string]string{"message": "Akun siswa nonaktif. Hubungi admin sekolah."})
 		}
 

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGradArt" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4c0519" />
+      <stop offset="50%" stop-color="#881337" />
+      <stop offset="100%" stop-color="#e11d48" />
+    </linearGradient>
+    <radialGradient id="artGlow" cx="75%" cy="30%" r="50%">
+      <stop offset="0%" stop-color="#fda4af" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#4c0519" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <rect width="800" height="400" fill="url(#bgGradArt)" />
+  <circle cx="620" cy="120" r="260" fill="url(#artGlow)" />
+
+  <g transform="translate(560, 110)" fill="none" opacity="0.85">
+    <path d="M 40 40 C 90 0, 160 30, 180 80 C 200 130, 160 180, 110 180 C 80 180, 70 160, 50 160 C 30 160, 10 180, 0 140 C -10 100, 0 70, 40 40 Z" fill="#9f1239" stroke="#f43f5e" stroke-width="5" />
+    <circle cx="60" cy="60" r="10" fill="#facc15" />
+    <circle cx="100" cy="50" r="10" fill="#38bdf8" />
+    <circle cx="140" cy="70" r="10" fill="#4ade80" />
+    <circle cx="150" cy="115" r="10" fill="#fb7185" />
+    <circle cx="45" cy="130" r="14" fill="#4c0519" stroke="#f43f5e" stroke-width="3" />
+  </g>
+
+  <g fill="#ffe4e6" opacity="0.3" font-family="sans-serif" font-weight="bold">
+    <text x="60" y="100" font-size="44">Seni &amp; Budaya</text>
+    <text x="120" y="150" font-size="28">Desain Komunikasi Visual</text>
+    <text x="70" y="320" font-size="42">Kreativitas &amp; Estetika</text>
+    <text x="360" y="330" font-size="26">Color • Harmony • Balance</text>
+  </g>
+</svg>

@@ -1,30 +1,166 @@
 <!DOCTYPE html>
 <html lang="id">
 
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Halaman Tidak Ditemukan - SMK Bell</title>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-        <style>
-            body {
-                font-family: 'Inter', sans-serif;
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 — Halaman Tidak Ditemukan | SMK NIBA Super Apps</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '[data-theme="dark"]'],
+            theme: {
+                extend: {
+                    colors: {
+                        zinc: {
+                            50: '#fafafa',
+                            100: '#f4f4f5',
+                            200: '#e4e4e7',
+                            300: '#d4d4d8',
+                            400: '#a1a1aa',
+                            500: '#71717a',
+                            600: '#52525b',
+                            700: '#3f3f46',
+                            800: '#27272a',
+                            900: '#18181b',
+                            950: '#09090b',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
             }
-        </style>
-    </head>
+        };
+    </script>
+    <script>
+        // Init theme immediately to prevent FOUC
+        (function() {
+            const saved = localStorage.getItem('app-theme') || localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (saved === 'dark' || (!saved && prefersDark)) {
+                document.documentElement.classList.add('dark');
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+</head>
 
-    <body class="bg-gray-100 flex items-center justify-center h-screen">
-        <div class="text-center px-4">
-            <h1 class="text-9xl font-bold text-blue-600 mb-4">404</h1>
-            <h2 class="text-3xl font-bold text-gray-800 mb-2">Halaman Tidak Ditemukan</h2>
-            <p class="text-gray-600 mb-8 max-w-md mx-auto">Maaf, halaman yang Anda cari mungkin telah dihapus, namanya
-                diubah, atau sementara tidak tersedia.</p>
-            <a href="/"
-                class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition duration-300 shadow-md">
-                Kembali ke Beranda
-            </a>
+<body class="bg-[#fafafa] dark:bg-[#09090b] text-zinc-900 dark:text-zinc-100 min-h-screen flex flex-col font-sans antialiased relative selection:bg-zinc-900 selection:text-white dark:selection:bg-zinc-100 dark:selection:text-zinc-900">
+
+    <!-- Ambient Subtle Dot Grid Background -->
+    <div class="fixed inset-0 pointer-events-none bg-[radial-gradient(#e4e4e7_1px,transparent_1px)] [background-size:24px_24px] dark:bg-[radial-gradient(#27272a_1px,transparent_1px)] opacity-60"></div>
+
+    <!-- Soft Radial Gradient Glow -->
+    <div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-zinc-200/50 dark:bg-zinc-800/20 rounded-full blur-3xl pointer-events-none -z-10"></div>
+
+    <!-- Top Minimal Navigation -->
+    <header class="relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6 py-6 flex items-center justify-between">
+        <a href="/" class="flex items-center gap-2.5 group transition-opacity hover:opacity-80">
+            <div class="w-8 h-8 rounded-lg bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 flex items-center justify-center font-black text-sm shadow-xs">
+                N
+            </div>
+            <div>
+                <span class="text-xs font-bold tracking-tight text-zinc-900 dark:text-zinc-100 block">SMK NIBA Super Apps</span>
+                <span class="text-[10px] text-zinc-500 dark:text-zinc-400 block -mt-0.5">Automated School System</span>
+            </div>
+        </a>
+
+        <!-- Theme Toggle Button -->
+        <button type="button" onclick="toggleTheme()" aria-label="Ganti Tema"
+            class="w-9 h-9 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center justify-center transition-all shadow-2xs hover:border-zinc-300 dark:hover:border-zinc-700">
+            <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
+            <i data-lucide="moon" class="w-4 h-4 block dark:hidden"></i>
+        </button>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex items-center justify-center px-4 py-8 relative z-10">
+        <div class="w-full max-w-md bg-white dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl shadow-xl p-8 sm:p-10 text-center space-y-6 backdrop-blur-xs">
+            
+            <!-- Icon & Status Badge -->
+            <div class="space-y-4">
+                <div class="w-16 h-16 mx-auto rounded-2xl bg-zinc-100 dark:bg-zinc-800/70 border border-zinc-200/80 dark:border-zinc-700/60 flex items-center justify-center text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                    <i data-lucide="compass" class="w-8 h-8"></i>
+                </div>
+
+                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                    <span>ERROR 404 • NOT FOUND</span>
+                </div>
+            </div>
+
+            <!-- Big Number & Heading -->
+            <div class="space-y-2">
+                <h1 class="text-6xl sm:text-7xl font-black tracking-tight text-zinc-900 dark:text-zinc-50 font-mono">
+                    404
+                </h1>
+                <h2 class="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
+                    Halaman Tidak Ditemukan
+                </h2>
+                <p class="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed max-w-sm mx-auto">
+                    Tautan yang Anda tuju mungkin salah ketik, telah dihapus, atau dipindahkan ke alamat lain.
+                </p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2.5">
+                <a href="/"
+                    class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 text-xs font-semibold shadow-xs transition-all">
+                    <i data-lucide="home" class="w-4 h-4"></i>
+                    <span>Kembali ke Beranda</span>
+                </a>
+                <button type="button" onclick="history.back()"
+                    class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white hover:bg-zinc-50 dark:bg-zinc-900 dark:hover:bg-zinc-800/80 text-zinc-700 dark:text-zinc-300 text-xs font-semibold shadow-2xs transition-all">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                    <span>Sebelumnya</span>
+                </button>
+            </div>
+
+            <!-- Portal Shortcuts Footer in Card -->
+            <div class="pt-5 border-t border-zinc-100 dark:border-zinc-800/80 text-[11px] text-zinc-400 dark:text-zinc-500 flex items-center justify-center gap-4 flex-wrap">
+                <span class="text-zinc-400 font-medium">Pintas Cepat:</span>
+                <a href="/admin/dashboard" class="hover:text-zinc-900 dark:hover:text-zinc-200 underline decoration-zinc-300 dark:decoration-zinc-700 underline-offset-4 transition-colors">Admin</a>
+                <span>•</span>
+                <a href="/guru/dashboard" class="hover:text-zinc-900 dark:hover:text-zinc-200 underline decoration-zinc-300 dark:decoration-zinc-700 underline-offset-4 transition-colors">Guru</a>
+                <span>•</span>
+                <a href="/student/app" class="hover:text-zinc-900 dark:hover:text-zinc-200 underline decoration-zinc-300 dark:decoration-zinc-700 underline-offset-4 transition-colors">Siswa</a>
+            </div>
         </div>
-    </body>
+    </main>
+
+    <!-- Page Footer -->
+    <footer class="relative z-10 w-full py-4 text-center text-[11px] text-zinc-400 dark:text-zinc-500">
+        <p>&copy; SMK NIBA Super Apps &bull; Seluruh hak cipta dilindungi</p>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+
+        function toggleTheme() {
+            const isDark = document.documentElement.classList.contains('dark');
+            if (isDark) {
+                document.documentElement.classList.remove('dark');
+                document.documentElement.setAttribute('data-theme', 'light');
+                localStorage.setItem('app-theme', 'light');
+                localStorage.setItem('theme', 'light');
+            } else {
+                document.documentElement.classList.add('dark');
+                document.documentElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('app-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+            }
+            lucide.createIcons();
+        }
+    </script>
+</body>
 
 </html>

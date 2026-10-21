@@ -548,11 +548,11 @@
                                     </div>
                                     <span class="text-[10px] font-semibold text-slate-700 text-center">Pengumuman</span>
                                 </button>
-                                <button onclick="document.getElementById('weatherWidget').scrollIntoView({behavior:'smooth'})" class="flex flex-col items-center gap-1.5 group btn-soft">
-                                    <div class="w-11 h-11 rounded-2xl flex items-center justify-center bg-pink-50 text-pink-500 group-hover:scale-105 transition-transform">
-                                        <i class="ph-fill ph-cloud-sun text-xl"></i>
+                                <button onclick="switchTab('belajar')" class="flex flex-col items-center gap-1.5 group btn-soft">
+                                    <div class="w-11 h-11 rounded-2xl flex items-center justify-center bg-teal-50 text-teal-600 group-hover:scale-105 transition-transform">
+                                        <i class="ph-fill ph-book-open text-xl"></i>
                                     </div>
-                                    <span class="text-[10px] font-semibold text-slate-700 text-center">Cuaca</span>
+                                    <span class="text-[10px] font-semibold text-slate-700 text-center">Kelas KBM</span>
                                 </button>
                                 <button onclick="switchTab('profil')" class="flex flex-col items-center gap-1.5 group btn-soft">
                                     <div class="w-11 h-11 rounded-2xl flex items-center justify-center bg-indigo-50 text-indigo-500 group-hover:scale-105 transition-transform">
@@ -1621,6 +1621,8 @@
                     </button>
                 </div>
                 <div id="engLbContent"></div>
+            </div>
+        </div>
         <!-- CHILD SWITCHER MODAL (FOR MULTI-CHILD PARENTS) -->
         <div id="childSwitcherModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
             style="display:none!important">
@@ -1641,6 +1643,150 @@
                 </div>
                 <div id="childSwitcherList" class="space-y-2.5 my-3">
                     <!-- Populated via JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW BELAJAR / LMS KBM -->
+        <div id="view-belajar" class="view-section">
+            <div class="px-5 pt-6 pb-24">
+                <div class="flex items-center justify-between mb-4">
+                    <button onclick="switchTab('home')" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-700">
+                        <i class="ph-bold ph-arrow-left text-base"></i>
+                    </button>
+                    <h2 class="text-base font-bold text-slate-900">Ruang Kelas & KBM</h2>
+                    <div class="w-9"></div>
+                </div>
+
+                <!-- Course List State -->
+                <div id="lmsCourseListSection" class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-700">Mata Pelajaran Semester Ini</span>
+                        <span id="lmsCourseCountBadge" class="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-semibold">0 Mapel</span>
+                    </div>
+                    <div id="studentCoursesList" class="space-y-2.5">
+                        <p class="text-xs text-slate-400 text-center py-6">Memuat daftar mata pelajaran...</p>
+                    </div>
+                </div>
+
+                <!-- Course Detail & Meetings State -->
+                <div id="lmsCourseDetailSection" class="hidden space-y-4">
+                    <button onclick="backToCourseList()" class="inline-flex items-center gap-1.5 text-xs font-semibold text-purple-600 hover:text-purple-700">
+                        <i class="ph-bold ph-arrow-left text-xs"></i>
+                        <span>Kembali ke Daftar Mapel</span>
+                    </button>
+
+                    <!-- Course Header Card with Banner -->
+                    <div class="relative rounded-3xl overflow-hidden shadow-sm bg-slate-900 text-white min-h-[140px] flex flex-col justify-end">
+                        <img id="lmsDetailBannerImg" src="/assets/banners/general.svg" alt="Banner Mapel"
+                            class="absolute inset-0 w-full h-full object-cover opacity-60">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-black/20"></div>
+                        <div class="relative z-10 p-5 space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <span id="lmsDetailSubjectCode" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-white/20 backdrop-blur-xs text-white border border-white/20"></span>
+                                <span id="lmsDetailCategory" class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-500/80 backdrop-blur-xs text-white uppercase"></span>
+                            </div>
+                            <h3 id="lmsDetailSubjectName" class="text-base font-bold leading-tight drop-shadow-xs"></h3>
+                            <p id="lmsDetailTeacherName" class="text-xs text-purple-200 flex items-center gap-1.5 drop-shadow-xs">
+                                <i class="ph-fill ph-chalkboard-teacher"></i>
+                                <span></span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Meetings List -->
+                    <div class="space-y-2.5">
+                        <h4 class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                            <i class="ph-fill ph-calendar-check text-purple-600"></i>
+                            <span>Sesi Pertemuan, Materi & Tugas</span>
+                        </h4>
+                        <div id="lmsMeetingsList" class="space-y-3">
+                            <!-- Dynamically loaded -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Pengumpulan Tugas Siswa -->
+        <div id="studentSubmitModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div class="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-[414px] p-6 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div>
+                        <h4 class="text-sm font-bold text-slate-900">Serahkan Tugas Siswa</h4>
+                        <p id="submitAssTitle" class="text-[11px] text-slate-500 truncate max-w-[280px]">...</p>
+                    </div>
+                    <button onclick="closeStudentSubmitModal()" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+                        <i class="ph-bold ph-x text-sm"></i>
+                    </button>
+                </div>
+                <form id="studentSubmitForm" onsubmit="handleStudentSubmit(event)" class="space-y-3">
+                    <input type="hidden" id="submitAssignmentId" name="assignment_id">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Metode Pengumpulan</label>
+                        <select id="submitType" name="submission_type" onchange="toggleStudentSubmitInput()"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800">
+                            <option value="file">Unggah Berkas (PDF / Foto Laporan Praktik)</option>
+                            <option value="link">Tautan Repositori GitHub / Figma / Drive</option>
+                            <option value="text">Tulis Jawaban Langsung</option>
+                        </select>
+                    </div>
+                    <div id="studentFileInput" class="space-y-1">
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Pilih File Tugas</label>
+                        <input type="file" id="studentFile" name="file" class="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-purple-100 file:text-purple-700">
+                        <p class="text-[10px] text-slate-400">File akan diunggah otomatis ke Cloudflare R2 Storage.</p>
+                    </div>
+                    <div id="studentLinkInput" class="hidden space-y-1">
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">URL / Link Tugas</label>
+                        <input type="url" id="studentLink" name="link_url" placeholder="https://github.com/..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800">
+                    </div>
+                    <div id="studentTextInput" class="hidden space-y-1">
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Jawaban Teks</label>
+                        <textarea id="studentText" name="text_content" rows="4" placeholder="Tuliskan jawaban Anda di sini..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800"></textarea>
+                    </div>
+                    <button type="submit" id="btnSubmitAss" class="w-full py-2.5 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md transition-colors flex items-center justify-center gap-1.5">
+                        <i class="ph-bold ph-paper-plane-tilt"></i>
+                        <span>Kirim Tugas</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal Pengerjaan Kuis CBT Siswa -->
+        <div id="studentQuizModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div class="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-[480px] h-[92vh] sm:h-[88vh] flex flex-col shadow-2xl overflow-hidden animate-[fadeIn_0.2s_ease-out]">
+                <!-- Quiz Runner Header -->
+                <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-900 text-white flex-shrink-0">
+                    <div>
+                        <span class="text-[10px] font-mono uppercase tracking-wider text-purple-300 block font-bold">Kuis CBT Online</span>
+                        <h4 id="sqModalTitle" class="text-xs font-bold text-white truncate max-w-[240px]">Memuat Kuis...</h4>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div id="sqTimerBadge" class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/30 text-amber-300 font-mono text-xs font-bold">
+                            <i class="ph-bold ph-timer text-sm animate-pulse"></i>
+                            <span id="sqTimerText">--:--</span>
+                        </div>
+                        <button onclick="confirmExitStudentQuiz()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors">
+                            <i class="ph-bold ph-x text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Quiz Questions Content -->
+                <div id="sqQuestionsContainer" class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
+                    <p class="text-xs text-slate-400 text-center py-8">Memuat butir soal...</p>
+                </div>
+
+                <!-- Quiz Runner Footer -->
+                <div class="p-3.5 bg-white border-t border-slate-100 flex items-center justify-between gap-3 flex-shrink-0">
+                    <div class="text-[11px] text-slate-500">
+                        Dijawab: <strong id="sqAnsweredCount" class="text-purple-700">0</strong> / <span id="sqTotalCount">0</span>
+                    </div>
+                    <button type="button" id="sqSubmitBtn" onclick="submitStudentQuizAnswers()"
+                        class="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 active:scale-95 text-white font-bold text-xs shadow-md transition-all flex items-center gap-1.5">
+                        <i class="ph-bold ph-check-circle text-sm"></i>
+                        <span>Kirim Jawaban Kuis</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -1904,6 +2050,7 @@
                 if (tabName === 'presensi' && Object.keys(calendarData).length === 0) loadCalendar();
                 if (tabName === 'english') loadEnglishTab();
                 if (tabName === 'poin') loadPoinPage();
+                if (tabName === 'belajar') loadStudentCourses();
             }
 
             // ===== WEATHER =====
@@ -3720,6 +3867,471 @@
 
             function closeEngLb() {
                 document.getElementById('engLbModal').style.display = 'none';
+            }
+
+            // ===== LMS / BELAJAR (STUDENT PORTAL) =====
+            let currentOpenAssignmentId = null;
+
+            async function loadStudentCourses() {
+                const list = document.getElementById('studentCoursesList');
+                const badge = document.getElementById('lmsCourseCountBadge');
+                list.innerHTML = `<div class="text-center py-8"><span class="animate-spin inline-block w-5 h-5 border-2 border-purple-600 border-t-transparent rounded-full mb-2"></span><p class="text-xs text-slate-400">Memuat mata pelajaran...</p></div>`;
+
+                try {
+                    const res = await fetch('/api/student/courses');
+                    if (res.status === 401) {
+                        window.location.href = '/student/login';
+                        return;
+                    }
+                    const courses = await res.json();
+                    badge.textContent = `${courses ? courses.length : 0} Mapel`;
+
+                    if (!courses || courses.length === 0) {
+                        list.innerHTML = `
+                            <div class="text-center py-10 bg-white rounded-3xl p-6 border border-slate-100 shadow-sm">
+                                <div class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center mx-auto mb-3 text-2xl">
+                                    <i class="ph-fill ph-book-open"></i>
+                                </div>
+                                <h4 class="text-sm font-bold text-slate-900">Belum Ada Mata Pelajaran</h4>
+                                <p class="text-xs text-slate-400 mt-1">Kelas Anda belum memiliki jadwal mapel yang aktif.</p>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    list.innerHTML = courses.map(c => `
+                        <div onclick="openCourseDetail(${c.assignment_id})"
+                            class="bg-white rounded-3xl border border-slate-200/80 shadow-xs hover:shadow-md hover:border-purple-300 transition-all cursor-pointer overflow-hidden group">
+                            <!-- Banner Header -->
+                            <div class="h-28 w-full relative overflow-hidden bg-slate-900 select-none">
+                                <img src="${c.banner_url || '/assets/banners/general.svg'}" alt="${c.subject_name}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out">
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/10"></div>
+                                <div class="absolute top-3 left-3 right-3 flex items-center justify-between">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-white/95 text-purple-900 shadow-xs">
+                                        ${(c.category || 'umum').replace(/_/g, ' ').toUpperCase()}
+                                    </span>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-black/50 text-white backdrop-blur-xs border border-white/20">
+                                        ${c.subject_code}
+                                    </span>
+                                </div>
+                                <div class="absolute bottom-2.5 left-3.5 right-3.5 flex items-center justify-between text-white">
+                                    <span class="text-[10px] font-medium text-purple-200 flex items-center gap-1">
+                                        <i class="ph-fill ph-chalkboard-teacher"></i>
+                                        <span class="truncate max-w-[170px]">${c.teacher_name}</span>
+                                    </span>
+                                    <span class="text-[10px] font-semibold bg-white/20 backdrop-blur-xs px-2 py-0.5 rounded-full text-white">
+                                        ${c.total_meetings} Pertemuan
+                                    </span>
+                                </div>
+                            </div>
+                            <!-- Card Body -->
+                            <div class="p-3.5 flex items-center justify-between gap-3">
+                                <div class="truncate">
+                                    <h4 class="text-xs font-bold text-slate-900 group-hover:text-purple-600 transition-colors truncate">${c.subject_name}</h4>
+                                    <p class="text-[10px] text-slate-400 mt-0.5">Ketuk untuk buka materi & tugas</p>
+                                </div>
+                                <div class="w-7 h-7 rounded-full bg-purple-50 group-hover:bg-purple-600 group-hover:text-white text-purple-600 flex items-center justify-center flex-shrink-0 transition-colors">
+                                    <i class="ph-bold ph-arrow-right text-xs"></i>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                } catch (e) {
+                    list.innerHTML = `<div class="text-center py-6 text-xs text-rose-500 font-semibold">Gagal memuat mata pelajaran.</div>`;
+                }
+            }
+
+            async function openCourseDetail(assignmentId) {
+                currentOpenAssignmentId = assignmentId;
+                document.getElementById('lmsCourseListSection').classList.add('hidden');
+                document.getElementById('lmsCourseDetailSection').classList.remove('hidden');
+
+                const meetingsList = document.getElementById('lmsMeetingsList');
+                meetingsList.innerHTML = `<div class="text-center py-8"><span class="animate-spin inline-block w-5 h-5 border-2 border-purple-600 border-t-transparent rounded-full mb-2"></span><p class="text-xs text-slate-400">Memuat sesi KBM...</p></div>`;
+
+                try {
+                    const res = await fetch(`/api/student/courses/${assignmentId}`);
+                    if (!res.ok) throw new Error('Gagal');
+                    const data = await res.json();
+
+                    document.getElementById('lmsDetailSubjectCode').textContent = data.subject_code;
+                    document.getElementById('lmsDetailSubjectName').textContent = data.subject_name;
+                    document.getElementById('lmsDetailTeacherName').querySelector('span').textContent = `Guru: ${data.teacher_name}`;
+
+                    const bannerImg = document.getElementById('lmsDetailBannerImg');
+                    if (bannerImg) bannerImg.src = data.banner_url || '/assets/banners/general.svg';
+                    const catBadge = document.getElementById('lmsDetailCategory');
+                    if (catBadge) catBadge.textContent = (data.category || 'umum').replace(/_/g, ' ');
+
+                    if (!data.meetings || data.meetings.length === 0) {
+                        meetingsList.innerHTML = `
+                            <div class="text-center py-8 bg-white rounded-3xl p-5 border border-slate-100 shadow-sm">
+                                <i class="ph-fill ph-calendar-blank text-3xl text-slate-300 mx-auto mb-2"></i>
+                                <p class="text-xs text-slate-400">Belum ada pertemuan yang dirilis guru.</p>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    meetingsList.innerHTML = data.meetings.map(m => {
+                        const attBadge = getAttBadgeHTML(m.attendance_status);
+                        return `
+                            <div class="bg-white rounded-3xl p-4 border border-slate-100 shadow-sm space-y-3">
+                                <div class="flex items-center justify-between pb-2 border-b border-slate-50">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-6 h-6 rounded-full bg-purple-600 text-white font-black text-[10px] flex items-center justify-center">${m.meeting_order}</span>
+                                        <h4 class="text-xs font-bold text-slate-900">${m.title}</h4>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-[10px] font-mono text-slate-400">${m.meeting_date}</span>
+                                        ${attBadge}
+                                    </div>
+                                </div>
+
+                                ${m.description ? `<p class="text-[11px] text-slate-500">${m.description}</p>` : ''}
+
+                                <!-- Materials -->
+                                ${m.materials && m.materials.length > 0 ? `
+                                    <div class="space-y-1.5 pt-1">
+                                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Bahan Ajar</span>
+                                        <div class="space-y-1">
+                                            ${m.materials.map(mat => `
+                                                <a href="${mat.content_url || '#'}" target="_blank"
+                                                    class="flex items-center justify-between p-2 rounded-xl bg-slate-50 hover:bg-purple-50 transition-colors text-xs text-slate-800">
+                                                    <span class="flex items-center gap-2 truncate">
+                                                        <i class="ph-fill ${mat.type === 'document' ? 'ph-file-pdf text-rose-500' : (mat.type === 'video' ? 'ph-video text-red-500' : 'ph-link text-blue-500')}"></i>
+                                                        <span class="truncate font-semibold text-[11px]">${mat.title}</span>
+                                                    </span>
+                                                    <i class="ph-bold ph-arrow-square-out text-slate-400 text-xs"></i>
+                                                </a>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
+
+                                <!-- Assignments -->
+                                ${m.assignments && m.assignments.length > 0 ? `
+                                    <div class="space-y-2 pt-2 border-t border-slate-50">
+                                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Tugas</span>
+                                        ${m.assignments.map(ass => {
+                                            const isSubmitted = ass.submitted;
+                                            const sub = ass.submission;
+                                            return `
+                                                <div class="p-3 rounded-2xl bg-purple-50/50 border border-purple-100/60 space-y-2">
+                                                    <div class="flex items-start justify-between gap-2">
+                                                        <div>
+                                                            <h5 class="text-xs font-bold text-slate-900">${ass.title}</h5>
+                                                            <p class="text-[10px] text-slate-500 mt-0.5">Deadline: <span class="font-mono text-purple-700">${ass.due_date || 'Bebas'}</span> • Bobot: ${ass.max_points} Poin</p>
+                                                        </div>
+                                                        ${isSubmitted ? (
+                                                            sub && sub.is_graded ? 
+                                                            `<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500 text-white shadow-xs">Nilai: ${sub.score}</span>` :
+                                                            `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700">Diserahkan</span>`
+                                                        ) : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">Belum Diserahkan</span>`}
+                                                    </div>
+
+                                                    ${ass.instructions ? `<p class="text-[11px] text-slate-600 bg-white/70 p-2 rounded-xl">${ass.instructions}</p>` : ''}
+
+                                                    ${isSubmitted && sub && sub.feedback ? `
+                                                        <div class="p-2 rounded-xl bg-emerald-50 border border-emerald-100 text-[11px] text-emerald-800">
+                                                            <strong>Catatan Guru:</strong> "${sub.feedback}"
+                                                        </div>
+                                                    ` : ''}
+
+                                                    <div class="pt-1 flex justify-end">
+                                                        <button type="button" onclick="openStudentSubmitModal(${ass.id}, '${encodeURIComponent(ass.title)}')"
+                                                            class="px-3 py-1.5 rounded-xl ${isSubmitted ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-purple-600 text-white hover:bg-purple-700'} text-[11px] font-bold flex items-center gap-1 shadow-xs transition-colors">
+                                                            <i class="ph-bold ${isSubmitted ? 'ph-arrows-clockwise' : 'ph-upload-simple'}"></i>
+                                                            <span>${isSubmitted ? 'Kirim Ulang' : 'Kumpulkan Tugas'}</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            `;
+                                        }).join('')}
+                                    </div>
+                                ` : ''}
+
+                                <!-- Quizzes CBT -->
+                                ${m.quizzes && m.quizzes.length > 0 ? `
+                                    <div class="space-y-2 pt-2 border-t border-slate-50">
+                                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Kuis CBT Online</span>
+                                        ${m.quizzes.map(q => {
+                                            const isDone = q.attempted;
+                                            const att = q.my_attempt;
+                                            return `
+                                                <div class="p-3 rounded-2xl bg-amber-50/40 border border-amber-100/70 space-y-2">
+                                                    <div class="flex items-start justify-between gap-2">
+                                                        <div>
+                                                            <div class="flex items-center gap-1.5">
+                                                                <i class="ph-fill ph-exam text-amber-600 text-sm"></i>
+                                                                <h5 class="text-xs font-bold text-slate-900">${q.title}</h5>
+                                                            </div>
+                                                            <p class="text-[10px] text-slate-500 mt-0.5">Waktu: <span class="font-mono text-amber-700">${q.time_limit_minutes} Menit</span> • KKM: ${q.passing_score} • ${q.total_questions} Butir Soal</p>
+                                                        </div>
+                                                        ${isDone ? (
+                                                            att.is_passed ?
+                                                            `<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500 text-white shadow-xs">Lulus: ${att.score}</span>` :
+                                                            `<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white shadow-xs">Remedial: ${att.score}</span>`
+                                                        ) : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">Tersedia</span>`}
+                                                    </div>
+
+                                                    ${q.description ? `<p class="text-[11px] text-slate-600 bg-white/70 p-2 rounded-xl">${q.description}</p>` : ''}
+
+                                                    ${isDone ? `
+                                                        <div class="p-2 rounded-xl bg-white border border-slate-100 text-[11px] text-slate-600 flex items-center justify-between">
+                                                            <span>Jawaban benar: <strong>${att.total_correct}</strong> dari ${q.total_questions} soal</span>
+                                                            <span class="text-[10px] text-slate-400 font-mono">${att.completed_at || ''}</span>
+                                                        </div>
+                                                    ` : `
+                                                        <div class="pt-1 flex justify-end">
+                                                            <button type="button" onclick="openStudentQuizRunner(${q.id}, '${encodeURIComponent(q.title)}', ${q.time_limit_minutes})"
+                                                                class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-[11px] flex items-center gap-1.5 shadow-xs hover:opacity-90 active:scale-95 transition-all">
+                                                                <i class="ph-bold ph-play"></i>
+                                                                <span>Mulai Kerjakan Kuis</span>
+                                                            </button>
+                                                        </div>
+                                                    `}
+                                                </div>
+                                            `;
+                                        }).join('')}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    }).join('');
+                } catch (e) {
+                    meetingsList.innerHTML = `<div class="text-center py-6 text-xs text-rose-500 font-semibold">Gagal memuat detail pertemuan.</div>`;
+                }
+            }
+
+            function getAttBadgeHTML(status) {
+                if (status === 'H') return `<span class="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-100 text-emerald-700">Hadir</span>`;
+                if (status === 'S') return `<span class="px-2 py-0.5 rounded-full text-[9px] font-black bg-amber-100 text-amber-700">Sakit</span>`;
+                if (status === 'I') return `<span class="px-2 py-0.5 rounded-full text-[9px] font-black bg-blue-100 text-blue-700">Izin</span>`;
+                if (status === 'A') return `<span class="px-2 py-0.5 rounded-full text-[9px] font-black bg-rose-100 text-rose-700">Alpa</span>`;
+                return `<span class="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-slate-100 text-slate-500">Belum Diabsen</span>`;
+            }
+
+            function backToCourseList() {
+                document.getElementById('lmsCourseDetailSection').classList.add('hidden');
+                document.getElementById('lmsCourseListSection').classList.remove('hidden');
+                currentOpenAssignmentId = null;
+            }
+
+            // Student Assignment Submit Modal
+            function openStudentSubmitModal(assId, titleEncoded) {
+                document.getElementById('submitAssignmentId').value = assId;
+                document.getElementById('submitAssTitle').textContent = decodeURIComponent(titleEncoded);
+                document.getElementById('studentSubmitModal').classList.remove('hidden');
+                toggleStudentSubmitInput();
+            }
+
+            function closeStudentSubmitModal() {
+                document.getElementById('studentSubmitModal').classList.add('hidden');
+                document.getElementById('studentSubmitForm').reset();
+            }
+
+            function toggleStudentSubmitInput() {
+                const type = document.getElementById('submitType').value;
+                document.getElementById('studentFileInput').classList.toggle('hidden', type !== 'file');
+                document.getElementById('studentLinkInput').classList.toggle('hidden', type !== 'link');
+                document.getElementById('studentTextInput').classList.toggle('hidden', type !== 'text');
+            }
+
+            async function handleStudentSubmit(e) {
+                e.preventDefault();
+                const btn = document.getElementById('btnSubmitAss');
+                const orig = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = `<span class="animate-spin inline-block w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full mr-1"></span> Mengirim...`;
+
+                const form = document.getElementById('studentSubmitForm');
+                const fd = new FormData(form);
+
+                try {
+                    const res = await fetch('/api/student/assignments/submit', {
+                        method: 'POST',
+                        body: fd
+                    });
+                    const d = await res.json();
+                    if (res.ok) {
+                        alert(d.message || 'Tugas berhasil dikirim!');
+                        closeStudentSubmitModal();
+                        if (currentOpenAssignmentId) openCourseDetail(currentOpenAssignmentId);
+                    } else {
+                        alert(d.message || 'Gagal mengirim tugas');
+                    }
+                } catch (err) {
+                    alert('Terjadi kesalahan jaringan');
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = orig;
+                }
+            }
+
+            // --- CBT QUIZ RUNNER SYSTEM ---
+            let activeQuizRunner = {
+                quizId: null,
+                timerInterval: null,
+                remainingSeconds: 0,
+                questions: [],
+                answers: {} // { questionId: optionId }
+            };
+
+            async function openStudentQuizRunner(quizId, titleEncoded, timeLimitMinutes) {
+                const title = decodeURIComponent(titleEncoded);
+                document.getElementById('sqModalTitle').textContent = title;
+                document.getElementById('studentQuizModal').classList.remove('hidden');
+                const cont = document.getElementById('sqQuestionsContainer');
+                cont.innerHTML = `<p class="text-xs text-slate-400 text-center py-8">Memuat naskah soal kuis...</p>`;
+
+                try {
+                    const res = await fetch(`/api/student/quizzes/${quizId}`);
+                    if (!res.ok) throw new Error('Gagal memuat kuis');
+                    const data = await res.json();
+
+                    if (data.already_attempted) {
+                        alert(`Anda sudah mengerjakan kuis ini dengan nilai: ${data.my_attempt.score}`);
+                        closeStudentQuizRunner();
+                        return;
+                    }
+
+                    if (!data.questions || data.questions.length === 0) {
+                        cont.innerHTML = `<p class="text-xs text-slate-500 text-center py-8">Kuis ini belum memiliki soal aktif.</p>`;
+                        return;
+                    }
+
+                    activeQuizRunner.quizId = quizId;
+                    activeQuizRunner.questions = data.questions;
+                    activeQuizRunner.answers = {};
+                    activeQuizRunner.remainingSeconds = (data.time_limit_minutes || timeLimitMinutes || 30) * 60;
+
+                    document.getElementById('sqTotalCount').textContent = data.questions.length;
+                    document.getElementById('sqAnsweredCount').textContent = "0";
+
+                    renderStudentQuizQuestions();
+                    startQuizTimer();
+                } catch (err) {
+                    cont.innerHTML = `<p class="text-xs text-rose-500 text-center py-8">Gagal memuat naskah kuis CBT.</p>`;
+                }
+            }
+
+            function renderStudentQuizQuestions() {
+                const cont = document.getElementById('sqQuestionsContainer');
+                const optLabels = ['A', 'B', 'C', 'D', 'E'];
+
+                cont.innerHTML = activeQuizRunner.questions.map((q, idx) => `
+                    <div class="p-4 bg-white rounded-2xl border border-slate-100 shadow-xs space-y-3">
+                        <div class="flex items-start gap-2">
+                            <span class="w-5 h-5 rounded-full bg-purple-100 text-purple-700 text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">${idx + 1}</span>
+                            <div class="text-xs font-bold text-slate-900 leading-snug">${q.question_text}</div>
+                        </div>
+
+                        <div class="space-y-1.5 pl-7">
+                            ${(q.options || []).map((opt, oIdx) => `
+                                <label class="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200/80 hover:bg-purple-50/50 hover:border-purple-300 transition-all cursor-pointer has-[:checked]:bg-purple-50 has-[:checked]:border-purple-600 has-[:checked]:text-purple-900">
+                                    <input type="radio" name="question_${q.id}" value="${opt.id}"
+                                        onchange="selectStudentQuizAnswer(${q.id}, ${opt.id})"
+                                        class="text-purple-600 focus:ring-purple-500 w-3.5 h-3.5">
+                                    <span class="w-4 h-4 rounded text-[10px] font-bold flex items-center justify-center bg-slate-100 text-slate-600">${optLabels[oIdx] || oIdx + 1}</span>
+                                    <span class="text-xs text-slate-700 font-medium">${opt.option_text}</span>
+                                </label>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            function selectStudentQuizAnswer(questionId, optionId) {
+                activeQuizRunner.answers[questionId] = optionId;
+                const count = Object.keys(activeQuizRunner.answers).length;
+                document.getElementById('sqAnsweredCount').textContent = count;
+            }
+
+            function startQuizTimer() {
+                clearInterval(activeQuizRunner.timerInterval);
+                updateTimerDisplay();
+
+                activeQuizRunner.timerInterval = setInterval(() => {
+                    activeQuizRunner.remainingSeconds--;
+                    updateTimerDisplay();
+
+                    if (activeQuizRunner.remainingSeconds <= 0) {
+                        clearInterval(activeQuizRunner.timerInterval);
+                        alert('Waktu pengerjaan kuis telah habis! Jawaban Anda akan otomatis dikirim.');
+                        submitStudentQuizAnswers(true);
+                    }
+                }, 1000);
+            }
+
+            function updateTimerDisplay() {
+                const s = Math.max(0, activeQuizRunner.remainingSeconds);
+                const m = Math.floor(s / 60);
+                const remS = s % 60;
+                document.getElementById('sqTimerText').textContent = 
+                    `${String(m).padStart(2, '0')}:${String(remS).padStart(2, '0')}`;
+            }
+
+            function confirmExitStudentQuiz() {
+                if (confirm('Apakah Anda yakin ingin keluar? Jawaban yang belum dikirim tidak akan tersimpan!')) {
+                    closeStudentQuizRunner();
+                }
+            }
+
+            function closeStudentQuizRunner() {
+                clearInterval(activeQuizRunner.timerInterval);
+                document.getElementById('studentQuizModal').classList.add('hidden');
+                activeQuizRunner.quizId = null;
+                activeQuizRunner.answers = {};
+                activeQuizRunner.questions = [];
+            }
+
+            async function submitStudentQuizAnswers(isForced = false) {
+                const totalQ = activeQuizRunner.questions.length;
+                const answeredCount = Object.keys(activeQuizRunner.answers).length;
+
+                if (!isForced && answeredCount < totalQ) {
+                    if (!confirm(`Anda baru menjawab ${answeredCount} dari ${totalQ} soal. Yakin ingin mengirim sekarang?`)) {
+                        return;
+                    }
+                }
+
+                const btn = document.getElementById('sqSubmitBtn');
+                const orig = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = `<span class="animate-spin inline-block w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full mr-1"></span> Mengirim...`;
+
+                const payload = {
+                    quiz_id: activeQuizRunner.quizId,
+                    answers: Object.entries(activeQuizRunner.answers).map(([qId, oId]) => ({
+                        question_id: parseInt(qId),
+                        option_id: parseInt(oId)
+                    }))
+                };
+
+                try {
+                    const res = await fetch('/api/student/quizzes/submit', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+                    const d = await res.json();
+                    if (res.ok) {
+                        clearInterval(activeQuizRunner.timerInterval);
+                        alert(`Hasil Kuis CBT:\nNilai: ${d.score} (${d.is_passed ? 'LULUS' : 'REMEDIAL'})\nBenar: ${d.total_correct} dari ${totalQ} soal.`);
+                        closeStudentQuizRunner();
+                        if (currentOpenAssignmentId) openCourseDetail(currentOpenAssignmentId);
+                    } else {
+                        alert(d.message || 'Gagal mengirim jawaban kuis');
+                    }
+                } catch (err) {
+                    alert('Terjadi kesalahan jaringan');
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = orig;
+                }
             }
         </script>
     </body>

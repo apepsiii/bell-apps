@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGradBiz" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#451a03" />
+      <stop offset="50%" stop-color="#78350f" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+    <radialGradient id="bizGlow" cx="75%" cy="30%" r="50%">
+      <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#451a03" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <rect width="800" height="400" fill="url(#bgGradBiz)" />
+  <circle cx="620" cy="120" r="260" fill="url(#bizGlow)" />
+
+  <g transform="translate(520, 140)" fill="none" opacity="0.85">
+    <rect x="0" y="110" width="35" height="70" rx="6" fill="#f59e0b" fill-opacity="0.5" stroke="#fbbf24" stroke-width="2" />
+    <rect x="45" y="80" width="35" height="100" rx="6" fill="#f59e0b" fill-opacity="0.6" stroke="#fbbf24" stroke-width="2" />
+    <rect x="90" y="50" width="35" height="130" rx="6" fill="#f59e0b" fill-opacity="0.75" stroke="#fbbf24" stroke-width="2" />
+    <rect x="135" y="10" width="35" height="170" rx="6" fill="#fde68a" fill-opacity="0.9" stroke="#fff" stroke-width="2" />
+
+    <path d="M 10 100 L 55 75 L 100 45 L 155 10" stroke="#fef08a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
+    <polygon points="155,0 170,12 150,22" fill="#fef08a" />
+  </g>
+
+  <g fill="#fef3c7" opacity="0.3" font-family="sans-serif" font-weight="bold">
+    <text x="60" y="90" font-size="34">Manajemen &amp; Bisnis</text>
+    <text x="100" y="150" font-size="28">MPLB • Administrasi</text>
+    <text x="60" y="320" font-size="38">Finance &amp; Strategy</text>
+    <text x="320" y="330" font-size="26">KPI • ROI • Marketing</text>
+  </g>
+</svg>

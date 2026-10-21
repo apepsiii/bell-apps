@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ruang Kelas KBM — SMK NIBA Super Apps</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        zinc: {
+                            50: '#fafafa',
+                            100: '#f4f4f5',
+                            200: '#e4e4e7',
+                            300: '#d4d4d8',
+                            400: '#a1a1aa',
+                            500: '#71717a',
+                            600: '#52525b',
+                            700: '#3f3f46',
+                            800: '#27272a',
+                            900: '#18181b',
+                            950: '#09090b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Global CSRF Helper & Fetch Interceptor -->
+    <script>
+        (function () {
+            window.getCsrfToken = function () {
+                const prefix = 'csrf_token=';
+                const cookies = document.cookie ? document.cookie.split(';') : [];
+                for (let i = 0; i < cookies.length; i++) {
+                    const c = cookies[i].trim();
+                    if (c.startsWith(prefix)) {
+                        return decodeURIComponent(c.substring(prefix.length));
+                    }
+                }
+                return '';
+            };
+
+            const origFetch = window.fetch;
+            window.fetch = function (url, options) {
+                options = options || {};
+                const method = (options.method || 'GET').toUpperCase();
+                if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+                    const csrfToken = window.getCsrfToken();
+                    if (csrfToken) {
+                        options.headers = options.headers || {};
+                        if (options.headers instanceof Headers) {
+                            if (!options.headers.has('X-CSRF-Token')) {
+                                options.headers.set('X-CSRF-Token', csrfToken);
+                            }
+                        } else if (Array.isArray(options.headers)) {
+                            options.headers.push(['X-CSRF-Token', csrfToken]);
+                        } else {
+                            options.headers['X-CSRF-Token'] = csrfToken;
+                        }
+                    }
+                }
+                return origFetch(url, options);
+            };
+        })();
+    </script>
+</head>
+<body class="bg-[#fafafa] dark:bg-[#09090b] text-zinc-900 dark:text-zinc-100 min-h-screen flex flex-col font-sans">
+    <!-- Top Navigation -->
+    <header class="sticky top-0 z-30 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-zinc-200/80 dark:border-zinc-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <a href="/guru/dashboard" class="p-2 -ml-2 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
+                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                </a>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 id="classNameTitle" class="text-sm font-bold tracking-tight">Memuat Kelas...</h1>
+                        <span id="subjectCodeBadge" class="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300"></span>
+                    </div>
+                    <p id="subjectNameTitle" class="text-xs text-zinc-500 dark:text-zinc-400">...</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="openNewMeetingModal()"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 text-xs font-semibold shadow-xs transition-all">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                    <span>Pertemuan Baru</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        <!-- Class Hero Banner -->
+        <div class="relative rounded-2xl overflow-hidden bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-xs h-36 sm:h-44 flex items-end">
+            <img id="classBannerImg" src="/assets/banners/general.svg" alt="Banner Kelas" class="absolute inset-0 w-full h-full object-cover opacity-60">
+            <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-transparent"></div>
+            <div class="relative z-10 p-5 sm:p-6 w-full flex flex-col sm:flex-row sm:items-end justify-between gap-3 text-white">
+                <div class="space-y-1">
+                    <div class="flex items-center gap-2">
+                        <span id="heroClassName" class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-white/95 text-zinc-900 shadow-xs">Kelas</span>
+                        <span id="heroSubjectCode" class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-mono font-semibold bg-black/40 text-white backdrop-blur-xs border border-white/20"></span>
+                    </div>
+                    <h2 id="heroSubjectName" class="text-xl sm:text-2xl font-black tracking-tight drop-shadow-xs"></h2>
+                    <p id="heroSubInfo" class="text-xs text-zinc-300 drop-shadow-xs"></p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="openNewMeetingModal()"
+                        class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-zinc-100 text-zinc-900 text-xs font-bold shadow-sm transition-all">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        <span>Pertemuan Baru</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Meeting List Section -->
+        <div class="space-y-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-base font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                        <i data-lucide="layers" class="w-4 h-4 text-zinc-500"></i>
+                        <span>Sesi KBM, Materi & Penugasan</span>
+                    </h3>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400">Kelola modul belajar, berkas materi ajar, presensi PJJ, dan penilaian tugas</p>
+                </div>
+            </div>
+
+            <!-- Meetings Container -->
+            <div id="meetingsContainer" class="space-y-4">
+                <div class="p-8 text-center bg-white dark:bg-zinc-900/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800 animate-pulse">
+                    <p class="text-xs text-zinc-400">Memuat data pembelajaran...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Tambah Pertemuan Baru -->
+    <div id="newMeetingModal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl w-full max-w-md p-6 shadow-xl space-y-4">
+            <div class="flex items-center justify-between">
+                <h4 class="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                    <i data-lucide="calendar-plus" class="w-4 h-4 text-zinc-500"></i>
+                    <span>Buat Sesi Pertemuan KBM</span>
+                </h4>
+                <button type="button" onclick="closeNewMeetingModal()" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <form id="newMeetingForm" onsubmit="handleCreateMeeting(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Pertemuan Ke-</label>
+                    <input type="number" id="meetingOrder" name="meeting_order" min="1" placeholder="Otomatis"
+                        class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Judul Topik / Bab *</label>
+                    <input type="text" id="meetingTitle" name="title" required placeholder="Contoh: Pengenalan Sintaks Dasar CSS"
+                        class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Tanggal Pelaksanaan *</label>
+                    <input type="date" id="meetingDate" name="meeting_date" required
+                        class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Pengantar / Petunjuk Belajar</label>
+                    <textarea id="meetingDescription" name="description" rows="3" placeholder="Tulis instruksi atau pengantar belajar bagi siswa..."
+                        class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20"></textarea>
+                </div>
+                <div class="pt-2 flex justify-end gap-2">
+                    <button type="button" onclick="closeNewMeetingModal()" class="px-3 py-2 text-xs font-medium rounded-lg text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                        Batal
+                    </button>
+                    <button type="submit" class="px-3.5 py-2 text-xs font-semibold rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:opacity-90">
+                        Simpan Pertemuan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Tambah Materi Ajar -->
+    <div id="newMaterialModal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl w-full max-w-md p-6 shadow-xl space-y-4">
+            <div class="flex items-center justify-between">
+                <h4 class="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                    <i data-lucide="file-plus" class="w-4 h-4 text-purple-600 dark:text-purple-400"></i>
+                    <span>Tambah Materi Pembelajaran</span>
+                </h4>
+                <button type="button" onclick="closeNewMaterialModal()" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <form id="newMaterialForm" onsubmit="handleCreateMaterial(event)" class="space-y-3">
+                <input type="hidden" id="matMeetingId" name="meeting_id">
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Judul Materi *</label>
+                    <input type="text" id="matTitle" name="title" required placeholder="Contoh: Modul Ajar PDF / Slide PPT"
+                        class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Tipe Materi *</label>
+                    <select id="matType" name="type" onchange="toggleMaterialInput()"
+                        class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20">
+                        <option value="document">Unggah Dokumen (PDF, PPT, Word ke Cloudflare R2)</option>
+                        <option value="video">Tautan Video (YouTube / Google Drive)</option>
+                        <option value="link">Tautan Eksternal / Referensi Web</option>
+                        <option value="text">Catatan Rangkuman Teks</option>
+                    </select>
+                </div>
+                <!-- Document Input -->
+                <div id="matDocInput" class="space-y-1">
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Pilih Berkas *</label>
+                    <input type="file" id="matFile" name="file"
+                        class="w-full text-xs text-zinc-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-zinc-100 dark:file:bg-zinc-800 file:text-zinc-800 dark:file:text-zinc-200 hover:file:bg-zinc-200">
+                    <p class="text-[10px] text-zinc-400">Berkas otomatis diunggah ke bucket penyimpanan Cloudflare R2.</p>
+                </div>
+                <!-- URL Input -->
+                <div id="matURLInput" class="hidden space-y-1">
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">URL / Link *</label>
+                    <input type="url" id="matContentURL" name="content_url" placeholder="https://..."
+                        class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20">
+                </div>
+                <!-- Text Input -->
+                <div id="matTextInput" class="hidden space-y-1">
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Isi Materi Teks *</label>
+                    <textarea id="matTextContent" name="text_content" rows="4" placeholder="Tulis catatan atau poin-poin materi..."
+                        class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20"></textarea>
+                </div>
+                <div class="pt-2 flex justify-end gap-2">
+                    <button type="button" onclick="closeNewMaterialModal()" class="px-3 py-2 text-xs font-medium rounded-lg text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                        Batal
+                    </button>
+                    <button type="submit" id="saveMatBtn" class="px-3.5 py-2 text-xs font-semibold rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:opacity-90">
+                        Unggah Materi
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Tambah Tugas Baru -->
+    <div id="newAssignmentModal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl w-full max-w-md p-6 shadow-xl space-y-4">
+            <div class="flex items-center justify-between">
+                <h4 class="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                    <i data-lucide="clipboard-list" class="w-4 h-4 text-blue-600 dark:text-blue-400"></i>
+                    <span>Buat Penugasan Siswa</span>
+                </h4>
+                <button type="button" onclick="closeNewAssignmentModal()" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <form id="newAssignmentForm" onsubmit="handleCreateAssignment(event)" class="space-y-3">
+                <input type="hidden" id="assMeetingId" name="meeting_id">
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Judul Tugas / Proyek *</label>
+                    <input type="text" id="assTitle" name="title" required placeholder="Contoh: Praktik Layouting CSS Flexbox"
+                        class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Tipe Pengumpulan</label>
+                    <select id="assAllowedType" name="allowed_type"
+                        class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20">
+                        <option value="any">Bebas (Berkas / Link GitHub / Teks)</option>
+                        <option value="file">Unggah Berkas Dokumen / Foto Praktik</option>
+                        <option value="link">Tautan Repositori GitHub / Figma / Drive</option>
+                        <option value="text">Jawaban Teks / Esai</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Batas Waktu (Deadline)</label>
+                        <input type="datetime-local" id="assDueDate" name="due_date"
+                            class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Bobot Maksimal</label>
+                        <input type="number" id="assMaxPoints" name="max_points" value="100" min="10" max="100"
+                            class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Petunjuk Pengerjaan</label>
+                    <textarea id="assInstructions" name="instructions" rows="3" placeholder="Tulis kriteria penilaian atau instruksi teknis..."
+                        class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20"></textarea>
+                </div>
+                <div class="pt-2 flex justify-end gap-2">
+                    <button type="button" onclick="closeNewAssignmentModal()" class="px-3 py-2 text-xs font-medium rounded-lg text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                        Batal
+                    </button>
+                    <button type="submit" class="px-3.5 py-2 text-xs font-semibold rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:opacity-90">
+                        Terbitkan Tugas
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Evaluasi & Penilaian Tugas Siswa -->
+    <div id="submissionsModal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="p-5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+                <div>
+                    <h4 class="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600 dark:text-emerald-400"></i>
+                        <span>Evaluasi & Koreksi Tugas Siswa</span>
+                    </h4>
+                    <p id="subAssignmentTitle" class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">...</p>
+                </div>
+                <button type="button" onclick="closeSubmissionsModal()" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <!-- Submissions list -->
+            <div id="submissionsList" class="flex-1 overflow-y-auto p-5 divide-y divide-zinc-100 dark:divide-zinc-800/80 space-y-3">
+                <p class="text-xs text-zinc-400 text-center py-6">Memuat pengumpulan tugas...</p>
+            </div>
+            <div class="p-4 bg-zinc-50 dark:bg-zinc-950/60 border-t border-zinc-200 dark:border-zinc-800 flex justify-end">
+                <button type="button" onclick="closeSubmissionsModal()" class="px-4 py-1.5 text-xs font-semibold rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900">
+                    Selesai
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Buat Kuis CBT Baru -->
+    <div id="newQuizModal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl w-full max-w-md p-6 shadow-xl space-y-4">
+            <div class="flex items-center justify-between">
+                <h4 class="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                    <i data-lucide="help-circle" class="w-4 h-4 text-amber-500"></i>
+                    <span>Buat Kuis CBT Baru</span>
+                </h4>
+                <button type="button" onclick="closeNewQuizModal()" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <form id="newQuizForm" onsubmit="handleCreateQuiz(event)" class="space-y-3">
+                <input type="hidden" id="quizMeetingId" name="meeting_id">
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Judul Kuis / Tes CBT *</label>
+                    <input type="text" id="quizTitle" name="title" required placeholder="Contoh: Kuis Evaluasi Bab 1"
+                        class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Batas Waktu (Menit)</label>
+                        <input type="number" id="quizTimeLimit" name="time_limit_minutes" value="30" min="5" max="180"
+                            class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">KKM / Nilai Lulus</label>
+                        <input type="number" id="quizPassingScore" name="passing_score" value="75" min="10" max="100"
+                            class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Petunjuk / Deskripsi</label>
+                    <textarea id="quizDescription" name="description" rows="3" placeholder="Tulis instruksi atau petunjuk pengerjaan..."
+                        class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20"></textarea>
+                </div>
+                <div class="pt-2 flex justify-end gap-2">
+                    <button type="button" onclick="closeNewQuizModal()" class="px-3 py-2 text-xs font-medium rounded-lg text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                        Batal
+                    </button>
+                    <button type="submit" class="px-3.5 py-2 text-xs font-semibold rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:opacity-90">
+                        Buat Kuis
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Kelola Soal Kuis CBT -->
+    <div id="quizQuestionsModal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="p-5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+                <div>
+                    <h4 class="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                        <i data-lucide="list-checks" class="w-4 h-4 text-amber-500"></i>
+                        <span>Kelola Butir Soal CBT</span>
+                    </h4>
+                    <p id="qqQuizTitle" class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">...</p>
+                </div>
+                <button type="button" onclick="closeQuizQuestionsModal()" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-5 space-y-6">
+                <!-- Form Tambah Soal -->
+                <div class="p-4 bg-zinc-50 dark:bg-zinc-950/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800 space-y-3">
+                    <h5 class="text-xs font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                        <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-zinc-500"></i>
+                        <span>Tambah Butir Soal Pilihan Ganda</span>
+                    </h5>
+                    <form id="addQuestionForm" onsubmit="handleAddQuestion(event)" class="space-y-3">
+                        <div>
+                            <label class="block text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Pertanyaan / Soal *</label>
+                            <textarea id="qText" required rows="2" placeholder="Tuliskan butir soal di sini..."
+                                class="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20"></textarea>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            <div>
+                                <label class="block text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Pilihan A *</label>
+                                <input type="text" id="qOptA" required placeholder="Teks pilihan A"
+                                    class="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Pilihan B *</label>
+                                <input type="text" id="qOptB" required placeholder="Teks pilihan B"
+                                    class="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Pilihan C *</label>
+                                <input type="text" id="qOptC" required placeholder="Teks pilihan C"
+                                    class="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Pilihan D *</label>
+                                <input type="text" id="qOptD" required placeholder="Teks pilihan D"
+                                    class="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3 pt-1">
+                            <div>
+                                <label class="block text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Kunci Jawaban Benar *</label>
+                                <select id="qCorrectIdx"
+                                    class="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 font-bold focus:outline-none focus:ring-2 focus:ring-zinc-950/20">
+                                    <option value="0">Pilihan A</option>
+                                    <option value="1">Pilihan B</option>
+                                    <option value="2">Pilihan C</option>
+                                    <option value="3">Pilihan D</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Bobot Poin</label>
+                                <input type="number" id="qPoints" value="10" min="1" max="100"
+                                    class="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20">
+                            </div>
+                        </div>
+                        <div class="pt-1 flex justify-end">
+                            <button type="submit" id="addQuestionBtn"
+                                class="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:opacity-90 shadow-2xs">
+                                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                                <span>Simpan Butir Soal</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Daftar Soal Terdaftar -->
+                <div class="space-y-3">
+                    <h5 class="text-xs font-bold text-zinc-900 dark:text-zinc-100 flex items-center justify-between">
+                        <span class="flex items-center gap-1.5">
+                            <i data-lucide="list" class="w-3.5 h-3.5 text-zinc-500"></i>
+                            <span>Daftar Soal Tersimpan</span>
+                        </span>
+                        <span id="qqCountBadge" class="text-[11px] font-mono text-zinc-400">0 Soal</span>
+                    </h5>
+                    <div id="quizQuestionsList" class="space-y-3">
+                        <p class="text-xs text-zinc-400 text-center py-4">Memuat butir soal...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 bg-zinc-50 dark:bg-zinc-950/60 border-t border-zinc-200 dark:border-zinc-800 flex justify-end">
+                <button type="button" onclick="closeQuizQuestionsModal()" class="px-4 py-1.5 text-xs font-semibold rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900">
+                    Selesai
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Hasil Pengerjaan Siswa (CBT Attempts) -->
+    <div id="quizAttemptsModal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="p-5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+                <div>
+                    <h4 class="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                        <i data-lucide="bar-chart-2" class="w-4 h-4 text-indigo-500"></i>
+                        <span>Hasil Pengerjaan Kuis CBT Siswa</span>
+                    </h4>
+                    <p id="qaQuizTitle" class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">...</p>
+                </div>
+                <button type="button" onclick="closeQuizAttemptsModal()" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <div id="quizAttemptsList" class="flex-1 overflow-y-auto p-5 divide-y divide-zinc-100 dark:divide-zinc-800/80 space-y-2">
+                <p class="text-xs text-zinc-400 text-center py-6">Memuat hasil kuis...</p>
+            </div>
+
+            <div class="p-4 bg-zinc-50 dark:bg-zinc-950/60 border-t border-zinc-200 dark:border-zinc-800 flex justify-end">
+                <button type="button" onclick="closeQuizAttemptsModal()" class="px-4 py-1.5 text-xs font-semibold rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Presensi KBM PJJ -->
+    <div id="attendanceModal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <!-- Modal Header -->
+            <div class="p-5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+                <div>
+                    <h4 class="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                        <i data-lucide="user-check" class="w-4 h-4 text-emerald-600 dark:text-emerald-400"></i>
+                        <span>Presensi KBM Siswa (PJJ Online)</span>
+                    </h4>
+                    <p id="attMeetingSubtitle" class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">...</p>
+                </div>
+                <button type="button" onclick="closeAttendanceModal()" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- Stats Bar & Quick Action -->
+            <div class="px-5 py-3 bg-zinc-50 dark:bg-zinc-950/60 border-b border-zinc-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3 text-xs">
+                    <span class="inline-flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        Hadir: <strong id="statHadir">0</strong>
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 font-medium text-amber-600 dark:text-amber-400">
+                        <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                        Sakit: <strong id="statSakit">0</strong>
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 font-medium text-blue-600 dark:text-blue-400">
+                        <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                        Izin: <strong id="statIzin">0</strong>
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 font-medium text-rose-600 dark:text-rose-400">
+                        <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                        Alpa: <strong id="statAlpa">0</strong>
+                    </span>
+                </div>
+                <button type="button" onclick="setAllPresent()"
+                    class="px-2.5 py-1 text-[11px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-md hover:bg-emerald-100 transition-colors flex items-center gap-1">
+                    <i data-lucide="check-check" class="w-3.5 h-3.5"></i>
+                    <span>Set Semua Hadir</span>
+                </button>
+            </div>
+
+            <!-- Students Attendance List -->
+            <div id="attendanceList" class="flex-1 overflow-y-auto p-5 divide-y divide-zinc-100 dark:divide-zinc-800/80 space-y-2"></div>
+
+            <!-- Modal Footer -->
+            <div class="p-4 bg-zinc-50 dark:bg-zinc-950/60 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+                <span class="text-xs text-zinc-500 dark:text-zinc-400" id="attStudentCount">0 Siswa</span>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="closeAttendanceModal()" class="px-3.5 py-1.5 text-xs font-medium rounded-lg text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                        Tutup
+                    </button>
+                    <button type="button" id="saveAttBtn" onclick="saveAttendance()"
+                        class="px-4 py-1.5 text-xs font-semibold rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:opacity-90 flex items-center gap-1.5">
+                        <i data-lucide="save" class="w-3.5 h-3.5"></i>
+                        <span>Simpan Presensi</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const pathParts = window.location.pathname.split('/').filter(Boolean);
+        const assignmentID = pathParts[pathParts.length - 1];
+
+        let activeMeetingID = null;
+        let currentStudentsData = [];
+
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        }
+
+        async function initClassData() {
+            try {
+                const res = await fetch('/api/guru/profile');
+                if (res.status === 401) {
+                    window.location.href = '/guru/login';
+                    return;
+                }
+                const profile = await res.json();
+                const currentAssignment = (profile.assignments || []).find(a => a.id == assignmentID);
+
+                if (!currentAssignment) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Akses Ditolak',
+                        text: 'Anda tidak memiliki penugasan untuk kelas ini atau kelas tidak ditemukan.',
+                        confirmButtonColor: '#18181b'
+                    }).then(() => {
+                        window.location.href = '/guru/dashboard';
+                    });
+                    return;
+                }
+
+                document.getElementById('classNameTitle').textContent = `Kelas ${currentAssignment.class_name}`;
+                document.getElementById('subjectCodeBadge').textContent = currentAssignment.subject_code;
+                document.getElementById('subjectNameTitle').textContent = `${currentAssignment.subject_name} • Tahun ${currentAssignment.academic_year}`;
+
+                const bannerEl = document.getElementById('classBannerImg');
+                if (bannerEl) bannerEl.src = currentAssignment.banner_url || '/assets/banners/general.svg';
+                const heroClass = document.getElementById('heroClassName');
+                if (heroClass) heroClass.textContent = `Kelas ${currentAssignment.class_name}`;
+                const heroSubCode = document.getElementById('heroSubjectCode');
+                if (heroSubCode) heroSubCode.textContent = currentAssignment.subject_code;
+                const heroSubName = document.getElementById('heroSubjectName');
+                if (heroSubName) heroSubName.textContent = currentAssignment.subject_name;
+                const heroSubInfo = document.getElementById('heroSubInfo');
+                if (heroSubInfo) heroSubInfo.textContent = `Tahun ${currentAssignment.academic_year} • Semester ${currentAssignment.semester}`;
+
+                loadMeetings();
+            } catch (err) {
+                console.error('initClassData error:', err);
+            }
+        }
+
+        async function loadMeetings() {
+            const container = document.getElementById('meetingsContainer');
+            try {
+                const res = await fetch(`/api/guru/meetings/${assignmentID}`);
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.message || `Gagal memuat sesi pertemuan (Status: ${res.status})`);
+                }
+                const meetings = await res.json();
+
+                if (!Array.isArray(meetings) || meetings.length === 0) {
+                    container.innerHTML = `
+                        <div class="p-10 text-center bg-white dark:bg-zinc-900/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800">
+                            <i data-lucide="calendar-x" class="w-10 h-10 text-zinc-400 mx-auto mb-3"></i>
+                            <h4 class="text-sm font-bold text-zinc-900 dark:text-zinc-100">Belum Ada Sesi Pertemuan</h4>
+                            <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Klik tombol "Pertemuan Baru" di atas untuk membuat sesi pembelajaran pertama.</p>
+                        </div>
+                    `;
+                    lucide.createIcons();
+                    return;
+                }
+
+                container.innerHTML = meetings.map(m => `
+                    <div class="bg-white dark:bg-zinc-900/70 rounded-xl border border-zinc-200/80 dark:border-zinc-800 p-5 shadow-2xs space-y-4">
+                        <!-- Meeting Header -->
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-zinc-100 dark:border-zinc-800/80 pb-4">
+                            <div class="space-y-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900">
+                                        Pertemuan ${m.meeting_order}
+                                    </span>
+                                    <span class="text-xs text-zinc-400 flex items-center gap-1 font-mono">
+                                        <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                                        ${m.meeting_date}
+                                    </span>
+                                </div>
+                                <h4 class="text-base font-bold text-zinc-900 dark:text-zinc-100">${m.title}</h4>
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400">${m.description || 'Tidak ada catatan pengantar.'}</p>
+                            </div>
+
+                            <div class="flex flex-wrap items-center gap-2">
+                                <button type="button" onclick="openNewMaterialModal(${m.id})"
+                                    class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 text-xs font-semibold transition-colors">
+                                    <i data-lucide="file-plus" class="w-3.5 h-3.5"></i>
+                                    <span>+ Materi</span>
+                                </button>
+                                <button type="button" onclick="openNewAssignmentModal(${m.id})"
+                                    class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 text-xs font-semibold transition-colors">
+                                    <i data-lucide="clipboard-list" class="w-3.5 h-3.5"></i>
+                                    <span>+ Tugas</span>
+                                </button>
+                                <button type="button" onclick="openNewQuizModal(${m.id})"
+                                    class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 text-xs font-semibold transition-colors">
+                                    <i data-lucide="help-circle" class="w-3.5 h-3.5"></i>
+                                    <span>+ Kuis CBT</span>
+                                </button>
+                                <button type="button" onclick="openAttendanceModal(${m.id}, '${encodeURIComponent(m.title)}')"
+                                    class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 text-xs font-semibold transition-colors">
+                                    <i data-lucide="user-check" class="w-3.5 h-3.5"></i>
+                                    <span>Presensi (${m.stats?.attendances || 0})</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Nested Materials List -->
+                        <div class="space-y-2">
+                            <h5 class="text-xs font-bold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                                <i data-lucide="book" class="w-3.5 h-3.5 text-zinc-400"></i>
+                                <span>Bahan Ajar (${(m.materials || []).length})</span>
+                            </h5>
+                            ${(m.materials && m.materials.length > 0) ? `
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    ${m.materials.map(mat => `
+                                        <div class="p-3 bg-zinc-50 dark:bg-zinc-950/50 rounded-lg border border-zinc-200/60 dark:border-zinc-800 flex items-center justify-between gap-2">
+                                            <div class="flex items-center gap-2.5 truncate">
+                                                <i data-lucide="${mat.type === 'document' ? 'file-text' : (mat.type === 'video' ? 'video' : 'link')}" class="w-4 h-4 text-purple-500 shrink-0"></i>
+                                                <div class="truncate">
+                                                    <a href="${mat.content_url || '#'}" target="_blank" class="text-xs font-semibold text-zinc-900 dark:text-zinc-100 hover:underline truncate block">
+                                                        ${mat.title}
+                                                    </a>
+                                                    <span class="text-[10px] text-zinc-400 uppercase font-mono">${mat.type}</span>
+                                                </div>
+                                            </div>
+                                            <button type="button" onclick="deleteMaterial(${mat.id})" title="Hapus Materi"
+                                                class="text-zinc-400 hover:text-rose-500 p-1 rounded transition-colors">
+                                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                            </button>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : `<p class="text-xs text-zinc-400 italic">Belum ada bahan ajar pada pertemuan ini.</p>`}
+                        </div>
+
+                        <!-- Nested Assignments List -->
+                        <div class="space-y-2 pt-2 border-t border-zinc-100 dark:border-zinc-800/80">
+                            <h5 class="text-xs font-bold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                                <i data-lucide="check-square" class="w-3.5 h-3.5 text-zinc-400"></i>
+                                <span>Tugas Siswa (${(m.assignments || []).length})</span>
+                            </h5>
+                            ${(m.assignments && m.assignments.length > 0) ? `
+                                <div class="space-y-2">
+                                    ${m.assignments.map(ass => `
+                                        <div class="p-3 bg-zinc-50 dark:bg-zinc-950/50 rounded-lg border border-zinc-200/60 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                            <div class="space-y-0.5">
+                                                <div class="text-xs font-bold text-zinc-900 dark:text-zinc-100">${ass.title}</div>
+                                                <div class="text-[11px] text-zinc-500 dark:text-zinc-400">
+                                                    Deadline: <span class="font-mono">${ass.due_date || 'Tidak dibatasi'}</span> • Bobot: ${ass.max_points} Poin
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center gap-2 self-end sm:self-auto">
+                                                <button type="button" onclick="openSubmissionsModal(${ass.id}, '${encodeURIComponent(ass.title)}')"
+                                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:text-zinc-900 text-xs font-semibold shadow-xs transition-all">
+                                                    <i data-lucide="users" class="w-3.5 h-3.5"></i>
+                                                    <span>Koreksi (${ass.submissions} Siswa)</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : `<p class="text-xs text-zinc-400 italic">Belum ada penugasan pada pertemuan ini.</p>`}
+                        </div>
+
+                        <!-- Nested Quizzes CBT List -->
+                        <div class="space-y-2 pt-2 border-t border-zinc-100 dark:border-zinc-800/80">
+                            <h5 class="text-xs font-bold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                                <i data-lucide="award" class="w-3.5 h-3.5 text-zinc-400"></i>
+                                <span>Kuis CBT & Evaluasi (${(m.quizzes || []).length})</span>
+                            </h5>
+                            ${(m.quizzes && m.quizzes.length > 0) ? `
+                                <div class="space-y-2">
+                                    ${m.quizzes.map(q => `
+                                        <div class="p-3 bg-zinc-50 dark:bg-zinc-950/50 rounded-lg border border-zinc-200/60 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                            <div class="space-y-0.5">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-xs font-bold text-zinc-900 dark:text-zinc-100">${q.title}</span>
+                                                    <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 font-semibold">${q.total_questions} Soal</span>
+                                                </div>
+                                                <div class="text-[11px] text-zinc-500 dark:text-zinc-400">
+                                                    Durasi: <span class="font-mono">${q.time_limit_minutes} menit</span> • KKM: ${q.passing_score} • Dikerjakan: <span class="font-semibold text-zinc-700 dark:text-zinc-300">${q.attempts} siswa</span>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center gap-2 self-end sm:self-auto">
+                                                <button type="button" onclick="openQuizQuestionsModal(${q.id}, '${encodeURIComponent(q.title)}')"
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white hover:bg-zinc-100 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-semibold shadow-2xs transition-all">
+                                                    <i data-lucide="list-checks" class="w-3.5 h-3.5"></i>
+                                                    <span>Kelola Soal</span>
+                                                </button>
+                                                <button type="button" onclick="openQuizAttemptsModal(${q.id}, '${encodeURIComponent(q.title)}')"
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:text-zinc-900 text-xs font-semibold shadow-xs transition-all">
+                                                    <i data-lucide="bar-chart-2" class="w-3.5 h-3.5"></i>
+                                                    <span>Hasil Siswa</span>
+                                                </button>
+                                                <button type="button" onclick="deleteQuiz(${q.id})" title="Hapus Kuis"
+                                                    class="text-zinc-400 hover:text-rose-500 p-1.5 rounded transition-colors">
+                                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : `<p class="text-xs text-zinc-400 italic">Belum ada kuis CBT pada pertemuan ini.</p>`}
+                        </div>
+                    </div>
+                `).join('');
+
+                lucide.createIcons();
+            } catch (err) {
+                console.error('loadMeetings error:', err);
+                container.innerHTML = `
+                    <div class="p-6 text-center bg-rose-50/60 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900 rounded-xl space-y-2">
+                        <i data-lucide="alert-circle" class="w-6 h-6 text-rose-500 mx-auto"></i>
+                        <p class="text-xs font-semibold text-rose-600 dark:text-rose-400">${err.message || 'Gagal memuat sesi pertemuan.'}</p>
+                        <button type="button" onclick="loadMeetings()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-rose-100 hover:bg-rose-200 dark:bg-rose-900/50 dark:hover:bg-rose-900/80 text-rose-700 dark:text-rose-300 rounded-lg transition-colors">
+                            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Coba Lagi
+                        </button>
+                    </div>
+                `;
+                lucide.createIcons();
+            }
+        }
+
+        function openNewMeetingModal() {
+            document.getElementById('meetingDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('newMeetingModal').classList.remove('hidden');
+        }
+
+        function closeNewMeetingModal() {
+            document.getElementById('newMeetingModal').classList.add('hidden');
+            document.getElementById('newMeetingForm').reset();
+        }
+
+        async function handleCreateMeeting(e) {
+            e.preventDefault();
+            const form = document.getElementById('newMeetingForm');
+            const fd = new FormData(form);
+            fd.append('assignment_id', assignmentID);
+
+            try {
+                const res = await fetch('/api/guru/meetings', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (res.ok) {
+                    Swal.fire({ icon: 'success', title: 'Berhasil', text: 'Pertemuan dibuat', timer: 1200, showConfirmButton: false });
+                    closeNewMeetingModal();
+                    loadMeetings();
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Gagal', text: data.message });
+                }
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan sistem' });
+            }
+        }
+
+        // --- MATERIALS MODAL ---
+        function openNewMaterialModal(meetingId) {
+            document.getElementById('matMeetingId').value = meetingId;
+            document.getElementById('newMaterialModal').classList.remove('hidden');
+            toggleMaterialInput();
+        }
+
+        function closeNewMaterialModal() {
+            document.getElementById('newMaterialModal').classList.add('hidden');
+            document.getElementById('newMaterialForm').reset();
+        }
+
+        function toggleMaterialInput() {
+            const type = document.getElementById('matType').value;
+            document.getElementById('matDocInput').classList.toggle('hidden', type !== 'document');
+            document.getElementById('matURLInput').classList.toggle('hidden', type !== 'video' && type !== 'link');
+            document.getElementById('matTextInput').classList.toggle('hidden', type !== 'text');
+        }
+
+        async function handleCreateMaterial(e) {
+            e.preventDefault();
+            const btn = document.getElementById('saveMatBtn');
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<span class="animate-spin inline-block w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full mr-1"></span> Mengunggah...`;
+
+            const form = document.getElementById('newMaterialForm');
+            const fd = new FormData(form);
+
+            try {
+                const res = await fetch('/api/guru/materials', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (res.ok) {
+                    Swal.fire({ icon: 'success', title: 'Berhasil', text: 'Materi ditambahkan', timer: 1200, showConfirmButton: false });
+                    closeNewMaterialModal();
+                    loadMeetings();
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Gagal', text: data.message });
+                }
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal mengunggah materi' });
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }
+        }
+
+        async function deleteMaterial(id) {
+            const conf = await Swal.fire({
+                title: 'Hapus Materi?',
+                text: 'Berkas dan materi ajar akan dihapus permanen.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e11d48',
+                confirmButtonText: 'Ya, Hapus'
+            });
+            if (conf.isConfirmed) {
+                await fetch(`/api/guru/materials/${id}`, { method: 'DELETE' });
+                loadMeetings();
+            }
+        }
+
+        // --- ASSIGNMENTS MODAL ---
+        function openNewAssignmentModal(meetingId) {
+            document.getElementById('assMeetingId').value = meetingId;
+            document.getElementById('newAssignmentModal').classList.remove('hidden');
+        }
+
+        function closeNewAssignmentModal() {
+            document.getElementById('newAssignmentModal').classList.add('hidden');
+            document.getElementById('newAssignmentForm').reset();
+        }
+
+        async function handleCreateAssignment(e) {
+            e.preventDefault();
+            const form = document.getElementById('newAssignmentForm');
+            const fd = new FormData(form);
+
+            try {
+                const res = await fetch('/api/guru/assignments', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (res.ok) {
+                    Swal.fire({ icon: 'success', title: 'Berhasil', text: 'Tugas diterbitkan', timer: 1200, showConfirmButton: false });
+                    closeNewAssignmentModal();
+                    loadMeetings();
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Gagal', text: data.message });
+                }
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal menerbitkan tugas' });
+            }
+        }
+
+        // --- SUBMISSIONS & GRADING MODAL ---
+        let currentAssignmentIdForGrading = null;
+
+        async function openSubmissionsModal(assId, titleEncoded) {
+            currentAssignmentIdForGrading = assId;
+            document.getElementById('subAssignmentTitle').textContent = decodeURIComponent(titleEncoded);
+            document.getElementById('submissionsModal').classList.remove('hidden');
+            const container = document.getElementById('submissionsList');
+            container.innerHTML = `<p class="text-xs text-zinc-400 text-center py-6">Memuat pengumpulan siswa...</p>`;
+
+            try {
+                const res = await fetch(`/api/guru/assignments/${assId}/submissions`);
+                if (!res.ok) throw new Error('Gagal');
+                const data = await res.json();
+
+                if (!data.submissions || data.submissions.length === 0) {
+                    container.innerHTML = `<p class="text-xs text-zinc-400 text-center py-6">Belum ada siswa yang terdaftar di kelas ini.</p>`;
+                    return;
+                }
+
+                container.innerHTML = data.submissions.map((s, idx) => `
+                    <div class="py-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2">
+                                <span class="text-[11px] font-mono text-zinc-400">${idx + 1}.</span>
+                                <span class="text-xs font-bold text-zinc-900 dark:text-zinc-100">${s.student_name}</span>
+                                <span class="text-[10px] font-mono text-zinc-400">NIS. ${s.student_nis}</span>
+                                ${s.has_submitted ? (
+                                    s.is_late 
+                                    ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">Terlambat</span>`
+                                    : `<span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">Tepat Waktu</span>`
+                                ) : `<span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">Belum Submit</span>`}
+                            </div>
+
+                            ${s.has_submitted ? `
+                                <div class="text-xs text-zinc-600 dark:text-zinc-300 flex items-center gap-2 pl-4">
+                                    ${s.file_url ? `<a href="${s.file_url}" target="_blank" class="text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1"><i data-lucide="download" class="w-3.5 h-3.5"></i> Berkas Siswa</a>` : ''}
+                                    ${s.link_url ? `<a href="${s.link_url}" target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"><i data-lucide="external-link" class="w-3.5 h-3.5"></i> Tautan Proyek</a>` : ''}
+                                    ${s.text_content ? `<span class="italic text-zinc-500 font-serif">"${s.text_content}"</span>` : ''}
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        ${s.has_submitted ? `
+                            <div class="flex items-center gap-2 pl-4 md:pl-0">
+                                <div class="flex items-center gap-1.5">
+                                    <input type="number" id="grade-${s.submission_id}" value="${s.score !== null ? s.score : ''}" placeholder="Nilai" min="0" max="100"
+                                        class="w-16 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2 py-1 text-xs text-center font-bold text-zinc-900 dark:text-zinc-100">
+                                    <input type="text" id="fb-${s.submission_id}" value="${s.feedback || ''}" placeholder="Catatan guru..."
+                                        class="w-36 sm:w-48 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1 text-xs text-zinc-900 dark:text-zinc-100">
+                                </div>
+                                <button type="button" onclick="saveGrade(${s.submission_id})"
+                                    class="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:text-zinc-900 text-xs font-semibold rounded-lg shadow-2xs">
+                                    Simpan
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `).join('');
+
+                lucide.createIcons();
+            } catch (err) {
+                container.innerHTML = `<p class="text-xs text-rose-500 text-center py-6">Gagal memuat pengumpulan siswa.</p>`;
+            }
+        }
+
+        function closeSubmissionsModal() {
+            document.getElementById('submissionsModal').classList.add('hidden');
+            currentAssignmentIdForGrading = null;
+        }
+
+        async function saveGrade(submissionId) {
+            const scoreInput = document.getElementById(`grade-${submissionId}`);
+            const fbInput = document.getElementById(`fb-${submissionId}`);
+
+            const fd = new FormData();
+            fd.append('submission_id', submissionId);
+            fd.append('score', scoreInput.value);
+            fd.append('feedback', fbInput.value);
+
+            try {
+                const res = await fetch('/api/guru/submissions/grade', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (res.ok) {
+                    Swal.fire({ icon: 'success', title: 'Tersimpan', text: 'Nilai berhasil disimpan', timer: 1000, showConfirmButton: false });
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Gagal', text: data.message });
+                }
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal menyimpan nilai' });
+            }
+        }
+
+        // --- QUIZ CBT MODAL ---
+        function openNewQuizModal(meetingId) {
+            document.getElementById('quizMeetingId').value = meetingId;
+            document.getElementById('newQuizModal').classList.remove('hidden');
+        }
+
+        function closeNewQuizModal() {
+            document.getElementById('newQuizModal').classList.add('hidden');
+            document.getElementById('newQuizForm').reset();
+        }
+
+        async function handleCreateQuiz(e) {
+            e.preventDefault();
+            const form = document.getElementById('newQuizForm');
+            const fd = new FormData(form);
+
+            try {
+                const res = await fetch('/api/guru/quizzes', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (res.ok) {
+                    Swal.fire({ icon: 'success', title: 'Berhasil', text: 'Kuis CBT dibuat', timer: 1200, showConfirmButton: false });
+                    closeNewQuizModal();
+                    loadMeetings();
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Gagal', text: data.message });
+                }
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal membuat kuis' });
+            }
+        }
+
+        async function deleteQuiz(id) {
+            const conf = await Swal.fire({
+                title: 'Hapus Kuis CBT?',
+                text: 'Kuis beserta semua butir soal dan data nilai siswa akan dihapus.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e11d48',
+                confirmButtonText: 'Ya, Hapus'
+            });
+            if (conf.isConfirmed) {
+                await fetch(`/api/guru/quizzes/${id}`, { method: 'DELETE' });
+                loadMeetings();
+            }
+        }
+
+        // --- QUIZ QUESTIONS MANAGEMENT ---
+        let currentQuizIdForQuestions = null;
+
+        async function openQuizQuestionsModal(quizId, titleEncoded) {
+            currentQuizIdForQuestions = quizId;
+            document.getElementById('qqQuizTitle').textContent = decodeURIComponent(titleEncoded);
+            document.getElementById('quizQuestionsModal').classList.remove('hidden');
+            document.getElementById('addQuestionForm').reset();
+            loadQuizQuestions(quizId);
+        }
+
+        function closeQuizQuestionsModal() {
+            document.getElementById('quizQuestionsModal').classList.add('hidden');
+            currentQuizIdForQuestions = null;
+            loadMeetings();
+        }
+
+        async function loadQuizQuestions(quizId) {
+            const list = document.getElementById('quizQuestionsList');
+            list.innerHTML = `<p class="text-xs text-zinc-400 text-center py-4">Memuat butir soal...</p>`;
+
+            try {
+                const res = await fetch(`/api/guru/quizzes/${quizId}/questions`);
+                if (!res.ok) throw new Error('Gagal');
+                const data = await res.json();
+                const questions = Array.isArray(data) ? data : [];
+                document.getElementById('qqCountBadge').textContent = `${questions.length} Soal`;
+
+                if (questions.length === 0) {
+                    list.innerHTML = `<p class="text-xs text-zinc-400 italic text-center py-4">Belum ada butir soal. Gunakan formulir di atas untuk menambahkan soal baru.</p>`;
+                    return;
+                }
+
+                const optLabels = ['A', 'B', 'C', 'D'];
+                list.innerHTML = questions.map((q, idx) => `
+                    <div class="p-3.5 bg-zinc-50 dark:bg-zinc-950/40 rounded-xl border border-zinc-200/80 dark:border-zinc-800 space-y-2.5">
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="flex items-start gap-2">
+                                <span class="font-mono text-xs font-bold text-zinc-500">${idx + 1}.</span>
+                                <div>
+                                    <p class="text-xs font-semibold text-zinc-900 dark:text-zinc-100">${q.question_text}</p>
+                                    <span class="text-[10px] font-mono text-zinc-400 font-semibold">${q.points} Poin</span>
+                                </div>
+                            </div>
+                            <button type="button" onclick="deleteQuizQuestion(${q.id})" title="Hapus Soal"
+                                class="text-zinc-400 hover:text-rose-500 p-1 rounded transition-colors shrink-0">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 pl-4">
+                            ${(q.options || []).map((opt, oIdx) => `
+                                <div class="px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-2 ${opt.is_correct ? 'bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 font-bold text-emerald-800 dark:text-emerald-300' : 'bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300'}">
+                                    <span class="w-4 h-4 rounded text-[10px] flex items-center justify-center font-bold ${opt.is_correct ? 'bg-emerald-600 text-white' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'}">${optLabels[oIdx] || oIdx + 1}</span>
+                                    <span class="truncate">${opt.option_text}</span>
+                                    ${opt.is_correct ? '<i data-lucide="check" class="w-3.5 h-3.5 ml-auto text-emerald-600 dark:text-emerald-400"></i>' : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('');
+
+                lucide.createIcons();
+            } catch (err) {
+                list.innerHTML = `<p class="text-xs text-rose-500 text-center py-4">Gagal memuat butir soal.</p>`;
+            }
+        }
+
+        async function handleAddQuestion(e) {
+            e.preventDefault();
+            const btn = document.getElementById('addQuestionBtn');
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+
+            const payload = {
+                quiz_id: currentQuizIdForQuestions,
+                question_text: document.getElementById('qText').value,
+                points: parseInt(document.getElementById('qPoints').value) || 10,
+                correct_index: parseInt(document.getElementById('qCorrectIdx').value) || 0,
+                option_texts: [
+                    document.getElementById('qOptA').value,
+                    document.getElementById('qOptB').value,
+                    document.getElementById('qOptC').value,
+                    document.getElementById('qOptD').value
+                ]
+            };
+
+            try {
+                const res = await fetch('/api/guru/quizzes/questions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    document.getElementById('addQuestionForm').reset();
+                    document.getElementById('qPoints').value = "10";
+                    loadQuizQuestions(currentQuizIdForQuestions);
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Gagal', text: data.message });
+                }
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal menyimpan soal' });
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }
+        }
+
+        async function deleteQuizQuestion(questionId) {
+            const conf = await Swal.fire({
+                title: 'Hapus Soal Ini?',
+                text: 'Butir pertanyaan dan opsi pilihan akan dihapus.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e11d48',
+                confirmButtonText: 'Ya, Hapus'
+            });
+            if (conf.isConfirmed) {
+                await fetch(`/api/guru/quizzes/questions/${questionId}`, { method: 'DELETE' });
+                loadQuizQuestions(currentQuizIdForQuestions);
+            }
+        }
+
+        // --- QUIZ ATTEMPTS MODAL ---
+        async function openQuizAttemptsModal(quizId, titleEncoded) {
+            document.getElementById('qaQuizTitle').textContent = decodeURIComponent(titleEncoded);
+            document.getElementById('quizAttemptsModal').classList.remove('hidden');
+            const list = document.getElementById('quizAttemptsList');
+            list.innerHTML = `<p class="text-xs text-zinc-400 text-center py-6">Memuat hasil kuis...</p>`;
+
+            try {
+                const res = await fetch(`/api/guru/quizzes/${quizId}/attempts`);
+                if (!res.ok) throw new Error('Gagal');
+                const data = await res.json();
+
+                if (!data.attempts || data.attempts.length === 0) {
+                    list.innerHTML = `<p class="text-xs text-zinc-400 text-center py-6">Belum ada siswa yang mengerjakan kuis ini.</p>`;
+                    return;
+                }
+
+                list.innerHTML = data.attempts.map((att, idx) => `
+                    <div class="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div class="space-y-0.5">
+                            <div class="flex items-center gap-2">
+                                <span class="text-[11px] font-mono text-zinc-400">${idx + 1}.</span>
+                                <span class="text-xs font-bold text-zinc-900 dark:text-zinc-100">${att.student_name}</span>
+                                <span class="text-[10px] font-mono text-zinc-400">NIS. ${att.student_nis}</span>
+                            </div>
+                            <div class="text-[11px] text-zinc-500 dark:text-zinc-400 pl-4">
+                                ${att.attempted ? `Selesai: ${att.completed_at || '-'} • Benar: ${att.total_correct} soal` : 'Belum mengikuti kuis CBT'}
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3 pl-4 sm:pl-0">
+                            ${att.attempted ? `
+                                <div class="text-right">
+                                    <div class="text-sm font-black font-mono ${att.is_passed ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}">
+                                        ${att.score}
+                                    </div>
+                                    <span class="text-[10px] font-bold uppercase ${att.is_passed ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}">
+                                        ${att.is_passed ? 'LULUS' : 'REMEDIAL'}
+                                    </span>
+                                </div>
+                            ` : `
+                                <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                                    Belum Mengerjakan
+                                </span>
+                            `}
+                        </div>
+                    </div>
+                `).join('');
+
+                lucide.createIcons();
+            } catch (err) {
+                list.innerHTML = `<p class="text-xs text-rose-500 text-center py-6">Gagal memuat hasil kuis siswa.</p>`;
+            }
+        }
+
+        function closeQuizAttemptsModal() {
+            document.getElementById('quizAttemptsModal').classList.add('hidden');
+        }
+
+        // --- ATTENDANCE MODAL ---
+        async function openAttendanceModal(meetingId, titleEncoded) {
+            activeMeetingID = meetingId;
+            document.getElementById('attMeetingSubtitle').textContent = decodeURIComponent(titleEncoded);
+            document.getElementById('attendanceModal').classList.remove('hidden');
+            document.getElementById('attendanceList').innerHTML = `<p class="text-xs text-zinc-400 text-center py-6">Memuat presensi siswa...</p>`;
+
+            try {
+                const res = await fetch(`/api/guru/meetings/${meetingId}/attendance`);
+                if (!res.ok) throw new Error('Gagal');
+                const data = await res.json();
+
+                currentStudentsData = data.students || [];
+                renderAttendanceList();
+                updateStats(data.stats);
+            } catch (err) {
+                document.getElementById('attendanceList').innerHTML = `<p class="text-xs text-rose-500 text-center py-6">Gagal memuat daftar siswa.</p>`;
+            }
+        }
+
+        function closeAttendanceModal() {
+            document.getElementById('attendanceModal').classList.add('hidden');
+            activeMeetingID = null;
+        }
+
+        function renderAttendanceList() {
+            const list = document.getElementById('attendanceList');
+            document.getElementById('attStudentCount').textContent = `${currentStudentsData.length} Siswa Terdaftar`;
+
+            list.innerHTML = currentStudentsData.map((s, idx) => `
+                <div class="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div class="flex items-center gap-3">
+                        <span class="w-6 text-[11px] font-mono text-zinc-400">${idx + 1}.</span>
+                        <div>
+                            <div class="text-xs font-bold text-zinc-900 dark:text-zinc-100">${s.name}</div>
+                            <div class="text-[11px] font-mono text-zinc-400">NIS. ${s.nis}</div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-1.5 self-end sm:self-auto">
+                        ${renderStatusPill(s.student_id, 'H', s.status, 'emerald', 'Hadir')}
+                        ${renderStatusPill(s.student_id, 'S', s.status, 'amber', 'Sakit')}
+                        ${renderStatusPill(s.student_id, 'I', s.status, 'blue', 'Izin')}
+                        ${renderStatusPill(s.student_id, 'A', s.status, 'rose', 'Alpa')}
+                    </div>
+                </div>
+            `).join('');
+
+            lucide.createIcons();
+        }
+
+        function renderStatusPill(studentId, code, currentStatus, color, label) {
+            const isChecked = (currentStatus === code);
+            const activeClass = isChecked 
+                ? `bg-${color}-600 text-white font-bold shadow-xs` 
+                : `bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 hover:bg-zinc-200`;
+
+            return `
+                <button type="button" onclick="setStudentStatus(${studentId}, '${code}')"
+                    id="pill-${studentId}-${code}"
+                    class="status-pill text-[11px] px-2.5 py-1 rounded-md transition-all font-semibold ${activeClass}">
+                    ${code}
+                </button>
+            `;
+        }
+
+        function setStudentStatus(studentId, status) {
+            const s = currentStudentsData.find(item => item.student_id === studentId);
+            if (s) {
+                s.status = status;
+                ['H', 'S', 'I', 'A'].forEach(c => {
+                    const btn = document.getElementById(`pill-${studentId}-${c}`);
+                    if (btn) {
+                        btn.className = `status-pill text-[11px] px-2.5 py-1 rounded-md transition-all font-semibold ` +
+                            (c === status ? getStatusActiveClass(c) : `bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 hover:bg-zinc-200`);
+                    }
+                });
+                recalcStats();
+            }
+        }
+
+        function getStatusActiveClass(code) {
+            if (code === 'H') return 'bg-emerald-600 text-white font-bold shadow-xs';
+            if (code === 'S') return 'bg-amber-600 text-white font-bold shadow-xs';
+            if (code === 'I') return 'bg-blue-600 text-white font-bold shadow-xs';
+            return 'bg-rose-600 text-white font-bold shadow-xs';
+        }
+
+        function setAllPresent() {
+            currentStudentsData.forEach(s => { s.status = 'H'; });
+            renderAttendanceList();
+            recalcStats();
+        }
+
+        function recalcStats() {
+            const stats = { H: 0, S: 0, I: 0, A: 0 };
+            currentStudentsData.forEach(s => {
+                if (stats[s.status] !== undefined) stats[s.status]++;
+            });
+            updateStats(stats);
+        }
+
+        function updateStats(stats) {
+            document.getElementById('statHadir').textContent = stats?.H || 0;
+            document.getElementById('statSakit').textContent = stats?.S || 0;
+            document.getElementById('statIzin').textContent = stats?.I || 0;
+            document.getElementById('statAlpa').textContent = stats?.A || 0;
+        }
+
+        async function saveAttendance() {
+            const btn = document.getElementById('saveAttBtn');
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<span class="animate-spin inline-block w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full mr-1.5"></span> Menyimpan...`;
+
+            const payload = {
+                attendances: currentStudentsData.map(s => ({
+                    student_id: s.student_id,
+                    status: s.status,
+                    notes: s.notes || ''
+                }))
+            };
+
+            try {
+                const res = await fetch(`/api/guru/meetings/${activeMeetingID}/attendance`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Presensi Disimpan',
+                        text: 'Presensi KBM online berhasil disimpan.',
+                        timer: 1200,
+                        showConfirmButton: false
+                    });
+                    closeAttendanceModal();
+                    loadMeetings();
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Gagal', text: data.message });
+                }
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal menyimpan presensi' });
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+                lucide.createIcons();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            initClassData();
+        });
+    </script>
+</body>
+</html>

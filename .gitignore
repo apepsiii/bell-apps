@@ -26,6 +26,8 @@ public/assets/audio/*
 !public/assets/audio/.gitkeep
 public/assets/photos/*
 !public/assets/photos/.gitkeep
+public/uploads/*
+!public/uploads/.gitkeep
 
 # Logs (runtime, keep dir via .gitkeep)
 logs/*

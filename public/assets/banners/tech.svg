@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGradTech" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#052e16" />
+      <stop offset="50%" stop-color="#064e3b" />
+      <stop offset="100%" stop-color="#047857" />
+    </linearGradient>
+    <radialGradient id="techGlow" cx="80%" cy="30%" r="50%">
+      <stop offset="0%" stop-color="#34d399" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#052e16" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <rect width="800" height="400" fill="url(#bgGradTech)" />
+  <circle cx="650" cy="120" r="260" fill="url(#techGlow)" />
+
+  <g stroke="#34d399" stroke-opacity="0.3" stroke-width="2" fill="none">
+    <path d="M 50 100 L 150 100 L 200 150 L 350 150 L 380 180" />
+    <path d="M 100 300 L 220 300 L 260 260 L 400 260 L 450 310 L 600 310" />
+    <path d="M 520 80 L 580 140 L 680 140" />
+    <circle cx="50" cy="100" r="4" fill="#34d399" />
+    <circle cx="200" cy="150" r="4" fill="#34d399" />
+    <circle cx="380" cy="180" r="4" fill="#34d399" />
+    <circle cx="260" cy="260" r="4" fill="#34d399" />
+    <circle cx="600" cy="310" r="4" fill="#34d399" />
+    <circle cx="680" cy="140" r="4" fill="#34d399" />
+  </g>
+
+  <g fill="none" stroke="#6ee7b7" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" opacity="0.75" transform="translate(560, 110)">
+    <path d="M 50 40 L 10 90 L 50 140" />
+    <path d="M 150 40 L 190 90 L 150 140" />
+    <line x1="120" y1="30" x2="80" y2="150" stroke-width="8" stroke="#a7f3d0" />
+  </g>
+
+  <g fill="#a7f3d0" opacity="0.18" font-family="monospace" font-size="16">
+    <text x="60" y="50">01001001 01010100</text>
+    <text x="60" y="75">class Module {</text>
+    <text x="80" y="100">async execute()</text>
+    <text x="60" y="125">}</text>
+    <text x="320" y="60">const api = true;</text>
+    <text x="320" y="85">git commit -m "feat"</text>
+  </g>
+</svg>

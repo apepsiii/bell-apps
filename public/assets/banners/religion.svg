@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGradRel" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#022c22" />
+      <stop offset="50%" stop-color="#064e3b" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <radialGradient id="relGlow" cx="75%" cy="30%" r="50%">
+      <stop offset="0%" stop-color="#34d399" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#022c22" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <rect width="800" height="400" fill="url(#bgGradRel)" />
+  <circle cx="620" cy="120" r="260" fill="url(#relGlow)" />
+
+  <g transform="translate(560, 100)" fill="none" opacity="0.85">
+    <path d="M 120 40 A 65 65 0 1 0 120 160 A 50 50 0 1 1 120 40 Z" fill="#6ee7b7" stroke="#a7f3d0" stroke-width="2" />
+    <g transform="translate(140, 60)" fill="#fef08a" opacity="0.9">
+      <rect x="-12" y="-12" width="24" height="24" transform="rotate(0)" />
+      <rect x="-12" y="-12" width="24" height="24" transform="rotate(45)" />
+      <circle cx="0" cy="0" r="4" fill="#064e3b" />
+    </g>
+  </g>
+
+  <g fill="#d1fae5" opacity="0.3" font-family="serif" font-weight="bold">
+    <text x="60" y="100" font-size="40">Pendidikan Agama</text>
+    <text x="80" y="150" font-size="28">&amp; Budi Pekerti Mulia</text>
+    <text x="70" y="320" font-size="38">Akhlakul Karimah</text>
+    <text x="340" y="330" font-size="26">Integritas • Iman • Kebaikan</text>
+  </g>
+</svg>

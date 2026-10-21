@@ -42,6 +42,12 @@ func UpdateAttendanceSettings(db *sql.DB) echo.HandlerFunc {
 		birthdayImage := c.FormValue("wa_image_birthday")
 		birthdayTime := c.FormValue("birthday_time")
 
+		r2AccountID := c.FormValue("r2_account_id")
+		r2AccessKeyID := c.FormValue("r2_access_key_id")
+		r2SecretAccessKey := c.FormValue("r2_secret_access_key")
+		r2BucketName := c.FormValue("r2_bucket_name")
+		r2PublicURL := c.FormValue("r2_public_url")
+
 		tx, _ := db.Begin()
 		tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "arrival_start", arrivalStart)
 		tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "arrival_end", arrivalEnd)
@@ -69,6 +75,14 @@ func UpdateAttendanceSettings(db *sql.DB) echo.HandlerFunc {
 		tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "wa_template_birthday", birthdayTemplate)
 		tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "wa_image_birthday", birthdayImage)
 		tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "birthday_time", birthdayTime)
+
+		if c.Request().Form.Has("r2_account_id") || r2AccountID != "" {
+			tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "r2_account_id", r2AccountID)
+			tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "r2_access_key_id", r2AccessKeyID)
+			tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "r2_secret_access_key", r2SecretAccessKey)
+			tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "r2_bucket_name", r2BucketName)
+			tx.Exec("INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "r2_public_url", r2PublicURL)
+		}
 
 		tx.Commit()
 
