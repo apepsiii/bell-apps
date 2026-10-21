@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 	"time"
 
@@ -108,9 +109,25 @@ func GetAISettings(db *sql.DB) echo.HandlerFunc {
 // UpdateAISettings updates AI configuration settings securely
 func UpdateAISettings(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		baseURL := strings.TrimSpace(c.FormValue("ai_base_url"))
-		apiKey := strings.TrimSpace(c.FormValue("ai_api_key"))
-		model := strings.TrimSpace(c.FormValue("ai_model"))
+		var req struct {
+			AIBaseURL string `json:"ai_base_url" form:"ai_base_url"`
+			AIAPIKey  string `json:"ai_api_key" form:"ai_api_key"`
+			AIModel   string `json:"ai_model" form:"ai_model"`
+		}
+		_ = c.Bind(&req)
+
+		baseURL := strings.TrimSpace(req.AIBaseURL)
+		if baseURL == "" {
+			baseURL = strings.TrimSpace(c.FormValue("ai_base_url"))
+		}
+		apiKey := strings.TrimSpace(req.AIAPIKey)
+		if apiKey == "" {
+			apiKey = strings.TrimSpace(c.FormValue("ai_api_key"))
+		}
+		model := strings.TrimSpace(req.AIModel)
+		if model == "" {
+			model = strings.TrimSpace(c.FormValue("ai_model"))
+		}
 
 		// SEC-10: Validate AI Base URL syntax & SSRF safety
 		if baseURL != "" {
@@ -158,14 +175,194 @@ func UpdateAISettings(db *sql.DB) echo.HandlerFunc {
 	}
 }
 
+// resolveChatURL ensures the AI chat completions endpoint is properly formatted
+func resolveChatURL(rawBaseURL string) string {
+	clean := strings.TrimRight(strings.TrimSpace(rawBaseURL), "/")
+	if strings.HasSuffix(clean, "/chat/completions") {
+		return clean
+	}
+	return clean + "/chat/completions"
+}
+
+// resolveModelsURL formats the endpoint for retrieving available AI models
+func resolveModelsURL(rawBaseURL string) string {
+	clean := strings.TrimRight(strings.TrimSpace(rawBaseURL), "/")
+	clean = strings.TrimSuffix(clean, "/chat/completions")
+	if strings.HasSuffix(clean, "/models") {
+		return clean
+	}
+	return clean + "/models"
+}
+
+// GetAIModels fetches the list of available models from the AI provider
+func GetAIModels(db *sql.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		var reqData struct {
+			AIBaseURL string `json:"ai_base_url" form:"ai_base_url"`
+			AIAPIKey  string `json:"ai_api_key" form:"ai_api_key"`
+		}
+		_ = c.Bind(&reqData)
+
+		var baseURL, apiKey string
+		if strings.TrimSpace(reqData.AIBaseURL) != "" {
+			baseURL = strings.TrimSpace(reqData.AIBaseURL)
+		} else if strings.TrimSpace(c.QueryParam("base_url")) != "" {
+			baseURL = strings.TrimSpace(c.QueryParam("base_url"))
+		} else {
+			db.QueryRow("SELECT setting_value FROM ai_settings WHERE setting_key = ?", "ai_base_url").Scan(&baseURL)
+		}
+
+		if strings.TrimSpace(reqData.AIAPIKey) != "" && !isMaskedAPIKey(reqData.AIAPIKey) {
+			apiKey = strings.TrimSpace(reqData.AIAPIKey)
+		} else if strings.TrimSpace(c.QueryParam("api_key")) != "" && !isMaskedAPIKey(c.QueryParam("api_key")) {
+			apiKey = strings.TrimSpace(c.QueryParam("api_key"))
+		} else {
+			db.QueryRow("SELECT setting_value FROM ai_settings WHERE setting_key = ?", "ai_api_key").Scan(&apiKey)
+		}
+
+		if baseURL == "" || apiKey == "" {
+			return c.JSON(http.StatusBadRequest, map[string]interface{}{
+				"status":  "error",
+				"message": "Base URL dan API Key belum diisi. Isi terlebih dahulu untuk mengambil daftar model.",
+			})
+		}
+
+		// SEC-10: SSRF & URL validation
+		if err := validateAIBaseURL(baseURL); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]interface{}{
+				"status":  "error",
+				"message": err.Error(),
+			})
+		}
+
+		modelsURL := resolveModelsURL(baseURL)
+
+		req, err := http.NewRequest("GET", modelsURL, nil)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]interface{}{
+				"status":  "error",
+				"message": "Format URL models tidak valid: " + err.Error(),
+			})
+		}
+
+		req.Header.Set("Authorization", "Bearer "+apiKey)
+		req.Header.Set("Content-Type", "application/json")
+
+		client := &http.Client{Timeout: 15 * time.Second}
+		resp, err := client.Do(req)
+		if err != nil {
+			c.Logger().Errorf("Failed to connect to AI models endpoint: %v", err)
+			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"status":  "error",
+				"message": "Gagal terhubung ke provider AI: " + err.Error(),
+			})
+		}
+		defer resp.Body.Close()
+
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"status":  "error",
+				"message": "Gagal membaca respons dari provider AI",
+			})
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"status":      "error",
+				"message":     fmt.Sprintf("Provider AI mengembalikan status HTTP %d", resp.StatusCode),
+				"response":    string(body),
+				"status_code": resp.StatusCode,
+			})
+		}
+
+		// Try parsing standard OpenAI format: {"data": [{"id": "gpt-4o"}, ...]}
+		// or Ollama format: {"models": [{"name": "llama3:latest"}, ...]}
+		var openAIResp struct {
+			Data []struct {
+				ID string `json:"id"`
+			} `json:"data"`
+			Models []struct {
+				Name  string `json:"name"`
+				Model string `json:"model"`
+			} `json:"models"`
+		}
+
+		var modelNames []string
+		if err := json.Unmarshal(body, &openAIResp); err == nil {
+			for _, m := range openAIResp.Data {
+				if m.ID != "" {
+					modelNames = append(modelNames, m.ID)
+				}
+			}
+			if len(modelNames) == 0 {
+				for _, m := range openAIResp.Models {
+					if m.Name != "" {
+						modelNames = append(modelNames, m.Name)
+					} else if m.Model != "" {
+						modelNames = append(modelNames, m.Model)
+					}
+				}
+			}
+		}
+
+		// Deduplicate and sort
+		uniqueMap := make(map[string]bool)
+		var cleanModels []string
+		for _, name := range modelNames {
+			if !uniqueMap[name] {
+				uniqueMap[name] = true
+				cleanModels = append(cleanModels, name)
+			}
+		}
+		sort.Strings(cleanModels)
+
+		if len(cleanModels) == 0 {
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"status":  "error",
+				"message": "Tidak ada model yang ditemukan dalam respons API",
+				"raw":     string(body),
+			})
+		}
+
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"status":  "success",
+			"ok":      true,
+			"models":  cleanModels,
+			"count":   len(cleanModels),
+			"message": fmt.Sprintf("Berhasil mengambil %d model dari API", len(cleanModels)),
+		})
+	}
+}
+
 // TestAIConnection tests the AI API connection
 func TestAIConnection(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		// Get AI settings from database
+		var reqData struct {
+			AIBaseURL string `json:"ai_base_url" form:"ai_base_url"`
+			AIAPIKey  string `json:"ai_api_key" form:"ai_api_key"`
+			AIModel   string `json:"ai_model" form:"ai_model"`
+		}
+		_ = c.Bind(&reqData)
+
 		var baseURL, apiKey, model string
-		db.QueryRow("SELECT setting_value FROM ai_settings WHERE setting_key = ?", "ai_base_url").Scan(&baseURL)
-		db.QueryRow("SELECT setting_value FROM ai_settings WHERE setting_key = ?", "ai_api_key").Scan(&apiKey)
-		db.QueryRow("SELECT setting_value FROM ai_settings WHERE setting_key = ?", "ai_model").Scan(&model)
+		if strings.TrimSpace(reqData.AIBaseURL) != "" {
+			baseURL = strings.TrimSpace(reqData.AIBaseURL)
+		} else {
+			db.QueryRow("SELECT setting_value FROM ai_settings WHERE setting_key = ?", "ai_base_url").Scan(&baseURL)
+		}
+
+		if strings.TrimSpace(reqData.AIAPIKey) != "" && !isMaskedAPIKey(reqData.AIAPIKey) {
+			apiKey = strings.TrimSpace(reqData.AIAPIKey)
+		} else {
+			db.QueryRow("SELECT setting_value FROM ai_settings WHERE setting_key = ?", "ai_api_key").Scan(&apiKey)
+		}
+
+		if strings.TrimSpace(reqData.AIModel) != "" {
+			model = strings.TrimSpace(reqData.AIModel)
+		} else {
+			db.QueryRow("SELECT setting_value FROM ai_settings WHERE setting_key = ?", "ai_model").Scan(&model)
+		}
 
 		if baseURL == "" || apiKey == "" {
 			return c.JSON(http.StatusBadRequest, map[string]interface{}{
@@ -207,27 +404,30 @@ func TestAIConnection(db *sql.DB) echo.HandlerFunc {
 			})
 		}
 
+		// Target chat completions endpoint safely
+		chatURL := resolveChatURL(baseURL)
+
 		// Create HTTP request
-		req, err := http.NewRequest("POST", baseURL, bytes.NewBuffer(jsonData))
+		req, err := http.NewRequest("POST", chatURL, bytes.NewBuffer(jsonData))
 		if err != nil {
 			c.Logger().Errorf("Failed to create HTTP request: %v", err)
 			return c.JSON(http.StatusBadRequest, map[string]interface{}{
 				"status":  "error",
-				"message": "Format URL atau request tidak valid",
+				"message": "Format URL atau request tidak valid: " + err.Error(),
 			})
 		}
 
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+apiKey)
 
-		// SEC-10: Restrict client timeout to 10 seconds
-		client := &http.Client{Timeout: 10 * time.Second}
+		// SEC-10: Restrict client timeout to 15 seconds
+		client := &http.Client{Timeout: 15 * time.Second}
 		resp, err := client.Do(req)
 		if err != nil {
 			c.Logger().Errorf("Failed to connect to AI API: %v", err)
 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
 				"status":  "error",
-				"message": "Gagal menghubungi endpoint AI: koneksi gagal atau timeout",
+				"message": "Gagal menghubungi endpoint AI: koneksi gagal atau timeout (" + err.Error() + ")",
 			})
 		}
 		defer resp.Body.Close()
@@ -247,6 +447,7 @@ func TestAIConnection(db *sql.DB) echo.HandlerFunc {
 				"message":      fmt.Sprintf("API mengembalikan status %d", resp.StatusCode),
 				"response":     string(body),
 				"base_url":     baseURL,
+				"chat_url":     chatURL,
 				"model":        model,
 				"status_code":  resp.StatusCode,
 			})
@@ -263,11 +464,13 @@ func TestAIConnection(db *sql.DB) echo.HandlerFunc {
 		}
 
 		return c.JSON(http.StatusOK, map[string]interface{}{
-			"status":       "success",
-			"message":      "Koneksi AI berhasil! API merespons dengan baik.",
-			"base_url":     baseURL,
-			"model":        model,
-			"status_code":  resp.StatusCode,
+			"status":      "success",
+			"ok":          true,
+			"message":     "Koneksi AI berhasil! API merespons dengan baik.",
+			"base_url":    baseURL,
+			"chat_url":    chatURL,
+			"model":       model,
+			"status_code": resp.StatusCode,
 		})
 	}
 }

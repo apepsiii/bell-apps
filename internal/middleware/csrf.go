@@ -58,6 +58,12 @@ func isCSRFExempt(path string) bool {
 		"/api/operator/logout",
 		"/api/student/login",
 		"/api/student/logout",
+		"/api/guru/login",
+		"/api/guru/logout",
+		"/guru/logout",
+		"/api/auth/magic-request",
+		"/api/webhook/whatsapp",
+		"/api/webhook/onesender",
 	}
 
 	for _, ep := range exemptPaths {

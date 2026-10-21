@@ -195,6 +195,9 @@ func TestSEC02_CSRF_Exempt_IoT_And_Auth_Endpoints(t *testing.T) {
 	e.POST("/api/login", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{"status": "login_ok"})
 	})
+	e.POST("/api/guru/login", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]string{"status": "guru_login_ok"})
+	})
 
 	// 1. Face verification POST without CSRF token should succeed
 	reqFace := httptest.NewRequest(http.MethodPost, "/api/attendance/verify-face", nil)
@@ -207,6 +210,12 @@ func TestSEC02_CSRF_Exempt_IoT_And_Auth_Endpoints(t *testing.T) {
 	recLogin := httptest.NewRecorder()
 	e.ServeHTTP(recLogin, reqLogin)
 	assert.Equal(t, http.StatusOK, recLogin.Code)
+
+	// 3. Guru Login POST without CSRF token should succeed
+	reqGuruLogin := httptest.NewRequest(http.MethodPost, "/api/guru/login", nil)
+	recGuruLogin := httptest.NewRecorder()
+	e.ServeHTTP(recGuruLogin, reqGuruLogin)
+	assert.Equal(t, http.StatusOK, recGuruLogin.Code)
 }
 
 // --- SEC-03: Point Reset GET Route Removal ---

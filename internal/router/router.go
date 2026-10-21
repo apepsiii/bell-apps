@@ -15,6 +15,7 @@ import (
 	"belsekolah/internal/config"
 	"belsekolah/internal/handler"
 	appMiddleware "belsekolah/internal/middleware"
+	"belsekolah/internal/service"
 )
 
 type templateRenderer struct {
@@ -104,6 +105,8 @@ func Register(e *echo.Echo, db *sql.DB, viewsFS fs.FS, app AppHandlers) {
 
 // RegisterRoutes sets up all routes and middlewares on the given Echo instance without starting the HTTP server.
 func RegisterRoutes(e *echo.Echo, db *sql.DB, viewsFS fs.FS, app AppHandlers) {
+	storageService := service.NewStorageService(db)
+
 	// SEC-09: Secure IP Extraction against IP spoofing via X-Forwarded-For / X-Real-IP headers
 	e.IPExtractor = echo.ExtractIPDirect()
 
@@ -114,9 +117,12 @@ func RegisterRoutes(e *echo.Echo, db *sql.DB, viewsFS fs.FS, app AppHandlers) {
 
 	e.HTTPErrorHandler = func(err error, c echo.Context) {
 		code := http.StatusInternalServerError
+		var message interface{} = "Terjadi kesalahan server"
 		if he, ok := err.(*echo.HTTPError); ok {
 			code = he.Code
+			message = he.Message
 		}
+
 		if code == http.StatusNotFound {
 			if strings.HasPrefix(c.Request().URL.Path, "/api") {
 				c.JSON(http.StatusNotFound, map[string]string{"message": "Not Found"})
@@ -127,6 +133,22 @@ func RegisterRoutes(e *echo.Echo, db *sql.DB, viewsFS fs.FS, app AppHandlers) {
 			}
 			return
 		}
+
+		if code == http.StatusForbidden {
+			if strings.HasPrefix(c.Request().URL.Path, "/api") {
+				msgStr, ok := message.(string)
+				if !ok || msgStr == "" {
+					msgStr = "Akses ditolak"
+				}
+				c.JSON(http.StatusForbidden, map[string]string{"message": msgStr})
+				return
+			}
+			if err := c.Render(http.StatusForbidden, "403.html", nil); err != nil {
+				c.Logger().Error(err)
+			}
+			return
+		}
+
 		e.DefaultHTTPErrorHandler(err, c)
 	}
 
@@ -134,9 +156,12 @@ func RegisterRoutes(e *echo.Echo, db *sql.DB, viewsFS fs.FS, app AppHandlers) {
 		templates: template.Must(template.ParseFS(viewsFS, "views/*.html", "views/admin/*.html")),
 	}
 	e.Static("/assets", "public/assets")
+	e.Static("/assets/uploads", "public/uploads")
 
 	// --- PUBLIC ROUTES ---
 	e.GET("/", func(c echo.Context) error { return c.Render(http.StatusOK, "index.html", nil) })
+	e.GET("/404", func(c echo.Context) error { return c.Render(http.StatusNotFound, "404.html", nil) })
+	e.GET("/403", func(c echo.Context) error { return c.Render(http.StatusForbidden, "403.html", nil) })
 	e.GET("/login", func(c echo.Context) error {
 		return c.Render(http.StatusOK, "login.html", nil)
 	}, appMiddleware.AlreadyLoggedIn())
@@ -194,7 +219,7 @@ func RegisterRoutes(e *echo.Echo, db *sql.DB, viewsFS fs.FS, app AppHandlers) {
 	e.POST("/api/attendance/test-wa", handler.TestWA(db), appMiddleware.AdminAuth())
 
 	// --- ADMIN ROUTES ---
-	admin := e.Group("/admin", appMiddleware.AdminAuth(), appMiddleware.AdminRateLimiter())
+	admin := e.Group("/admin", appMiddleware.AdminAuth())
 	admin.GET("", app.DashboardHandler)
 	admin.GET("/dashboard", app.DashboardHandler)
 	admin.GET("/logout", handler.Logout())
@@ -259,6 +284,15 @@ func RegisterRoutes(e *echo.Echo, db *sql.DB, viewsFS fs.FS, app AppHandlers) {
 	admin.DELETE("/staff/:id", handler.DeleteStaff(db))
 	admin.POST("/staff/import", handler.ImportStaff(db))
 
+	// Curriculum & LMS Subject Management
+	admin.GET("/subjects", handler.GetSubjects(db))
+	admin.POST("/subject/add", handler.AddSubject(db))
+	admin.POST("/subject/update/:id", handler.UpdateSubject(db))
+	admin.DELETE("/subject/:id", handler.DeleteSubject(db))
+	admin.GET("/teacher-assignments", handler.GetTeacherAssignments(db))
+	admin.POST("/teacher-assignment/add", handler.AddTeacherAssignment(db))
+	admin.DELETE("/teacher-assignment/:id", handler.DeleteTeacherAssignment(db))
+
 	admin.GET("/holidays", handler.GetHolidays(db))
 	admin.POST("/holiday/add", handler.AddHoliday(db))
 	admin.PUT("/holiday/:id", handler.UpdateHoliday(db))
@@ -310,6 +344,7 @@ func RegisterRoutes(e *echo.Echo, db *sql.DB, viewsFS fs.FS, app AppHandlers) {
 
 	admin.GET("/settings/school", handler.GetSchoolSettings(db))
 	admin.PUT("/settings/school", handler.UpdateSchoolSettings(db))
+	admin.POST("/settings/school", handler.UpdateSchoolSettings(db))
 
 	admin.GET("/wa-logs", handler.GetWhatsAppLogs(db))
 	admin.POST("/attendance/test-wa", handler.TestWA(db))
@@ -389,6 +424,49 @@ func RegisterRoutes(e *echo.Echo, db *sql.DB, viewsFS fs.FS, app AppHandlers) {
 	operatorAPI.PUT("/profile", handler.UpdateOperatorProfile(db))
 	operatorAPI.PUT("/password", handler.ChangeOperatorPassword(db))
 
+	// --- GURU / TEACHER PORTAL ROUTES ---
+	serveTeacherPage := func(name string) echo.HandlerFunc {
+		return serveEmbedPage("views/teacher/" + name)
+	}
+
+	e.GET("/guru/login", func(c echo.Context) error {
+		if cookie, err := c.Cookie(handler.TeacherSessionCookie); err == nil && cookie.Value != "" {
+			var staffID int
+			if db.QueryRow("SELECT staff_id FROM teacher_sessions WHERE token = ? AND expires_at > CURRENT_TIMESTAMP", cookie.Value).Scan(&staffID) == nil {
+				return c.Redirect(http.StatusSeeOther, "/guru/dashboard")
+			}
+		}
+		return serveTeacherPage("login.html")(c)
+	})
+	e.POST("/api/guru/login", handler.TeacherLogin(db), appMiddleware.AuthRateLimiter())
+	e.GET("/guru/logout", handler.TeacherLogout(db))
+	e.POST("/guru/logout", handler.TeacherLogout(db))
+	e.POST("/api/guru/logout", handler.TeacherLogout(db))
+
+	guruPages := e.Group("/guru", handler.TeacherAuth(db))
+	guruPages.GET("", func(c echo.Context) error { return c.Redirect(http.StatusSeeOther, "/guru/dashboard") })
+	guruPages.GET("/dashboard", serveTeacherPage("dashboard.html"))
+	guruPages.GET("/class/:id", serveTeacherPage("class_detail.html"))
+
+	guruAPI := e.Group("/api/guru", handler.TeacherAuth(db))
+	guruAPI.GET("/profile", handler.GetTeacherProfile(db))
+	guruAPI.PUT("/password", handler.TeacherChangePassword(db))
+	guruAPI.GET("/meetings/:assignment_id", handler.GetTeacherMeetings(db))
+	guruAPI.POST("/meetings", handler.CreateTeacherMeeting(db))
+	guruAPI.GET("/meetings/:meeting_id/attendance", handler.GetMeetingAttendance(db))
+	guruAPI.POST("/meetings/:meeting_id/attendance", handler.SaveMeetingAttendance(db))
+	guruAPI.POST("/materials", handler.AddMeetingMaterial(db, storageService))
+	guruAPI.DELETE("/materials/:id", handler.DeleteMeetingMaterial(db, storageService))
+	guruAPI.POST("/assignments", handler.CreateMeetingAssignment(db))
+	guruAPI.GET("/assignments/:id/submissions", handler.GetAssignmentSubmissions(db))
+	guruAPI.POST("/submissions/grade", handler.GradeSubmission(db))
+	guruAPI.POST("/quizzes", handler.CreateMeetingQuiz(db))
+	guruAPI.GET("/quizzes/:id/questions", handler.GetQuizQuestions(db))
+	guruAPI.POST("/quizzes/questions", handler.AddQuizQuestion(db))
+	guruAPI.DELETE("/quizzes/questions/:id", handler.DeleteQuizQuestion(db))
+	guruAPI.DELETE("/quizzes/:id", handler.DeleteMeetingQuiz(db))
+	guruAPI.GET("/quizzes/:id/attempts", handler.GetQuizAttempts(db))
+
 	// --- STUDENT PORTAL ROUTES ---
 	serveStudentPage := func(name string) echo.HandlerFunc {
 		return serveEmbedPage("views/student/" + name)
@@ -407,6 +485,17 @@ func RegisterRoutes(e *echo.Echo, db *sql.DB, viewsFS fs.FS, app AppHandlers) {
 	e.POST("/api/student/login", handler.StudentLogin(db), appMiddleware.AuthRateLimiter())
 	e.POST("/api/student/logout", handler.StudentLogout(db))
 
+	// --- REVERSE OTP & MAGIC LINK AUTHENTICATION ROUTES ---
+	e.POST("/api/auth/magic-request", handler.RequestMagicLogin(db), appMiddleware.AuthRateLimiter())
+	e.GET("/api/auth/magic-status", handler.CheckMagicStatus(db))
+	e.GET("/auth/magic", handler.ConsumeMagicLink(db))
+	e.POST("/api/webhook/whatsapp", handler.HandleWhatsAppWebhook(db))
+	e.POST("/api/webhook/onesender", handler.HandleWhatsAppWebhook(db))
+
+	// Parent Portal APIs
+	e.GET("/api/parent/info", handler.GetParentInfo(db))
+	e.POST("/api/parent/switch-child", handler.SwitchActiveChild(db))
+
 	// Weather API (public, proxied from backend to hide API key)
 	e.GET("/api/weather/current", handler.WeatherCurrent())
 	e.GET("/api/weather/forecast", handler.WeatherForecast())
@@ -419,6 +508,8 @@ func RegisterRoutes(e *echo.Echo, db *sql.DB, viewsFS fs.FS, app AppHandlers) {
 	studentPages.GET("/presensi", serveStudentPage("app.html"))
 	studentPages.GET("/qr", serveStudentPage("app.html"))
 	studentPages.GET("/profil", serveStudentPage("app.html"))
+	studentPages.GET("/belajar", serveStudentPage("app.html"))
+	studentPages.GET("/lms", serveStudentPage("app.html"))
 
 	studentAPI := e.Group("/api/student")
 	studentAPI.Use(handler.StudentAuth(db))
@@ -437,6 +528,13 @@ func RegisterRoutes(e *echo.Echo, db *sql.DB, viewsFS fs.FS, app AppHandlers) {
 	studentAPI.POST("/announcements/read-all", handler.MarkAllAnnouncementsRead(db))
 	studentAPI.GET("/doa", handler.GetDailyPrayers())
 
+	// LMS Student Courses & Assignments
+	studentAPI.GET("/courses", handler.GetStudentCourses(db))
+	studentAPI.GET("/courses/:assignment_id", handler.GetStudentCourseDetail(db))
+	studentAPI.POST("/assignments/submit", handler.SubmitStudentAssignment(db, storageService))
+	studentAPI.GET("/quizzes/:id", handler.GetStudentQuiz(db))
+	studentAPI.POST("/quizzes/submit", handler.SubmitStudentQuiz(db))
+
 	// --- ENGLISH DAILY QUEST ROUTES ---
 	studentPages.GET("/english", serveStudentPage("app.html"))
 
@@ -452,11 +550,23 @@ func RegisterRoutes(e *echo.Echo, db *sql.DB, viewsFS fs.FS, app AppHandlers) {
 	admin.GET("/english/leaderboard", handler.GetEnglishLeaderboard(db))
 	admin.GET("/english/progress", handler.GetEnglishProgressReport(db))
 
-	// AI Settings
+	// AI Settings (Both /admin/ai and /api/ai aliases)
 	admin.GET("/ai/settings", handler.GetAISettings(db))
 	admin.POST("/ai/settings", handler.UpdateAISettings(db))
+	admin.GET("/ai/test", handler.TestAIConnection(db))
 	admin.POST("/ai/test", handler.TestAIConnection(db))
+	admin.GET("/ai/models", handler.GetAIModels(db))
+	admin.POST("/ai/models", handler.GetAIModels(db))
 	admin.POST("/ai/generate-quest", handler.GenerateAIQuest(db))
+
+	aiAPI := e.Group("/api/ai", appMiddleware.AdminAuth())
+	aiAPI.GET("/settings", handler.GetAISettings(db))
+	aiAPI.POST("/settings", handler.UpdateAISettings(db))
+	aiAPI.GET("/test", handler.TestAIConnection(db))
+	aiAPI.POST("/test", handler.TestAIConnection(db))
+	aiAPI.GET("/models", handler.GetAIModels(db))
+	aiAPI.POST("/models", handler.GetAIModels(db))
+	aiAPI.POST("/generate-quest", handler.GenerateAIQuest(db))
 
 	// Backup & Restore
 	admin.GET("/backup", handler.BackupDatabase(db))

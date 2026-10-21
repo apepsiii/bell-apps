@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGradSci" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#082f49" />
+      <stop offset="50%" stop-color="#0c4a6e" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+    <radialGradient id="sciGlow" cx="75%" cy="30%" r="50%">
+      <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#082f49" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <rect width="800" height="400" fill="url(#bgGradSci)" />
+  <circle cx="620" cy="120" r="260" fill="url(#sciGlow)" />
+
+  <g transform="translate(620, 200)" fill="none" stroke="#38bdf8" stroke-width="3" opacity="0.75">
+    <circle cx="0" cy="0" r="16" fill="#38bdf8" />
+    <ellipse cx="0" cy="0" rx="100" ry="40" stroke-dasharray="8 4" transform="rotate(30)" />
+    <circle cx="75" cy="40" r="6" fill="#67e8f9" />
+    <ellipse cx="0" cy="0" rx="100" ry="40" stroke-dasharray="8 4" transform="rotate(-30)" />
+    <circle cx="-60" cy="45" r="6" fill="#67e8f9" />
+    <ellipse cx="0" cy="0" rx="100" ry="40" stroke-dasharray="8 4" transform="rotate(90)" />
+    <circle cx="0" cy="-40" r="6" fill="#67e8f9" />
+  </g>
+
+  <g fill="#bae6fd" opacity="0.3" font-family="sans-serif" font-weight="bold">
+    <text x="70" y="100" font-size="36">H₂O + CO₂</text>
+    <text x="240" y="80" font-size="32">E = mc²</text>
+    <text x="120" y="320" font-size="40">DNA / RNA</text>
+    <text x="360" y="330" font-size="28">pH ≈ 7.4 • Joule</text>
+  </g>
+</svg>
+

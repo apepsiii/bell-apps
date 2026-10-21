@@ -299,6 +299,30 @@ func runSQLiteMigrations(db *sql.DB) {
 			FOREIGN KEY (student_id) REFERENCES students(id)
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_student_sessions_expires ON student_sessions(expires_at)`,
+		`CREATE TABLE IF NOT EXISTS parent_sessions (
+			token TEXT PRIMARY KEY,
+			parent_phone TEXT NOT NULL,
+			parent_name TEXT DEFAULT '',
+			student_id INTEGER NOT NULL,
+			expires_at DATETIME NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (student_id) REFERENCES students(id)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_parent_sessions_expires ON parent_sessions(expires_at)`,
+		`CREATE TABLE IF NOT EXISTS magic_login_tokens (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			token TEXT NOT NULL UNIQUE,
+			request_code TEXT NOT NULL UNIQUE,
+			phone TEXT DEFAULT '',
+			user_type TEXT DEFAULT '',
+			user_id INTEGER DEFAULT 0,
+			status TEXT DEFAULT 'pending',
+			session_token TEXT DEFAULT '',
+			expires_at DATETIME NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_magic_tokens_code ON magic_login_tokens(request_code)`,
+		`CREATE INDEX IF NOT EXISTS idx_magic_tokens_token ON magic_login_tokens(token)`,
 		`CREATE TABLE IF NOT EXISTS operator_sessions (
 			token TEXT PRIMARY KEY,
 			operator_id INTEGER NOT NULL,
@@ -718,6 +742,153 @@ func runSQLiteMigrations(db *sql.DB) {
 			FOREIGN KEY (expected_location_id) REFERENCES asset_locations(id),
 			FOREIGN KEY (actual_location_id) REFERENCES asset_locations(id)
 		)`,
+		`CREATE TABLE IF NOT EXISTS subjects (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			code TEXT NOT NULL UNIQUE,
+			name TEXT NOT NULL,
+			major_id INTEGER,
+			category TEXT DEFAULT 'muatan_kejuruan',
+			banner_url TEXT DEFAULT '',
+			is_active INTEGER DEFAULT 1,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (major_id) REFERENCES majors(id) ON DELETE SET NULL
+		)`,
+		`CREATE TABLE IF NOT EXISTS teacher_assignments (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			staff_id INTEGER NOT NULL,
+			subject_id INTEGER NOT NULL,
+			class_id INTEGER NOT NULL,
+			academic_year TEXT DEFAULT '2026/2027',
+			semester INTEGER DEFAULT 1,
+			banner_url TEXT DEFAULT '',
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (staff_id) REFERENCES staff(id) ON DELETE CASCADE,
+			FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
+			FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+			UNIQUE(staff_id, subject_id, class_id, academic_year, semester)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_ta_staff ON teacher_assignments(staff_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_ta_class ON teacher_assignments(class_id)`,
+		`CREATE TABLE IF NOT EXISTS teacher_sessions (
+			token TEXT PRIMARY KEY,
+			staff_id INTEGER NOT NULL,
+			expires_at DATETIME NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (staff_id) REFERENCES staff(id) ON DELETE CASCADE
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_teacher_sessions_expires ON teacher_sessions(expires_at)`,
+		`CREATE TABLE IF NOT EXISTS lms_meetings (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			assignment_id INTEGER NOT NULL,
+			meeting_order INTEGER NOT NULL,
+			title TEXT NOT NULL,
+			description TEXT DEFAULT '',
+			meeting_date DATE NOT NULL,
+			is_published INTEGER DEFAULT 1,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (assignment_id) REFERENCES teacher_assignments(id) ON DELETE CASCADE
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_lms_meetings_assignment ON lms_meetings(assignment_id)`,
+		`CREATE TABLE IF NOT EXISTS lms_attendances (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			meeting_id INTEGER NOT NULL,
+			student_id INTEGER NOT NULL,
+			status TEXT DEFAULT 'H',
+			notes TEXT DEFAULT '',
+			marked_by_staff_id INTEGER,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (meeting_id) REFERENCES lms_meetings(id) ON DELETE CASCADE,
+			FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+			FOREIGN KEY (marked_by_staff_id) REFERENCES staff(id) ON DELETE SET NULL,
+			UNIQUE(meeting_id, student_id)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_lms_attendances_meeting ON lms_attendances(meeting_id)`,
+		`CREATE TABLE IF NOT EXISTS lms_materials (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			meeting_id INTEGER NOT NULL,
+			title TEXT NOT NULL,
+			type TEXT NOT NULL,
+			content_url TEXT DEFAULT '',
+			file_key TEXT DEFAULT '',
+			file_size INTEGER DEFAULT 0,
+			text_content TEXT DEFAULT '',
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (meeting_id) REFERENCES lms_meetings(id) ON DELETE CASCADE
+		)`,
+		`CREATE TABLE IF NOT EXISTS lms_assignments (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			meeting_id INTEGER NOT NULL,
+			title TEXT NOT NULL,
+			instructions TEXT DEFAULT '',
+			allowed_type TEXT DEFAULT 'any',
+			due_date DATETIME,
+			max_points INTEGER DEFAULT 100,
+			is_active INTEGER DEFAULT 1,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (meeting_id) REFERENCES lms_meetings(id) ON DELETE CASCADE
+		)`,
+		`CREATE TABLE IF NOT EXISTS lms_submissions (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			assignment_id INTEGER NOT NULL,
+			student_id INTEGER NOT NULL,
+			submission_type TEXT DEFAULT 'file',
+			file_url TEXT DEFAULT '',
+			file_key TEXT DEFAULT '',
+			link_url TEXT DEFAULT '',
+			text_content TEXT DEFAULT '',
+			submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			is_late INTEGER DEFAULT 0,
+			score REAL,
+			feedback TEXT DEFAULT '',
+			graded_by INTEGER,
+			graded_at DATETIME,
+			FOREIGN KEY (assignment_id) REFERENCES lms_assignments(id) ON DELETE CASCADE,
+			FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+			FOREIGN KEY (graded_by) REFERENCES staff(id) ON DELETE SET NULL,
+			UNIQUE(assignment_id, student_id)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_lms_submissions_assignment ON lms_submissions(assignment_id)`,
+		`CREATE TABLE IF NOT EXISTS lms_quizzes (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			meeting_id INTEGER NOT NULL,
+			title TEXT NOT NULL,
+			description TEXT DEFAULT '',
+			time_limit_minutes INTEGER DEFAULT 30,
+			passing_score REAL DEFAULT 75.0,
+			is_active INTEGER DEFAULT 1,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (meeting_id) REFERENCES lms_meetings(id) ON DELETE CASCADE
+		)`,
+		`CREATE TABLE IF NOT EXISTS lms_quiz_questions (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			quiz_id INTEGER NOT NULL,
+			question_text TEXT NOT NULL,
+			question_image TEXT DEFAULT '',
+			points INTEGER DEFAULT 10,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (quiz_id) REFERENCES lms_quizzes(id) ON DELETE CASCADE
+		)`,
+		`CREATE TABLE IF NOT EXISTS lms_quiz_options (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			question_id INTEGER NOT NULL,
+			option_text TEXT NOT NULL,
+			is_correct INTEGER DEFAULT 0,
+			FOREIGN KEY (question_id) REFERENCES lms_quiz_questions(id) ON DELETE CASCADE
+		)`,
+		`CREATE TABLE IF NOT EXISTS lms_quiz_attempts (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			quiz_id INTEGER NOT NULL,
+			student_id INTEGER NOT NULL,
+			started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			completed_at DATETIME,
+			score REAL DEFAULT 0,
+			total_correct INTEGER DEFAULT 0,
+			is_passed INTEGER DEFAULT 0,
+			FOREIGN KEY (quiz_id) REFERENCES lms_quizzes(id) ON DELETE CASCADE,
+			FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+			UNIQUE(quiz_id, student_id)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_lms_quiz_attempts_quiz ON lms_quiz_attempts(quiz_id)`,
 	}
 	for _, ddl := range schema {
 		if _, err := db.Exec(ddl); err != nil {
@@ -757,6 +928,10 @@ func runSQLiteMigrations(db *sql.DB) {
 		{"student_violation_points", "deleted_by", "ALTER TABLE student_violation_points ADD COLUMN deleted_by TEXT"},
 		{"student_violation_points", "deletion_reason", "ALTER TABLE student_violation_points ADD COLUMN deletion_reason TEXT"},
 		{"staff", "gender", "ALTER TABLE staff ADD COLUMN gender TEXT DEFAULT 'L'"},
+		{"staff", "password", "ALTER TABLE staff ADD COLUMN password TEXT DEFAULT ''"},
+		{"students", "phone", "ALTER TABLE students ADD COLUMN phone TEXT DEFAULT ''"},
+		{"subjects", "banner_url", "ALTER TABLE subjects ADD COLUMN banner_url TEXT DEFAULT ''"},
+		{"teacher_assignments", "banner_url", "ALTER TABLE teacher_assignments ADD COLUMN banner_url TEXT DEFAULT ''"},
 	}
 
 	for _, m := range migrations {
@@ -857,6 +1032,27 @@ func runMySQLMigrations(db *sql.DB) {
 			expires_at DATETIME NOT NULL,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			FOREIGN KEY (student_id) REFERENCES students(id)
+		)`,
+		`CREATE TABLE IF NOT EXISTS parent_sessions (
+			token VARCHAR(64) PRIMARY KEY,
+			parent_phone VARCHAR(30) NOT NULL,
+			parent_name VARCHAR(255) DEFAULT '',
+			student_id INT NOT NULL,
+			expires_at DATETIME NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (student_id) REFERENCES students(id)
+		)`,
+		`CREATE TABLE IF NOT EXISTS magic_login_tokens (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			token VARCHAR(64) NOT NULL UNIQUE,
+			request_code VARCHAR(32) NOT NULL UNIQUE,
+			phone VARCHAR(30) DEFAULT '',
+			user_type VARCHAR(20) DEFAULT '',
+			user_id INT DEFAULT 0,
+			status VARCHAR(20) DEFAULT 'pending',
+			session_token VARCHAR(64) DEFAULT '',
+			expires_at DATETIME NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		)`,
 		`CREATE TABLE IF NOT EXISTS operator_sessions (
 			token VARCHAR(64) PRIMARY KEY,
@@ -1280,6 +1476,146 @@ func runMySQLMigrations(db *sql.DB) {
 			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
 		)`,
+		`CREATE TABLE IF NOT EXISTS subjects (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			code VARCHAR(50) NOT NULL UNIQUE,
+			name VARCHAR(255) NOT NULL,
+			major_id INT,
+			category VARCHAR(50) DEFAULT 'muatan_kejuruan',
+			banner_url VARCHAR(500) DEFAULT '',
+			is_active TINYINT DEFAULT 1,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (major_id) REFERENCES majors(id) ON DELETE SET NULL
+		)`,
+		`CREATE TABLE IF NOT EXISTS teacher_assignments (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			staff_id INT NOT NULL,
+			subject_id INT NOT NULL,
+			class_id INT NOT NULL,
+			academic_year VARCHAR(20) DEFAULT '2026/2027',
+			semester INT DEFAULT 1,
+			banner_url VARCHAR(500) DEFAULT '',
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (staff_id) REFERENCES staff(id) ON DELETE CASCADE,
+			FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
+			FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+			UNIQUE KEY uq_teacher_assignment (staff_id, subject_id, class_id, academic_year, semester)
+		)`,
+		`CREATE TABLE IF NOT EXISTS teacher_sessions (
+			token VARCHAR(255) PRIMARY KEY,
+			staff_id INT NOT NULL,
+			expires_at DATETIME NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (staff_id) REFERENCES staff(id) ON DELETE CASCADE
+		)`,
+		`CREATE TABLE IF NOT EXISTS lms_meetings (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			assignment_id INT NOT NULL,
+			meeting_order INT NOT NULL,
+			title VARCHAR(255) NOT NULL,
+			description TEXT,
+			meeting_date DATE NOT NULL,
+			is_published TINYINT DEFAULT 1,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (assignment_id) REFERENCES teacher_assignments(id) ON DELETE CASCADE
+		)`,
+		`CREATE TABLE IF NOT EXISTS lms_attendances (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			meeting_id INT NOT NULL,
+			student_id INT NOT NULL,
+			status VARCHAR(10) DEFAULT 'H',
+			notes TEXT,
+			marked_by_staff_id INT,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (meeting_id) REFERENCES lms_meetings(id) ON DELETE CASCADE,
+			FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+			FOREIGN KEY (marked_by_staff_id) REFERENCES staff(id) ON DELETE SET NULL,
+			UNIQUE KEY uq_lms_attendance (meeting_id, student_id)
+		)`,
+		`CREATE TABLE IF NOT EXISTS lms_materials (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			meeting_id INT NOT NULL,
+			title VARCHAR(255) NOT NULL,
+			type VARCHAR(50) NOT NULL,
+			content_url TEXT,
+			file_key VARCHAR(255) DEFAULT '',
+			file_size BIGINT DEFAULT 0,
+			text_content LONGTEXT,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (meeting_id) REFERENCES lms_meetings(id) ON DELETE CASCADE
+		)`,
+		`CREATE TABLE IF NOT EXISTS lms_assignments (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			meeting_id INT NOT NULL,
+			title VARCHAR(255) NOT NULL,
+			instructions LONGTEXT,
+			allowed_type VARCHAR(50) DEFAULT 'any',
+			due_date DATETIME,
+			max_points INT DEFAULT 100,
+			is_active TINYINT DEFAULT 1,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (meeting_id) REFERENCES lms_meetings(id) ON DELETE CASCADE
+		)`,
+		`CREATE TABLE IF NOT EXISTS lms_submissions (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			assignment_id INT NOT NULL,
+			student_id INT NOT NULL,
+			submission_type VARCHAR(50) DEFAULT 'file',
+			file_url TEXT,
+			file_key VARCHAR(255) DEFAULT '',
+			link_url TEXT,
+			text_content LONGTEXT,
+			submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			is_late TINYINT DEFAULT 0,
+			score FLOAT,
+			feedback TEXT,
+			graded_by INT,
+			graded_at DATETIME,
+			FOREIGN KEY (assignment_id) REFERENCES lms_assignments(id) ON DELETE CASCADE,
+			FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+			FOREIGN KEY (graded_by) REFERENCES staff(id) ON DELETE SET NULL,
+			UNIQUE KEY uq_lms_submission (assignment_id, student_id)
+		)`,
+		`CREATE TABLE IF NOT EXISTS lms_quizzes (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			meeting_id INT NOT NULL,
+			title VARCHAR(255) NOT NULL,
+			description TEXT,
+			time_limit_minutes INT DEFAULT 30,
+			passing_score FLOAT DEFAULT 75.0,
+			is_active TINYINT DEFAULT 1,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (meeting_id) REFERENCES lms_meetings(id) ON DELETE CASCADE
+		)`,
+		`CREATE TABLE IF NOT EXISTS lms_quiz_questions (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			quiz_id INT NOT NULL,
+			question_text TEXT NOT NULL,
+			question_image VARCHAR(255) DEFAULT '',
+			points INT DEFAULT 10,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (quiz_id) REFERENCES lms_quizzes(id) ON DELETE CASCADE
+		)`,
+		`CREATE TABLE IF NOT EXISTS lms_quiz_options (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			question_id INT NOT NULL,
+			option_text TEXT NOT NULL,
+			is_correct TINYINT DEFAULT 0,
+			FOREIGN KEY (question_id) REFERENCES lms_quiz_questions(id) ON DELETE CASCADE
+		)`,
+		`CREATE TABLE IF NOT EXISTS lms_quiz_attempts (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			quiz_id INT NOT NULL,
+			student_id INT NOT NULL,
+			started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			completed_at DATETIME,
+			score FLOAT DEFAULT 0,
+			total_correct INT DEFAULT 0,
+			is_passed TINYINT DEFAULT 0,
+			FOREIGN KEY (quiz_id) REFERENCES lms_quizzes(id) ON DELETE CASCADE,
+			FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+			UNIQUE KEY uq_lms_quiz_attempt (quiz_id, student_id)
+		)`,
 	}
 	for _, ddl := range schema {
 		if _, err := db.Exec(ddl); err != nil {
@@ -1319,6 +1655,10 @@ func runMySQLMigrations(db *sql.DB) {
 		{"student_violation_points", "deleted_by", "ALTER TABLE student_violation_points ADD COLUMN deleted_by VARCHAR(100)"},
 		{"student_violation_points", "deletion_reason", "ALTER TABLE student_violation_points ADD COLUMN deletion_reason TEXT"},
 		{"staff", "gender", "ALTER TABLE staff ADD COLUMN gender VARCHAR(10) DEFAULT 'L'"},
+		{"staff", "password", "ALTER TABLE staff ADD COLUMN password VARCHAR(255) DEFAULT ''"},
+		{"students", "phone", "ALTER TABLE students ADD COLUMN phone VARCHAR(30) DEFAULT ''"},
+		{"subjects", "banner_url", "ALTER TABLE subjects ADD COLUMN banner_url VARCHAR(500) DEFAULT ''"},
+		{"teacher_assignments", "banner_url", "ALTER TABLE teacher_assignments ADD COLUMN banner_url VARCHAR(500) DEFAULT ''"},
 	}
 
 	for _, m := range migrations {
@@ -1351,6 +1691,7 @@ func seedSQLiteData(db *sql.DB) {
 	db.Exec("INSERT INTO attendance_settings VALUES (?, ?)", "onesender_api_token", "")
 	db.Exec("INSERT INTO attendance_settings VALUES (?, ?)", "onesender_username", "")
 	db.Exec("INSERT INTO attendance_settings VALUES (?, ?)", "onesender_device_id", "")
+	db.Exec("INSERT INTO attendance_settings VALUES (?, ?)", "school_wa_phone", "")
 	db.Exec("INSERT INTO attendance_settings VALUES (?, ?)", "wa_template_in", "Halo, Ananda {name} telah hadir di sekolah pada pukul {time}. Status: {status}.")
 	db.Exec("INSERT INTO attendance_settings VALUES (?, ?)", "wa_template_late", "Halo, Ananda {name} terlambat hadir di sekolah pada pukul {time}.")
 	db.Exec("INSERT INTO attendance_settings VALUES (?, ?)", "wa_template_out", "Halo, Ananda {name} telah pulang sekolah pada pukul {time}.")
@@ -1381,6 +1722,7 @@ func seedMySQLData(db *sql.DB) {
 	db.Exec("INSERT IGNORE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "onesender_api_token", "")
 	db.Exec("INSERT IGNORE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "onesender_username", "")
 	db.Exec("INSERT IGNORE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "onesender_device_id", "")
+	db.Exec("INSERT IGNORE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "school_wa_phone", "")
 	db.Exec("INSERT IGNORE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "wa_template_in", "Halo, Ananda {name} telah hadir di sekolah pada pukul {time}. Status: {status}.")
 	db.Exec("INSERT IGNORE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "wa_template_late", "Halo, Ananda {name} terlambat hadir di sekolah pada pukul {time}.")
 	db.Exec("INSERT IGNORE INTO attendance_settings (setting_key, setting_value) VALUES (?, ?)", "wa_template_out", "Halo, Ananda {name} telah pulang sekolah pada pukul {time}.")

@@ -75,7 +75,7 @@ func setupTestApp(t *testing.T) (*TestApp, func()) {
 
 	teardown := func() {
 		db.Close()
-		os.RemoveAll("./public")
+		os.RemoveAll(config.GetUploadPath())
 	}
 	return app, teardown
 }

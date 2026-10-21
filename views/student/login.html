@@ -170,6 +170,41 @@
                 transform: none;
             }
 
+            .btn-whatsapp {
+                width: 100%;
+                background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+                color: #FFFFFF;
+                border: none;
+                border-radius: 18px;
+                padding: 15px;
+                font-size: 15px;
+                font-weight: 700;
+                font-family: 'Inter', sans-serif;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+                box-shadow: 0 10px 25px -4px rgba(16, 185, 129, 0.45);
+                text-decoration: none;
+            }
+
+            .btn-whatsapp:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 14px 28px -4px rgba(16, 185, 129, 0.55);
+            }
+
+            .btn-whatsapp:active {
+                transform: scale(0.98);
+            }
+
+            .btn-whatsapp:disabled {
+                opacity: 0.65;
+                cursor: not-allowed;
+                transform: none;
+            }
+
             .shake {
                 animation: shake 0.35s ease;
             }
@@ -217,15 +252,20 @@
                     </p>
                 </div>
 
-                <!-- Segmented Control Tabs (Sign In / Panduan PIN) -->
-                <div class="bg-slate-100/90 p-1 rounded-2xl flex items-center mb-7 border border-slate-200/60">
+                <!-- Segmented Control Tabs (Sign In / WhatsApp / Panduan PIN) -->
+                <div class="bg-slate-100/90 p-1 rounded-2xl flex items-center mb-6 border border-slate-200/60">
                     <button type="button" id="tabSignIn" onclick="switchLoginTab('signin')"
-                        class="flex-1 py-2.5 text-xs font-bold rounded-xl bg-white text-slate-900 shadow-xs transition-all text-center">
-                        Sign In
+                        class="flex-1 py-2 text-xs font-bold rounded-xl bg-white text-slate-900 shadow-xs transition-all text-center">
+                        NIS & PIN
+                    </button>
+                    <button type="button" id="tabWhatsApp" onclick="switchLoginTab('whatsapp')"
+                        class="flex-1 py-2 text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition-all text-center flex items-center justify-center gap-1">
+                        <i class="ph-fill ph-whatsapp-logo text-sm text-emerald-500"></i>
+                        <span>WhatsApp</span>
                     </button>
                     <button type="button" id="tabInfo" onclick="switchLoginTab('info')"
-                        class="flex-1 py-2.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-all text-center">
-                        Panduan PIN
+                        class="flex-1 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-all text-center">
+                        Panduan
                     </button>
                 </div>
 
@@ -280,14 +320,94 @@
 
                     <!-- Bottom Helper Link -->
                     <div class="text-center mt-6">
-                        <button type="button" onclick="switchLoginTab('info')"
-                            class="text-xs font-semibold text-purple-600 hover:text-purple-700 transition-colors">
-                            Lupa PIN atau butuh bantuan? Lihat panduan
+                        <button type="button" onclick="switchLoginTab('whatsapp')"
+                            class="text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition-colors flex items-center justify-center gap-1 mx-auto">
+                            <i class="ph-fill ph-whatsapp-logo text-sm"></i>
+                            <span>Orang tua atau lupa PIN? Masuk via WhatsApp</span>
                         </button>
                     </div>
                 </div>
 
-                <!-- Tab Content 2: Info & Panduan Akun -->
+                <!-- Tab Content 2: WhatsApp Reverse OTP (Magic Link) -->
+                <div id="sectionWhatsApp" class="hidden py-1">
+                    <div class="mb-4">
+                        <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-bold border border-emerald-200/60 mb-2">
+                            <i class="ph-fill ph-lightning text-xs"></i>
+                            <span>Magic Link Instan</span>
+                        </div>
+                        <h2 class="text-sm font-bold text-slate-900 tracking-tight">Masuk Cepat via WhatsApp</h2>
+                        <p class="text-xs text-slate-400 font-medium mt-0.5">
+                            Bagi Orang Tua & Siswa. Verifikasi praktis tanpa password.
+                        </p>
+                    </div>
+
+                    <!-- Error Alert Box for WA -->
+                    <div id="waErrorBox" class="hidden bg-rose-50 border border-rose-200 rounded-2xl p-3 mb-4 items-center gap-2.5">
+                        <i class="ph-bold ph-warning-circle text-rose-500 text-base flex-shrink-0"></i>
+                        <span id="waErrorText" class="text-xs text-rose-700 font-semibold leading-tight"></span>
+                    </div>
+
+                    <!-- State 1: Request Initializer -->
+                    <div id="waStateInit">
+                        <div class="space-y-2.5 mb-5">
+                            <div class="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                                <span class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center justify-center flex-shrink-0">1</span>
+                                <p class="text-[11px] text-slate-600">Klik tombol di bawah untuk membuat tiket verifikasi.</p>
+                            </div>
+                            <div class="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                                <span class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center justify-center flex-shrink-0">2</span>
+                                <p class="text-[11px] text-slate-600">Aplikasi WhatsApp akan terbuka dengan pesan siap kirim.</p>
+                            </div>
+                            <div class="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                                <span class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center justify-center flex-shrink-0">3</span>
+                                <p class="text-[11px] text-slate-600">Kirim pesan, dan halaman ini akan langsung otomatis masuk!</p>
+                            </div>
+                        </div>
+
+                        <button type="button" id="btnRequestMagic" onclick="startMagicLogin()" class="btn-whatsapp">
+                            <i class="ph-fill ph-whatsapp-logo text-xl"></i>
+                            <span id="reqMagicBtnText">Minta Kode Masuk WhatsApp</span>
+                            <span id="reqMagicSpinner" class="spinner" style="display:none;"></span>
+                        </button>
+                    </div>
+
+                    <!-- State 2: Active Request Waiting -->
+                    <div id="waStateActive" class="hidden">
+                        <div class="bg-purple-50/70 border-2 border-dashed border-purple-200 rounded-2xl p-4 text-center mb-3">
+                            <span class="text-[10px] font-bold text-purple-700 tracking-wider uppercase block mb-1">Kode Tiket Verifikasi Anda</span>
+                            <div class="flex items-center justify-center gap-2">
+                                <span id="magicDisplayCode" class="font-mono text-2xl font-black text-slate-900 tracking-wider">------</span>
+                                <button type="button" onclick="copyMagicCode()" title="Salin Kode" class="p-1.5 rounded-xl bg-white border border-purple-200 hover:bg-purple-100 text-purple-700 transition-all flex items-center justify-center shadow-xs">
+                                    <i class="ph ph-copy text-base" id="magicCopyIcon"></i>
+                                </button>
+                            </div>
+                            <p class="text-[11px] text-slate-500 mt-1">
+                                Pesan yang dikirim: <strong id="magicMsgPreview" class="text-purple-900 font-mono">LOGIN ------</strong>
+                            </p>
+                        </div>
+
+                        <a id="btnOpenWhatsApp" href="#" target="_blank" class="btn-whatsapp mb-3">
+                            <i class="ph-fill ph-whatsapp-logo text-xl"></i>
+                            <span>Buka WhatsApp & Kirim Pesan</span>
+                        </a>
+
+                        <div class="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-2 text-xs text-slate-600">
+                                <span id="waStatusPulse" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                <span id="waPollingStatusText">Menunggu pesan dikirim...</span>
+                            </div>
+                            <span id="waCountdownTimer" class="font-mono text-xs font-bold text-purple-700">10:00</span>
+                        </div>
+
+                        <div class="text-center">
+                            <button type="button" onclick="resetMagicLogin()" class="text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors">
+                                Batal / Minta Kode Baru
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Content 3: Info & Panduan Akun -->
                 <div id="sectionInfo" class="hidden py-1">
                     <div class="bg-purple-50/70 border border-purple-100 rounded-2xl p-4 mb-4">
                         <div class="flex items-start gap-3">
@@ -335,28 +455,183 @@
         </div>
 
         <script>
-            // Tab Switcher between Sign In & Info
+            // Tab Switcher between Sign In, WhatsApp & Info
             function switchLoginTab(tab) {
                 const secSignIn = document.getElementById('sectionSignIn');
+                const secWhatsApp = document.getElementById('sectionWhatsApp');
                 const secInfo = document.getElementById('sectionInfo');
                 const tabSignIn = document.getElementById('tabSignIn');
+                const tabWhatsApp = document.getElementById('tabWhatsApp');
                 const tabInfo = document.getElementById('tabInfo');
+
+                const inactiveClass = "flex-1 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-all text-center";
+                const activeClass = "flex-1 py-2 text-xs font-bold rounded-xl bg-white text-slate-900 shadow-xs transition-all text-center";
+                const activeWaClass = "flex-1 py-2 text-xs font-bold rounded-xl bg-white text-emerald-700 shadow-xs transition-all text-center flex items-center justify-center gap-1";
+                const inactiveWaClass = "flex-1 py-2 text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition-all text-center flex items-center justify-center gap-1";
+
+                secSignIn.classList.add('hidden');
+                secWhatsApp.classList.add('hidden');
+                secInfo.classList.add('hidden');
+
+                tabSignIn.className = inactiveClass;
+                tabWhatsApp.className = inactiveWaClass;
+                tabInfo.className = inactiveClass;
 
                 if (tab === 'signin') {
                     secSignIn.classList.remove('hidden');
-                    secInfo.classList.add('hidden');
-                    tabSignIn.className = "flex-1 py-2.5 text-xs font-bold rounded-xl bg-white text-slate-900 shadow-xs transition-all text-center";
-                    tabInfo.className = "flex-1 py-2.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-all text-center";
+                    tabSignIn.className = activeClass;
                     document.getElementById('nis').focus();
+                } else if (tab === 'whatsapp') {
+                    secWhatsApp.classList.remove('hidden');
+                    tabWhatsApp.className = activeWaClass;
                 } else {
-                    secSignIn.classList.add('hidden');
                     secInfo.classList.remove('hidden');
-                    tabInfo.className = "flex-1 py-2.5 text-xs font-bold rounded-xl bg-white text-slate-900 shadow-xs transition-all text-center";
-                    tabSignIn.className = "flex-1 py-2.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-all text-center";
+                    tabInfo.className = activeClass;
                 }
             }
 
-            // Form Logic
+            // WhatsApp Magic Login State & Polling
+            let activeMagicCode = null;
+            let magicPollInterval = null;
+            let magicTimerInterval = null;
+            let magicTimeLeft = 600;
+
+            async function startMagicLogin() {
+                hideWaError();
+                const btn = document.getElementById('btnRequestMagic');
+                const btnText = document.getElementById('reqMagicBtnText');
+                const spinner = document.getElementById('reqMagicSpinner');
+
+                btn.disabled = true;
+                btnText.textContent = "Menghubungi...";
+                spinner.style.display = 'block';
+
+                try {
+                    const r = await fetch('/api/auth/magic-request', { method: 'POST' });
+                    const d = await r.json();
+
+                    if (r.ok && d.status === 'success') {
+                        activeMagicCode = d.request_code;
+                        magicTimeLeft = d.expires_in || 600;
+
+                        document.getElementById('magicDisplayCode').textContent = d.request_code;
+                        document.getElementById('magicMsgPreview').textContent = d.message_text || ('LOGIN ' + d.request_code);
+                        
+                        const openWaBtn = document.getElementById('btnOpenWhatsApp');
+                        if (d.wa_url) {
+                            openWaBtn.href = d.wa_url;
+                            openWaBtn.target = "_blank";
+                            openWaBtn.style.display = "flex";
+                        } else {
+                            openWaBtn.href = "https://wa.me/?text=" + encodeURIComponent(d.message_text || ('LOGIN ' + d.request_code));
+                        }
+
+                        document.getElementById('waStateInit').classList.add('hidden');
+                        document.getElementById('waStateActive').classList.remove('hidden');
+
+                        startMagicCountdown();
+                        startMagicPolling(d.request_code);
+                    } else {
+                        showWaError(d.message || "Gagal membuat kode masuk WhatsApp.");
+                    }
+                } catch (e) {
+                    showWaError("Tidak dapat terhubung ke server. Periksa koneksi internet Anda.");
+                } finally {
+                    btn.disabled = false;
+                    btnText.textContent = "Minta Kode Masuk WhatsApp";
+                    spinner.style.display = 'none';
+                }
+            }
+
+            function startMagicCountdown() {
+                clearInterval(magicTimerInterval);
+                const timerEl = document.getElementById('waCountdownTimer');
+
+                function updateTimer() {
+                    const m = Math.floor(magicTimeLeft / 60);
+                    const s = magicTimeLeft % 60;
+                    timerEl.textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+                    if (magicTimeLeft <= 0) {
+                        clearInterval(magicTimerInterval);
+                        clearInterval(magicPollInterval);
+                        showWaError("Waktu kode masuk telah habis. Silakan buat kode baru.");
+                        resetMagicLogin();
+                    }
+                    magicTimeLeft--;
+                }
+                updateTimer();
+                magicTimerInterval = setInterval(updateTimer, 1000);
+            }
+
+            function startMagicPolling(code) {
+                clearInterval(magicPollInterval);
+                const statusText = document.getElementById('waPollingStatusText');
+                const pulse = document.getElementById('waStatusPulse');
+
+                magicPollInterval = setInterval(async () => {
+                    try {
+                        const r = await fetch('/api/auth/magic-status?code=' + encodeURIComponent(code));
+                        const d = await r.json();
+
+                        if (d.status === 'verified') {
+                            clearInterval(magicPollInterval);
+                            clearInterval(magicTimerInterval);
+                            statusText.textContent = "Verifikasi berhasil! Mengalihkan...";
+                            pulse.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-bounce";
+                            setTimeout(() => {
+                                window.location.href = d.redirect_url || '/student/app';
+                            }, 500);
+                        } else if (d.status === 'expired') {
+                            clearInterval(magicPollInterval);
+                            clearInterval(magicTimerInterval);
+                            showWaError("Kode telah kadaluarsa. Buat kode baru.");
+                            resetMagicLogin();
+                        }
+                    } catch (e) {
+                        // Network jitter, continue polling quietly
+                    }
+                }, 2000);
+            }
+
+            function resetMagicLogin() {
+                clearInterval(magicPollInterval);
+                clearInterval(magicTimerInterval);
+                activeMagicCode = null;
+                document.getElementById('waStateActive').classList.add('hidden');
+                document.getElementById('waStateInit').classList.remove('hidden');
+            }
+
+            function copyMagicCode() {
+                if (!activeMagicCode) return;
+                const text = "LOGIN " + activeMagicCode;
+                navigator.clipboard.writeText(text).then(() => {
+                    const icon = document.getElementById('magicCopyIcon');
+                    icon.className = "ph-fill ph-check text-emerald-600";
+                    setTimeout(() => {
+                        icon.className = "ph ph-copy text-base";
+                    }, 2000);
+                }).catch(() => {
+                    prompt("Salin teks pesan berikut:", text);
+                });
+            }
+
+            function showWaError(msg) {
+                const b = document.getElementById('waErrorBox');
+                const t = document.getElementById('waErrorText');
+                t.textContent = msg;
+                b.classList.remove('hidden');
+                b.style.display = 'flex';
+                b.classList.remove('shake');
+                void b.offsetWidth;
+                b.classList.add('shake');
+            }
+            function hideWaError() {
+                const b = document.getElementById('waErrorBox');
+                b.classList.add('hidden');
+                b.style.display = 'none';
+            }
+
+            // Form Logic (NIS & PIN)
             const form = document.getElementById('loginForm');
             const nisEl = document.getElementById('nis');
             const pinEl = document.getElementById('pin');
@@ -366,7 +641,22 @@
             const btnText = document.getElementById('btnText');
             const btnSpinner = document.getElementById('btnSpinner');
 
-            window.addEventListener('load', () => nisEl.focus());
+            window.addEventListener('load', () => {
+                // Check if returning with magic link error
+                const params = new URLSearchParams(window.location.search);
+                const magicErr = params.get('magic_error');
+                if (magicErr) {
+                    switchLoginTab('whatsapp');
+                    let errMsg = "Tautan login cepat tidak valid.";
+                    if (magicErr === 'expired') errMsg = "Tautan login WhatsApp telah kadaluarsa. Silakan minta kode baru.";
+                    else if (magicErr === 'already_used') errMsg = "Tautan login ini sudah pernah digunakan demi keamanan.";
+                    else if (magicErr === 'not_verified') errMsg = "Kode login belum dikirimkan melalui WhatsApp.";
+                    else if (magicErr === 'server_error') errMsg = "Terjadi kendala server saat memproses login.";
+                    showWaError(errMsg);
+                } else {
+                    nisEl.focus();
+                }
+            });
 
             nisEl.addEventListener('input', () => {
                 nisEl.value = nisEl.value.replace(/[^0-9]/g, '');

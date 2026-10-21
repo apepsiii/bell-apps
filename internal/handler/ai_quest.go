@@ -28,6 +28,13 @@ func GenerateAIQuest(db *sql.DB) echo.HandlerFunc {
 			})
 		}
 
+		if err := validateAIBaseURL(baseURL); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"status":  "error",
+				"message": err.Error(),
+			})
+		}
+
 		if model == "" {
 			model = "gpt-4o-mini"
 		}
@@ -151,7 +158,8 @@ func callAIAPI(baseURL, apiKey, model, prompt string) (string, error) {
 	}
 
 	// Create HTTP request
-	req, err := http.NewRequest("POST", baseURL, bytes.NewBuffer(jsonData))
+	chatURL := resolveChatURL(baseURL)
+	req, err := http.NewRequest("POST", chatURL, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return "", err
 	}

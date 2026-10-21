@@ -2,6 +2,7 @@ package tests
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -336,4 +337,195 @@ func TestSEC12_API_Key_Masking_And_Preservation(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, newRawKey, dbKey, "Database should update to new raw key")
 }
+
+func TestAISettings_JSONPayload(t *testing.T) {
+	app, teardown := setupTestApp(t)
+	defer teardown()
+
+	e := echo.New()
+	updateHandler := handler.UpdateAISettings(app.DB)
+	getHandler := handler.GetAISettings(app.DB)
+
+	jsonPayload := `{"ai_base_url":"https://api.openai.com/v1","ai_api_key":"sk-1234567890abcdef","ai_model":"gpt-4o-mini"}`
+	req := httptest.NewRequest(http.MethodPost, "/admin/ai/settings", strings.NewReader(jsonPayload))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	err := updateHandler(c)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+
+	// Fetch settings
+	reqGet := httptest.NewRequest(http.MethodGet, "/admin/ai/settings", nil)
+	recGet := httptest.NewRecorder()
+	cGet := e.NewContext(reqGet, recGet)
+	err = getHandler(cGet)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, recGet.Code)
+
+	var res map[string]string
+	err = json.Unmarshal(recGet.Body.Bytes(), &res)
+	assert.NoError(t, err)
+	assert.Equal(t, "https://api.openai.com/v1", res["ai_base_url"])
+	assert.Equal(t, "gpt-4o-mini", res["ai_model"])
+	assert.True(t, strings.Contains(res["ai_api_key"], "****"))
+}
+
+func TestGetAIModels_OpenAIFormat(t *testing.T) {
+	app, teardown := setupTestApp(t)
+	defer teardown()
+
+	// Mock OpenAI API Server
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/v1/models", r.URL.Path)
+		assert.Equal(t, "Bearer test-sk-12345", r.Header.Get("Authorization"))
+
+		resp := map[string]interface{}{
+			"data": []map[string]string{
+				{"id": "gpt-4o-mini"},
+				{"id": "gpt-4o"},
+				{"id": "gpt-3.5-turbo"},
+			},
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	}))
+	defer mockServer.Close()
+
+	e := echo.New()
+	modelsHandler := handler.GetAIModels(app.DB)
+
+	payload := fmt.Sprintf(`{"ai_base_url":"%s/v1","ai_api_key":"test-sk-12345"}`, mockServer.URL)
+	req := httptest.NewRequest(http.MethodPost, "/admin/ai/models", strings.NewReader(payload))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	err := modelsHandler(c)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+
+	var res struct {
+		Status string   `json:"status"`
+		Ok     bool     `json:"ok"`
+		Models []string `json:"models"`
+		Count  int      `json:"count"`
+	}
+	err = json.Unmarshal(rec.Body.Bytes(), &res)
+	assert.NoError(t, err)
+	assert.True(t, res.Ok)
+	assert.Equal(t, "success", res.Status)
+	assert.Equal(t, 3, res.Count)
+	assert.Contains(t, res.Models, "gpt-4o")
+	assert.Contains(t, res.Models, "gpt-4o-mini")
+	assert.Contains(t, res.Models, "gpt-3.5-turbo")
+}
+
+func TestGetAIModels_OllamaFormat(t *testing.T) {
+	app, teardown := setupTestApp(t)
+	defer teardown()
+
+	// Mock Ollama API Server
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/models", r.URL.Path)
+
+		resp := map[string]interface{}{
+			"models": []map[string]string{
+				{"name": "llama3.2:1b"},
+				{"name": "qwen2.5:latest"},
+			},
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	}))
+	defer mockServer.Close()
+
+	e := echo.New()
+	modelsHandler := handler.GetAIModels(app.DB)
+
+	payload := fmt.Sprintf(`{"ai_base_url":"%s/api","ai_api_key":"ollama-key"}`, mockServer.URL)
+	req := httptest.NewRequest(http.MethodPost, "/admin/ai/models", strings.NewReader(payload))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	err := modelsHandler(c)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+
+	var res struct {
+		Status string   `json:"status"`
+		Ok     bool     `json:"ok"`
+		Models []string `json:"models"`
+		Count  int      `json:"count"`
+	}
+	err = json.Unmarshal(rec.Body.Bytes(), &res)
+	assert.NoError(t, err)
+	assert.True(t, res.Ok)
+	assert.Equal(t, 2, res.Count)
+	assert.Equal(t, []string{"llama3.2:1b", "qwen2.5:latest"}, res.Models)
+}
+
+func TestGetAIModels_SSRFProtection(t *testing.T) {
+	app, teardown := setupTestApp(t)
+	defer teardown()
+
+	e := echo.New()
+	modelsHandler := handler.GetAIModels(app.DB)
+
+	payload := `{"ai_base_url":"http://169.254.169.254/v1","ai_api_key":"test-key"}`
+	req := httptest.NewRequest(http.MethodPost, "/admin/ai/models", strings.NewReader(payload))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	err := modelsHandler(c)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Contains(t, rec.Body.String(), "metadata cloud dilarang")
+}
+
+func TestTestAIConnection_MockServer(t *testing.T) {
+	app, teardown := setupTestApp(t)
+	defer teardown()
+
+	// Mock OpenAI Chat Completions Server
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/v1/chat/completions", r.URL.Path)
+		assert.Equal(t, "Bearer test-sk-9999", r.Header.Get("Authorization"))
+
+		resp := map[string]interface{}{
+			"id":      "chatcmpl-test",
+			"object":  "chat.completion",
+			"choices": []map[string]interface{}{{"message": map[string]string{"role": "assistant", "content": "Hello"}}},
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	}))
+	defer mockServer.Close()
+
+	e := echo.New()
+	testHandler := handler.TestAIConnection(app.DB)
+
+	payload := fmt.Sprintf(`{"ai_base_url":"%s/v1","ai_api_key":"test-sk-9999","ai_model":"gpt-4o-mini"}`, mockServer.URL)
+	req := httptest.NewRequest(http.MethodPost, "/admin/ai/test", strings.NewReader(payload))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	err := testHandler(c)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+
+	var res struct {
+		Status string `json:"status"`
+		Ok     bool   `json:"ok"`
+	}
+	err = json.Unmarshal(rec.Body.Bytes(), &res)
+	assert.NoError(t, err)
+	assert.True(t, res.Ok)
+	assert.Equal(t, "success", res.Status)
+}
+
 

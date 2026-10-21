@@ -54,7 +54,8 @@ func StudentLogin(db *sql.DB) echo.HandlerFunc {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Terjadi kesalahan sistem"})
 		}
 
-		if status != "active" {
+		stLower := strings.ToLower(strings.TrimSpace(status))
+		if stLower != "active" && stLower != "aktif" && stLower != "" {
 			return c.JSON(http.StatusForbidden, map[string]string{"message": "Akun siswa nonaktif. Hubungi admin sekolah."})
 		}
 
@@ -109,6 +110,16 @@ func StudentLogout(db *sql.DB) echo.HandlerFunc {
 		if cookie, err := c.Cookie(StudentSessionCookie); err == nil {
 			db.Exec("DELETE FROM student_sessions WHERE token = ?", cookie.Value)
 			db.Exec("DELETE FROM attendance_settings WHERE setting_key = ?", studentSessionPrefix+cookie.Value)
+		}
+
+		if pCookie, err := c.Cookie(ParentSessionCookie); err == nil {
+			db.Exec("DELETE FROM parent_sessions WHERE token = ?", pCookie.Value)
+			c.SetCookie(&http.Cookie{
+				Name:   ParentSessionCookie,
+				Value:  "",
+				Path:   "/",
+				MaxAge: -1,
+			})
 		}
 
 		cookie := new(http.Cookie)
