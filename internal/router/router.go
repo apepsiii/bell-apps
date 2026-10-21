@@ -219,7 +219,7 @@ func RegisterRoutes(e *echo.Echo, db *sql.DB, viewsFS fs.FS, app AppHandlers) {
 	e.POST("/api/attendance/test-wa", handler.TestWA(db), appMiddleware.AdminAuth())
 
 	// --- ADMIN ROUTES ---
-	admin := e.Group("/admin", appMiddleware.AdminAuth(), appMiddleware.AdminRateLimiter())
+	admin := e.Group("/admin", appMiddleware.AdminAuth())
 	admin.GET("", app.DashboardHandler)
 	admin.GET("/dashboard", app.DashboardHandler)
 	admin.GET("/logout", handler.Logout())

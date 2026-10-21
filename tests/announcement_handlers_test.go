@@ -38,7 +38,7 @@ func setupTestApp(t *testing.T) (*App, func()) {
 	// Teardown function to close the database and clean up files
 	teardown := func() {
 		db.Close()
-		os.RemoveAll("./public")
+		os.RemoveAll(UploadPath)
 	}
 
 	return app, teardown
