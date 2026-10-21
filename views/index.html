@@ -159,13 +159,20 @@
             </a>
 
             <!-- Centered Nav Links -->
-            <nav class="hidden md:flex items-center gap-6 lg:gap-8 text-xs font-medium text-zinc-600 dark:text-zinc-400">
+            <nav class="hidden md:flex items-center gap-5 lg:gap-7 text-xs font-medium text-zinc-600 dark:text-zinc-400">
                 <a href="#features" class="hover:text-zinc-950 dark:hover:text-zinc-100 transition-colors">Fitur Utama</a>
+                <a href="/guru/login" class="hover:text-zinc-950 dark:hover:text-zinc-100 transition-colors flex items-center gap-1.5 font-semibold text-zinc-800 dark:text-zinc-200">
+                    <i data-lucide="graduation-cap" class="w-3.5 h-3.5 text-purple-600 dark:text-purple-400"></i>
+                    <span>Portal Guru</span>
+                </a>
+                <a href="/student/login" class="hover:text-zinc-950 dark:hover:text-zinc-100 transition-colors flex items-center gap-1.5 font-semibold text-zinc-800 dark:text-zinc-200">
+                    <i data-lucide="user-check" class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400"></i>
+                    <span>Portal Siswa</span>
+                </a>
                 <a href="#terminal-schedule" class="hover:text-zinc-950 dark:hover:text-zinc-100 transition-colors">Jadwal Bel</a>
                 <a href="/scan" class="hover:text-zinc-950 dark:hover:text-zinc-100 transition-colors">Kiosk RFID</a>
-                <a href="/scan-face" class="hover:text-zinc-950 dark:hover:text-zinc-100 transition-colors">AI Face Scan</a>
+                <a href="/scan-face" class="hover:text-zinc-950 dark:hover:text-zinc-100 transition-colors">Face AI</a>
                 <a href="#leaderboard-section" class="hover:text-zinc-950 dark:hover:text-zinc-100 transition-colors">Papan Prestasi</a>
-                <a href="/student/login" class="hover:text-zinc-950 dark:hover:text-zinc-100 transition-colors">Portal Siswa</a>
             </nav>
 
             <!-- Right Controls (Theme Toggle & Primary Action Pill) -->
@@ -207,17 +214,27 @@
                 Ekosistem bel sekolah otomatis, presensi biometrik nirsentuh, dan pembinaan karakter siswa berbasis teknologi modern.
             </p>
 
-            <!-- Center Pill CTA Button -->
-            <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <!-- Center Pill CTA Buttons -->
+            <div class="mt-6 flex flex-wrap items-center justify-center gap-2.5 sm:gap-3">
+                <a href="/guru/login"
+                    class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-zinc-950 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-zinc-200 text-xs font-semibold tracking-tight transition-all shadow-md hover:shadow-lg">
+                    <i data-lucide="graduation-cap" class="w-3.5 h-3.5"></i>
+                    <span>Portal Guru (KBM)</span>
+                </a>
+                <a href="/student/login"
+                    class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold tracking-tight transition-all shadow-md hover:shadow-lg">
+                    <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+                    <span>Portal Siswa</span>
+                </a>
                 <button type="button" onclick="startSystem()" id="hero-start-btn" aria-label="AKTIFKAN SISTEM"
-                    class="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-zinc-950 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-zinc-200 text-xs font-semibold tracking-tight transition-all shadow-md hover:shadow-lg">
+                    class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800 text-xs font-medium border border-zinc-200/80 dark:border-zinc-800 transition-all">
                     <i data-lucide="play" class="w-3.5 h-3.5 fill-current"></i>
-                    <span>Aktifkan Terminal & Bel</span><!-- AKTIFKAN SISTEM -->
+                    <span>Terminal Bel</span>
                 </button>
                 <a href="/scan"
-                    class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-850 text-xs font-medium border border-zinc-200/80 dark:border-zinc-800 transition-all">
+                    class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800 text-xs font-medium border border-zinc-200/80 dark:border-zinc-800 transition-all">
                     <i data-lucide="qr-code" class="w-3.5 h-3.5"></i>
-                    <span>Kiosk Presensi Siswa</span>
+                    <span>Kiosk Presensi</span>
                 </a>
             </div>
 
@@ -322,52 +339,52 @@
             </div>
 
             <!-- ========================================== -->
-            <!-- 4. BENTO FEATURE CARDS (3-Card Layout ala BloomFi) -->
+            <!-- 4. BENTO FEATURE CARDS -->
             <!-- ========================================== -->
             <div class="mt-10 sm:mt-12 grid grid-cols-1 lg:grid-cols-12 gap-5">
                 
-                <!-- Card 1: Wide Card (Light soft lavender / clean gradient) -->
+                <!-- Card 1: Wide Card - LMS & KBM Digital -->
                 <div class="lg:col-span-6 bg-gradient-to-br from-purple-50 via-zinc-50 to-white dark:from-zinc-900/90 dark:via-zinc-900/70 dark:to-zinc-950 border border-zinc-200/90 dark:border-zinc-800 rounded-3xl p-7 flex flex-col justify-between shadow-xs min-h-[220px]">
                     <div>
                         <div class="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 flex items-center justify-center mb-4">
-                            <i data-lucide="bell" class="w-4 h-4"></i>
+                            <i data-lucide="graduation-cap" class="w-4 h-4"></i>
                         </div>
                         <h3 class="text-lg font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
-                            Otomasi Bel & Audio Presisi
+                            LMS &amp; Ruang KBM Digital Interaktif
                         </h3>
                     </div>
                     <p class="mt-4 text-xs sm:text-[13px] text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                        Bel berdering otomatis tepat waktu pada detik ke-00 WIB. Dilengkapi puluhan file audio terstandar, integrasi relay amplifier, dan penjadwalan harian fleksibel.
+                        Platform belajar mengajar terintegrasi: modul sesi KBM, distribusi berkas materi (PDF, video, link), presensi PJJ daring, serah tugas siswa dengan umpan balik nilai, serta evaluasi kuis online otomatis.
                     </p>
                 </div>
 
-                <!-- Card 2: Dark Bento Card (Deep Navy/Zinc Contrast) -->
+                <!-- Card 2: Bento Card - Bel Otomatis -->
                 <div class="lg:col-span-3 bg-brand-dark dark:bg-zinc-900 text-white border border-brand-dark dark:border-zinc-800 rounded-3xl p-7 flex flex-col justify-between shadow-xs min-h-[220px]">
                     <div>
                         <div class="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center mb-4">
-                            <i data-lucide="scan" class="w-4 h-4 text-purple-300"></i>
+                            <i data-lucide="bell" class="w-4 h-4 text-purple-300"></i>
                         </div>
                         <h3 class="text-base sm:text-lg font-semibold tracking-tight text-white leading-snug">
-                            Presensi Kilat, Selalu Terhubung
+                            Otomasi Bel &amp; Nada Presisi
                         </h3>
                     </div>
                     <p class="mt-4 text-xs text-zinc-300 dark:text-zinc-400 leading-relaxed">
-                        Verifikasi kartu RFID atau biometrik wajah hanya dalam 0.3 detik. Setiap kehadiran langsung tersinkron ke pesan WhatsApp wali murid.
+                        Bel berdering tepat pada detik ke-00 WIB secara otomatis tanpa operator, didukung puluhan audio resmi dan integrasi hardware relay.
                     </p>
                 </div>
 
-                <!-- Card 3: Dark Bento Card (Deep Navy/Zinc Contrast) -->
+                <!-- Card 3: Bento Card - Presensi Biometrik & WA -->
                 <div class="lg:col-span-3 bg-brand-dark dark:bg-zinc-900 text-white border border-brand-dark dark:border-zinc-800 rounded-3xl p-7 flex flex-col justify-between shadow-xs min-h-[220px]">
                     <div>
                         <div class="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center mb-4">
-                            <i data-lucide="cpu" class="w-4 h-4 text-purple-300"></i>
+                            <i data-lucide="scan-face" class="w-4 h-4 text-purple-300"></i>
                         </div>
                         <h3 class="text-base sm:text-lg font-semibold tracking-tight text-white leading-snug">
-                            100% Mandiri, Tanpa Cloud
+                            Presensi Cepat &amp; WA Gateway
                         </h3>
                     </div>
                     <p class="mt-4 text-xs text-zinc-300 dark:text-zinc-400 leading-relaxed">
-                        Berjalan mandiri di jaringan lokal sekolah atau Raspberry Pi. Basis data SQLite lokal tangguh, tetap aktif meski tanpa koneksi internet.
+                        Verifikasi biometrik wajah &amp; kartu RFID hanya 0.3 detik. Kehadiran siswa langsung terkirim otomatis ke WhatsApp orang tua/wali murid.
                     </p>
                 </div>
 
@@ -409,62 +426,92 @@
                         
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             
-                            <!-- Module 1: Face Scan Kiosk -->
+                            <!-- Module 1: Teacher LMS Portal -->
+                            <a href="/guru/login" class="group bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-5 hover:border-purple-400 dark:hover:border-purple-600 transition-all shadow-2xs hover:shadow-sm">
+                                <div class="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                                    <i data-lucide="graduation-cap" class="w-4 h-4"></i>
+                                </div>
+                                <h4 class="font-semibold text-sm text-zinc-950 dark:text-zinc-50 group-hover:underline">Portal Guru &amp; Kelas KBM</h4>
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed">
+                                    Kelola sesi pertemuan KBM, unggah materi modul &amp; video, presensi PJJ, dan nilai tugas siswa.
+                                </p>
+                                <div class="mt-3 text-xs font-semibold text-purple-700 dark:text-purple-400 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                    <span>Buka Kelas Guru</span>
+                                    <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                                </div>
+                            </a>
+
+                            <!-- Module 2: Student Portal -->
+                            <a href="/student/login" class="group bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-5 hover:border-emerald-400 dark:hover:border-emerald-600 transition-all shadow-2xs hover:shadow-sm">
+                                <div class="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                                    <i data-lucide="user-check" class="w-4 h-4"></i>
+                                </div>
+                                <h4 class="font-semibold text-sm text-zinc-950 dark:text-zinc-50 group-hover:underline">Portal Mandiri Siswa</h4>
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed">
+                                    Cek ruang belajar KBM, serahkan tugas, kerjakan kuis online, cek poin karakter &amp; English Quest.
+                                </p>
+                                <div class="mt-3 text-xs font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                    <span>Masuk Portal Siswa</span>
+                                    <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                                </div>
+                            </a>
+
+                            <!-- Module 3: Face Scan Kiosk -->
                             <a href="/scan-face" class="group bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-5 hover:border-zinc-400 dark:hover:border-zinc-600 transition-all shadow-2xs hover:shadow-sm">
                                 <div class="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
                                     <i data-lucide="scan-face" class="w-4 h-4"></i>
                                 </div>
                                 <h4 class="font-semibold text-sm text-zinc-950 dark:text-zinc-50 group-hover:underline">Presensi Wajah (Face AI)</h4>
                                 <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed">
-                                    Kiosk nirsentuh dengan pengenalan biometrik wajah berkecepatan tinggi.
+                                    Kiosk nirsentuh dengan pengenalan biometrik wajah berkecepatan tinggi tanpa sentuh.
                                 </p>
                                 <div class="mt-3 text-xs font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                                    <span>Buka Kiosk</span>
+                                    <span>Buka Kiosk Wajah</span>
                                     <i data-lucide="arrow-right" class="w-3 h-3"></i>
                                 </div>
                             </a>
 
-                            <!-- Module 2: RFID & QR Scanner -->
+                            <!-- Module 4: RFID & QR Scanner -->
                             <a href="/scan" class="group bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-5 hover:border-zinc-400 dark:hover:border-zinc-600 transition-all shadow-2xs hover:shadow-sm">
                                 <div class="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
                                     <i data-lucide="qr-code" class="w-4 h-4"></i>
                                 </div>
-                                <h4 class="font-semibold text-sm text-zinc-950 dark:text-zinc-50 group-hover:underline">Presensi RFID & Kartu</h4>
+                                <h4 class="font-semibold text-sm text-zinc-950 dark:text-zinc-50 group-hover:underline">Presensi RFID &amp; Kartu</h4>
                                 <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed">
-                                    Pindai kartu siswa fisik / kartu digital menggunakan scanner barcode atau tap RFID.
+                                    Pindai kartu siswa fisik atau kartu digital menggunakan scanner barcode dan tap RFID gerbang.
                                 </p>
                                 <div class="mt-3 text-xs font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                                    <span>Buka Terminal</span>
+                                    <span>Buka Terminal RFID</span>
                                     <i data-lucide="arrow-right" class="w-3 h-3"></i>
                                 </div>
                             </a>
 
-                            <!-- Module 3: Student Portal -->
-                            <a href="/student/login" class="group bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-5 hover:border-zinc-400 dark:hover:border-zinc-600 transition-all shadow-2xs hover:shadow-sm">
-                                <div class="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-                                    <i data-lucide="user-check" class="w-4 h-4"></i>
-                                </div>
-                                <h4 class="font-semibold text-sm text-zinc-950 dark:text-zinc-50 group-hover:underline">Portal Mandiri Siswa</h4>
-                                <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed">
-                                    Cek riwayat absensi, poin prestasi karakter, dan tugas English Quest harian.
-                                </p>
-                                <div class="mt-3 text-xs font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                                    <span>Masuk Portal</span>
-                                    <i data-lucide="arrow-right" class="w-3 h-3"></i>
-                                </div>
-                            </a>
-
-                            <!-- Module 4: Prayer Attendance -->
+                            <!-- Module 5: Prayer Attendance -->
                             <a href="/scan-sholat" class="group bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-5 hover:border-zinc-400 dark:hover:border-zinc-600 transition-all shadow-2xs hover:shadow-sm">
                                 <div class="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
                                     <i data-lucide="moon" class="w-4 h-4"></i>
                                 </div>
                                 <h4 class="font-semibold text-sm text-zinc-950 dark:text-zinc-50 group-hover:underline">Presensi Sholat Berjamaah</h4>
                                 <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed">
-                                    Pencatatan ibadah Dzuhur & Ashar siswa secara teratur dan terpantau.
+                                    Pencatatan ibadah Dzuhur &amp; Ashar siswa secara teratur dan terpantau dalam satu rekap.
                                 </p>
                                 <div class="mt-3 text-xs font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                                    <span>Buka Terminal</span>
+                                    <span>Buka Scan Sholat</span>
+                                    <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                                </div>
+                            </a>
+
+                            <!-- Module 6: Admin & Curriculum -->
+                            <a href="/login" class="group bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-5 hover:border-zinc-400 dark:hover:border-zinc-600 transition-all shadow-2xs hover:shadow-sm">
+                                <div class="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                                    <i data-lucide="settings-2" class="w-4 h-4"></i>
+                                </div>
+                                <h4 class="font-semibold text-sm text-zinc-950 dark:text-zinc-50 group-hover:underline">Panel Kurikulum &amp; Admin</h4>
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed">
+                                    Pusat kontrol mata pelajaran, plot pengajar KBM, inventaris sarpras KIB, dan konfigurasi bel.
+                                </p>
+                                <div class="mt-3 text-xs font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                    <span>Masuk Admin</span>
                                     <i data-lucide="arrow-right" class="w-3 h-3"></i>
                                 </div>
                             </a>
@@ -521,11 +568,14 @@
                 <span>·</span>
                 <span>Clean Modern Minimalism</span>
             </div>
-            <div class="flex items-center gap-4 text-xs">
-                <a href="/admin/schedules" class="hover:text-zinc-950 dark:hover:text-zinc-100 transition-colors">Jadwal Bel</a>
-                <a href="/admin/academics" class="hover:text-zinc-950 dark:hover:text-zinc-100 transition-colors">Akademik</a>
-                <a href="/admin/settings" class="hover:text-zinc-950 dark:hover:text-zinc-100 transition-colors">Pengaturan</a>
-                <a href="/admin" class="hover:text-zinc-950 dark:hover:text-zinc-100 transition-colors font-semibold">Console</a>
+            <div class="flex flex-wrap items-center gap-3 sm:gap-4 text-xs">
+                <a href="/guru/login" class="hover:text-zinc-950 dark:hover:text-zinc-100 transition-colors font-medium">Portal Guru</a>
+                <span>·</span>
+                <a href="/student/login" class="hover:text-zinc-950 dark:hover:text-zinc-100 transition-colors font-medium">Portal Siswa</a>
+                <span>·</span>
+                <a href="/scan" class="hover:text-zinc-950 dark:hover:text-zinc-100 transition-colors">Terminal Kiosk</a>
+                <span>·</span>
+                <a href="/admin" class="hover:text-zinc-950 dark:hover:text-zinc-100 transition-colors font-semibold">Admin Panel</a>
             </div>
         </footer>
 
