@@ -12,6 +12,33 @@ type Subject struct {
 	CreatedAt string `json:"created_at"`
 }
 
+type LMSDiscussion struct {
+	ID         int                    `json:"id"`
+	MeetingID  int                    `json:"meeting_id"`
+	AuthorType string                 `json:"author_type"`
+	AuthorID   int                    `json:"author_id"`
+	AuthorName string                 `json:"author_name"`
+	Body       string                 `json:"body"`
+	Status     string                 `json:"status"`
+	CreatedAt  string                 `json:"created_at"`
+	Comments   []LMSDiscussionComment `json:"comments,omitempty"`
+	Reactions  map[string]int         `json:"reactions,omitempty"`
+	MyReaction string                 `json:"my_reaction,omitempty"`
+}
+
+type LMSDiscussionComment struct {
+	ID           int            `json:"id"`
+	DiscussionID int            `json:"discussion_id"`
+	ParentID     *int           `json:"parent_id,omitempty"`
+	AuthorType   string         `json:"author_type"`
+	AuthorID     int            `json:"author_id"`
+	AuthorName   string         `json:"author_name"`
+	Body         string         `json:"body"`
+	CreatedAt    string         `json:"created_at"`
+	Reactions    map[string]int `json:"reactions,omitempty"`
+	MyReaction   string         `json:"my_reaction,omitempty"`
+}
+
 // TeacherAssignment connects Staff (Guru) with Subject and Class for an academic period
 type TeacherAssignment struct {
 	ID           int    `json:"id"`
@@ -100,4 +127,3 @@ type LMSSubmission struct {
 	GradedBy       *int     `json:"graded_by"`
 	GradedAt       *string  `json:"graded_at"`
 }
-

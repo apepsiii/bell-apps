@@ -510,6 +510,19 @@
         </div>
     </div>
 
+    <section id="journalSection" class="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+        <div class="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 space-y-4">
+            <div class="flex items-center justify-between"><div><h3 class="text-sm font-bold">Jurnal Mengajar Kelas</h3><p class="text-xs text-zinc-500">Isi jurnal dan koreksi ringkasan presensi sebelum submit.</p></div><button type="button" onclick="openJournalForm()" class="px-3 py-2 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 text-xs font-semibold">Jurnal Baru</button></div>
+            <div id="journalForm" class="hidden grid grid-cols-1 md:grid-cols-2 gap-3">
+                <input id="journalMeetingID" type="hidden"><input id="journalDate" type="date" class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 px-3 py-2 text-xs"><input id="journalTopic" placeholder="Topik pembelajaran" class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 px-3 py-2 text-xs">
+                <textarea id="journalActivities" placeholder="Aktivitas pembelajaran" class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 px-3 py-2 text-xs md:col-span-2"></textarea><textarea id="journalFollowUp" placeholder="Tindak lanjut" class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 px-3 py-2 text-xs md:col-span-2"></textarea>
+                <div class="md:col-span-2 flex items-center gap-3 text-xs"><label>H <input id="journalH" type="number" min="0" value="0" class="w-16 rounded border px-2 py-1"></label><label>S <input id="journalS" type="number" min="0" value="0" class="w-16 rounded border px-2 py-1"></label><label>I <input id="journalI" type="number" min="0" value="0" class="w-16 rounded border px-2 py-1"></label><label>A <input id="journalA" type="number" min="0" value="0" class="w-16 rounded border px-2 py-1"></label><button type="button" onclick="saveJournal()" class="ml-auto px-3 py-2 rounded-lg bg-emerald-600 text-white font-semibold">Simpan Jurnal</button></div>
+            </div><div id="journalsList" class="space-y-2"><p class="text-xs text-zinc-500">Memuat jurnal...</p></div>
+        </div>
+    </section>
+
+    <div id="discussionPanel" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"><div class="bg-white dark:bg-zinc-900 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-auto p-5"><div class="flex justify-between items-center mb-4"><h3 class="font-bold">Diskusi Pertemuan</h3><button onclick="closeDiscussionPanel()">✕</button></div><div class="flex gap-2 mb-4"><input id="discussionBody" placeholder="Tulis diskusi baru..." class="flex-1 rounded-lg border px-3 py-2 text-xs"><button onclick="createDiscussion()" class="px-3 py-2 rounded-lg bg-zinc-900 text-white text-xs">Kirim</button></div><div id="discussionList" class="space-y-3"></div></div></div>
+
     <!-- Modal Presensi KBM PJJ -->
     <div id="attendanceModal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
         <div class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
@@ -580,6 +593,7 @@
 
         let activeMeetingID = null;
         let currentStudentsData = [];
+        let currentAttendanceStats = {};
 
         if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark');
@@ -622,10 +636,31 @@
                 const heroSubInfo = document.getElementById('heroSubInfo');
                 if (heroSubInfo) heroSubInfo.textContent = `Tahun ${currentAssignment.academic_year} • Semester ${currentAssignment.semester}`;
 
-                loadMeetings();
-            } catch (err) {
+                 loadMeetings();
+                 loadClassJournals();
+             } catch (err) {
                 console.error('initClassData error:', err);
             }
+        }
+
+        let discussionMeetingID = 0;
+        async function openDiscussionPanel(id) { discussionMeetingID=id; document.getElementById('discussionPanel').classList.remove('hidden'); await loadDiscussions(); }
+        function closeDiscussionPanel(){document.getElementById('discussionPanel').classList.add('hidden');}
+        async function loadDiscussions(){const res=await fetch(`/api/guru/meetings/${discussionMeetingID}/discussions`);const rows=await res.json();document.getElementById('discussionList').innerHTML=(rows||[]).map(d=>`<article class="border rounded-xl p-3"><div class="text-xs font-semibold">${d.author_type} <span class="font-normal text-zinc-500">${d.created_at}</span></div><p class="text-sm mt-1">${d.body}</p><div class="flex gap-2 mt-2"><button onclick="commentDiscussion(${d.id})" class="text-xs text-violet-600">Komentar</button>${d.status==='open'?`<button onclick="toggleDiscussion(${d.id})" class="text-xs text-rose-600">Tutup</button>`:''}</div>${(d.comments||[]).map(c=>`<div class="ml-4 mt-2 border-l pl-3 text-xs"><b>${c.author_type}</b> ${c.body}</div>`).join('')}</article>`).join('')||'<p class="text-xs text-zinc-500">Belum ada diskusi.</p>';}
+        async function createDiscussion(){const fd=new FormData();fd.append('meeting_id',discussionMeetingID);fd.append('body',document.getElementById('discussionBody').value);const r=await fetch('/api/guru/discussions',{method:'POST',body:fd});if(r.ok){document.getElementById('discussionBody').value='';loadDiscussions();}}
+        async function commentDiscussion(id){const body=prompt('Komentar');if(!body)return;const fd=new FormData();fd.append('body',body);await fetch(`/api/guru/discussions/${id}/comments`,{method:'POST',body:fd});loadDiscussions();}
+        async function toggleDiscussion(id){const fd=new FormData();fd.append('status','closed');await fetch(`/api/guru/discussions/${id}/toggle`,{method:'POST',body:fd});loadDiscussions();}
+
+        async function loadClassJournals() {
+            const res = await fetch(`/api/guru/journals?assignment_id=${assignmentID}`); const data = await res.json(); const list = document.getElementById('journalsList');
+            const rows = (data || []).filter(j => String(j.assignment_id) === String(assignmentID));
+            list.innerHTML = rows.length ? rows.map(j => `<div class="p-3 rounded-lg border border-zinc-200 dark:border-zinc-800"><div class="flex justify-between text-xs font-semibold"><span>${j.journal_date} · ${j.lesson_topic}</span><span>${j.status}</span></div><div class="text-[11px] text-zinc-500 mt-1">H:${j.attendance_summary?.H || 0} S:${j.attendance_summary?.S || 0} I:${j.attendance_summary?.I || 0} A:${j.attendance_summary?.A || 0}</div></div>`).join('') : '<p class="text-xs text-zinc-500">Belum ada jurnal untuk kelas ini.</p>';
+        }
+
+        function openJournalForm(meetingID = '') { document.getElementById('journalForm').classList.remove('hidden'); document.getElementById('journalMeetingID').value = meetingID; document.getElementById('journalDate').value = new Date().toISOString().split('T')[0]; }
+        async function saveJournal() {
+            const fd = new FormData(); fd.append('assignment_id', assignmentID); fd.append('meeting_id', document.getElementById('journalMeetingID').value); fd.append('journal_date', document.getElementById('journalDate').value); fd.append('lesson_topic', document.getElementById('journalTopic').value); fd.append('activities', document.getElementById('journalActivities').value); fd.append('follow_up', document.getElementById('journalFollowUp').value); fd.append('attendance_summary', JSON.stringify({H:+journalH.value||0,S:+journalS.value||0,I:+journalI.value||0,A:+journalA.value||0}));
+            const res = await fetch('/api/guru/journals', {method:'POST', body:fd}); const data = await res.json(); if (!res.ok) { Swal.fire({icon:'error',title:'Gagal',text:data.message}); return; } document.getElementById('journalForm').classList.add('hidden'); await loadClassJournals(); Swal.fire({icon:'success',title:'Tersimpan',timer:1200,showConfirmButton:false});
         }
 
         async function loadMeetings() {
@@ -684,7 +719,11 @@
                                     <i data-lucide="help-circle" class="w-3.5 h-3.5"></i>
                                     <span>+ Kuis CBT</span>
                                 </button>
-                                <button type="button" onclick="openAttendanceModal(${m.id}, '${encodeURIComponent(m.title)}')"
+                                 <button type="button" onclick="openDiscussionPanel(${m.id})"
+                                     class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50 hover:bg-violet-100 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300 text-xs font-semibold transition-colors">
+                                     <i data-lucide="messages-square" class="w-3.5 h-3.5"></i><span>Diskusi</span>
+                                 </button>
+                                 <button type="button" onclick="openAttendanceModal(${m.id}, '${encodeURIComponent(m.title)}')"
                                     class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 text-xs font-semibold transition-colors">
                                     <i data-lucide="user-check" class="w-3.5 h-3.5"></i>
                                     <span>Presensi (${m.stats?.attendances || 0})</span>
