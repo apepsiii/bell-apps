@@ -1,0 +1,9 @@
+{
+  "name": "SMK NIBA Super Apps",
+  "short_name": "SMK NIBA",
+  "start_url": "/student/app",
+  "display": "standalone",
+  "background_color": "#fafafa",
+  "theme_color": "#2E1065",
+  "icons": []
+}

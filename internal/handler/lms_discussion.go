@@ -104,6 +104,25 @@ func CreateLMSDiscussionComment(db *sql.DB) echo.HandlerFunc {
 	}
 }
 
+func DeleteLMSDiscussionComment(db *sql.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		id, _ := strconv.Atoi(c.Param("id"))
+		typ, aid := discussionActor(c)
+		var authorType string
+		var authorID int
+		if db.QueryRow(`SELECT author_type,author_id FROM lms_discussion_comments WHERE id=?`, id).Scan(&authorType, &authorID) != nil {
+			return c.JSON(404, map[string]string{"message": "Komentar tidak ditemukan"})
+		}
+		if authorType != typ || authorID != aid {
+			return c.JSON(403, map[string]string{"message": "Akses ditolak"})
+		}
+		if _, err := db.Exec(`DELETE FROM lms_discussion_comments WHERE id=?`, id); err != nil {
+			return c.JSON(500, map[string]string{"message": "Gagal menghapus komentar"})
+		}
+		return c.JSON(200, map[string]string{"message": "Komentar dihapus"})
+	}
+}
+
 func ToggleLMSDiscussion(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		id, _ := strconv.Atoi(c.Param("id"))

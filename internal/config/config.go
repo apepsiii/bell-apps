@@ -1,8 +1,10 @@
 package config
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
+	"regexp"
 
 	"gopkg.in/yaml.v3"
 )
@@ -43,24 +45,24 @@ type DatabaseConfig struct {
 }
 
 type PathsConfig struct {
-	Upload   string `yaml:"upload"`
-	Photo    string `yaml:"photo"`
-	Signage  string `yaml:"signage"`
-	Audio    string `yaml:"audio"`
+	Upload  string `yaml:"upload"`
+	Photo   string `yaml:"photo"`
+	Signage string `yaml:"signage"`
+	Audio   string `yaml:"audio"`
 }
 
 type AuthConfig struct {
-	AdminUser   string `yaml:"admin_user"`
-	AdminPass   string `yaml:"admin_password"`
-	CookieName  string `yaml:"cookie_name"`
-	SecretKey   string `yaml:"secret_key"`
+	AdminUser     string `yaml:"admin_user"`
+	AdminPass     string `yaml:"admin_password"`
+	CookieName    string `yaml:"cookie_name"`
+	SecretKey     string `yaml:"secret_key"`
 	WebhookSecret string `yaml:"webhook_secret"`
 }
 
 var (
-	AppVersion  string
-	config      *AppConfig
-	configPath  = "config.yaml"
+	AppVersion string
+	config     *AppConfig
+	configPath = "config.yaml"
 )
 
 // Load loads the configuration from config.yaml on disk, falling back to
@@ -143,16 +145,16 @@ func createDefaultConfig() error {
 			Path:   "./database.db",
 		},
 		Paths: PathsConfig{
-			Upload:   "public/assets/audio",
-			Photo:    "public/assets/photos",
-			Signage:  "public/assets/signage",
-			Audio:    "public/assets/audio",
+			Upload:  "public/assets/audio",
+			Photo:   "public/assets/photos",
+			Signage: "public/assets/signage",
+			Audio:   "public/assets/audio",
 		},
 		Auth: AuthConfig{
-			AdminUser:   "admin",
-			AdminPass:   "admin123",
-			CookieName:  "session_token",
-			SecretKey:   "admin-secret-key-change-me",
+			AdminUser:  "admin",
+			AdminPass:  "admin123",
+			CookieName: "session_token",
+			SecretKey:  "admin-secret-key-change-me",
 		},
 		Log: LogConfig{
 			Dir: "logs",
@@ -193,13 +195,13 @@ func GetDBConfig() DatabaseConfig {
 		return config.Database
 	}
 	return DatabaseConfig{
-		Driver: getEnv("DB_DRIVER", "sqlite"),
-		Host:   getEnv("DB_HOST", "localhost"),
-		Port:   getEnv("DB_PORT", "3306"),
-		User:   getEnv("DB_USER", "root"),
+		Driver:   getEnv("DB_DRIVER", "sqlite"),
+		Host:     getEnv("DB_HOST", "localhost"),
+		Port:     getEnv("DB_PORT", "3306"),
+		User:     getEnv("DB_USER", "root"),
 		Password: getEnv("DB_PASSWORD", ""),
-		Name:   getEnv("DB_NAME", "bell"),
-		Path:   getEnv("DB_PATH", "./database.db"),
+		Name:     getEnv("DB_NAME", "bell"),
+		Path:     getEnv("DB_PATH", "./database.db"),
 	}
 }
 
@@ -220,10 +222,10 @@ func GetPaths() PathsConfig {
 		return config.Paths
 	}
 	return PathsConfig{
-		Upload:   getEnv("UPLOAD_PATH", "public/assets/audio"),
-		Photo:    getEnv("PHOTO_PATH", "public/assets/photos"),
-		Signage:  getEnv("SIGNAGE_PATH", "public/assets/signage"),
-		Audio:    getEnv("AUDIO_PATH", "public/assets/audio"),
+		Upload:  getEnv("UPLOAD_PATH", "public/assets/audio"),
+		Photo:   getEnv("PHOTO_PATH", "public/assets/photos"),
+		Signage: getEnv("SIGNAGE_PATH", "public/assets/signage"),
+		Audio:   getEnv("AUDIO_PATH", "public/assets/audio"),
 	}
 }
 
@@ -288,6 +290,55 @@ func GetAdminUser() string {
 
 func GetAdminPass() string {
 	return GetAuth().AdminPass
+}
+
+// UpdateAdminPassword persists a new admin password (bcrypt hash) to the
+// in-memory config and rewrites only the admin_password line in config.yaml,
+// preserving comments and all other settings. If config.yaml is missing, the
+// full current config is marshaled to disk.
+func UpdateAdminPassword(newHash string) error {
+	if newHash == "" {
+		return errors.New("password hash tidak boleh kosong")
+	}
+	if config != nil {
+		config.Auth.AdminPass = newHash
+	}
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			cfg := GetConfig()
+			out, merr := yaml.Marshal(cfg)
+			if merr != nil {
+				return merr
+			}
+			return os.WriteFile(configPath, out, 0644)
+		}
+		return err
+	}
+	re := regexp.MustCompile(`(?m)^([ \t]*admin_password[ \t]*:[ \t]*).*$`)
+	if re.Match(data) {
+		out := re.ReplaceAllStringFunc(string(data), func(m string) string {
+			sub := re.FindStringSubmatch(m)
+			if len(sub) == 2 {
+				return sub[1] + newHash
+			}
+			return m
+		})
+		return os.WriteFile(configPath, []byte(out), 0644)
+	}
+	// auth section exists but no admin_password key: append it after admin_user
+	reUser := regexp.MustCompile(`(?m)^([ \t]*admin_user[ \t]*:[ \t]*).*$`)
+	if reUser.Match(data) {
+		out := reUser.ReplaceAllStringFunc(string(data), func(m string) string {
+			return m + "\n  admin_password: " + newHash
+		})
+		return os.WriteFile(configPath, []byte(out), 0644)
+	}
+	out, merr := yaml.Marshal(GetConfig())
+	if merr != nil {
+		return merr
+	}
+	return os.WriteFile(configPath, out, 0644)
 }
 
 func GetCookieName() string {

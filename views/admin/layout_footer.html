@@ -15,11 +15,33 @@
 </div>
 </div>
 
+<div id="adminPasswordModal" class="hidden fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="w-full max-w-sm rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl p-6">
+        <div class="flex items-center justify-between mb-4"><h3 class="text-sm font-bold text-zinc-900 dark:text-zinc-100">Ganti Password Admin</h3><button type="button" onclick="closeAdminPasswordModal()" class="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"><i data-lucide="x" class="w-4 h-4"></i></button></div>
+        <form onsubmit="submitAdminPassword(event)" class="space-y-3">
+            <input id="adminOldPassword" type="password" required placeholder="Password lama" class="w-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 px-3 py-2 text-xs">
+            <input id="adminNewPassword" type="password" required minlength="6" placeholder="Password baru (min. 6 karakter)" class="w-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 px-3 py-2 text-xs">
+            <input id="adminConfirmPassword" type="password" required minlength="6" placeholder="Konfirmasi password baru" class="w-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 px-3 py-2 text-xs">
+            <div class="flex justify-end gap-2 pt-2"><button type="button" onclick="closeAdminPasswordModal()" class="px-3 py-2 rounded-lg text-xs text-zinc-600 dark:text-zinc-300">Batal</button><button type="submit" class="px-3 py-2 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-semibold">Simpan Password</button></div>
+        </form>
+    </div>
+</div>
+
 <!-- Shared Admin Core JavaScript Scripts -->
 <script>
     // Initialize Lucide Icons
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
+    }
+
+    function openAdminPasswordModal() { document.getElementById('adminPasswordModal').classList.remove('hidden'); }
+    function closeAdminPasswordModal() { document.getElementById('adminPasswordModal').classList.add('hidden'); }
+    async function submitAdminPassword(e) {
+        e.preventDefault();
+        const body = { old_password: document.getElementById('adminOldPassword').value, new_password: document.getElementById('adminNewPassword').value, confirm_password: document.getElementById('adminConfirmPassword').value };
+        const res = await fetch('/admin/password', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) { alert('Password berhasil diubah.'); closeAdminPasswordModal(); e.target.reset(); } else { alert(data.message || 'Gagal mengubah password.'); }
     }
 
     // --- Theme Switcher (Dark / Light) ---

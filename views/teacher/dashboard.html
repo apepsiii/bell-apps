@@ -85,6 +85,19 @@
             </div>
 
             <div class="flex items-center gap-3">
+                <div class="relative">
+                    <button type="button" onclick="toggleTeacherNotif()" class="p-2 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors relative">
+                        <i data-lucide="bell" class="w-4 h-4"></i>
+                        <span id="teacherNotifDot" class="hidden absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500"></span>
+                    </button>
+                    <div id="teacherNotifPanel" class="hidden absolute right-0 mt-2 w-80 max-h-96 overflow-y-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl z-50">
+                        <div class="flex items-center justify-between px-4 py-3 border-b border-zinc-100 dark:border-zinc-800">
+                            <span class="text-xs font-bold">Notifikasi</span>
+                            <button type="button" onclick="markAllTeacherNotifRead()" class="text-[11px] text-violet-600 font-semibold">Tandai dibaca</button>
+                        </div>
+                        <div id="teacherNotifList" class="divide-y divide-zinc-100 dark:divide-zinc-800"><p class="text-xs text-zinc-500 p-4">Memuat...</p></div>
+                    </div>
+                </div>
                 <button type="button" onclick="toggleDarkMode()" class="p-2 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
                     <i data-lucide="moon" id="themeIcon" class="w-4 h-4"></i>
                 </button>
@@ -159,6 +172,21 @@
                 </div>
             </div>
         </div>
+
+        <section id="academic-calendar" class="space-y-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-base font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                        <i data-lucide="calendar-days" class="w-4 h-4 text-zinc-500"></i>
+                        <span>Agenda & Kalender Akademik</span>
+                    </h3>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400">Agenda sekolah dan jadwal KBM Anda bulan ini</p>
+                </div>
+            </div>
+            <div id="teacherAgendaList" class="bg-white dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl divide-y divide-zinc-100 dark:divide-zinc-800">
+                <p class="text-xs text-zinc-500 p-5">Memuat agenda...</p>
+            </div>
+        </section>
 
         <section id="teacher-journals" class="space-y-4">
             <div class="flex items-center justify-between">
@@ -244,6 +272,8 @@
 
                 renderClasses(data.assignments || []);
                 loadTeacherJournals();
+                loadTeacherAgenda();
+                loadTeacherNotifications();
             } catch (err) {
                 console.error(err);
                 document.getElementById('classesGrid').innerHTML = `
@@ -255,6 +285,47 @@
                 lucide.createIcons();
             }
         }
+
+        async function loadTeacherAgenda() {
+            const now = new Date();
+            const start = now.toISOString().slice(0, 10);
+            const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+            try {
+                const res = await fetch(`/api/guru/agenda?start=${start}&end=${end}`);
+                const events = await res.json();
+                const list = document.getElementById('teacherAgendaList');
+                if (!events.length) { list.innerHTML = '<p class="text-xs text-zinc-500 p-5">Tidak ada agenda bulan ini.</p>'; return; }
+                list.innerHTML = events.map(e => `
+                    <div class="flex items-center gap-3 p-4">
+                        <div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style="background:${e.color || '#18181b'}15">
+                            <i data-lucide="${e.event_type === 'meeting' ? 'presentation' : 'calendar-star'}" class="w-4 h-4" style="color:${e.color || '#18181b'}"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">${e.title}</p>
+                            <p class="text-[11px] text-zinc-500">${e.start_date}${e.end_date !== e.start_date ? ' → ' + e.end_date : ''} • ${e.event_type === 'meeting' ? 'KBM' : e.category}</p>
+                        </div>
+                    </div>`).join('');
+                lucide.createIcons();
+            } catch (_) { document.getElementById('teacherAgendaList').innerHTML = '<p class="text-xs text-rose-500 p-5">Gagal memuat agenda.</p>'; }
+        }
+
+        function toggleTeacherNotif() { document.getElementById('teacherNotifPanel').classList.toggle('hidden'); }
+        async function loadTeacherNotifications() {
+            try {
+                const res = await fetch('/api/guru/notifications');
+                const rows = await res.json();
+                const unread = rows.filter(n => !n.is_read).length;
+                document.getElementById('teacherNotifDot').classList.toggle('hidden', unread === 0);
+                const list = document.getElementById('teacherNotifList');
+                list.innerHTML = rows.length ? rows.map(n => `
+                    <div class="px-4 py-3 ${n.is_read ? '' : 'bg-violet-50/60 dark:bg-violet-950/20'}">
+                        <p class="text-xs font-semibold">${n.title}</p>
+                        <p class="text-[11px] text-zinc-500 mt-0.5">${n.message}</p>
+                        <p class="text-[10px] text-zinc-400 mt-1">${n.created_at}</p>
+                    </div>`).join('') : '<p class="text-xs text-zinc-500 p-4">Tidak ada notifikasi.</p>';
+            } catch (_) {}
+        }
+        async function markAllTeacherNotifRead() { await fetch('/api/guru/notifications/read-all', { method: 'POST' }); await loadTeacherNotifications(); }
 
         async function loadTeacherJournals() {
             const list = document.getElementById('journalsList');

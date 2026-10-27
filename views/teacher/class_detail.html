@@ -369,6 +369,10 @@
                     <textarea id="quizDescription" name="description" rows="3" placeholder="Tulis instruksi atau petunjuk pengerjaan..."
                         class="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-950/20"></textarea>
                 </div>
+                <div class="flex flex-wrap gap-4">
+                    <label class="flex items-center gap-2 text-xs text-zinc-700 dark:text-zinc-300"><input type="checkbox" id="quizShuffleQuestions" class="rounded border-zinc-300"> Acak urutan soal</label>
+                    <label class="flex items-center gap-2 text-xs text-zinc-700 dark:text-zinc-300"><input type="checkbox" id="quizShuffleOptions" class="rounded border-zinc-300"> Acak urutan opsi jawaban</label>
+                </div>
                 <div class="pt-2 flex justify-end gap-2">
                     <button type="button" onclick="closeNewQuizModal()" class="px-3 py-2 text-xs font-medium rounded-lg text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800">
                         Batal
@@ -394,6 +398,14 @@
                 </div>
                 <button type="button" onclick="closeQuizQuestionsModal()" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
                     <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <div class="px-5 py-2.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+                <p class="text-[11px] text-zinc-500 dark:text-zinc-400">Soal dapat disusun manual atau diambil dari bank soal pribadi.</p>
+                <button type="button" onclick="openQuestionBankModal()"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50 hover:bg-violet-100 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300 text-xs font-semibold">
+                    <i data-lucide="library" class="w-3.5 h-3.5"></i><span>Bank Soal</span>
                 </button>
             </div>
 
@@ -523,6 +535,44 @@
 
     <div id="discussionPanel" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"><div class="bg-white dark:bg-zinc-900 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-auto p-5"><div class="flex justify-between items-center mb-4"><h3 class="font-bold">Diskusi Pertemuan</h3><button onclick="closeDiscussionPanel()">✕</button></div><div class="flex gap-2 mb-4"><input id="discussionBody" placeholder="Tulis diskusi baru..." class="flex-1 rounded-lg border px-3 py-2 text-xs"><button onclick="createDiscussion()" class="px-3 py-2 rounded-lg bg-zinc-900 text-white text-xs">Kirim</button></div><div id="discussionList" class="space-y-3"></div></div></div>
 
+    <!-- Modal Bank Soal -->
+    <div id="questionBankModal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="p-5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+                <div>
+                    <h4 class="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                        <i data-lucide="library" class="w-4 h-4 text-violet-500"></i>
+                        <span>Bank Soal Pribadi</span>
+                    </h4>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Soal tersimpan dapat dipakai ulang di kuis mana pun.</p>
+                </div>
+                <button type="button" onclick="closeQuestionBankModal()" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-5 space-y-4">
+                <form id="bankQuestionForm" onsubmit="handleCreateBankQuestion(event)" class="p-4 bg-zinc-50 dark:bg-zinc-950/60 rounded-xl border border-zinc-200/80 dark:border-zinc-800 space-y-3">
+                    <h5 class="text-xs font-bold">Tambah Soal ke Bank</h5>
+                    <textarea id="bankQText" required rows="2" placeholder="Tuliskan butir soal..." class="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs"></textarea>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <input id="bankOptA" required placeholder="Pilihan A" class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs">
+                        <input id="bankOptB" required placeholder="Pilihan B" class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs">
+                        <input id="bankOptC" placeholder="Pilihan C (opsional)" class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs">
+                        <input id="bankOptD" placeholder="Pilihan D (opsional)" class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs">
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <select id="bankCorrectIdx" class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs">
+                            <option value="0">Kunci: A</option><option value="1">Kunci: B</option><option value="2">Kunci: C</option><option value="3">Kunci: D</option>
+                        </select>
+                        <input id="bankQPoints" type="number" value="10" min="1" max="100" class="w-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs">
+                        <button type="submit" class="ml-auto px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900">Simpan ke Bank</button>
+                    </div>
+                </form>
+                <div id="bankQuestionList" class="space-y-2"><p class="text-xs text-zinc-500">Memuat bank soal...</p></div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Presensi KBM PJJ -->
     <div id="attendanceModal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
         <div class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
@@ -644,12 +694,40 @@
         }
 
         let discussionMeetingID = 0;
+        let discussionActorType = 'teacher';
         async function openDiscussionPanel(id) { discussionMeetingID=id; document.getElementById('discussionPanel').classList.remove('hidden'); await loadDiscussions(); }
         function closeDiscussionPanel(){document.getElementById('discussionPanel').classList.add('hidden');}
-        async function loadDiscussions(){const res=await fetch(`/api/guru/meetings/${discussionMeetingID}/discussions`);const rows=await res.json();document.getElementById('discussionList').innerHTML=(rows||[]).map(d=>`<article class="border rounded-xl p-3"><div class="text-xs font-semibold">${d.author_type} <span class="font-normal text-zinc-500">${d.created_at}</span></div><p class="text-sm mt-1">${d.body}</p><div class="flex gap-2 mt-2"><button onclick="commentDiscussion(${d.id})" class="text-xs text-violet-600">Komentar</button>${d.status==='open'?`<button onclick="toggleDiscussion(${d.id})" class="text-xs text-rose-600">Tutup</button>`:''}</div>${(d.comments||[]).map(c=>`<div class="ml-4 mt-2 border-l pl-3 text-xs"><b>${c.author_type}</b> ${c.body}</div>`).join('')}</article>`).join('')||'<p class="text-xs text-zinc-500">Belum ada diskusi.</p>';}
+        function esc(s){return (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+        async function loadDiscussions(){
+            const res=await fetch(`/api/guru/meetings/${discussionMeetingID}/discussions`);
+            const rows=await res.json();
+            const list=document.getElementById('discussionList');
+            if(!rows.length){list.innerHTML='<p class="text-xs text-zinc-500">Belum ada diskusi.</p>';return;}
+            list.innerHTML=rows.map(d=>`
+            <article class="border border-zinc-200 dark:border-zinc-800 rounded-xl p-3">
+                <div class="flex items-center justify-between"><div class="text-xs font-semibold">${esc(d.author_name)} <span class="font-normal text-zinc-500">${d.created_at}</span></div><span class="text-[10px] px-2 py-0.5 rounded-full ${d.status==='open'?'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300':'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'}">${d.status==='open'?'Terbuka':'Ditutup'}</span></div>
+                <p class="text-sm mt-1">${esc(d.body)}</p>
+                <div class="flex items-center gap-3 mt-2 text-xs">
+                    <button onclick="reactDiscussion(${d.id})" class="flex items-center gap-1 ${d.my_reaction?'text-violet-600 font-semibold':'text-zinc-500'}"><i data-lucide="thumbs-up" class="w-3.5 h-3.5"></i>${d.reactions?.like||0}</button>
+                    <button onclick="replyDiscussion(${d.id})" class="text-zinc-500 hover:text-violet-600">Balas</button>
+                    ${d.status==='open'?`<button onclick="toggleDiscussion(${d.id})" class="text-rose-600">Tutup</button>`:`<button onclick="toggleDiscussion(${d.id})" class="text-emerald-600">Buka</button>`}
+                </div>
+                <div class="mt-2 space-y-2">${(d.comments||[]).map(c=>`
+                    <div class="ml-4 border-l border-zinc-200 dark:border-zinc-700 pl-3 text-xs">
+                        <div class="flex items-center justify-between"><b>${esc(c.author_name)}</b><div class="flex items-center gap-2"><button onclick="reactComment(${c.id})" class="${c.my_reaction?'text-violet-600 font-semibold':'text-zinc-400'}">👍 ${c.reactions?.like||0}</button><button onclick="deleteComment(${c.id})" class="text-rose-500">Hapus</button></div></div>
+                        <p class="text-zinc-600 dark:text-zinc-300 mt-0.5">${esc(c.body)}</p>
+                        <button onclick="replyDiscussion(${d.id},${c.id})" class="text-[10px] text-zinc-400 hover:text-violet-600 mt-0.5">Balas</button>
+                    </div>`).join('')}</div>
+            </article>`).join('');
+            lucide.createIcons();
+        }
         async function createDiscussion(){const fd=new FormData();fd.append('meeting_id',discussionMeetingID);fd.append('body',document.getElementById('discussionBody').value);const r=await fetch('/api/guru/discussions',{method:'POST',body:fd});if(r.ok){document.getElementById('discussionBody').value='';loadDiscussions();}}
-        async function commentDiscussion(id){const body=prompt('Komentar');if(!body)return;const fd=new FormData();fd.append('body',body);await fetch(`/api/guru/discussions/${id}/comments`,{method:'POST',body:fd});loadDiscussions();}
-        async function toggleDiscussion(id){const fd=new FormData();fd.append('status','closed');await fetch(`/api/guru/discussions/${id}/toggle`,{method:'POST',body:fd});loadDiscussions();}
+        async function commentDiscussion(id,parentID){const body=prompt('Komentar');if(!body)return;const fd=new FormData();fd.append('body',body);if(parentID)fd.append('parent_id',parentID);await fetch(`/api/guru/discussions/${id}/comments`,{method:'POST',body:fd});loadDiscussions();}
+        function replyDiscussion(id,parentID){commentDiscussion(id,parentID);}
+        async function deleteComment(id){if(!confirm('Hapus komentar ini?'))return;await fetch(`/api/guru/discussions/comments/${id}`,{method:'DELETE'});loadDiscussions();}
+        async function toggleDiscussion(id){const fd=new FormData();fd.append('status','toggle');const r=await fetch(`/api/guru/discussions/${id}/toggle`,{method:'POST',body:fd});const d=await r.json();if(d.status){loadDiscussions();}}
+        async function reactDiscussion(id){const fd=new FormData();fd.append('discussion_id',id);fd.append('reaction_type','like');await fetch('/api/guru/discussions/reactions',{method:'POST',body:fd});loadDiscussions();}
+        async function reactComment(id){const fd=new FormData();fd.append('comment_id',id);fd.append('reaction_type','like');await fetch('/api/guru/discussions/reactions',{method:'POST',body:fd});loadDiscussions();}
 
         async function loadClassJournals() {
             const res = await fetch(`/api/guru/journals?assignment_id=${assignmentID}`); const data = await res.json(); const list = document.getElementById('journalsList');
@@ -723,6 +801,10 @@
                                      class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50 hover:bg-violet-100 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300 text-xs font-semibold transition-colors">
                                      <i data-lucide="messages-square" class="w-3.5 h-3.5"></i><span>Diskusi</span>
                                  </button>
+                                 <a href="/api/guru/meetings/${m.id}/attendance/export-excel"
+                                     class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-semibold transition-colors">
+                                     <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i><span>Ekspor Presensi</span>
+                                 </a>
                                  <button type="button" onclick="openAttendanceModal(${m.id}, '${encodeURIComponent(m.title)}')"
                                     class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 text-xs font-semibold transition-colors">
                                     <i data-lucide="user-check" class="w-3.5 h-3.5"></i>
@@ -782,6 +864,11 @@
                                                     <i data-lucide="users" class="w-3.5 h-3.5"></i>
                                                     <span>Koreksi (${ass.submissions} Siswa)</span>
                                                 </button>
+                                                <a href="/api/guru/assignments/${ass.id}/export-excel"
+                                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 text-xs font-semibold transition-all">
+                                                    <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
+                                                    <span>Ekspor Nilai</span>
+                                                </a>
                                             </div>
                                         </div>
                                     `).join('')}
@@ -1080,6 +1167,8 @@
             e.preventDefault();
             const form = document.getElementById('newQuizForm');
             const fd = new FormData(form);
+            fd.append('shuffle_questions', document.getElementById('quizShuffleQuestions').checked ? '1' : '0');
+            fd.append('shuffle_options', document.getElementById('quizShuffleOptions').checked ? '1' : '0');
 
             try {
                 const res = await fetch('/api/guru/quizzes', { method: 'POST', body: fd });
@@ -1109,6 +1198,48 @@
                 await fetch(`/api/guru/quizzes/${id}`, { method: 'DELETE' });
                 loadMeetings();
             }
+        }
+
+        // --- QUESTION BANK ---
+        async function openQuestionBankModal() {
+            document.getElementById('questionBankModal').classList.remove('hidden');
+            await loadQuestionBank();
+        }
+        function closeQuestionBankModal() { document.getElementById('questionBankModal').classList.add('hidden'); }
+        async function loadQuestionBank() {
+            const res = await fetch('/api/guru/question-bank');
+            const rows = await res.json();
+            const list = document.getElementById('bankQuestionList');
+            if (!rows.length) { list.innerHTML = '<p class="text-xs text-zinc-500">Bank soal masih kosong. Tambahkan soal di formulir atas.</p>'; return; }
+            list.innerHTML = rows.map(q => `
+                <div class="p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 flex items-start justify-between gap-3">
+                    <div class="text-xs"><p class="font-semibold">${esc(q.question_text)}</p><p class="text-zinc-500 mt-0.5">${q.points} poin • ${q.options.length} opsi</p></div>
+                    <div class="flex gap-2 shrink-0">
+                        <button onclick="addBankToQuiz(${q.id})" class="px-2.5 py-1.5 rounded-lg bg-violet-600 text-white text-[11px] font-semibold">Pakai</button>
+                        <button onclick="deleteBankQuestion(${q.id})" class="px-2.5 py-1.5 rounded-lg border border-rose-200 dark:border-rose-800 text-rose-600 text-[11px] font-semibold">Hapus</button>
+                    </div>
+                </div>`).join('');
+        }
+        async function handleCreateBankQuestion(e) {
+            e.preventDefault();
+            const options = [
+                { text: document.getElementById('bankOptA').value, is_correct: document.getElementById('bankCorrectIdx').value === '0' },
+                { text: document.getElementById('bankOptB').value, is_correct: document.getElementById('bankCorrectIdx').value === '1' }
+            ];
+            if (document.getElementById('bankOptC').value) options.push({ text: document.getElementById('bankOptC').value, is_correct: document.getElementById('bankCorrectIdx').value === '2' });
+            if (document.getElementById('bankOptD').value) options.push({ text: document.getElementById('bankOptD').value, is_correct: document.getElementById('bankCorrectIdx').value === '3' });
+            const res = await fetch('/api/guru/question-bank', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question_text: document.getElementById('bankQText').value, points: +document.getElementById('bankQPoints').value || 10, options }) });
+            if (res.ok) { document.getElementById('bankQuestionForm').reset(); await loadQuestionBank(); } else { const d = await res.json(); Swal.fire({ icon: 'error', title: 'Gagal', text: d.message }); }
+        }
+        async function addBankToQuiz(bankId) {
+            const fd = new FormData(); fd.append('quiz_id', currentQuizIdForQuestions); fd.append('bank_question_id', bankId);
+            const res = await fetch('/api/guru/quizzes/from-bank', { method: 'POST', body: fd });
+            if (res.ok) { Swal.fire({ icon: 'success', title: 'Soal ditambahkan', timer: 1000, showConfirmButton: false }); loadQuizQuestions(currentQuizIdForQuestions); } else { const d = await res.json(); Swal.fire({ icon: 'error', title: 'Gagal', text: d.message }); }
+        }
+        async function deleteBankQuestion(id) {
+            if (!confirm('Hapus soal dari bank?')) return;
+            await fetch(`/api/guru/question-bank/${id}`, { method: 'DELETE' });
+            await loadQuestionBank();
         }
 
         // --- QUIZ QUESTIONS MANAGEMENT ---

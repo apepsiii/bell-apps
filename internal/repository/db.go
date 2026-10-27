@@ -383,8 +383,6 @@ func runSQLiteMigrations(db *sql.DB) {
 		`CREATE INDEX IF NOT EXISTS idx_attendance_logs_student_date ON attendance_logs(student_id, date)`,
 		`CREATE INDEX IF NOT EXISTS idx_attendance_logs_date ON attendance_logs(date)`,
 		`CREATE INDEX IF NOT EXISTS idx_attendance_logs_rfid ON attendance_logs(rfid_uid)`,
-		`CREATE INDEX IF NOT EXISTS idx_student_points_student ON student_points(student_id)`,
-		`CREATE INDEX IF NOT EXISTS idx_student_points_timestamp ON student_points(timestamp)`,
 		`CREATE INDEX IF NOT EXISTS idx_students_class_id ON students(class_id)`,
 		`CREATE TABLE IF NOT EXISTS whatsapp_logs (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -955,6 +953,8 @@ func runSQLiteMigrations(db *sql.DB) {
 			description TEXT DEFAULT '',
 			time_limit_minutes INTEGER DEFAULT 30,
 			passing_score REAL DEFAULT 75.0,
+			shuffle_questions INTEGER DEFAULT 0,
+			shuffle_options INTEGER DEFAULT 0,
 			is_active INTEGER DEFAULT 1,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			FOREIGN KEY (meeting_id) REFERENCES lms_meetings(id) ON DELETE CASCADE
@@ -993,6 +993,36 @@ func runSQLiteMigrations(db *sql.DB) {
 		`CREATE TABLE IF NOT EXISTS lms_discussion_comments (id INTEGER PRIMARY KEY AUTOINCREMENT, discussion_id INTEGER NOT NULL, parent_id INTEGER, author_type TEXT NOT NULL, author_id INTEGER NOT NULL, body TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (discussion_id) REFERENCES lms_discussions(id) ON DELETE CASCADE, FOREIGN KEY (parent_id) REFERENCES lms_discussion_comments(id) ON DELETE CASCADE)`,
 		`CREATE TABLE IF NOT EXISTS lms_discussion_reactions (id INTEGER PRIMARY KEY AUTOINCREMENT, discussion_id INTEGER, comment_id INTEGER, author_type TEXT NOT NULL, author_id INTEGER NOT NULL, reaction_type TEXT NOT NULL DEFAULT 'like', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (discussion_id) REFERENCES lms_discussions(id) ON DELETE CASCADE, FOREIGN KEY (comment_id) REFERENCES lms_discussion_comments(id) ON DELETE CASCADE, UNIQUE(discussion_id, comment_id, author_type, author_id, reaction_type))`,
 		`CREATE INDEX IF NOT EXISTS idx_lms_discussions_meeting ON lms_discussions(meeting_id, status)`,
+		`CREATE TABLE IF NOT EXISTS notifications (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			recipient_type TEXT NOT NULL DEFAULT 'student',
+			recipient_id INTEGER NOT NULL,
+			title TEXT NOT NULL,
+			message TEXT DEFAULT '',
+			notif_type TEXT DEFAULT 'info',
+			ref_id INTEGER DEFAULT 0,
+			is_read INTEGER DEFAULT 0,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON notifications(recipient_type, recipient_id, is_read)`,
+		`CREATE TABLE IF NOT EXISTS lms_question_bank (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			staff_id INTEGER NOT NULL,
+			subject_id INTEGER,
+			question_text TEXT NOT NULL,
+			question_image TEXT DEFAULT '',
+			points INTEGER DEFAULT 10,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE SET NULL
+		)`,
+		`CREATE TABLE IF NOT EXISTS lms_question_bank_options (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			bank_question_id INTEGER NOT NULL,
+			option_text TEXT NOT NULL,
+			is_correct INTEGER DEFAULT 0,
+			FOREIGN KEY (bank_question_id) REFERENCES lms_question_bank(id) ON DELETE CASCADE
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_lms_question_bank_staff ON lms_question_bank(staff_id, subject_id)`,
 	}
 	for _, ddl := range schema {
 		if _, err := db.Exec(ddl); err != nil {
@@ -1036,6 +1066,8 @@ func runSQLiteMigrations(db *sql.DB) {
 		{"students", "phone", "ALTER TABLE students ADD COLUMN phone TEXT DEFAULT ''"},
 		{"subjects", "banner_url", "ALTER TABLE subjects ADD COLUMN banner_url TEXT DEFAULT ''"},
 		{"teacher_assignments", "banner_url", "ALTER TABLE teacher_assignments ADD COLUMN banner_url TEXT DEFAULT ''"},
+		{"lms_quizzes", "shuffle_questions", "ALTER TABLE lms_quizzes ADD COLUMN shuffle_questions INTEGER DEFAULT 0"},
+		{"lms_quizzes", "shuffle_options", "ALTER TABLE lms_quizzes ADD COLUMN shuffle_options INTEGER DEFAULT 0"},
 	}
 
 	for _, m := range migrations {
@@ -1738,6 +1770,8 @@ func runMySQLMigrations(db *sql.DB) {
 			description TEXT,
 			time_limit_minutes INT DEFAULT 30,
 			passing_score FLOAT DEFAULT 75.0,
+			shuffle_questions TINYINT DEFAULT 0,
+			shuffle_options TINYINT DEFAULT 0,
 			is_active TINYINT DEFAULT 1,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			FOREIGN KEY (meeting_id) REFERENCES lms_meetings(id) ON DELETE CASCADE
@@ -1771,6 +1805,42 @@ func runMySQLMigrations(db *sql.DB) {
 			FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
 			UNIQUE KEY uq_lms_quiz_attempt (quiz_id, student_id)
 		)`,
+		`CREATE TABLE IF NOT EXISTS lms_discussions (id INT PRIMARY KEY AUTO_INCREMENT, meeting_id INT NOT NULL, author_type VARCHAR(20) NOT NULL, author_id INT NOT NULL, body TEXT NOT NULL, status VARCHAR(20) NOT NULL DEFAULT 'open', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (meeting_id) REFERENCES lms_meetings(id) ON DELETE CASCADE)`,
+		`CREATE TABLE IF NOT EXISTS lms_discussion_comments (id INT PRIMARY KEY AUTO_INCREMENT, discussion_id INT NOT NULL, parent_id INT, author_type VARCHAR(20) NOT NULL, author_id INT NOT NULL, body TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (discussion_id) REFERENCES lms_discussions(id) ON DELETE CASCADE, FOREIGN KEY (parent_id) REFERENCES lms_discussion_comments(id) ON DELETE CASCADE)`,
+		`CREATE TABLE IF NOT EXISTS lms_discussion_reactions (id INT PRIMARY KEY AUTO_INCREMENT, discussion_id INT, comment_id INT, author_type VARCHAR(20) NOT NULL, author_id INT NOT NULL, reaction_type VARCHAR(20) NOT NULL DEFAULT 'like', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (discussion_id) REFERENCES lms_discussions(id) ON DELETE CASCADE, FOREIGN KEY (comment_id) REFERENCES lms_discussion_comments(id) ON DELETE CASCADE, UNIQUE KEY uq_lms_discussion_reaction (discussion_id, comment_id, author_type, author_id, reaction_type))`,
+		`CREATE INDEX idx_lms_discussions_meeting ON lms_discussions(meeting_id, status)`,
+		`CREATE TABLE IF NOT EXISTS notifications (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			recipient_type VARCHAR(20) NOT NULL DEFAULT 'student',
+			recipient_id INT NOT NULL,
+			title VARCHAR(255) NOT NULL,
+			message TEXT,
+			notif_type VARCHAR(30) DEFAULT 'info',
+			ref_id INT DEFAULT 0,
+			is_read TINYINT DEFAULT 0,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX idx_notifications_recipient ON notifications(recipient_type, recipient_id, is_read)`,
+		`CREATE TABLE IF NOT EXISTS lms_question_bank (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			staff_id INT NOT NULL,
+			subject_id INT,
+			question_text TEXT NOT NULL,
+			question_image VARCHAR(255) DEFAULT '',
+			points INT DEFAULT 10,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE SET NULL
+		)`,
+		`CREATE TABLE IF NOT EXISTS lms_question_bank_options (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			bank_question_id INT NOT NULL,
+			option_text TEXT NOT NULL,
+			is_correct TINYINT DEFAULT 0,
+			FOREIGN KEY (bank_question_id) REFERENCES lms_question_bank(id) ON DELETE CASCADE
+		)`,
+		`CREATE INDEX idx_lms_question_bank_staff ON lms_question_bank(staff_id, subject_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_student_points_student ON student_points(student_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_student_points_timestamp ON student_points(timestamp)`,
 	}
 	for _, ddl := range schema {
 		if _, err := db.Exec(ddl); err != nil {
