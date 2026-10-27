@@ -1,4 +1,4 @@
-package handler
+﻿package handler
 
 import (
 	"database/sql"
@@ -18,7 +18,7 @@ import (
 
 // downloadTTSAudio fetches an MP3 from Google Translate TTS and saves it.
 // This replaces github.com/hegedustibor/htgo-tts which pulled in
-// github.com/hajimehoshi/oto/v2 — an audio-playback dep that fails to
+// github.com/hajimehoshi/oto/v2 â€” an audio-playback dep that fails to
 // cross-compile (GOOS=linux from Windows) because its platform-specific
 // context files are excluded by build tags. We only need the file-download
 // half of htgo-tts, so implement it inline.
@@ -74,7 +74,7 @@ func GetAnnouncements(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		rows, err := db.Query("SELECT id, title, message, audio_file, scheduled_at, played_at, status, created_at FROM announcements ORDER BY created_at DESC")
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Terjadi kesalahan server"})
 		}
 		defer rows.Close()
 

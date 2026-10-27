@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -102,9 +103,36 @@ func GetPhotoExtension(filename string) string {
 	return ext
 }
 
+// BuildPhotoFilename builds a photo filename from a student NIS. The NIS is
+// sanitized to a conservative token so a hostile value (for example one
+// containing "../" injected through CSV import) cannot escape the photo
+// directory via path traversal.
 func BuildPhotoFilename(nis string, ext string) string {
 	if ext == "" {
 		ext = ".jpg"
 	}
-	return nis + "_" + time.Now().Format("20060102150405") + ext
+	safeNIS := sanitizeFileToken(nis)
+	if safeNIS == "" {
+		safeNIS = "siswa"
+	}
+	return safeNIS + "_" + time.Now().Format("20060102150405") + ext
+}
+
+// unsafeTokenChars matches everything that is not safe inside a filename.
+var unsafeTokenChars = regexp.MustCompile(`[^A-Za-z0-9_-]`)
+
+// sanitizeFileToken strips path separators, traversal sequences and any other
+// unsafe characters, returning a bounded token.
+func sanitizeFileToken(value string) string {
+	value = strings.TrimSpace(value)
+	value = strings.ReplaceAll(value, "\\", "/")
+	value = filepath.Base(value)
+	if value == "." || value == ".." {
+		return ""
+	}
+	value = unsafeTokenChars.ReplaceAllString(value, "")
+	if len(value) > 40 {
+		value = value[:40]
+	}
+	return value
 }

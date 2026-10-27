@@ -2,6 +2,7 @@ package handler
 
 import (
 	"crypto/rand"
+	"database/sql"
 	"encoding/hex"
 	"log/slog"
 	"net/http"
@@ -17,6 +18,8 @@ import (
 
 type adminSession struct {
 	expiresAt time.Time
+	username  string
+	role      string
 }
 
 var (
@@ -32,20 +35,50 @@ func generateAdminSessionToken() (string, error) {
 	return hex.EncodeToString(b), nil
 }
 
-func ValidateAdminSession(token string) bool {
+// AdminSessionInfo is the public view of an authenticated admin session.
+type AdminSessionInfo struct {
+	Username string
+	Role     string
+}
+
+// GetAdminSession returns the identity bound to a session token, if valid.
+func GetAdminSession(token string) (AdminSessionInfo, bool) {
 	adminSessionsMu.RLock()
 	sess, ok := adminSessions[token]
 	adminSessionsMu.RUnlock()
 	if !ok {
-		return false
+		return AdminSessionInfo{}, false
 	}
 	if time.Now().After(sess.expiresAt) {
 		adminSessionsMu.Lock()
 		delete(adminSessions, token)
 		adminSessionsMu.Unlock()
-		return false
+		return AdminSessionInfo{}, false
 	}
-	return true
+	return AdminSessionInfo{Username: sess.username, Role: sess.role}, true
+}
+
+func ValidateAdminSession(token string) bool {
+	_, ok := GetAdminSession(token)
+	return ok
+}
+
+// ResolveAdminRole looks up the role for an admin username. It fails closed:
+// an unknown or inactive account has no role and therefore no privileges.
+func ResolveAdminRole(db *sql.DB, username string) string {
+	if db == nil || username == "" {
+		return ""
+	}
+	var role string
+	var isActive bool
+	err := db.QueryRow(
+		"SELECT role, is_active FROM admin_roles WHERE username = ?",
+		username,
+	).Scan(&role, &isActive)
+	if err != nil || !isActive {
+		return ""
+	}
+	return strings.ToLower(strings.TrimSpace(role))
 }
 
 func init() {
@@ -102,7 +135,7 @@ func Logout() echo.HandlerFunc {
 	}
 }
 
-func Login() echo.HandlerFunc {
+func Login(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		username := c.FormValue("username")
 		password := c.FormValue("password")
@@ -135,13 +168,31 @@ func Login() echo.HandlerFunc {
 			return c.Redirect(http.StatusSeeOther, "/login?error=1")
 		}
 
+		// Refuse to establish a session while the account still uses factory
+		// default credentials. This is the last line of defence for deployments
+		// that never ran the setup wizard.
+		if isDefaultAdminCredential(username, storedPass) {
+			slog.Error("SECURITY: Login blocked because admin credentials are still at factory defaults. Update config.yaml before signing in.")
+			return c.Redirect(http.StatusSeeOther, "/login?error=default_credentials")
+		}
+
+		role := ResolveAdminRole(db, username)
+		if role == "" {
+			slog.Error("SECURITY: Login blocked because no active admin role is assigned to this account.")
+			return c.Redirect(http.StatusSeeOther, "/login?error=no_role")
+		}
+
 		token, err := generateAdminSessionToken()
 		if err != nil {
 			return c.Redirect(http.StatusSeeOther, "/login?error=1")
 		}
 
 		adminSessionsMu.Lock()
-		adminSessions[token] = &adminSession{expiresAt: time.Now().Add(24 * time.Hour)}
+		adminSessions[token] = &adminSession{
+			expiresAt: time.Now().Add(24 * time.Hour),
+			username:  username,
+			role:      role,
+		}
 		adminSessionsMu.Unlock()
 
 		cookie := new(http.Cookie)
@@ -155,6 +206,18 @@ func Login() echo.HandlerFunc {
 		c.SetCookie(cookie)
 		return c.Redirect(http.StatusSeeOther, "/admin")
 	}
+}
+
+// isDefaultAdminCredential reports whether the configured admin password is
+// still one of the well-known factory defaults.
+func isDefaultAdminCredential(username, storedPass string) bool {
+	if username == "admin" && storedPass == "admin123" {
+		return true
+	}
+	return storedPass == "admin-secret-key-change-me" ||
+		storedPass == "change-this-password" ||
+		storedPass == "change-this-secret-key" ||
+		storedPass == ""
 }
 
 

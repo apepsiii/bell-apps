@@ -1,4 +1,4 @@
-package handler
+﻿package handler
 
 import (
 	"crypto/rand"
@@ -45,7 +45,7 @@ func OperatorLogin(db *sql.DB) echo.HandlerFunc {
 			return c.JSON(http.StatusUnauthorized, map[string]string{"message": "Username atau password salah"})
 		} else if err != nil {
 			c.Logger().Errorf("Database error: %v", err)
-			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Terjadi kesalahan sistem: " + err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Terjadi kesalahan server"})
 		}
 
 		op.Phone = phoneNull.String

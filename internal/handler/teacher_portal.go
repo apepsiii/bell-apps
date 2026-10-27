@@ -54,20 +54,26 @@ func TeacherLogin(db *sql.DB) echo.HandlerFunc {
 			})
 		}
 
-		// Password validation
+		// Password validation.
+		//
+		// A staff account with no password yet cannot be used to sign in: the
+		// NIP is public information (staff cards, school documents), so treating
+		// it as a password would let anyone who knows a teacher's NIP into the
+		// portal. Accounts in this state must complete the first-login password
+		// enrollment flow instead.
 		if storedPassword == "" {
-			// If not set yet, accept either the default password or NIP as initial password
-			if password != TeacherDefaultPassword && password != nip {
-				return c.JSON(http.StatusUnauthorized, map[string]string{
-					"message": "NIP atau password salah",
-				})
-			}
-		} else {
-			if err := bcrypt.CompareHashAndPassword([]byte(storedPassword), []byte(password)); err != nil {
-				return c.JSON(http.StatusUnauthorized, map[string]string{
-					"message": "NIP atau password salah",
-				})
-			}
+			return c.JSON(http.StatusForbidden, map[string]string{
+				"message":   "password_not_set",
+				"detail":    "Akun ini belum memiliki password. Silakan hubungi admin untuk mengatur password awal.",
+				"staff_id":  strconv.Itoa(id),
+				"staff_name": name,
+			})
+		}
+
+		if err := bcrypt.CompareHashAndPassword([]byte(storedPassword), []byte(password)); err != nil {
+			return c.JSON(http.StatusUnauthorized, map[string]string{
+				"message": "NIP atau password salah",
+			})
 		}
 
 		token := GenerateSessionToken()

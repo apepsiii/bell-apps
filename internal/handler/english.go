@@ -1,4 +1,4 @@
-package handler
+﻿package handler
 
 import (
 	"database/sql"
@@ -34,7 +34,7 @@ func GetTodayEnglishQuest(db *sql.DB) echo.HandlerFunc {
 			return c.JSON(http.StatusNotFound, map[string]string{"message": "Quest belum dibuat untuk hari ini"})
 		}
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Terjadi kesalahan server"})
 		}
 		return c.JSON(http.StatusOK, q)
 	}
@@ -55,7 +55,7 @@ func CreateEnglishQuest(db *sql.DB) echo.HandlerFunc {
 			c.FormValue("topic"), c.FormValue("vocabulary_words"), c.FormValue("quiz_question"),
 			c.FormValue("quiz_choices"), c.FormValue("quiz_answer"), xpReward)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Terjadi kesalahan server"})
 		}
 		return c.JSON(http.StatusOK, map[string]string{"status": "success", "message": "Quest berhasil disimpan"})
 	}
@@ -80,7 +80,7 @@ func GetEnglishSubmissions(db *sql.DB) echo.HandlerFunc {
 		query += " ORDER BY es.submitted_at DESC"
 		rows, err := db.Query(query, args...)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Terjadi kesalahan server"})
 		}
 		defer rows.Close()
 		type Sub struct {
@@ -152,7 +152,7 @@ func GetEnglishLeaderboard(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		rows, err := db.Query("SELECT es.student_id, s.name, COALESCE(c.name,''), es.current_streak, es.longest_streak, es.total_xp, COUNT(eb.id) FROM english_streaks es JOIN students s ON es.student_id = s.id LEFT JOIN classes c ON s.class_id = c.id LEFT JOIN english_student_badges eb ON es.student_id = eb.student_id GROUP BY es.student_id ORDER BY es.total_xp DESC LIMIT 50")
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Terjadi kesalahan server"})
 		}
 		defer rows.Close()
 		type Item struct {
@@ -190,7 +190,7 @@ func GetEnglishProgressReport(db *sql.DB) echo.HandlerFunc {
 		query += " GROUP BY s.id ORDER BY COUNT(DISTINCT CASE WHEN es.status='approved' THEN es.id END) DESC"
 		rows, err := db.Query(query, args...)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Terjadi kesalahan server"})
 		}
 		defer rows.Close()
 		type Item struct {
@@ -237,7 +237,7 @@ func GetMyEnglishQuest(db *sql.DB) echo.HandlerFunc {
 			return c.JSON(http.StatusNotFound, map[string]string{"message": "Quest belum tersedia hari ini"})
 		}
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Terjadi kesalahan server"})
 		}
 		var subStatus string
 		if db.QueryRow("SELECT status FROM english_submissions WHERE student_id = ? AND quest_id = ?", studentID, q.ID).Scan(&subStatus) == nil {
@@ -260,7 +260,7 @@ func SubmitEnglishQuest(db *sql.DB) echo.HandlerFunc {
 		_, err := db.Exec("INSERT INTO english_submissions (student_id, quest_id, quest_type, content, vocab_words, quiz_answer, status) VALUES (?, ?, ?, ?, ?, ?, 'pending')",
 			studentID, questID, c.FormValue("quest_type"), c.FormValue("content"), c.FormValue("vocab_words"), c.FormValue("quiz_answer"))
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Terjadi kesalahan server"})
 		}
 		return c.JSON(http.StatusOK, map[string]string{"status": "success", "message": "Setoran berhasil dikirim! Tunggu review dari guru."})
 	}

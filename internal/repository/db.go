@@ -1,7 +1,9 @@
 package repository
 
 import (
+	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"strings"
@@ -204,6 +206,53 @@ func RunMigrations(db *sql.DB) {
 	} else {
 		runSQLiteMigrations(db)
 	}
+	SeedAdminRoles(db)
+	EnsureDeviceToken(db)
+}
+
+// EnsureDeviceToken guarantees a device_token row exists. Fresh installs get a
+// random token; existing installs keep whatever an operator configured.
+func EnsureDeviceToken(db *sql.DB) {
+	if db == nil {
+		return
+	}
+	var existing string
+	err := db.QueryRow(
+		"SELECT setting_value FROM attendance_settings WHERE setting_key = 'device_token'",
+	).Scan(&existing)
+	if err == nil && existing != "" {
+		return
+	}
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return
+	}
+	token := hex.EncodeToString(b)
+	_, _ = db.Exec(
+		"INSERT OR REPLACE INTO attendance_settings (setting_key, setting_value) VALUES ('device_token', ?)",
+		token,
+	)
+	log.Printf("Generated new device_token for IoT/kiosk endpoints. Retrieve it from Admin → Pengaturan.")
+}
+
+// SeedAdminRoles ensures the configured admin account always has an explicit
+// role row. Without it, role-based authorization cannot be evaluated and every
+// privileged action would be denied.
+func SeedAdminRoles(db *sql.DB) {
+	username := config.GetAuth().AdminUser
+	if username == "" {
+		return
+	}
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM admin_roles WHERE username = ?", username).Scan(&count)
+	if err != nil || count > 0 {
+		return
+	}
+	if config.IsMySQL() {
+		_, _ = db.Exec("INSERT IGNORE INTO admin_roles (username, role, is_active) VALUES (?, 'superadmin', 1)", username)
+	} else {
+		_, _ = db.Exec("INSERT OR IGNORE INTO admin_roles (username, role, is_active) VALUES (?, 'superadmin', 1)", username)
+	}
 }
 
 func runSQLiteMigrations(db *sql.DB) {
@@ -394,6 +443,14 @@ func runSQLiteMigrations(db *sql.DB) {
 			photo TEXT,
 			is_active BOOLEAN DEFAULT 1,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS admin_roles (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			username TEXT UNIQUE NOT NULL,
+			role TEXT NOT NULL DEFAULT 'operator',
+			is_active BOOLEAN DEFAULT 1,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
 		`CREATE TABLE IF NOT EXISTS running_texts (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1118,6 +1175,14 @@ func runMySQLMigrations(db *sql.DB) {
 			photo VARCHAR(255),
 			is_active TINYINT DEFAULT 1,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS admin_roles (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			username VARCHAR(100) UNIQUE NOT NULL,
+			role VARCHAR(50) NOT NULL DEFAULT 'operator',
+			is_active TINYINT DEFAULT 1,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
 		`CREATE TABLE IF NOT EXISTS running_texts (
 			id INT PRIMARY KEY AUTO_INCREMENT,

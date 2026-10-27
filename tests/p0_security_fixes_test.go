@@ -3,6 +3,7 @@ package tests
 import (
 	"archive/zip"
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"io"
 	"mime/multipart"
@@ -21,6 +22,7 @@ import (
 	"belsekolah/internal/config"
 	"belsekolah/internal/handler"
 	appMiddleware "belsekolah/internal/middleware"
+	"belsekolah/internal/repository"
 	"belsekolah/internal/router"
 )
 
@@ -228,9 +230,16 @@ func TestSEC03_PointReset_GET_Disabled(t *testing.T) {
 	router.RegisterRoutes(e, app.DB, os.DirFS("."), app)
 
 	// 1. Authenticate as admin to get session cookie
+	// Use a non-default password so the factory-credential guard does not block it.
+	strongPass := "Str0ngAdmin#Pass2026"
+	cfg := config.GetConfig()
+	origPass := cfg.Auth.AdminPass
+	cfg.Auth.AdminPass = strongPass
+	defer func() { cfg.Auth.AdminPass = origPass }()
+
 	loginForm := url.Values{
 		"username": {config.GetAdminUser()},
-		"password": {config.GetAdminPass()},
+		"password": {strongPass},
 	}
 	loginReq := httptest.NewRequest(http.MethodPost, "/api/login", strings.NewReader(loginForm.Encode()))
 	loginReq.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
@@ -282,7 +291,14 @@ func TestSEC04_Bcrypt_Authentication(t *testing.T) {
 	cfg.Auth.AdminPass = string(hashedBytes)
 	defer func() { cfg.Auth.AdminPass = origPass }()
 
-	loginHandler := handler.Login()
+	// Seed an in-memory database so role resolution can succeed.
+	testDB, err := sql.Open("sqlite", ":memory:")
+	assert.NoError(t, err)
+	defer testDB.Close()
+	testDB.SetMaxOpenConns(1)
+	repository.RunMigrations(testDB)
+
+	loginHandler := handler.Login(testDB)
 
 	// 1. Valid password with bcrypt hash
 	formSuccess := url.Values{

@@ -1,4 +1,4 @@
-package handler
+﻿package handler
 
 import (
 	"database/sql"
@@ -24,7 +24,7 @@ func GetAssetCategories(db *sql.DB) echo.HandlerFunc {
 			ORDER BY code
 		`)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Terjadi kesalahan server"})
 		}
 		defer rows.Close()
 
@@ -58,7 +58,7 @@ func AddAssetCategory(db *sql.DB) echo.HandlerFunc {
 		`, code, name, description, time.Now())
 
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Terjadi kesalahan server"})
 		}
 
 		return c.JSON(http.StatusOK, map[string]string{"message": "Category added successfully"})
@@ -84,7 +84,7 @@ func UpdateAssetCategory(db *sql.DB) echo.HandlerFunc {
 		`, code, name, description, id)
 
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Terjadi kesalahan server"})
 		}
 
 		return c.JSON(http.StatusOK, map[string]string{"message": "Category updated successfully"})
@@ -105,7 +105,7 @@ func DeleteAssetCategory(db *sql.DB) echo.HandlerFunc {
 
 		_, err := db.Exec("DELETE FROM asset_categories WHERE id = ?", id)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Terjadi kesalahan server"})
 		}
 
 		return c.JSON(http.StatusOK, map[string]string{"message": "Category deleted successfully"})
@@ -125,7 +125,7 @@ func GetAssetFundingSources(db *sql.DB) echo.HandlerFunc {
 			ORDER BY code
 		`)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Terjadi kesalahan server"})
 		}
 		defer rows.Close()
 
@@ -159,7 +159,7 @@ func AddAssetFundingSource(db *sql.DB) echo.HandlerFunc {
 		`, code, name, description, time.Now())
 
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Terjadi kesalahan server"})
 		}
 
 		return c.JSON(http.StatusOK, map[string]string{"message": "Funding source added successfully"})
@@ -185,7 +185,7 @@ func UpdateAssetFundingSource(db *sql.DB) echo.HandlerFunc {
 		`, code, name, description, id)
 
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Terjadi kesalahan server"})
 		}
 
 		return c.JSON(http.StatusOK, map[string]string{"message": "Funding source updated successfully"})
@@ -206,7 +206,7 @@ func DeleteAssetFundingSource(db *sql.DB) echo.HandlerFunc {
 
 		_, err := db.Exec("DELETE FROM asset_funding_sources WHERE id = ?", id)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Terjadi kesalahan server"})
 		}
 
 		return c.JSON(http.StatusOK, map[string]string{"message": "Funding source deleted successfully"})
@@ -230,7 +230,7 @@ func GetAssetLocations(db *sql.DB) echo.HandlerFunc {
 			ORDER BY l.code
 		`)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Terjadi kesalahan server"})
 		}
 		defer rows.Close()
 
@@ -283,7 +283,7 @@ func AddAssetLocation(db *sql.DB) echo.HandlerFunc {
 		`, code, name, locType, capacity, picStaffID, status, time.Now())
 
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Terjadi kesalahan server"})
 		}
 
 		return c.JSON(http.StatusOK, map[string]string{"message": "Location added successfully"})
@@ -323,7 +323,7 @@ func UpdateAssetLocation(db *sql.DB) echo.HandlerFunc {
 		`, code, name, locType, capacity, picStaffID, status, time.Now(), id)
 
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Terjadi kesalahan server"})
 		}
 
 		return c.JSON(http.StatusOK, map[string]string{"message": "Location updated successfully"})
@@ -344,7 +344,7 @@ func DeleteAssetLocation(db *sql.DB) echo.HandlerFunc {
 
 		_, err := db.Exec("DELETE FROM asset_locations WHERE id = ?", id)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Terjadi kesalahan server"})
 		}
 
 		return c.JSON(http.StatusOK, map[string]string{"message": "Location deleted successfully"})

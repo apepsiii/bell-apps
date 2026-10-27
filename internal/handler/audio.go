@@ -1,4 +1,4 @@
-package handler
+﻿package handler
 
 import (
 	"database/sql"
@@ -96,7 +96,7 @@ func RenameAudio(db *sql.DB) echo.HandlerFunc {
 		newName := c.FormValue("display_name")
 		_, err := db.Exec("UPDATE audio_files SET display_name=? WHERE id=?", newName, id)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Terjadi kesalahan server"})
 		}
 		return c.JSON(http.StatusOK, map[string]string{"status": "success", "message": "Nama audio diperbarui"})
 	}
@@ -114,7 +114,7 @@ func DeleteAudio(db *sql.DB) echo.HandlerFunc {
 
 		_, err = db.Exec("DELETE FROM audio_files WHERE id = ?", id)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Terjadi kesalahan server"})
 		}
 		return c.JSON(http.StatusOK, map[string]string{"status": "success", "message": "Audio dihapus"})
 	}

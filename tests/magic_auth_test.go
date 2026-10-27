@@ -2,9 +2,13 @@ package tests
 
 import (
 	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -13,6 +17,42 @@ import (
 
 	"belsekolah/internal/handler"
 )
+
+// setWebhookSecret configures the shared secret used to sign webhook test
+// requests and returns the previous value for restoration.
+func setWebhookSecret(t *testing.T, secret string) {
+	t.Helper()
+	prev := os.Getenv("WEBHOOK_SECRET")
+	os.Setenv("WEBHOOK_SECRET", secret)
+	t.Cleanup(func() {
+		if prev == "" {
+			os.Unsetenv("WEBHOOK_SECRET")
+		} else {
+			os.Setenv("WEBHOOK_SECRET", prev)
+		}
+	})
+}
+
+// signWebhookBody returns the hex HMAC-SHA256 of body using the test secret.
+func signWebhookBody(t *testing.T, body []byte) string {
+	t.Helper()
+	mac := hmac.New(sha256.New, []byte(os.Getenv("WEBHOOK_SECRET")))
+	mac.Write(body)
+	return hex.EncodeToString(mac.Sum(nil))
+}
+
+// newSignedWebhookRequest builds a webhook request carrying a valid signature.
+func newSignedWebhookRequest(t *testing.T, payload interface{}) *http.Request {
+	t.Helper()
+	body, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("failed to marshal payload: %v", err)
+	}
+	req := httptest.NewRequest(http.MethodPost, "/api/webhook/whatsapp", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Webhook-Signature", signWebhookBody(t, body))
+	return req
+}
 
 func TestRequestMagicLogin(t *testing.T) {
 	app, teardown := setupTestApp(t)
@@ -115,6 +155,7 @@ func TestCheckMagicStatus(t *testing.T) {
 func TestHandleWhatsAppWebhook_ParentMatching(t *testing.T) {
 	app, teardown := setupTestApp(t)
 	defer teardown()
+	setWebhookSecret(t, "unit-test-webhook-secret")
 
 	// Seed class and student with parent_phone
 	_, _ = app.DB.Exec("INSERT INTO classes (id, name) VALUES (1, 'XII RPL 1')")
@@ -145,10 +186,8 @@ func TestHandleWhatsAppWebhook_ParentMatching(t *testing.T) {
 			"message": "LOGIN " + code,
 		},
 	}
-	bodyBytes, _ := json.Marshal(payload)
 
-	req := httptest.NewRequest(http.MethodPost, "/api/webhook/whatsapp", bytes.NewBuffer(bodyBytes))
-	req.Header.Set("Content-Type", "application/json")
+	req := newSignedWebhookRequest(t, payload)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
@@ -182,6 +221,7 @@ func TestHandleWhatsAppWebhook_ParentMatching(t *testing.T) {
 func TestHandleWhatsAppWebhook_StudentAndStaff(t *testing.T) {
 	app, teardown := setupTestApp(t)
 	defer teardown()
+	setWebhookSecret(t, "unit-test-webhook-secret")
 
 	// Seed student with student phone
 	_, _ = app.DB.Exec(`
@@ -206,9 +246,7 @@ func TestHandleWhatsAppWebhook_StudentAndStaff(t *testing.T) {
 		"from":    "628111222333",
 		"message": "LOGIN " + codeStudent,
 	}
-	b1, _ := json.Marshal(payloadStudent)
-	req1 := httptest.NewRequest(http.MethodPost, "/api/webhook/whatsapp", bytes.NewBuffer(b1))
-	req1.Header.Set("Content-Type", "application/json")
+	req1 := newSignedWebhookRequest(t, payloadStudent)
 	rec1 := httptest.NewRecorder()
 	_ = h(e.NewContext(req1, rec1))
 
@@ -227,9 +265,7 @@ func TestHandleWhatsAppWebhook_StudentAndStaff(t *testing.T) {
 		"from":    "628555666777",
 		"message": "LOGIN " + codeStaff,
 	}
-	b2, _ := json.Marshal(payloadStaff)
-	req2 := httptest.NewRequest(http.MethodPost, "/api/webhook/whatsapp", bytes.NewBuffer(b2))
-	req2.Header.Set("Content-Type", "application/json")
+	req2 := newSignedWebhookRequest(t, payloadStaff)
 	rec2 := httptest.NewRecorder()
 	_ = h(e.NewContext(req2, rec2))
 
@@ -248,9 +284,7 @@ func TestHandleWhatsAppWebhook_StudentAndStaff(t *testing.T) {
 		"from":    "628999999999",
 		"message": "LOGIN " + codeUnreg,
 	}
-	b3, _ := json.Marshal(payloadUnreg)
-	req3 := httptest.NewRequest(http.MethodPost, "/api/webhook/whatsapp", bytes.NewBuffer(b3))
-	req3.Header.Set("Content-Type", "application/json")
+	req3 := newSignedWebhookRequest(t, payloadUnreg)
 	rec3 := httptest.NewRecorder()
 	_ = h(e.NewContext(req3, rec3))
 
@@ -258,6 +292,61 @@ func TestHandleWhatsAppWebhook_StudentAndStaff(t *testing.T) {
 	_ = json.Unmarshal(rec3.Body.Bytes(), &res3)
 	if res3["status"] != "unregistered_phone" {
 		t.Errorf("expected unregistered_phone, got %v", res3)
+	}
+}
+
+// TestHandleWhatsAppWebhook_RejectsUnsignedRequest verifies that a forged
+// webhook payload without a valid HMAC signature is rejected. This is the
+// control that prevents account takeover via a spoofed sender field.
+func TestHandleWhatsAppWebhook_RejectsUnsignedRequest(t *testing.T) {
+	app, teardown := setupTestApp(t)
+	defer teardown()
+	setWebhookSecret(t, "unit-test-webhook-secret")
+
+	_, _ = app.DB.Exec(`
+		INSERT INTO students (id, nis, name, parent_phone, parent_name, status)
+		VALUES (701, '2026701', 'Korban Spoof', '081298765432', 'Bapak Korban', 'active')
+	`)
+	code := "SPF001"
+	_, _ = app.DB.Exec(`
+		INSERT INTO magic_login_tokens (token, request_code, status, expires_at)
+		VALUES ('tok-spf', ?, 'pending', ?)
+	`, code, time.Now().Add(10*time.Minute))
+
+	e := echo.New()
+	h := handler.HandleWhatsAppWebhook(app.DB)
+
+	// Forged payload: attacker claims to be the victim's phone number.
+	payload := map[string]interface{}{
+		"from":    "6281298765432",
+		"message": "LOGIN " + code,
+	}
+	body, _ := json.Marshal(payload)
+	req := httptest.NewRequest(http.MethodPost, "/api/webhook/whatsapp", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	// No X-Webhook-Signature header at all.
+	rec := httptest.NewRecorder()
+	_ = h(e.NewContext(req, rec))
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("expected 401 for unsigned webhook, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	// The token must remain pending — the attacker must not be able to verify it.
+	var status string
+	_ = app.DB.QueryRow("SELECT status FROM magic_login_tokens WHERE request_code = ?", code).Scan(&status)
+	if status != "pending" {
+		t.Errorf("token status must stay 'pending' after a rejected webhook, got %s", status)
+	}
+
+	// A wrong signature must also be rejected.
+	req2 := httptest.NewRequest(http.MethodPost, "/api/webhook/whatsapp", bytes.NewBuffer(body))
+	req2.Header.Set("Content-Type", "application/json")
+	req2.Header.Set("X-Webhook-Signature", "deadbeef")
+	rec2 := httptest.NewRecorder()
+	_ = h(e.NewContext(req2, rec2))
+	if rec2.Code != http.StatusUnauthorized {
+		t.Errorf("expected 401 for bad signature, got %d", rec2.Code)
 	}
 }
 

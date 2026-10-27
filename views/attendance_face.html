@@ -464,12 +464,33 @@
         }
 
         // 2. Fetch Face Descriptors from Go Backend
+        // The biometric endpoint requires a device token. On a kiosk the token
+        // is provisioned once by an administrator and kept in localStorage.
+        function getDeviceToken() {
+            return localStorage.getItem('niba_device_token') || '';
+        }
+
         async function reloadFaceDB() {
             const refreshIcon = document.getElementById('icon-refresh');
             if (refreshIcon) refreshIcon.classList.add('animate-spin');
 
+            const deviceToken = getDeviceToken();
+            if (!deviceToken) {
+                const supplied = window.prompt('Masukkan Token Perangkat (dari Admin → Pengaturan):');
+                if (supplied && supplied.trim()) {
+                    localStorage.setItem('niba_device_token', supplied.trim());
+                } else {
+                    if (refreshIcon) refreshIcon.classList.remove('animate-spin');
+                    const badge = document.getElementById('db-count-badge');
+                    if (badge) badge.innerText = 'Token belum diatur';
+                    return;
+                }
+            }
+
             try {
-                const res = await fetch('/api/face/descriptors');
+                const res = await fetch('/api/face/descriptors', {
+                    headers: { 'X-Device-Token': getDeviceToken() }
+                });
                 if (!res.ok) throw new Error("Gagal mengambil data dari server");
                 const data = await res.json();
 

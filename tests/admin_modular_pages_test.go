@@ -339,15 +339,18 @@ func TestAdminCSRFFix_DeleteAndForms(t *testing.T) {
 	e.ServeHTTP(delRec, delReq)
 	assert.Equal(t, http.StatusOK, delRec.Code, "DELETE /admin/schedule/2 with valid CSRF must succeed with 200 OK")
 
-	// 3. Verify restart recovery / tolerance: if client sends a genuine 32+ char token matching cookie
-	restartToken := "test-token-from-before-server-restart-12345678"
+	// 3. A token the server never issued must be rejected, even when the cookie
+	//    and header match. There is deliberately no restart-recovery fallback:
+	//    accepting an arbitrary 32+ character value would let anyone who can set
+	//    a cookie forge a valid CSRF token.
+	forgedToken := "test-token-from-before-server-restart-12345678"
 	recReq := httptest.NewRequest(http.MethodDelete, "/admin/schedule/3", nil)
-	recReq.AddCookie(&http.Cookie{Name: "csrf_token", Value: restartToken})
-	recReq.Header.Set("X-CSRF-Token", restartToken)
+	recReq.AddCookie(&http.Cookie{Name: "csrf_token", Value: forgedToken})
+	recReq.Header.Set("X-CSRF-Token", forgedToken)
 	recRec := httptest.NewRecorder()
 
 	e.ServeHTTP(recRec, recReq)
-	assert.Equal(t, http.StatusOK, recRec.Code, "DELETE with matching cookie+header after restart must succeed with 200 OK")
+	assert.Equal(t, http.StatusForbidden, recRec.Code, "A CSRF token the server never issued must be rejected with 403")
 
 	// 4. Verify templates use window.getCsrfToken without split('=')[1]
 	headBytes, err := os.ReadFile("views/admin/layout_head.html")
@@ -851,6 +854,8 @@ func TestDualPointSystem_JSONAndFormDataBinding(t *testing.T) {
 		c := e.NewContext(req, rec)
 		c.SetParamNames("id")
 		c.SetParamValues(strconv.Itoa(achID))
+		c.Set("role", "superadmin")
+		c.Set("user", "admin")
 
 		h := handler.DeleteAchievementPoint(db)
 		err := h(c)
@@ -874,6 +879,8 @@ func TestDualPointSystem_JSONAndFormDataBinding(t *testing.T) {
 		c := e.NewContext(req, rec)
 		c.SetParamNames("id")
 		c.SetParamValues(strconv.Itoa(vioID))
+		c.Set("role", "superadmin")
+		c.Set("user", "admin")
 
 		h := handler.DeleteViolationPoint(db)
 		err := h(c)

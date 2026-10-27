@@ -174,8 +174,12 @@ func CSRF() echo.MiddlewareFunc {
 			}
 			csrfStore.mu.RUnlock()
 
-			// In-memory recovery on server restart:
-			// If server restarted, memory store is empty, but client sent genuine cookie that matches token
+			// Double Submit Cookie verification:
+			// The token submitted in the header/form must match the token sent in the cookie.
+			// Only tokens this server actually issued are accepted. There is deliberately
+			// no "restart recovery" fallback: accepting an arbitrary 32+ character value
+			// that merely matches its own cookie would let an attacker who can set a
+			// cookie forge a valid CSRF token.
 			cookie, err := c.Cookie(csrfCookieName)
 			cookieVal := ""
 			if err == nil {
@@ -184,20 +188,6 @@ func CSRF() echo.MiddlewareFunc {
 
 			tokensMatch := (cookieVal != "" && tokenFromRequest != "" &&
 				(cookieVal == tokenFromRequest || strings.TrimRight(cookieVal, "=") == strings.TrimRight(tokenFromRequest, "=")))
-
-			if !exists && tokensMatch && len(tokenFromRequest) >= 32 {
-				storedToken = &CSRFToken{
-					Token:     tokenFromRequest,
-					ExpiresAt: time.Now().Add(csrfTokenTTL),
-				}
-				csrfStore.mu.Lock()
-				csrfStore.tokens[tokenFromRequest] = storedToken
-				if cookieVal != tokenFromRequest {
-					csrfStore.tokens[cookieVal] = storedToken
-				}
-				csrfStore.mu.Unlock()
-				exists = true
-			}
 
 			if !exists {
 				return c.JSON(http.StatusForbidden, map[string]string{

@@ -36,9 +36,11 @@ func TestP1_EmptyRFID_AttendanceIsolation(t *testing.T) {
 	sID2, _ := res2.LastInsertId()
 
 	e := echo.New()
+	token := deviceToken(t, app)
 
 	// 1. Student 1 records attendance using QR (student_id)
 	req1 := httptest.NewRequest(http.MethodGet, "/api/attendance/record?student_id="+strconv.FormatInt(sID1, 10), nil)
+	req1.Header.Set("X-Device-Token", token)
 	rec1 := httptest.NewRecorder()
 	c1 := e.NewContext(req1, rec1)
 	err = app.RecordAttendanceHandler(c1)
@@ -60,6 +62,7 @@ func TestP1_EmptyRFID_AttendanceIsolation(t *testing.T) {
 
 	// 3. Student 2 records attendance -> MUST SUCCEED (not blocked by student 1)
 	req2 := httptest.NewRequest(http.MethodGet, "/api/attendance/record?student_id="+strconv.FormatInt(sID2, 10), nil)
+	req2.Header.Set("X-Device-Token", token)
 	rec2 := httptest.NewRecorder()
 	c2 := e.NewContext(req2, rec2)
 	err = app.RecordAttendanceHandler(c2)
@@ -121,9 +124,11 @@ func TestP1_EmptyRFID_PrayerAttendanceIsolation(t *testing.T) {
 	sID2, _ := res2.LastInsertId()
 
 	e := echo.New()
+	token := deviceToken(t, app)
 
 	// Student 1 records prayer
 	req1 := httptest.NewRequest(http.MethodGet, "/api/prayer/record?student_id="+strconv.FormatInt(sID1, 10), nil)
+	req1.Header.Set("X-Device-Token", token)
 	rec1 := httptest.NewRecorder()
 	c1 := e.NewContext(req1, rec1)
 	err := app.PrayerAttendanceHandler(c1)
@@ -132,6 +137,7 @@ func TestP1_EmptyRFID_PrayerAttendanceIsolation(t *testing.T) {
 
 	// Student 2 records prayer -> must NOT be duplicate
 	req2 := httptest.NewRequest(http.MethodGet, "/api/prayer/record?student_id="+strconv.FormatInt(sID2, 10), nil)
+	req2.Header.Set("X-Device-Token", token)
 	rec2 := httptest.NewRecorder()
 	c2 := e.NewContext(req2, rec2)
 	err = app.PrayerAttendanceHandler(c2)

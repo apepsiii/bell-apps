@@ -7,8 +7,6 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
-
-	"belsekolah/internal/config"
 )
 
 // AuditLog represents an audit log entry
@@ -90,38 +88,34 @@ func CheckRateLimit(db *sql.DB, username string, maxPerDay int) (bool, int, erro
 	return exceeded, todayCount, nil
 }
 
-// CheckAdminRole checks if user has permission for certain actions
+// CheckAdminRole checks if the authenticated admin holds a required role.
+//
+// It fails closed: a missing, malformed, or empty role denies access. The role
+// is only ever populated by the AdminAuth middleware from the server-side
+// session, so it cannot be spoofed by the client.
 func CheckAdminRole(c echo.Context, requiredRole string) bool {
-	role := c.Get("role")
-	if role == nil {
-		// When no explicit role is stored in context, check if admin cookie/session is valid
-		cookie, err := c.Cookie(config.GetCookieName())
-		if err == nil && cookie.Value != "" && ValidateAdminSession(cookie.Value) {
-			return true
-		}
-		// Allow for authenticated admin sessions or tests where context has admin marker or default
-		return true
-	}
-	
-	userRole, ok := role.(string)
-	if !ok || userRole == "" {
-		return true
+	role, ok := c.Get("role").(string)
+	if !ok {
+		return false
 	}
 
-	userRole = strings.ToLower(strings.TrimSpace(userRole))
+	userRole := strings.ToLower(strings.TrimSpace(role))
+	if userRole == "" {
+		return false
+	}
+
 	requiredRole = strings.ToLower(strings.TrimSpace(requiredRole))
 
-	if requiredRole == "superadmin" {
+	switch requiredRole {
+	case "superadmin":
 		return userRole == "superadmin"
-	}
-	if requiredRole == "kepala_sekolah" {
+	case "kepala_sekolah":
 		return userRole == "superadmin" || userRole == "kepala_sekolah" || userRole == "admin"
-	}
-	if requiredRole == "admin" {
+	case "admin":
 		return userRole == "superadmin" || userRole == "kepala_sekolah" || userRole == "admin"
+	default:
+		return false
 	}
-	
-	return true
 }
 
 // SoftDeleteRecord performs soft delete on a record

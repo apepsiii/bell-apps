@@ -3,6 +3,7 @@ package handler
 import (
 	"database/sql"
 	"fmt"
+	"io"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -56,32 +57,66 @@ func AddMeetingMaterial(db *sql.DB, storage *service.StorageService) echo.Handle
 				return c.JSON(http.StatusBadRequest, map[string]string{"message": "Berkas dokumen wajib diunggah"})
 			}
 
+			if fileHeader.Size > maxLMSFileSize {
+				return c.JSON(http.StatusBadRequest, map[string]string{
+					"message": fmt.Sprintf("Ukuran berkas maksimal %d MB", maxLMSFileSize/(1024*1024)),
+				})
+			}
+
+			ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
+			if !allowedLMSDocumentExts[ext] {
+				return c.JSON(http.StatusBadRequest, map[string]string{
+					"message": "Format berkas tidak didukung. Gunakan PDF, Word, Excel, PowerPoint, gambar, atau arsip ZIP.",
+				})
+			}
+
 			src, err := fileHeader.Open()
 			if err != nil {
 				return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Gagal membaca berkas"})
 			}
 			defer src.Close()
 
-			fileSize = fileHeader.Size
-			ext := filepath.Ext(fileHeader.Filename)
-			cleanName := strings.ReplaceAll(filepath.Base(fileHeader.Filename), " ", "_")
-			fileKey = fmt.Sprintf("materials/%d/%d_%s", meetingID, time.Now().Unix(), cleanName)
+			// Sniff the real content type instead of trusting the client header.
+			// This stops HTML/SVG uploads that would execute script when served
+			// from the application origin.
+			sniffBuf := make([]byte, 512)
+			n, _ := io.ReadFull(src, sniffBuf)
+			detectedType := http.DetectContentType(sniffBuf[:n])
+			if !isAllowedLMSContentType(detectedType) {
+				return c.JSON(http.StatusBadRequest, map[string]string{
+					"message": "Isi berkas tidak sesuai dengan format yang diizinkan",
+				})
+			}
+			if _, err := src.Seek(0, io.SeekStart); err != nil {
+				return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Gagal membaca berkas"})
+			}
 
-			contentType := fileHeader.Header.Get("Content-Type")
+			fileSize = fileHeader.Size
+			// Derive the storage key from a sanitized, random suffix so a
+			// hostile filename can never escape the intended prefix.
+			safeBase := sanitizeFilenameSegment(filepath.Base(fileHeader.Filename))
+			if safeBase == "" {
+				safeBase = "materi"
+			}
+			fileKey = fmt.Sprintf("materials/%d/%d_%s", meetingID, time.Now().UnixNano(), safeBase)
+
+			contentType := allowedLMSContentTypes[ext]
 			if contentType == "" {
-				contentType = "application/octet-stream"
+				contentType = detectedType
 			}
 
 			uploadedURL, err := storage.UploadFile(c.Request().Context(), fileKey, src, contentType)
 			if err != nil {
-				return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Gagal mengunggah berkas materi: " + err.Error()})
+				return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Gagal mengunggah berkas materi"})
 			}
 			contentURL = uploadedURL
-			_ = ext
 		} else if mType == "video" || mType == "link" {
 			contentURL = strings.TrimSpace(c.FormValue("content_url"))
 			if contentURL == "" {
 				return c.JSON(http.StatusBadRequest, map[string]string{"message": "Tautan materi / video wajib diisi"})
+			}
+			if err := validateExternalURL(contentURL); err != nil {
+				return c.JSON(http.StatusBadRequest, map[string]string{"message": err.Error()})
 			}
 		} else if mType == "text" {
 			textContent = strings.TrimSpace(c.FormValue("text_content"))
@@ -668,29 +703,65 @@ func SubmitStudentAssignment(db *sql.DB, storage *service.StorageService) echo.H
 			if err != nil {
 				return c.JSON(http.StatusBadRequest, map[string]string{"message": "Berkas tugas wajib diunggah"})
 			}
+
+			if fh.Size > maxLMSFileSize {
+				return c.JSON(http.StatusBadRequest, map[string]string{
+					"message": fmt.Sprintf("Ukuran berkas maksimal %d MB", maxLMSFileSize/(1024*1024)),
+				})
+			}
+
+			ext := strings.ToLower(filepath.Ext(fh.Filename))
+			if !allowedLMSDocumentExts[ext] {
+				return c.JSON(http.StatusBadRequest, map[string]string{
+					"message": "Format berkas tidak didukung. Gunakan PDF, Word, Excel, PowerPoint, gambar, atau arsip ZIP.",
+				})
+			}
+
 			src, err := fh.Open()
 			if err != nil {
 				return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Gagal membaca berkas"})
 			}
 			defer src.Close()
 
-			cleanName := strings.ReplaceAll(filepath.Base(fh.Filename), " ", "_")
-			fileKey = fmt.Sprintf("submissions/%d/%s_%d_%s", assignmentID, studentNIS, time.Now().Unix(), cleanName)
+			sniffBuf := make([]byte, 512)
+			n, _ := io.ReadFull(src, sniffBuf)
+			detectedType := http.DetectContentType(sniffBuf[:n])
+			if !isAllowedLMSContentType(detectedType) {
+				return c.JSON(http.StatusBadRequest, map[string]string{
+					"message": "Isi berkas tidak sesuai dengan format yang diizinkan",
+				})
+			}
+			if _, err := src.Seek(0, io.SeekStart); err != nil {
+				return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Gagal membaca berkas"})
+			}
 
-			contentType := fh.Header.Get("Content-Type")
+			safeBase := sanitizeFilenameSegment(filepath.Base(fh.Filename))
+			if safeBase == "" {
+				safeBase = "tugas"
+			}
+			safeNIS := sanitizeFilenameSegment(studentNIS)
+			if safeNIS == "" {
+				safeNIS = "siswa"
+			}
+			fileKey = fmt.Sprintf("submissions/%d/%s_%d_%s", assignmentID, safeNIS, time.Now().UnixNano(), safeBase)
+
+			contentType := allowedLMSContentTypes[ext]
 			if contentType == "" {
-				contentType = "application/octet-stream"
+				contentType = detectedType
 			}
 
 			uploadedURL, err := storage.UploadFile(c.Request().Context(), fileKey, src, contentType)
 			if err != nil {
-				return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Gagal upload berkas ke R2: " + err.Error()})
+				return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Gagal mengunggah berkas tugas"})
 			}
 			fileURL = uploadedURL
 		} else if subType == "link" {
 			linkURL = strings.TrimSpace(c.FormValue("link_url"))
 			if linkURL == "" {
 				return c.JSON(http.StatusBadRequest, map[string]string{"message": "Tautan tugas wajib diisi"})
+			}
+			if err := validateExternalURL(linkURL); err != nil {
+				return c.JSON(http.StatusBadRequest, map[string]string{"message": err.Error()})
 			}
 		} else if subType == "text" {
 			textContent = strings.TrimSpace(c.FormValue("text_content"))

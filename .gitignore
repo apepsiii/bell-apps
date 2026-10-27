@@ -35,6 +35,13 @@ logs/*
 
 # Config (contains secrets)
 config.yaml
+.env
+face_service/.env
+
+# Biometric data and test fixtures containing real PII
+face_service/faces/
+face_service/faces.db
+test_data/
 
 # Context (design references, not source)
 context/

@@ -1,4 +1,4 @@
-package handler
+﻿package handler
 
 import (
 	"database/sql"
@@ -71,7 +71,7 @@ func GetAssets(db *sql.DB) echo.HandlerFunc {
 
 		rows, err := db.Query(query, args...)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Terjadi kesalahan server"})
 		}
 		defer rows.Close()
 
@@ -153,7 +153,7 @@ func GetAssetByID(db *sql.DB) echo.HandlerFunc {
 			return c.JSON(http.StatusNotFound, map[string]string{"error": "Asset not found"})
 		}
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Terjadi kesalahan server"})
 		}
 
 		asset.IsBorrowable = (isBorrowable == 1)
@@ -276,7 +276,7 @@ func AddAsset(db *sql.DB) echo.HandlerFunc {
 			unit, notes, photoURL, isBorrowable, time.Now(), createdBy)
 
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Terjadi kesalahan server"})
 		}
 
 		assetID, _ := result.LastInsertId()
@@ -364,7 +364,7 @@ func UpdateAsset(db *sql.DB) echo.HandlerFunc {
 			isBorrowable, time.Now(), id)
 
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Terjadi kesalahan server"})
 		}
 
 		return c.JSON(http.StatusOK, map[string]string{"message": "Asset updated successfully"})
@@ -385,7 +385,7 @@ func DeleteAsset(db *sql.DB) echo.HandlerFunc {
 
 		_, err := db.Exec("DELETE FROM assets WHERE id = ?", id)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Terjadi kesalahan server"})
 		}
 
 		return c.JSON(http.StatusOK, map[string]string{"message": "Asset deleted successfully"})
@@ -403,14 +403,14 @@ func GenerateAssetQRCode(db *sql.DB) echo.HandlerFunc {
 			return c.JSON(http.StatusNotFound, map[string]string{"error": "Asset not found"})
 		}
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Terjadi kesalahan server"})
 		}
 
 		// Generate QR code
 		qrContent := fmt.Sprintf("ASSET:%s", inventoryCode)
 		png, err := qrcode.Encode(qrContent, qrcode.Medium, 256)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Terjadi kesalahan server"})
 		}
 
 		return c.Blob(http.StatusOK, "image/png", png)
@@ -454,7 +454,7 @@ func ScanAssetQRCode(db *sql.DB) echo.HandlerFunc {
 			return c.JSON(http.StatusNotFound, map[string]string{"error": "Asset not found"})
 		}
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Terjadi kesalahan server"})
 		}
 
 		asset.IsBorrowable = isBorrowable == 1

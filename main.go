@@ -632,34 +632,6 @@ func (a *App) GetNextBell() string {
 
 // --- HANDLERS ---
 
-func (a *App) LoginHandler(c echo.Context) error {
-	username := c.FormValue("username")
-	password := c.FormValue("password")
-
-	if username == config.GetAdminUser() && password == config.GetAdminPass() {
-		cookie := new(http.Cookie)
-		cookie.Name = config.GetCookieName()
-		cookie.Value = config.GetSecretKey()
-		cookie.Path = "/"
-		cookie.Expires = time.Now().Add(24 * time.Hour)
-		cookie.HttpOnly = true
-		cookie.SameSite = http.SameSiteLaxMode
-		c.SetCookie(cookie)
-		return c.Redirect(http.StatusSeeOther, "/admin")
-	}
-	return c.Redirect(http.StatusSeeOther, "/login?error=1")
-}
-
-func (a *App) LogoutHandler(c echo.Context) error {
-	cookie := new(http.Cookie)
-	cookie.Name = config.GetCookieName()
-	cookie.Value = ""
-	cookie.Path = "/"
-	cookie.MaxAge = -1
-	c.SetCookie(cookie)
-	return c.Redirect(http.StatusSeeOther, "/login")
-}
-
 func (a *App) getDashboardData() DashboardData {
 	config.AppVersion = GetVersionString()
 	rows, _ := a.DB.Query("SELECT id, time, label, audio_file FROM schedules ORDER BY time ASC")

@@ -54,6 +54,7 @@ type AuthConfig struct {
 	AdminPass   string `yaml:"admin_password"`
 	CookieName  string `yaml:"cookie_name"`
 	SecretKey   string `yaml:"secret_key"`
+	WebhookSecret string `yaml:"webhook_secret"`
 }
 
 var (
@@ -236,6 +237,16 @@ func GetAuth() AuthConfig {
 		CookieName: getEnv("COOKIE_NAME", "session_token"),
 		SecretKey:  getEnv("SECRET_KEY", "admin-secret-key-change-me"),
 	}
+}
+
+// GetWebhookSecret returns the shared secret used to authenticate inbound
+// WhatsApp webhook deliveries. An empty value means webhook verification is
+// not configured and every webhook request must be rejected.
+func GetWebhookSecret() string {
+	if config != nil && config.Auth.WebhookSecret != "" {
+		return config.Auth.WebhookSecret
+	}
+	return getEnv("WEBHOOK_SECRET", "")
 }
 
 func GetUploadPath() string {

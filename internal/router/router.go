@@ -169,7 +169,7 @@ func RegisterRoutes(e *echo.Echo, db *sql.DB, viewsFS fs.FS, app AppHandlers) {
 	e.GET("/scan-face", handler.ScanFacePage(db))
 	e.GET("/scan-sholat", handler.ScanPrayerPage(db))
 
-	e.POST("/api/login", handler.Login(), appMiddleware.AuthRateLimiter())
+	e.POST("/api/login", handler.Login(db), appMiddleware.AuthRateLimiter())
 	e.GET("/logout", handler.Logout())
 	e.POST("/logout", handler.Logout())
 	e.GET("/api/logout", handler.Logout())
@@ -208,14 +208,14 @@ func RegisterRoutes(e *echo.Echo, db *sql.DB, viewsFS fs.FS, app AppHandlers) {
 	})
 	e.GET("/api/point-rules", handler.GetPointRulesV2(db))
 	e.GET("/api/attendance/prayer-logs", handler.PrayerLogs(db))
-	e.GET("/api/attendance/record", app.RecordAttendanceHandler)
-	e.POST("/api/attendance/record", app.RecordAttendanceHandler)
-	e.GET("/api/attendance/prayer", app.PrayerAttendanceHandler)
-	e.POST("/api/attendance/prayer", app.PrayerAttendanceHandler)
-	e.GET("/api/attendance/today-stats", app.TodayStatsHandler)
-	e.GET("/api/attendance/recent-logs", app.RecentLogsHandler)
-	e.POST("/api/attendance/verify-face", app.VerifyFaceAttendanceHandler)
-	e.GET("/api/face/descriptors", handler.GetFaceDescriptors(db))
+	e.GET("/api/attendance/record", app.RecordAttendanceHandler, handler.DeviceAuth(db))
+	e.POST("/api/attendance/record", app.RecordAttendanceHandler, handler.DeviceAuth(db))
+	e.GET("/api/attendance/prayer", app.PrayerAttendanceHandler, handler.DeviceAuth(db))
+	e.POST("/api/attendance/prayer", app.PrayerAttendanceHandler, handler.DeviceAuth(db))
+	e.GET("/api/attendance/today-stats", app.TodayStatsHandler, handler.DeviceAuth(db))
+	e.GET("/api/attendance/recent-logs", app.RecentLogsHandler, handler.DeviceAuth(db))
+	e.POST("/api/attendance/verify-face", app.VerifyFaceAttendanceHandler, handler.DeviceAuth(db))
+	e.GET("/api/face/descriptors", handler.GetFaceDescriptors(db), handler.DeviceAuth(db))
 	e.POST("/api/attendance/test-wa", handler.TestWA(db), appMiddleware.AdminAuth())
 
 	// --- ADMIN ROUTES ---
@@ -487,10 +487,10 @@ func RegisterRoutes(e *echo.Echo, db *sql.DB, viewsFS fs.FS, app AppHandlers) {
 
 	// --- REVERSE OTP & MAGIC LINK AUTHENTICATION ROUTES ---
 	e.POST("/api/auth/magic-request", handler.RequestMagicLogin(db), appMiddleware.AuthRateLimiter())
-	e.GET("/api/auth/magic-status", handler.CheckMagicStatus(db))
-	e.GET("/auth/magic", handler.ConsumeMagicLink(db))
-	e.POST("/api/webhook/whatsapp", handler.HandleWhatsAppWebhook(db))
-	e.POST("/api/webhook/onesender", handler.HandleWhatsAppWebhook(db))
+	e.GET("/api/auth/magic-status", handler.CheckMagicStatus(db), appMiddleware.AuthRateLimiter())
+	e.GET("/auth/magic", handler.ConsumeMagicLink(db), appMiddleware.AuthRateLimiter())
+	e.POST("/api/webhook/whatsapp", handler.HandleWhatsAppWebhook(db), appMiddleware.AuthRateLimiter())
+	e.POST("/api/webhook/onesender", handler.HandleWhatsAppWebhook(db), appMiddleware.AuthRateLimiter())
 
 	// Parent Portal APIs
 	e.GET("/api/parent/info", handler.GetParentInfo(db))
@@ -688,7 +688,7 @@ func RegisterRoutes(e *echo.Echo, db *sql.DB, viewsFS fs.FS, app AppHandlers) {
 	sarprasAPI.DELETE("/ticket/:id", handler.DeleteMaintenanceTicket(db))
 
 	// Public scan endpoint (for QR code scanning)
-	e.GET("/sarpras/scan", handler.ScanAssetQRCode(db))
+	e.GET("/sarpras/scan", handler.ScanAssetQRCode(db), handler.DeviceAuth(db))
 }
 
 func getEnv(key, def string) string {

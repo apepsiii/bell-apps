@@ -1,4 +1,4 @@
-package handler
+﻿package handler
 
 import (
 	"database/sql"
@@ -253,7 +253,7 @@ func GetPendingAchievements(db *sql.DB) echo.HandlerFunc {
 		`
 		rows, err := db.Query(query, status)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Terjadi kesalahan server"})
 		}
 		defer rows.Close()
 

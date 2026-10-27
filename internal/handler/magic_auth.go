@@ -1,10 +1,14 @@
 package handler
 
 import (
+	"bytes"
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -15,6 +19,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 
+	"belsekolah/internal/config"
 	"belsekolah/internal/service"
 	"belsekolah/pkg/utils"
 )
@@ -247,6 +252,47 @@ func cleanSenderPhone(raw string) string {
 	return utils.FormatPhone(raw)
 }
 
+// webhookSignatureHeaders lists the header names providers commonly use to
+// carry an HMAC signature of the request body.
+var webhookSignatureHeaders = []string{
+	"X-Webhook-Signature",
+	"X-Signature",
+	"X-Hub-Signature-256",
+	"X-OneSender-Signature",
+}
+
+// verifyWebhookSignature validates the HMAC-SHA256 signature of the raw request
+// body against the configured shared secret. It returns the verified body so
+// callers can re-read it, and fails closed when no secret is configured.
+func verifyWebhookSignature(c echo.Context) ([]byte, error) {
+	secret := config.GetWebhookSecret()
+	if secret == "" {
+		return nil, errors.New("webhook secret not configured")
+	}
+
+	body, err := io.ReadAll(c.Request().Body)
+	if err != nil {
+		return nil, err
+	}
+
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write(body)
+	expected := hex.EncodeToString(mac.Sum(nil))
+
+	for _, header := range webhookSignatureHeaders {
+		provided := strings.TrimSpace(c.Request().Header.Get(header))
+		if provided == "" {
+			continue
+		}
+		// Accept both "sha256=<hex>" and bare "<hex>" forms.
+		provided = strings.TrimPrefix(provided, "sha256=")
+		if hmac.Equal([]byte(provided), []byte(expected)) {
+			return body, nil
+		}
+	}
+	return nil, errors.New("webhook signature mismatch")
+}
+
 // matchLoginCode extracts a 4-10 character code from incoming message.
 var loginCodeRegex = regexp.MustCompile(`(?i)(?:LOGIN|MASUK)\s*[:#\- ]*\s*([A-Za-z0-9]{4,10})`)
 
@@ -255,6 +301,20 @@ var loginCodeRegex = regexp.MustCompile(`(?i)(?:LOGIN|MASUK)\s*[:#\- ]*\s*([A-Za
 // updates the token status to verified, and replies via WhatsApp with the single-use Magic Link.
 func HandleWhatsAppWebhook(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		// The webhook is a public, unauthenticated endpoint that can mint
+		// sessions. It is therefore protected by an HMAC signature computed
+		// over the exact request body with a shared secret. Without a
+		// configured secret the endpoint refuses all traffic.
+		rawBody, err := verifyWebhookSignature(c)
+		if err != nil {
+			return c.JSON(http.StatusUnauthorized, map[string]string{
+				"status":  "unauthorized",
+				"message": "Webhook signature tidak valid atau belum dikonfigurasi.",
+			})
+		}
+		// Re-inject the verified body so the existing parsers can read it.
+		c.Request().Body = io.NopCloser(bytes.NewReader(rawBody))
+
 		rawSender, message := extractWebhookPayload(c)
 		senderPhone := cleanSenderPhone(rawSender)
 
@@ -296,9 +356,9 @@ func HandleWhatsAppWebhook(db *sql.DB) echo.HandlerFunc {
 			status    string
 			expiresAt time.Time
 		)
-		err := db.QueryRow(`
-			SELECT id, token, status, expires_at 
-			FROM magic_login_tokens 
+		err = db.QueryRow(`
+			SELECT id, token, status, expires_at
+			FROM magic_login_tokens
 			WHERE request_code = ?
 		`, code).Scan(&tokenID, &token, &status, &expiresAt)
 
@@ -488,8 +548,25 @@ func ConsumeMagicLink(db *sql.DB) echo.HandlerFunc {
 			return c.Redirect(http.StatusSeeOther, "/student/login?magic_error=not_verified")
 		}
 
-		// Mark token as used to enforce single-use
-		_, _ = db.Exec("UPDATE magic_login_tokens SET status = 'used' WHERE id = ?", id)
+		// Only a token the WhatsApp webhook explicitly verified may be consumed.
+		// Any other state (used, revoked, unknown) is rejected.
+		if status != "verified" {
+			return c.Redirect(http.StatusSeeOther, "/student/login?magic_error=invalid_token")
+		}
+
+		// Atomically claim the token. Two concurrent requests with the same
+		// token cannot both succeed: only the first UPDATE affects a row.
+		res, err := db.Exec(
+			"UPDATE magic_login_tokens SET status = 'used' WHERE id = ? AND status = 'verified'",
+			id,
+		)
+		if err != nil {
+			return c.Redirect(http.StatusSeeOther, "/student/login?magic_error=server_error")
+		}
+		claimed, err := res.RowsAffected()
+		if err != nil || claimed == 0 {
+			return c.Redirect(http.StatusSeeOther, "/student/login?magic_error=invalid_token")
+		}
 
 		sessionExpiry := time.Now().Add(7 * 24 * time.Hour)
 		isSecure := c.Request().TLS != nil || c.Request().Header.Get("X-Forwarded-Proto") == "https"

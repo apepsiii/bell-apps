@@ -80,6 +80,19 @@ func setupTestApp(t *testing.T) (*TestApp, func()) {
 	return app, teardown
 }
 
+// deviceToken returns the auto-generated device token stored in the test
+// database, so tests can authenticate machine-to-machine endpoints.
+func deviceToken(t *testing.T, app *TestApp) string {
+	t.Helper()
+	var token string
+	if err := app.DB.QueryRow(
+		"SELECT setting_value FROM attendance_settings WHERE setting_key = 'device_token'",
+	).Scan(&token); err != nil {
+		t.Fatalf("failed to read device_token: %v", err)
+	}
+	return token
+}
+
 // seedStudent creates a test student record in the in-memory database.
 func seedStudent(t *testing.T, app *TestApp, nis, name, password string, active bool) {
 	status := "active"

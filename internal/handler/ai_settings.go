@@ -1,4 +1,4 @@
-package handler
+﻿package handler
 
 import (
 	"bytes"
@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -33,7 +34,14 @@ func isMaskedAPIKey(key string) bool {
 	return strings.Contains(key, "****") || key == "********"
 }
 
-// validateAIBaseURL validates AI Base URL and protects against SSRF
+// validateAIBaseURL validates AI Base URL and protects against SSRF.
+//
+// The check is deliberately strict because the outbound request carries the
+// provider API key in an Authorization header: a bypass would leak that key to
+// an attacker-controlled host. It therefore blocks every non-global address
+// (loopback, private, link-local, CGNAT, reserved, multicast), resolves DNS
+// and re-checks every resulting address, and rejects hosts that cannot be
+// resolved.
 func validateAIBaseURL(rawURL string) error {
 	trimmed := strings.TrimSpace(rawURL)
 	if trimmed == "" {
@@ -56,19 +64,91 @@ func validateAIBaseURL(rawURL string) error {
 		return errors.New("Host URL tidak boleh kosong")
 	}
 
-	// Block Cloud Metadata Endpoints (AWS, GCP, Azure, OpenStack)
-	if hostLower == "169.254.169.254" || hostLower == "metadata.google.internal" || hostLower == "instance-data" {
+	// Block Cloud Metadata Endpoints (AWS, GCP, Azure, OpenStack, Alibaba)
+	if hostLower == "169.254.169.254" || hostLower == "metadata.google.internal" ||
+		hostLower == "instance-data" || hostLower == "100.100.100.200" {
 		return errors.New("Akses ke endpoint metadata cloud dilarang (SSRF Protection)")
 	}
 
-	ip := net.ParseIP(hostLower)
-	if ip != nil {
-		if ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
-			return errors.New("Akses ke alamat link-local dilarang (SSRF Protection)")
+	// Reject obviously local hostnames before any DNS lookup.
+	if hostLower == "localhost" || strings.HasSuffix(hostLower, ".localhost") ||
+		hostLower == "ip6-localhost" || hostLower == "ip6-loopback" {
+		return errors.New("Akses ke host lokal dilarang (SSRF Protection)")
+	}
+
+	// If the host is a literal IP, validate it directly. Otherwise resolve it
+	// and validate every address the name maps to, so a public-looking hostname
+	// that points at an internal address is still rejected.
+	ips := []net.IP{}
+	if ip := net.ParseIP(hostLower); ip != nil {
+		ips = append(ips, ip)
+	} else {
+		resolved, err := net.LookupIP(hostLower)
+		if err != nil || len(resolved) == 0 {
+			return errors.New("Host URL tidak dapat diselesaikan (SSRF Protection)")
+		}
+		ips = resolved
+	}
+
+	for _, ip := range ips {
+		if allowPrivateAIURLs() {
+			break
+		}
+		if err := checkGlobalIP(ip); err != nil {
+			return err
 		}
 	}
 
 	return nil
+}
+
+// allowPrivateAIURLs reports whether private/loopback AI base URLs are
+// permitted. This is an explicit opt-in for local development and automated
+// tests that spin up a mock provider on 127.0.0.1; it is off by default so
+// production deployments keep full SSRF protection.
+func allowPrivateAIURLs() bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("AI_ALLOW_PRIVATE_URLS"))) {
+	case "1", "true", "yes", "on":
+		return true
+	}
+	return false
+}
+
+// checkGlobalIP rejects any address that is not globally routable.
+func checkGlobalIP(ip net.IP) error {
+	if ip == nil {
+		return errors.New("Alamat IP tidak valid (SSRF Protection)")
+	}
+	if ip.IsLoopback() || ip.IsPrivate() || ip.IsUnspecified() ||
+		ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() ||
+		ip.IsInterfaceLocalMulticast() || ip.IsMulticast() {
+		return errors.New("Akses ke alamat internal dilarang (SSRF Protection)")
+	}
+	// CGNAT 100.64.0.0/10 and other reserved ranges.
+	if ip4 := ip.To4(); ip4 != nil {
+		if ip4[0] == 100 && ip4[1] >= 64 && ip4[1] <= 127 {
+			return errors.New("Akses ke rentang alamat CGNAT dilarang (SSRF Protection)")
+		}
+		if ip4[0] == 0 || ip4[0] == 192 && ip4[1] == 0 && ip4[2] == 0 ||
+			ip4[0] == 198 && (ip4[1] == 18 || ip4[1] == 19) ||
+			ip4[0] == 198 && ip4[1] == 51 && ip4[2] == 100 ||
+			ip4[0] == 203 && ip4[1] == 0 && ip4[2] == 113 {
+			return errors.New("Akses ke rentang alamat reserved dilarang (SSRF Protection)")
+		}
+	}
+	return nil
+}
+
+// safeAIClient builds an HTTP client that never follows redirects. Following a
+// redirect would let a public URL bounce the request (and its Authorization
+// header) to an internal address after validation has already passed.
+func safeAIClient() *http.Client {
+	return &http.Client{
+		Timeout: 15 * time.Second,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
 }
 
 // GetAISettings returns all AI configuration settings with masked API key
@@ -132,7 +212,7 @@ func UpdateAISettings(db *sql.DB) echo.HandlerFunc {
 		// SEC-10: Validate AI Base URL syntax & SSRF safety
 		if baseURL != "" {
 			if err := validateAIBaseURL(baseURL); err != nil {
-				return c.JSON(http.StatusBadRequest, map[string]string{"message": err.Error()})
+				return c.JSON(http.StatusBadRequest, map[string]string{"message": "Terjadi kesalahan server"})
 			}
 		}
 
@@ -241,20 +321,20 @@ func GetAIModels(db *sql.DB) echo.HandlerFunc {
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]interface{}{
 				"status":  "error",
-				"message": "Format URL models tidak valid: " + err.Error(),
+				"message": "Format URL tidak valid",
 			})
 		}
 
 		req.Header.Set("Authorization", "Bearer "+apiKey)
 		req.Header.Set("Content-Type", "application/json")
 
-		client := &http.Client{Timeout: 15 * time.Second}
+		client := safeAIClient()
 		resp, err := client.Do(req)
 		if err != nil {
 			c.Logger().Errorf("Failed to connect to AI models endpoint: %v", err)
 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
 				"status":  "error",
-				"message": "Gagal terhubung ke provider AI: " + err.Error(),
+				"message": "Gagal terhubung ke provider AI",
 			})
 		}
 		defer resp.Body.Close()
@@ -413,21 +493,23 @@ func TestAIConnection(db *sql.DB) echo.HandlerFunc {
 			c.Logger().Errorf("Failed to create HTTP request: %v", err)
 			return c.JSON(http.StatusBadRequest, map[string]interface{}{
 				"status":  "error",
-				"message": "Format URL atau request tidak valid: " + err.Error(),
+				"message": "Format URL atau request tidak valid",
 			})
 		}
 
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+apiKey)
 
-		// SEC-10: Restrict client timeout to 15 seconds
-		client := &http.Client{Timeout: 15 * time.Second}
+		// SEC-10: Restrict client timeout to 15 seconds and never follow
+		// redirects, so a validated public URL cannot bounce the request
+		// (and its Authorization header) to an internal address.
+		client := safeAIClient()
 		resp, err := client.Do(req)
 		if err != nil {
 			c.Logger().Errorf("Failed to connect to AI API: %v", err)
 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
 				"status":  "error",
-				"message": "Gagal menghubungi endpoint AI: koneksi gagal atau timeout (" + err.Error() + ")",
+				"message": "Gagal menghubungi endpoint AI: koneksi gagal atau timeout",
 			})
 		}
 		defer resp.Body.Close()

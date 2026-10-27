@@ -14,6 +14,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/bcrypt"
 
 	"belsekolah/internal/handler"
 	"belsekolah/internal/service"
@@ -150,10 +151,18 @@ func TestTeacherAuthAndKBM(t *testing.T) {
 	require.NoError(t, err)
 	assignmentID, _ := resTA.LastInsertId()
 
-	// 2. Test Teacher Login with Default Password (or NIP)
+	// 2. Test Teacher Login with an enrolled password.
+	// A staff account with no password cannot sign in: the NIP is public
+	// information and must never double as a credential.
+	teacherPass := "Guru#Pass2026"
+	hashedPass, err := bcrypt.GenerateFromPassword([]byte(teacherPass), bcrypt.DefaultCost)
+	require.NoError(t, err)
+	_, err = app.DB.Exec("UPDATE staff SET password = ? WHERE id = ?", string(hashedPass), staffID)
+	require.NoError(t, err)
+
 	formLogin := make(url.Values)
 	formLogin.Set("nip", nip)
-	formLogin.Set("password", handler.TeacherDefaultPassword)
+	formLogin.Set("password", teacherPass)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/guru/login", strings.NewReader(formLogin.Encode()))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)

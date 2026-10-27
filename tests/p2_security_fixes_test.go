@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/bcrypt"
 
+	"belsekolah/internal/config"
 	"belsekolah/internal/handler"
 	"belsekolah/internal/router"
 )
@@ -126,7 +127,30 @@ func TestSEC10_SSRF_Protection(t *testing.T) {
 	err = updateHandler(cLinkLocal)
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusBadRequest, recLinkLocal.Code)
-	assert.Contains(t, recLinkLocal.Body.String(), "Akses ke alamat link-local dilarang")
+	assert.Contains(t, recLinkLocal.Body.String(), "SSRF Protection")
+
+	// 3b. Disallow loopback and private ranges
+	for _, blocked := range []string{
+		"http://127.0.0.1:11434/v1",
+		"http://localhost:8080/v1",
+		"http://10.0.0.5/v1",
+		"http://192.168.1.10/v1",
+		"http://172.16.0.9/v1",
+		"http://[::1]:8080/v1",
+	} {
+		formBlocked := url.Values{
+			"ai_base_url": {blocked},
+			"ai_api_key":  {"test-key"},
+			"ai_model":    {"gpt-4o-mini"},
+		}
+		reqBlocked := httptest.NewRequest(http.MethodPost, "/admin/ai/settings", strings.NewReader(formBlocked.Encode()))
+		reqBlocked.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
+		recBlocked := httptest.NewRecorder()
+		err = updateHandler(e.NewContext(reqBlocked, recBlocked))
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusBadRequest, recBlocked.Code, "URL %s must be rejected", blocked)
+		assert.Contains(t, recBlocked.Body.String(), "SSRF Protection", "URL %s must be rejected as SSRF", blocked)
+	}
 
 	// 4. Allow valid public API endpoint
 	formValid := url.Values{
@@ -153,10 +177,17 @@ func TestSEC11_SessionCookies_Secure_Flag(t *testing.T) {
 	e := echo.New()
 
 	// 1. Admin Login via HTTPS (X-Forwarded-Proto: https) -> Cookie must have Secure: true
-	loginAdmin := handler.Login()
+	// Use a non-default password so the factory-credential guard does not block it.
+	strongPass := "Str0ngAdmin#Pass2026"
+	cfg := config.GetConfig()
+	origPass := cfg.Auth.AdminPass
+	cfg.Auth.AdminPass = strongPass
+	defer func() { cfg.Auth.AdminPass = origPass }()
+
+	loginAdmin := handler.Login(app.DB)
 	formAdmin := url.Values{
 		"username": {"admin"},
-		"password": {"admin123"},
+		"password": {strongPass},
 	}
 	reqAdmin := httptest.NewRequest(http.MethodPost, "/api/login", strings.NewReader(formAdmin.Encode()))
 	reqAdmin.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
@@ -375,6 +406,8 @@ func TestAISettings_JSONPayload(t *testing.T) {
 func TestGetAIModels_OpenAIFormat(t *testing.T) {
 	app, teardown := setupTestApp(t)
 	defer teardown()
+	t.Setenv("AI_ALLOW_PRIVATE_URLS", "true")
+
 
 	// Mock OpenAI API Server
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -425,6 +458,7 @@ func TestGetAIModels_OpenAIFormat(t *testing.T) {
 func TestGetAIModels_OllamaFormat(t *testing.T) {
 	app, teardown := setupTestApp(t)
 	defer teardown()
+	t.Setenv("AI_ALLOW_PRIVATE_URLS", "true")
 
 	// Mock Ollama API Server
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -489,6 +523,7 @@ func TestGetAIModels_SSRFProtection(t *testing.T) {
 func TestTestAIConnection_MockServer(t *testing.T) {
 	app, teardown := setupTestApp(t)
 	defer teardown()
+	t.Setenv("AI_ALLOW_PRIVATE_URLS", "true")
 
 	// Mock OpenAI Chat Completions Server
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

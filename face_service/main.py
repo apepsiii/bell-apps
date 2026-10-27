@@ -1,6 +1,7 @@
 import os
 import json
 import base64
+import secrets
 import sqlite3
 import numpy as np
 from io import BytesIO
@@ -8,7 +9,7 @@ from datetime import datetime
 from contextlib import asynccontextmanager
 
 import cv2
-from fastapi import FastAPI, File, UploadFile
+from fastapi import Depends, FastAPI, File, Header, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 from PIL import Image
 from dotenv import load_dotenv
@@ -16,6 +17,25 @@ from dotenv import load_dotenv
 load_dotenv()
 
 DB_PATH = os.getenv("DB_PATH", "./faces.db")
+
+# Shared secret that the Go backend must present on every request. When unset
+# the service refuses all traffic rather than running unauthenticated.
+FACE_SERVICE_TOKEN = os.getenv("FACE_SERVICE_TOKEN", "")
+
+# Bind to loopback by default. This service holds raw biometric encodings, so
+# it must never be reachable from an untrusted network.
+FACE_SERVICE_HOST = os.getenv("FACE_SERVICE_HOST", "127.0.0.1")
+
+
+def require_token(x_api_token: str = Header(default="")):
+    """Reject any request that does not carry the configured API token."""
+    if not FACE_SERVICE_TOKEN:
+        raise HTTPException(
+            status_code=503,
+            detail="FACE_SERVICE_TOKEN is not configured; the service refuses requests.",
+        )
+    if not secrets.compare_digest(x_api_token, FACE_SERVICE_TOKEN):
+        raise HTTPException(status_code=401, detail="Invalid or missing API token")
 
 FACE_CASCADE = cv2.CascadeClassifier(
     cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
@@ -176,7 +196,7 @@ async def health_check():
     return {"status": "healthy", "face_count": face_count}
 
 
-@app.post("/register")
+@app.post("/register", dependencies=[Depends(require_token)])
 async def register_face(request: dict):
     try:
         student_id = request.get("student_id")
@@ -225,7 +245,7 @@ async def register_face(request: dict):
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
-@app.post("/verify")
+@app.post("/verify", dependencies=[Depends(require_token)])
 async def verify_face(request: dict):
     try:
         image_data = request.get("image_base64", "")
@@ -258,7 +278,7 @@ async def verify_face(request: dict):
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
-@app.delete("/face/{student_id}")
+@app.delete("/face/{student_id}", dependencies=[Depends(require_token)])
 async def delete_face(student_id: int):
     conn = get_db()
     cursor = conn.cursor()
@@ -269,13 +289,25 @@ async def delete_face(student_id: int):
     return {"success": True, "message": f"Face deleted for student {student_id}"}
 
 
-@app.get("/faces")
+@app.get("/faces", dependencies=[Depends(require_token)])
 async def list_faces():
     encodings = get_all_encodings()
-    return {"count": len(encodings), "faces": encodings}
+    # Return only counts and identifiers. Raw grayscale pixel arrays are
+    # biometric material and must not be bulk-exported.
+    return {
+        "count": len(encodings),
+        "faces": [
+            {
+                "student_id": e["student_id"],
+                "name": e["name"],
+                "class_name": e["class_name"],
+            }
+            for e in encodings
+        ],
+    }
 
 
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", "8001"))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(app, host=FACE_SERVICE_HOST, port=port)

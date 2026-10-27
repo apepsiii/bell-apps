@@ -120,18 +120,23 @@ func RestoreDatabase(db *sql.DB) echo.HandlerFunc {
 		}
 		defer src.Close()
 
-		// Save uploaded zip to temp
-		tmpZip := filepath.Join(os.TempDir(), "restore_backup.zip")
-		tmpFile, err := os.Create(tmpZip)
+		// Save uploaded zip to a unique temp file. A fixed name would let two
+		// concurrent restores clobber each other's upload.
+		tmpFile, err := os.CreateTemp(os.TempDir(), "restore_backup_*.zip")
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Gagal menyiapkan berkas sementara"})
 		}
-		io.Copy(tmpFile, src)
+		tmpPath := tmpFile.Name()
+		if _, err := io.Copy(tmpFile, src); err != nil {
+			tmpFile.Close()
+			os.Remove(tmpPath)
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Gagal membaca berkas backup"})
+		}
 		tmpFile.Close()
-		defer os.Remove(tmpZip)
+		defer os.Remove(tmpPath)
 
 		// Open zip
-		zr, err := zip.OpenReader(tmpZip)
+		zr, err := zip.OpenReader(tmpPath)
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"status":  "error",
