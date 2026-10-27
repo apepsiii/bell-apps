@@ -4023,14 +4023,7 @@
 
                                 ${m.description ? `<p class="text-[11px] text-slate-500">${m.description}</p>` : ''}
 
-                                <div class="pt-1">
-                                    <button type="button" onclick="openStudentDiscussion(${m.id}, '${encodeURIComponent(m.title)}')"
-                                        class="px-3 py-1.5 rounded-xl bg-violet-50 border border-violet-100 text-violet-700 text-[11px] font-bold flex items-center gap-1.5 hover:bg-violet-100 transition-colors">
-                                        <i class="ph-fill ph-chats-circle"></i><span>Diskusi Kelas</span>
-                                    </button>
-                                </div>
-
-                                <!-- Materials -->
+                                 <!-- Materials -->
                                 ${m.materials && m.materials.length > 0 ? `
                                     <div class="space-y-1.5 pt-1">
                                         <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Bahan Ajar</span>
@@ -4135,10 +4128,17 @@
                                             `;
                                         }).join('')}
                                     </div>
-                                ` : ''}
-                            </div>
-                        `;
-                    }).join('');
+                                 ` : ''}
+
+                                 <div class="pt-2 border-t border-slate-50">
+                                     <button type="button" onclick="toggleStudentDiscussionInline(${m.id})"
+                                         class="w-full px-3 py-2 rounded-xl bg-violet-50 border border-violet-100 text-violet-700 text-[11px] font-bold flex items-center justify-center gap-1.5 hover:bg-violet-100 transition-colors">
+                                         <i class="ph-fill ph-chats-circle"></i><span>Buka Ruang Diskusi</span>
+                                     </button>
+                                 </div>
+                             </div>
+                         `;
+                     }).join('');
                 } catch (e) {
                     meetingsList.innerHTML = `<div class="text-center py-6 text-xs text-rose-500 font-semibold">Gagal memuat detail pertemuan.</div>`;
                 }
@@ -4160,9 +4160,10 @@
 
             let studentDiscussionMeetingID = 0;
             async function openStudentDiscussion(id, titleEncoded) { studentDiscussionMeetingID=id; document.getElementById('studentDiscussionTitle').textContent=decodeURIComponent(titleEncoded); document.getElementById('studentDiscussionModal').classList.remove('hidden'); await loadStudentDiscussions(); }
+            async function toggleStudentDiscussionInline(id) { openStudentDiscussion(id, encodeURIComponent('Ruang Diskusi Pertemuan')); }
             function closeStudentDiscussion(){document.getElementById('studentDiscussionModal').classList.add('hidden');}
             function studentEsc(s){return (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
-            async function loadStudentDiscussions(){const r=await fetch(`/api/student/meetings/${studentDiscussionMeetingID}/discussions`);const rows=await r.json();const list=document.getElementById('studentDiscussionList');if(!rows.length){list.innerHTML='<p class="text-xs text-slate-400">Belum ada diskusi. Jadilah yang pertama.</p>';return;}list.innerHTML=rows.map(d=>`<article class="p-3 rounded-2xl border border-slate-100 bg-slate-50"><div class="flex items-center justify-between"><b class="text-xs text-slate-800">${studentEsc(d.author_name)}</b><span class="text-[10px] text-slate-400">${d.created_at}</span></div><p class="text-xs text-slate-700 mt-1">${studentEsc(d.body)}</p><div class="flex gap-3 mt-2"><button onclick="reactStudentDiscussion(${d.id})" class="text-[11px] ${d.my_reaction?'text-violet-600 font-bold':'text-slate-400'}">👍 ${d.reactions?.like||0}</button><button onclick="commentStudentDiscussion(${d.id})" class="text-[11px] text-violet-600 font-semibold">Komentar</button></div>${(d.comments||[]).map(c=>`<div class="ml-3 mt-2 pl-2 border-l border-slate-200"><div class="flex items-center justify-between"><b class="text-[11px]">${studentEsc(c.author_name)}</b><button onclick="reactStudentComment(${c.id})" class="text-[10px] ${c.my_reaction?'text-violet-600 font-bold':'text-slate-400'}">👍 ${c.reactions?.like||0}</button></div><p class="text-[11px] text-slate-600">${studentEsc(c.body)}</p><button onclick="replyStudentDiscussion(${d.id},${c.id})" class="text-[10px] text-slate-400">Balas</button></div>`).join('')}</article>`).join('');}
+            async function loadStudentDiscussions(){const r=await fetch(`/api/student/meetings/${studentDiscussionMeetingID}/discussions`);const rows=await r.json();const list=document.getElementById('studentDiscussionList');if(!rows.length){list.innerHTML='<p class="text-xs text-slate-400">Belum ada diskusi. Jadilah yang pertama.</p>';return;}list.innerHTML=rows.map(d=>`<article class="p-3 rounded-2xl border border-slate-100 bg-slate-50"><div class="flex items-center justify-between"><b class="text-xs text-slate-800">${studentEsc(d.author_name)} <span class="ml-1 px-1.5 py-0.5 rounded-full ${d.sender_role==='teacher'?'bg-amber-100 text-amber-700':'bg-blue-100 text-blue-700'}">${d.sender_role==='teacher'?'Guru':'Siswa'}</span></b><span class="text-[10px] text-slate-400">${d.created_at}</span></div><p class="text-xs text-slate-700 mt-1">${studentEsc(d.body)}</p><div class="flex gap-3 mt-2"><button onclick="reactStudentDiscussion(${d.id})" class="text-[11px] ${d.my_reaction?'text-violet-600 font-bold':'text-slate-400'}">👍 ${d.reactions?.like||0}</button><button onclick="commentStudentDiscussion(${d.id})" class="text-[11px] text-violet-600 font-semibold">Komentar</button></div>${(d.comments||[]).map(c=>`<div class="ml-3 mt-2 pl-2 border-l border-slate-200"><div class="flex items-center justify-between"><b class="text-[11px]">${studentEsc(c.author_name)} <span class="ml-1 px-1.5 py-0.5 rounded-full ${c.sender_role==='teacher'?'bg-amber-100 text-amber-700':'bg-blue-100 text-blue-700'}">${c.sender_role==='teacher'?'Guru':'Siswa'}</span></b><button onclick="reactStudentComment(${c.id})" class="text-[10px] ${c.my_reaction?'text-violet-600 font-bold':'text-slate-400'}">👍 ${c.reactions?.like||0}</button></div><p class="text-[11px] text-slate-600">${studentEsc(c.body)}</p><button onclick="replyStudentDiscussion(${d.id},${c.id})" class="text-[10px] text-slate-400">Balas</button></div>`).join('')}</article>`).join('');}
             async function createStudentDiscussion(){const body=document.getElementById('studentDiscussionBody').value.trim();if(!body)return;const fd=new FormData();fd.append('meeting_id',studentDiscussionMeetingID);fd.append('body',body);const r=await fetch('/api/student/discussions',{method:'POST',body:fd});if(r.ok){document.getElementById('studentDiscussionBody').value='';loadStudentDiscussions();}}
             async function commentStudentDiscussion(id,parentID){const body=prompt('Komentar');if(!body)return;const fd=new FormData();fd.append('body',body);if(parentID)fd.append('parent_id',parentID);await fetch(`/api/student/discussions/${id}/comments`,{method:'POST',body:fd});loadStudentDiscussions();}
             function replyStudentDiscussion(id,parentID){commentStudentDiscussion(id,parentID);}

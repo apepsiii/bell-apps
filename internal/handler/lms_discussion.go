@@ -19,6 +19,19 @@ func discussionMeetingStudent(db *sql.DB, meetingID, studentID int) bool {
 	_ = db.QueryRow(`SELECT COUNT(*) FROM lms_meetings m JOIN teacher_assignments a ON a.id=m.assignment_id JOIN students s ON s.class_id=a.class_id WHERE m.id=? AND s.id=? AND m.is_published=1`, meetingID, studentID).Scan(&n)
 	return n > 0
 }
+func discussionAuthorName(db *sql.DB, authorType string, authorID int) string {
+	var name string
+	if authorType == "teacher" {
+		_ = db.QueryRow(`SELECT name FROM staff WHERE id=?`, authorID).Scan(&name)
+	} else {
+		_ = db.QueryRow(`SELECT name FROM students WHERE id=?`, authorID).Scan(&name)
+	}
+	if name == "" {
+		name = "Pengguna"
+	}
+	return name
+}
+
 func discussionActor(c echo.Context) (string, int) {
 	if id := TeacherIDFromCtx(c); id > 0 {
 		return "teacher", id
@@ -50,13 +63,14 @@ func ListLMSDiscussions(db *sql.DB) echo.HandlerFunc {
 				for cr.Next() {
 					var cid int
 					var pid sql.NullInt64
-					var ct, ca, cb, cc string
+					var ct, cb, cc string
+					var ca int
 					_ = cr.Scan(&cid, &pid, &ct, &ca, &cb, &cc)
-					comments = append(comments, map[string]interface{}{"id": cid, "parent_id": pid.Int64, "author_type": ct, "author_id": ca, "body": cb, "created_at": cc})
+					comments = append(comments, map[string]interface{}{"id": cid, "parent_id": pid.Int64, "author_type": ct, "author_id": ca, "author_name": discussionAuthorName(db, ct, ca), "sender_role": ct, "body": cb, "created_at": cc})
 				}
 				cr.Close()
 			}
-			out = append(out, map[string]interface{}{"id": id, "author_type": at, "author_id": authorID, "body": body, "status": status, "created_at": created, "comments": comments})
+			out = append(out, map[string]interface{}{"id": id, "author_type": at, "author_id": authorID, "author_name": discussionAuthorName(db, at, authorID), "sender_role": at, "body": body, "status": status, "created_at": created, "comments": comments})
 		}
 		return c.JSON(http.StatusOK, out)
 	}
@@ -86,6 +100,10 @@ func CreateLMSDiscussionComment(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		did, _ := strconv.Atoi(c.Param("id"))
 		body := strings.TrimSpace(c.FormValue("body"))
+		parentID := 0
+		if value, err := strconv.Atoi(c.FormValue("parent_id")); err == nil && value > 0 {
+			parentID = value
+		}
 		typ, aid := discussionActor(c)
 		var mid int
 		var status string
@@ -96,7 +114,13 @@ func CreateLMSDiscussionComment(db *sql.DB) echo.HandlerFunc {
 		if status == "closed" || body == "" || (typ == "teacher" && !discussionMeetingTeacher(db, mi, aid)) || (typ == "student" && !discussionMeetingStudent(db, mi, aid)) {
 			return c.JSON(403, map[string]string{"message": "Diskusi ditutup atau akses ditolak"})
 		}
-		_, e := db.Exec(`INSERT INTO lms_discussion_comments(discussion_id,author_type,author_id,body,parent_id) VALUES(?,?,?,?,NULL)`, did, typ, aid, body)
+		if parentID > 0 {
+			var parentDiscussionID int
+			if db.QueryRow(`SELECT discussion_id FROM lms_discussion_comments WHERE id=?`, parentID).Scan(&parentDiscussionID) != nil || parentDiscussionID != did {
+				return c.JSON(400, map[string]string{"message": "Induk komentar tidak valid"})
+			}
+		}
+		_, e := db.Exec(`INSERT INTO lms_discussion_comments(discussion_id,author_type,author_id,body,parent_id) VALUES(?,?,?,?,NULLIF(?,0))`, did, typ, aid, body, parentID)
 		if e != nil {
 			return c.JSON(500, map[string]string{"message": "Gagal menambah komentar"})
 		}

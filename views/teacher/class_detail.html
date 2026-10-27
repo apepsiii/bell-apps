@@ -705,7 +705,7 @@
             if(!rows.length){list.innerHTML='<p class="text-xs text-zinc-500">Belum ada diskusi.</p>';return;}
             list.innerHTML=rows.map(d=>`
             <article class="border border-zinc-200 dark:border-zinc-800 rounded-xl p-3">
-                <div class="flex items-center justify-between"><div class="text-xs font-semibold">${esc(d.author_name)} <span class="font-normal text-zinc-500">${d.created_at}</span></div><span class="text-[10px] px-2 py-0.5 rounded-full ${d.status==='open'?'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300':'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'}">${d.status==='open'?'Terbuka':'Ditutup'}</span></div>
+                <div class="flex items-center justify-between"><div class="text-xs font-semibold">${esc(d.author_name)} <span class="ml-1 px-1.5 py-0.5 rounded-full text-[10px] ${d.sender_role==='teacher'?'bg-amber-100 text-amber-700':'bg-blue-100 text-blue-700'}">${d.sender_role==='teacher'?'Guru':'Siswa'}</span> <span class="font-normal text-zinc-500">${d.created_at}</span></div><span class="text-[10px] px-2 py-0.5 rounded-full ${d.status==='open'?'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300':'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'}">${d.status==='open'?'Terbuka':'Ditutup'}</span></div>
                 <p class="text-sm mt-1">${esc(d.body)}</p>
                 <div class="flex items-center gap-3 mt-2 text-xs">
                     <button onclick="reactDiscussion(${d.id})" class="flex items-center gap-1 ${d.my_reaction?'text-violet-600 font-semibold':'text-zinc-500'}"><i data-lucide="thumbs-up" class="w-3.5 h-3.5"></i>${d.reactions?.like||0}</button>
