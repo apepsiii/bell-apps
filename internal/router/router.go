@@ -112,6 +112,11 @@ func RegisterRoutes(e *echo.Echo, db *sql.DB, viewsFS fs.FS, app AppHandlers) {
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"http://localhost:4173", "http://127.0.0.1:4173", "http://localhost:5173", "http://127.0.0.1:5173", "*"},
+		AllowMethods: []string{http.MethodGet, http.MethodHead, http.MethodPut, http.MethodPatch, http.MethodPost, http.MethodDelete, http.MethodOptions},
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
+	}))
 	e.Use(appMiddleware.SecurityHeaders())
 	e.Use(appMiddleware.CSRF())
 
@@ -217,6 +222,12 @@ func RegisterRoutes(e *echo.Echo, db *sql.DB, viewsFS fs.FS, app AppHandlers) {
 	e.POST("/api/attendance/verify-face", app.VerifyFaceAttendanceHandler, handler.DeviceAuth(db))
 	e.GET("/api/face/descriptors", handler.GetFaceDescriptors(db), handler.DeviceAuth(db))
 	e.POST("/api/attendance/test-wa", handler.TestWA(db), appMiddleware.AdminAuth())
+
+	// --- VIRTUAL SCHOOL INTEGRATION API ---
+	e.GET("/api/virtual-school/state", handler.GetVirtualSchoolState(db))
+	e.GET("/api/virtual-school/bells", handler.GetVirtualSchoolBells(db))
+	e.POST("/api/virtual-school/points", handler.AddVirtualSchoolPoint(db))
+	e.POST("/api/virtual-school/attendance", handler.UpdateVirtualSchoolAttendance(db))
 
 	// --- ADMIN ROUTES ---
 	admin := e.Group("/admin", appMiddleware.AdminAuth())
