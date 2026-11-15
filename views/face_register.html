@@ -138,9 +138,9 @@
                 modelBadge.className = 'text-[11px] px-2.5 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full font-medium';
                 modelBadge.innerText = 'AI Ringan Siap';
 
-                // Start Camera with optimal lightweight resolution
+                // Start Camera with standard 640x480 resolution
                 mediaStream = await navigator.mediaDevices.getUserMedia({
-                    video: { width: { ideal: 480 }, height: { ideal: 360 }, facingMode: 'user' }
+                    video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' }
                 });
                 video.srcObject = mediaStream;
 
@@ -151,9 +151,21 @@
             }
         }
 
+        // L2 vector normalization helper (guarantees Euclidean norm = 1.0)
+        function normalizeL2(arr) {
+            let sumSq = 0;
+            for (let i = 0; i < arr.length; i++) sumSq += arr[i] * arr[i];
+            const norm = Math.sqrt(sumSq);
+            if (norm > 1e-6) {
+                for (let i = 0; i < arr.length; i++) arr[i] /= norm;
+            }
+            return arr;
+        }
+
         // Lightweight detection loop (4 FPS)
         async function startLoop() {
-            const detectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 });
+            // Using standard inputSize: 416 for sharp, highly accurate landmarks
+            const detectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.55 });
 
             const check = async () => {
                 if (isReady && video.readyState === 4 && samples.length < 3) {
@@ -166,9 +178,22 @@
                         currentDetection = result;
 
                         if (result) {
-                            faceOval.classList.add('detected');
-                            promptText.innerText = "Wajah Terdeteksi! Klik 'Ambil Foto'";
-                            btnSnap.disabled = false;
+                            const box = result.box || (result.detection && result.detection.box);
+                            if (box && (box.width < 120 || box.height < 120)) {
+                                faceOval.classList.remove('detected');
+                                promptText.innerText = "Dekatkan wajah ke kamera (terlalu jauh)";
+                                btnSnap.disabled = true;
+                            } else {
+                                faceOval.classList.add('detected');
+                                if (samples.length === 0) {
+                                    promptText.innerText = "Sample 1: Wajah lurus menatap kamera. Klik 'Ambil Foto'";
+                                } else if (samples.length === 1) {
+                                    promptText.innerText = "Sample 2: Sedikit senyum atau sedikit menoleh. Klik 'Ambil Foto'";
+                                } else if (samples.length === 2) {
+                                    promptText.innerText = "Sample 3: Variasi ekspresi wajar. Klik 'Ambil Foto'";
+                                }
+                                btnSnap.disabled = false;
+                            }
                         } else {
                             faceOval.classList.remove('detected');
                             promptText.innerText = "Posisikan wajah tepat di dalam lingkaran oval";
@@ -186,7 +211,10 @@
         function takeSnapshot() {
             if (!currentDetection || samples.length >= 3) return;
 
-            samples.push(Array.from(currentDetection.descriptor));
+            // Normalize individual sample vector before adding
+            const rawDesc = Array.from(currentDetection.descriptor);
+            const normDesc = normalizeL2(new Float32Array(rawDesc));
+            samples.push(Array.from(normDesc));
 
             // Thumbnail
             const canvas = document.createElement('canvas');
@@ -236,7 +264,7 @@
 
             // Calculate mean descriptor
             const dim = 128;
-            const meanDesc = new Array(dim).fill(0);
+            const meanDesc = new Float32Array(dim).fill(0);
             for (let i = 0; i < dim; i++) {
                 let sum = 0;
                 for (let j = 0; j < samples.length; j++) {
@@ -244,6 +272,8 @@
                 }
                 meanDesc[i] = sum / samples.length;
             }
+            // CRITICAL: Normalize mean descriptor with L2 norm
+            const normalizedMean = normalizeL2(meanDesc);
 
             try {
                 const csrfToken = getCsrfToken();
@@ -261,7 +291,8 @@
                         student_id: USER_TYPE === 'Staff' ? 0 : USER_ID,
                         staff_id: USER_TYPE === 'Staff' ? USER_ID : 0,
                         user_type: USER_TYPE,
-                        descriptor: meanDesc
+                        descriptor: Array.from(normalizedMean),
+                        descriptors: samples
                     })
                 });
 
