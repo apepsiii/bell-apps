@@ -2771,6 +2771,13 @@ func (a *App) VerifyFaceAttendanceHandler(c echo.Context) error {
 		}
 	}
 
+	// Strict Server-side Safety Threshold: Reject distance > 0.44 to prevent false matches
+	if req.Distance > 0.44 {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"message": "Tingkat kecocokan wajah belum memenuhi syarat akurasi presensi",
+		})
+	}
+
 	// -------------------------------------------------------------
 	// STAFF FACE RECOGNITION BRANCH
 	// -------------------------------------------------------------
@@ -3179,6 +3186,13 @@ func (a *App) VerifyFaceAttendanceHandler(c echo.Context) error {
 		}
 	}()
 
+	welcomeMsg := "Selamat Datang, " + name
+	if status == "Pulang" {
+		welcomeMsg = "Terima kasih " + name + ", hati-hati di jalan"
+	} else if status == "Terlambat" {
+		welcomeMsg = "Selamat Datang, " + name + " (Presensi Terlambat)"
+	}
+
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"status":            "matched",
 		"attendance_status": status,
@@ -3186,7 +3200,7 @@ func (a *App) VerifyFaceAttendanceHandler(c echo.Context) error {
 		"student_id":        studentID,
 		"name":              name,
 		"class_name":        className,
-		"message":           "Absen " + status + " Berhasil",
+		"message":           welcomeMsg,
 		"photo":             photo,
 		"time":              timeStr,
 	})

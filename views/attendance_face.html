@@ -134,6 +134,13 @@
             animation: pulse-success 1.5s infinite;
         }
 
+        .face-oval-guide.verifying {
+            border-color: #f59e0b;
+            border-style: solid;
+            box-shadow: 0 0 30px rgba(245, 158, 11, 0.5);
+            animation: pulse-verifying 0.5s infinite alternate;
+        }
+
         .face-oval-guide.unknown {
             border-color: #f43f5e;
             border-style: solid;
@@ -143,6 +150,11 @@
         @keyframes pulse-success {
             0%, 100% { transform: translate(-50%, -50%) scale(1); }
             50% { transform: translate(-50%, -50%) scale(1.02); }
+        }
+
+        @keyframes pulse-verifying {
+            0% { transform: translate(-50%, -50%) scale(1); }
+            100% { transform: translate(-50%, -50%) scale(1.02); }
         }
 
         /* Scanning Laser Line */
@@ -390,9 +402,11 @@
         }
 
         const MODEL_URL = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/";
-        const MATCH_THRESHOLD = 0.52; // Jarak Euclidean threshold (< 0.52 = cocok akurat)
+        const MATCH_THRESHOLD = 0.42; // Jarak Euclidean threshold (< 0.42 = sangat akurat, anti-salah-orang)
         const SCAN_DEBOUNCE_MS = 2500; // Jeda antar scan umum
         const STUDENT_COOLDOWN_MS = 30000; // Jeda untuk siswa yang sama agar tidak tercatat berulang
+        const REQUIRED_CONSECUTIVE_MATCHES = 3; // Multi-Frame Consensus: wajib cocok 3 frame berturut-turut
+        const MIN_FACE_SIZE = 110; // Ukuran minimal kotak wajah (anti-background & anti-orang jauh)
 
         let mediaStream = null;
         let isModelsLoaded = false;
@@ -404,6 +418,34 @@
         let scanLock = false;
         let personLastScanned = new Map(); // personKey -> timestamp
         let studentLastScanned = personLastScanned; // Backward compatibility
+
+        // Multi-Frame Consensus Tracking
+        let matchStreak = {
+            label: null,
+            count: 0,
+            bestDistance: 1.0,
+            person: null,
+            payload: null
+        };
+
+        function resetMatchStreak() {
+            matchStreak.label = null;
+            matchStreak.count = 0;
+            matchStreak.bestDistance = 1.0;
+            matchStreak.person = null;
+            matchStreak.payload = null;
+        }
+
+        // L2 vector normalization helper
+        function normalizeL2(arr) {
+            let sumSq = 0;
+            for (let i = 0; i < arr.length; i++) sumSq += arr[i] * arr[i];
+            const norm = Math.sqrt(sumSq);
+            if (norm > 1e-6) {
+                for (let i = 0; i < arr.length; i++) arr[i] /= norm;
+            }
+            return arr;
+        }
 
         let frameCount = 0;
         let lastFpsTime = Date.now();
@@ -499,12 +541,32 @@
                 document.getElementById('db-count-badge').innerText = `${registeredPersons.length} Wajah`;
 
                 if (registeredPersons.length > 0) {
-                    const labeled = registeredPersons.map(p => {
-                        const descriptorArray = new Float32Array(p.descriptor);
-                        const label = (p.user_type === 'Staff' || p.staff_id > 0) ? `staff_${p.staff_id}` : `student_${p.student_id}`;
-                        return new faceapi.LabeledFaceDescriptors(label, [descriptorArray]);
+                    const labeled = [];
+                    registeredPersons.forEach(p => {
+                        let descs = [];
+                        if (Array.isArray(p.descriptors) && p.descriptors.length > 0) {
+                            p.descriptors.forEach(d => {
+                                if (Array.isArray(d) && d.length > 0) {
+                                    descs.push(normalizeL2(new Float32Array(d)));
+                                }
+                            });
+                        } else if (Array.isArray(p.descriptor) && p.descriptor.length > 0) {
+                            if (Array.isArray(p.descriptor[0])) {
+                                p.descriptor.forEach(d => {
+                                    if (Array.isArray(d) && d.length > 0) {
+                                        descs.push(normalizeL2(new Float32Array(d)));
+                                    }
+                                });
+                            } else {
+                                descs.push(normalizeL2(new Float32Array(p.descriptor)));
+                            }
+                        }
+                        if (descs.length > 0) {
+                            const label = (p.user_type === 'Staff' || p.staff_id > 0) ? `staff_${p.staff_id}` : `student_${p.student_id}`;
+                            labeled.push(new faceapi.LabeledFaceDescriptors(label, descs));
+                        }
                     });
-                    faceMatcher = new faceapi.FaceMatcher(labeled, MATCH_THRESHOLD);
+                    faceMatcher = labeled.length > 0 ? new faceapi.FaceMatcher(labeled, MATCH_THRESHOLD) : null;
                 } else {
                     faceMatcher = null;
                 }
@@ -548,8 +610,11 @@
             }
         }
 
-        // 4. Real-time Recognition Loop (Low-Latency Client-Side)
+        // 4. Real-time Recognition Loop (Low-Latency Client-Side with Multi-Frame Consensus)
         async function startFaceRecognitionLoop() {
+            // Using standard inputSize: 416 for high-accuracy landmark alignment
+            const detectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.55 });
+
             const step = async () => {
                 if (video.readyState === 4 && isModelsLoaded && isScanning && !scanLock) {
                     try {
@@ -563,20 +628,49 @@
                             fpsBadge.innerText = `FPS: ${fps}`;
                         }
 
-                        // Edge face detection & 128D descriptor computation (Tiny, Ultra-fast)
+                        // Edge face detection & 128D descriptor computation (Sharp 416 input)
                         const detection = await faceapi
-                            .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 }))
+                            .detectSingleFace(video, detectorOptions)
                             .withFaceLandmarks(true)
                             .withFaceDescriptor();
 
                         if (detection) {
-                            if (faceMatcher) {
-                                const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
+                            const box = detection.box || (detection.detection && detection.detection.box);
+                            const videoW = video.videoWidth || 640;
+                            const videoH = video.videoHeight || 480;
 
-                                if (bestMatch.label !== 'unknown') {
+                            // Quality Gate 1: Ukuran Wajah (Distance Check)
+                            if (box && (box.width < MIN_FACE_SIZE || box.height < MIN_FACE_SIZE)) {
+                                resetMatchStreak();
+                                faceGuide.className = 'face-oval-guide';
+                                detectionPrompt.innerHTML = `<i data-lucide="zoom-in" class="w-4 h-4 text-amber-400"></i> Silakan Lebih Dekat ke Kamera`;
+                                lucide.createIcons();
+                                setTimeout(step, 110);
+                                return;
+                            }
+
+                            // Quality Gate 2: Posisi Wajah (Centering Check)
+                            if (box) {
+                                const centerX = box.x + box.width / 2;
+                                const centerY = box.y + box.height / 2;
+                                if (centerX < videoW * 0.16 || centerX > videoW * 0.84 || centerY < videoH * 0.10 || centerY > videoH * 0.90) {
+                                    resetMatchStreak();
+                                    faceGuide.className = 'face-oval-guide';
+                                    detectionPrompt.innerHTML = `<i data-lucide="scan" class="w-4 h-4 text-amber-400"></i> Posisikan Wajah di Tengah Oval`;
+                                    lucide.createIcons();
+                                    setTimeout(step, 110);
+                                    return;
+                                }
+                            }
+
+                            if (faceMatcher) {
+                                const normDesc = normalizeL2(new Float32Array(detection.descriptor));
+                                const bestMatch = faceMatcher.findBestMatch(normDesc);
+
+                                if (bestMatch.label !== 'unknown' && bestMatch.distance <= MATCH_THRESHOLD) {
+                                    const label = bestMatch.label;
                                     let person = null;
                                     let payload = { distance: parseFloat(bestMatch.distance.toFixed(4)) };
-                                    const label = bestMatch.label;
 
                                     if (label.startsWith('staff_')) {
                                         const staffId = parseInt(label.replace('staff_', ''));
@@ -593,26 +687,63 @@
                                     // Check cooldown for this particular person
                                     const lastScan = personLastScanned.get(label) || 0;
                                     if (now - lastScan < STUDENT_COOLDOWN_MS) {
+                                        resetMatchStreak();
                                         faceGuide.className = 'face-oval-guide matched';
                                         const pName = person ? person.name : (payload.user_type === 'Staff' ? 'Guru/Staff' : 'Siswa');
                                         detectionPrompt.innerHTML = `<i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> ${pName} sudah absen tadi`;
                                         lucide.createIcons();
                                     } else {
-                                        // Match Found! Record Attendance
-                                        faceGuide.className = 'face-oval-guide matched';
-                                        await onFaceRecognized(person, payload, label);
+                                        // Multi-Frame Consensus Check
+                                        if (matchStreak.label === label) {
+                                            matchStreak.count++;
+                                            if (bestMatch.distance < matchStreak.bestDistance) {
+                                                matchStreak.bestDistance = bestMatch.distance;
+                                                matchStreak.payload.distance = parseFloat(bestMatch.distance.toFixed(4));
+                                            }
+                                        } else {
+                                            // Reset streak on new/different label
+                                            matchStreak.label = label;
+                                            matchStreak.count = 1;
+                                            matchStreak.bestDistance = bestMatch.distance;
+                                            matchStreak.person = person;
+                                            matchStreak.payload = payload;
+                                        }
+
+                                        const pName = person ? person.name.split(' ')[0] : 'Wajah Terdeteksi';
+
+                                        if (matchStreak.count >= REQUIRED_CONSECUTIVE_MATCHES) {
+                                            // Consensus Confirmed!
+                                            faceGuide.className = 'face-oval-guide matched';
+                                            const matchPercent = Math.max(0, Math.min(100, Math.round((1 - (matchStreak.bestDistance / MATCH_THRESHOLD) * 0.4) * 100)));
+                                            detectionPrompt.innerHTML = `<i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i> Terverifikasi: ${pName} (${matchPercent}%)`;
+                                            lucide.createIcons();
+
+                                            const finalPerson = matchStreak.person;
+                                            const finalPayload = matchStreak.payload;
+                                            const finalLabel = matchStreak.label;
+                                            resetMatchStreak();
+
+                                            await onFaceRecognized(finalPerson, finalPayload, finalLabel);
+                                        } else {
+                                            // Verifying state with animated pulse
+                                            faceGuide.className = 'face-oval-guide verifying';
+                                            detectionPrompt.innerHTML = `<span class="inline-block w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping mr-1"></span> Memverifikasi ${pName}... (${matchStreak.count}/${REQUIRED_CONSECUTIVE_MATCHES})`;
+                                        }
                                     }
                                 } else {
+                                    resetMatchStreak();
                                     faceGuide.className = 'face-oval-guide unknown';
-                                    detectionPrompt.innerHTML = `<i data-lucide="help-circle" class="w-4 h-4 text-amber-400"></i> Wajah belum terdaftar di sistem`;
+                                    detectionPrompt.innerHTML = `<i data-lucide="help-circle" class="w-4 h-4 text-rose-400"></i> Wajah belum terdaftar di sistem`;
                                     lucide.createIcons();
                                 }
                             } else {
+                                resetMatchStreak();
                                 faceGuide.className = 'face-oval-guide';
                                 detectionPrompt.innerHTML = `<i data-lucide="alert-circle" class="w-4 h-4 text-amber-400"></i> Belum ada data wajah terdaftar`;
                                 lucide.createIcons();
                             }
                         } else {
+                            resetMatchStreak();
                             faceGuide.className = 'face-oval-guide';
                             detectionPrompt.innerHTML = `<i data-lucide="smile" class="w-4 h-4 text-purple-400"></i> Silakan Menghadap ke Kamera`;
                             lucide.createIcons();
@@ -622,8 +753,8 @@
                     }
                 }
 
-                // Smooth frame loop (~8 FPS is optimal for tablet battery, CPU, and sub-200ms recognition)
-                setTimeout(step, 120);
+                // Smooth frame loop (~8-9 FPS is optimal for tablet battery, CPU, and sub-200ms recognition)
+                setTimeout(step, 110);
             };
             step();
         }
@@ -680,9 +811,10 @@
                             if (data.attendance_status === 'Pulang') {
                                 speakMessage(`Terima kasih ${firstName}, hati-hati di jalan`);
                             } else if (data.attendance_status === 'Terlambat') {
-                                speakMessage(`Terima kasih ${firstName}, presensi terlambat dicatat`);
+                                speakMessage(`Selamat Datang ${firstName}, presensi tercatat terlambat`);
                             } else {
-                                speakMessage(`Terima kasih ${firstName}, selamat belajar`);
+                                // Saat siswa datang: "Selamat Datang {nama}"
+                                speakMessage(`Selamat Datang ${firstName}`);
                             }
                         }
 
@@ -717,9 +849,10 @@
                 console.error("Attendance record error:", err);
             }
 
-            // Release lock after debounce
+            // Release lock after debounce and clear streak
             setTimeout(() => {
                 scanLock = false;
+                resetMatchStreak();
             }, SCAN_DEBOUNCE_MS);
         }
 
@@ -779,7 +912,12 @@
             } else {
                 badgeEl.innerText = 'HADIR';
                 badgeEl.className = 'px-2.5 py-0.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 rounded-full text-[11px] font-bold uppercase tracking-wider font-mono';
-                msgEl.innerText = apiData.message || 'Presensi Berhasil Dicatat';
+                const displayName = apiData.name || (person ? person.name : 'Siswa');
+                if (isStaff) {
+                    msgEl.innerText = `Selamat Datang, ${apiData.honorific || 'Bapak/Ibu'} ${displayName}`;
+                } else {
+                    msgEl.innerText = `Selamat Datang, ${displayName}!`;
+                }
                 msgEl.className = 'text-xs text-emerald-600 dark:text-emerald-400 mt-1 font-semibold';
             }
 

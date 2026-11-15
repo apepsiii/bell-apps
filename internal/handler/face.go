@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -19,26 +20,73 @@ func getDB(db interface{}) *sql.DB {
 }
 
 type FaceDescriptorItem struct {
-	ID         int       `json:"id"`
-	StudentID  int       `json:"student_id,omitempty"`
-	StaffID    int       `json:"staff_id,omitempty"`
-	UserType   string    `json:"user_type"` // "Siswa" or "Staff"
-	Name       string    `json:"name"`
-	NIS        string    `json:"nis,omitempty"`
-	NIP        string    `json:"nip,omitempty"`
-	ClassName  string    `json:"class_name,omitempty"`
-	Role       string    `json:"role,omitempty"`
-	Gender     string    `json:"gender,omitempty"`
-	Honorific  string    `json:"honorific,omitempty"`
-	Photo      string    `json:"photo"`
-	Descriptor []float64 `json:"descriptor"`
+	ID          int           `json:"id"`
+	StudentID   int           `json:"student_id,omitempty"`
+	StaffID     int           `json:"staff_id,omitempty"`
+	UserType    string        `json:"user_type"` // "Siswa" or "Staff"
+	Name        string        `json:"name"`
+	NIS         string        `json:"nis,omitempty"`
+	NIP         string        `json:"nip,omitempty"`
+	ClassName   string        `json:"class_name,omitempty"`
+	Role        string        `json:"role,omitempty"`
+	Gender      string        `json:"gender,omitempty"`
+	Honorific   string        `json:"honorific,omitempty"`
+	Photo       string        `json:"photo"`
+	Descriptor  []float64     `json:"descriptor,omitempty"`
+	Descriptors [][]float64   `json:"descriptors,omitempty"`
 }
 
 type SaveFaceDescriptorRequest struct {
-	StudentID  int       `json:"student_id"`
-	StaffID    int       `json:"staff_id"`
-	UserType   string    `json:"user_type"` // "Siswa" or "Staff"
-	Descriptor []float64 `json:"descriptor"`
+	StudentID   int           `json:"student_id"`
+	StaffID     int           `json:"staff_id"`
+	UserType    string        `json:"user_type"` // "Siswa" or "Staff"
+	Descriptor  []float64     `json:"descriptor,omitempty"`
+	Descriptors [][]float64   `json:"descriptors,omitempty"`
+}
+
+// normalizeL2Slice ensures the 128-D embedding vector is strictly on the unit hypersphere (norm = 1.0)
+func normalizeL2Slice(v []float64) []float64 {
+	if len(v) == 0 {
+		return v
+	}
+	var sumSq float64
+	for _, val := range v {
+		sumSq += val * val
+	}
+	norm := math.Sqrt(sumSq)
+	if norm > 1e-6 {
+		res := make([]float64, len(v))
+		for i, val := range v {
+			res[i] = val / norm
+		}
+		return res
+	}
+	return v
+}
+
+// parseAndNormalizeDescriptors extracts either multi-sample [][]float64 or single []float64
+// and normalizes all vectors to unit hypersphere length.
+func parseAndNormalizeDescriptors(descStr string) ([]float64, [][]float64) {
+	var multi [][]float64
+	if err := json.Unmarshal([]byte(descStr), &multi); err == nil && len(multi) > 0 {
+		var normMulti [][]float64
+		for _, v := range multi {
+			if len(v) > 0 {
+				normMulti = append(normMulti, normalizeL2Slice(v))
+			}
+		}
+		if len(normMulti) > 0 {
+			return normMulti[0], normMulti
+		}
+	}
+
+	var single []float64
+	if err := json.Unmarshal([]byte(descStr), &single); err == nil && len(single) > 0 {
+		normSingle := normalizeL2Slice(single)
+		return normSingle, [][]float64{normSingle}
+	}
+
+	return nil, nil
 }
 
 type FaceStatusResponse struct {
@@ -120,9 +168,12 @@ func GetFaceDescriptors(db interface{}) echo.HandlerFunc {
 				var item FaceDescriptorItem
 				var descStr string
 				if err := studentRows.Scan(&item.StudentID, &descStr, &item.Name, &item.NIS, &item.ClassName, &item.Photo); err == nil {
-					if err := json.Unmarshal([]byte(descStr), &item.Descriptor); err == nil && len(item.Descriptor) > 0 {
+					primary, all := parseAndNormalizeDescriptors(descStr)
+					if len(primary) > 0 {
 						item.ID = item.StudentID
 						item.UserType = "Siswa"
+						item.Descriptor = primary
+						item.Descriptors = all
 						list = append(list, item)
 					}
 				}
@@ -142,21 +193,22 @@ func GetFaceDescriptors(db interface{}) echo.HandlerFunc {
 				var staffID int
 				var descStr, name, nip, role, gender string
 				if err := staffRows.Scan(&staffID, &descStr, &name, &nip, &role, &gender); err == nil {
-					var desc []float64
-					if err := json.Unmarshal([]byte(descStr), &desc); err == nil && len(desc) > 0 {
+					primary, all := parseAndNormalizeDescriptors(descStr)
+					if len(primary) > 0 {
 						honorific := DetermineStaffHonorific(gender, name)
 						list = append(list, FaceDescriptorItem{
-							ID:         staffID,
-							StaffID:    staffID,
-							UserType:   "Staff",
-							Name:       name,
-							NIP:        nip,
-							Role:       role,
-							ClassName:  role,
-							Gender:     gender,
-							Honorific:  honorific,
-							Photo:      "",
-							Descriptor: desc,
+							ID:          staffID,
+							StaffID:     staffID,
+							UserType:    "Staff",
+							Name:        name,
+							NIP:         nip,
+							Role:        role,
+							ClassName:   role,
+							Gender:      gender,
+							Honorific:   honorific,
+							Photo:       "",
+							Descriptor:  primary,
+							Descriptors: all,
 						})
 					}
 				}
@@ -181,11 +233,27 @@ func SaveFaceDescriptor(db interface{}) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid request body"})
 		}
 
-		if len(req.Descriptor) == 0 {
+		if len(req.Descriptor) == 0 && len(req.Descriptors) == 0 {
 			return c.JSON(http.StatusBadRequest, map[string]string{"message": "descriptor wajah wajib diisi"})
 		}
 
-		descBytes, err := json.Marshal(req.Descriptor)
+		var descBytes []byte
+		var err error
+		if len(req.Descriptors) > 0 {
+			var normMulti [][]float64
+			for _, d := range req.Descriptors {
+				if len(d) > 0 {
+					normMulti = append(normMulti, normalizeL2Slice(d))
+				}
+			}
+			if len(normMulti) == 0 {
+				return c.JSON(http.StatusBadRequest, map[string]string{"message": "descriptor sample tidak valid"})
+			}
+			descBytes, err = json.Marshal(normMulti)
+		} else {
+			normSingle := normalizeL2Slice(req.Descriptor)
+			descBytes, err = json.Marshal(normSingle)
+		}
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Gagal serialisasi descriptor"})
 		}
